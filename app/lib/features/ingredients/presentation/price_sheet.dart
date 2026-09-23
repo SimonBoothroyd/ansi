@@ -1,10 +1,12 @@
-/// The price sheet (*paid* … *for* … *at*): the one place a price is typed.
+/// The price sheet (*paid* … *for* …): the one place a price is typed, and
+/// what it types is the row's base price.
 ///
 /// The pack is picked from the quantity sheet's chip row ([UnitChipRow]); the
 /// dock shows the derived figure (`= 77¢ / 100 g`) or the refusal
-/// (`priceRefusal`); the store is a word from the household's chips. Save
-/// writes one `manual` receipt with one line. Opened on a stored line, Done
-/// writes an UPDATE and a Delete sits under it. Hand-typed prices only.
+/// (`priceRefusal`). Done sets the row's [BasePrice] — never a receipt, and so
+/// never a shop in the ledger or the week's spend. Opened on the stored base
+/// price, a Delete sits under Done. A price paid on a receipt is corrected on
+/// its receipt, never here.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -36,14 +38,14 @@ const kPriceDerivedKey = ValueKey('price-derived');
 /// The sheet's Delete, for the same reason.
 const kPriceDeleteKey = ValueKey('price-delete');
 
-/// Opens the price sheet for [ingredient]. Resolves to true when a price was
-/// written or taken back, null when dismissed. [editing] opens it on a stored
-/// line. Goes through [showAnsiSheet], so it is a centred dialog from `medium`
-/// up.
+/// Opens the price sheet for [ingredient]'s base price. Resolves to true when
+/// it was set or taken back, null when dismissed. [editing] opens it on the
+/// stored one. Goes through [showAnsiSheet], so it is a centred dialog from
+/// `medium` up.
 Future<bool?> showPriceSheet(
   BuildContext context, {
   required Ingredient ingredient,
-  PriceObservation? editing,
+  BasePrice? editing,
 }) {
   return showAnsiSheet<bool>(
     context: context,
@@ -65,8 +67,8 @@ class PriceEditor extends HookConsumerWidget {
 
   final Ingredient ingredient;
 
-  /// The stored price this sheet is fixing, or null when it is entering one.
-  final PriceObservation? editing;
+  /// The stored base price this sheet is changing, or null when there is none.
+  final BasePrice? editing;
 
   final VoidCallback onSaved;
 
@@ -75,14 +77,10 @@ class PriceEditor extends HookConsumerWidget {
     final paidCents = useState<int?>(null);
     final packAmount = useState<double?>(null);
     final choice = useState<UnitChoice?>(null);
-    final store = useState<String?>(null);
-    // A store named through `＋` in this sitting. It joins the chip row at once
-    // and is remembered only when Save lands.
-    final coined = useState<List<String>>(const []);
     final busy = useState(false);
     final paidField = useTextEditingController();
     final packField = useTextEditingController();
-    // The stored line is copied into the fields once, after the row's measures
+    // The stored price is copied into the fields once, after the row's measures
     // arrive: a `bag` chip cannot be selected before it exists, and re-seeding
     // later would overwrite typing.
     final seeded = useRef(false);
@@ -92,22 +90,20 @@ class PriceEditor extends HookConsumerWidget {
     final prices =
         ref.watch(ingredientPricesProvider(ingredient.id)).asData?.value ??
         const <PriceObservation>[];
-    final remembered =
-        ref.watch(priceStoresProvider).asData?.value ?? const <String>[];
 
-    final line = editing;
+    final stored = editing;
     useEffect(() {
-      if (line == null || seeded.value || measuresAsync.asData == null) {
+      if (stored == null || seeded.value || measuresAsync.asData == null) {
         return null;
       }
       seeded.value = true;
-      // The pack as entered, when the line kept it and its chip still exists;
+      // The pack as entered, when it was kept and its chip still exists;
       // otherwise the basis figure.
-      final asEntered = enteredChoice(line, measures);
-      choice.value = asEntered ?? UnitOption(line.basis.baseUnit);
+      final asEntered = enteredChoice(stored, measures);
+      choice.value = asEntered ?? UnitOption(stored.basis.baseUnit);
       final amount = asEntered == null
-          ? line.packBasisAmount
-          : line.packAmount ?? line.packBasisAmount;
+          ? stored.packBasisAmount
+          : stored.packAmount ?? stored.packBasisAmount;
       packAmount.value = amount;
       packField.text = switch (choice.value) {
         MeasureOption() => formatAmount(amount),
@@ -115,46 +111,25 @@ class PriceEditor extends HookConsumerWidget {
         RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
         null => formatAmount(amount),
       };
-      // What the line RANG UP as, which is what a person corrects. Its printed
-      // deduction is the paper's and is left exactly where it was.
-      paidCents.value = line.cents;
-      paidField.text = dollarsTyped(line.cents);
-      store.value = line.store;
+      paidCents.value = stored.cents;
+      paidField.text = dollarsTyped(stored.cents);
       return null;
     }, [measuresAsync]);
 
     // Opens on the first chip offered, as the quantity sheet does, or on the
-    // stored line's chip seeded above.
+    // stored price's chip seeded above.
     final packChoice = choice.value ?? firstOfferedChoice(ingredient, measures);
 
-    final stores = <String>[
-      ...coined.value,
-      for (final word in remembered)
-        if (!coined.value.contains(word)) word,
-    ];
-    final pickedStore = store.value ?? (stores.isEmpty ? null : stores.first);
-
     // Derived only once both halves are stated; an empty field is not an error.
-    // What was paid is the typed figure less the line's printed deduction,
-    // which is zero on a hand-typed price.
     final derived = paidCents.value == null || packAmount.value == null
         ? null
         : priceFromEntry(
             ingredient,
-            paidCents: paidCents.value! - (line?.discountCents ?? 0),
+            paidCents: paidCents.value!,
             packAmount: packAmount.value!,
             packChoice: packChoice,
           );
-    final canSave =
-        !busy.value && pickedStore != null && derived is Ok<PricePer100>;
-
-    void nameAStore(String word) {
-      // The sheet can be dismissed while the prompt is up; touching hook
-      // state then would throw.
-      if (!context.mounted) return;
-      coined.value = [word, ...coined.value];
-      store.value = word;
-    }
+    final canSave = !busy.value && derived is Ok<PricePer100>;
 
     Future<void> save() async {
       final pack = packInBasis(
@@ -170,29 +145,15 @@ class PriceEditor extends HookConsumerWidget {
       final repository = ref.read(priceRepositoryProvider);
       final saved = await ref.writeOk(
         context,
-        line == null ? 'save that price' : 'change that price',
-        () => line == null
-            ? repository.recordManualPrice(
-                ingredientId: ingredient.id,
-                cents: paidCents.value!,
-                packBasisAmount: pack.value,
-                store: pickedStore!,
-                packAmount: entered.amount,
-                packUnitId: entered.unitId,
-                measureId: entered.measureId,
-              )
-            : repository.updatePrice(
-                lineId: line.lineId,
-                cents: paidCents.value!,
-                packBasisAmount: pack.value,
-                store: pickedStore!,
-                // An edit is a correction, not a second shop: the price keeps
-                // the day it was paid on.
-                purchasedAt: line.purchasedAt,
-                packAmount: entered.amount,
-                packUnitId: entered.unitId,
-                measureId: entered.measureId,
-              ),
+        stored == null ? 'save that price' : 'change that price',
+        () => repository.setBasePrice(
+          ingredientId: ingredient.id,
+          cents: paidCents.value!,
+          packBasisAmount: pack.value,
+          packAmount: entered.amount,
+          packUnitId: entered.unitId,
+          measureId: entered.measureId,
+        ),
       );
       if (!context.mounted) return;
       busy.value = false;
@@ -206,8 +167,10 @@ class PriceEditor extends HookConsumerWidget {
       final host = hostContextOf(context);
       final ok = await askAnsi(
         host.context,
-        title: 'Delete this price?',
-        body: 'It stops counting towards any cost. Earlier prices stay.',
+        title: 'Delete the base price?',
+        body:
+            'A cost then reads only what a receipt says was paid. Receipts '
+            'stay as they are.',
         confirm: 'Delete',
         destructive: true,
       );
@@ -215,7 +178,9 @@ class PriceEditor extends HookConsumerWidget {
       final gone = await container.writeOk(
         host,
         'delete that price',
-        () => container.read(priceRepositoryProvider).deletePrice(line!.lineId),
+        () => container
+            .read(priceRepositoryProvider)
+            .clearBasePrice(ingredient.id),
       );
       if (gone) onSaved();
     }
@@ -229,9 +194,9 @@ class PriceEditor extends HookConsumerWidget {
           style: ansiSerif(size: AnsiType.heading),
           overflow: TextOverflow.ellipsis,
         ),
-        if (line == null
+        if (stored == null
                 ? latestPriceAside(prices.isEmpty ? null : prices.first)
-                : editedPriceAside(line)
+                : editedBasePriceAside(stored)
             case final aside?)
           Padding(
             padding: const EdgeInsets.only(top: 3),
@@ -275,15 +240,6 @@ class PriceEditor extends HookConsumerWidget {
           onSelect: (picked) => choice.value = picked,
         ),
 
-        const SizedBox(height: 16),
-        const AnsiMicroLabel('AT'),
-        StoreChipRow(
-          stores: stores,
-          selected: pickedStore,
-          onSelect: (word) => store.value = word,
-          onCoined: nameAStore,
-        ),
-
         const SizedBox(height: 18),
         PriceDerivedLine(
           derived: derived,
@@ -294,7 +250,7 @@ class PriceEditor extends HookConsumerWidget {
         FButton(onPress: canSave ? save : null, child: const Text('Done')),
         // The way out of a price that should not exist, under the way to fix
         // one — and drawn only where there is something to delete.
-        if (line != null) ...[
+        if (stored != null) ...[
           const SizedBox(height: 8),
           FButton(
             key: kPriceDeleteKey,

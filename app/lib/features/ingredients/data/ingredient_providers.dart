@@ -35,10 +35,8 @@ MeasureRepository measureRepository(Ref ref) => SqliteMeasureRepository(
 );
 
 @Riverpod(keepAlive: true)
-PriceRepository priceRepository(Ref ref) => SqlitePriceRepository(
-  ref.watch(databaseProvider),
-  householdId: ref.watch(currentHouseholdIdProvider),
-);
+PriceRepository priceRepository(Ref ref) =>
+    SqlitePriceRepository(ref.watch(databaseProvider));
 
 /// The USDA probe. Talks to Supabase REST, because `usda_food` never syncs to a
 /// device (ADR-0005). With no backend configured it falls back to a probe that
@@ -108,19 +106,24 @@ Stream<List<ReceiptName>> ingredientReceiptNames(
 Stream<List<String>> priceStores(Ref ref) =>
     ref.watch(priceRepositoryProvider).watchStores();
 
-/// The latest price for every row the household has paid for, keyed by
-/// ingredient id (ADR-0017).
+/// One row's base price, or null. Watched.
 @riverpod
-Stream<Map<String, PriceObservation>> latestPrices(Ref ref) =>
-    ref.watch(priceRepositoryProvider).watchLatestPrices();
+Stream<BasePrice?> ingredientBasePrice(Ref ref, String ingredientId) =>
+    ref.watch(priceRepositoryProvider).watchBasePrice(ingredientId);
+
+/// The price every cost reads, keyed by ingredient id: the newest receipt
+/// price, else the row's base price (`costPriceOf`, ADR-0017).
+@riverpod
+Stream<Map<String, UnitPrice>> costPriceMap(Ref ref) =>
+    ref.watch(priceRepositoryProvider).watchCostPrices();
 
 /// What every vocabulary row costs and how its amounts convert, for a surface
 /// holding amounts rather than recipe lines (the Shop). Assembled from the
-/// vocabulary and latest-price watches; a row the vocabulary has not synced is
+/// vocabulary and cost-price watches; a row the vocabulary has not synced is
 /// absent.
 @riverpod
 Map<String, IngredientPricing> ingredientPricing(Ref ref) {
-  final prices = ref.watch(latestPricesProvider).asData?.value ?? const {};
+  final prices = ref.watch(costPriceMapProvider).asData?.value ?? const {};
   final rows =
       ref.watch(vocabularyProvider).asData?.value ?? const <Ingredient>[];
   return {

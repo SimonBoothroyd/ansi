@@ -196,6 +196,23 @@ void main() {
       expect(cost.unpriced, isEmpty);
     });
 
+    test('a snack with only a base price costs what its row costs', () {
+      final cost = sumPlannedCost(
+        [_snack('e1')],
+        costFor: (_) => _cost(100),
+        priceFor: (id) => BasePrice(
+          ingredientId: id,
+          cents: 349,
+          packBasisAmount: 454,
+          basis: MacrosBasis.perG,
+          setAt: DateTime.utc(2026, 9, 13),
+        ),
+        membersById: _members,
+      );
+      expect(cost.cents, closeTo(115.3, 0.1));
+      expect(cost.unpriced, isEmpty);
+    });
+
     test('multiplies over its eaters, exactly as a dish does', () {
       final cost = sumPlannedCost(
         [

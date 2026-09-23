@@ -53,8 +53,8 @@ IngredientPricing? Function(String) _vocab({
   MacrosBasis basis = MacrosBasis.perG,
   double? density,
   double? pieceBasisAmount,
-  PriceObservation? price,
-  Map<String, PriceObservation?> byId = const {},
+  UnitPrice? price,
+  Map<String, UnitPrice?> byId = const {},
 }) =>
     (id) => id == 'missing'
     ? null
@@ -81,6 +81,26 @@ const _weighed = [(qty: 300.0, unit: g)];
 
 void main() {
   group('the price × the amount, in the basis', () {
+    test('a base price prices a line as a receipt would, and dates the '
+        'figure by when it was set', () {
+      final base = BasePrice(
+        ingredientId: 'x',
+        cents: 500,
+        packBasisAmount: 1000,
+        basis: MacrosBasis.perG,
+        setAt: _jul,
+      );
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 250), _line('y', quantity: 100)],
+        pricingOf: _vocab(byId: {'x': base, 'y': _price()}),
+      );
+      expect(summary.totalCents, 175);
+      expect(summary.lineCosts['li-x']!.price, same(base));
+      expect(summary.newestPrice, _sep);
+      expect(summary.oldest!.name, 'x');
+    });
+
     test('a mass line costs its grams at the per-100 g price', () {
       final summary = summarizeRecipeCost(
         servingsBase: 2,
@@ -349,7 +369,7 @@ void main() {
       );
       expect(summary.newestPrice, _sep);
       expect(summary.oldest!.name, 'paprika');
-      expect(summary.oldest!.price.store, 'Whole Foods');
+      expect((summary.oldest!.price as PriceObservation).store, 'Whole Foods');
     });
 
     test('one month across every line names no oldest', () {
@@ -377,8 +397,9 @@ void main() {
       );
       final line = summary.lineCosts['li-x']!;
       expect(line.price!.packLabel, 'can');
-      expect(line.price!.store, "TJ's");
-      expect(line.price!.purchasedAt, _sep);
+      final price = line.price! as PriceObservation;
+      expect(price.store, "TJ's");
+      expect(price.purchasedAt, _sep);
     });
 
     test('is at the STORED amount — the surface scales it', () {

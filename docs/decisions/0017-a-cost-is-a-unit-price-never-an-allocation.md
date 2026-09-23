@@ -2,7 +2,9 @@
 
 - **Status:** accepted (2026-09-16, Simon — owner-ruled on the 0049 design);
   rule 4 amended 2026-09-19 with the floor a partly priced recipe prints, and
-  rule 8 added the same day for the aggregates that leave a meal or a row out
+  rule 8 added the same day for the aggregates that leave a meal or a row out;
+  rule 1 amended with the row's base price (migration 0051, owner-ruled: a
+  price typed on an ingredient must not make a receipt)
 - **Rests on:** [ADR-0007](./0007-shopping-list-thin-overlay.md) (the app keeps
   no inventory), [ADR-0008](./0008-unit-admission-model.md) and
   [ADR-0009](./0009-density-unlocks-both-families.md) (which amounts may reach
@@ -43,12 +45,24 @@ already has a home — the receipt itself.
 **A cost is a unit price applied to an amount. Nothing is ever allocated from
 a receipt to a meal.**
 
-1. **The price is the latest one paid, per unit of the row's basis.** A price
-   is a `receipt_line` with a stated pack; the figure `77¢ / 100 g` is derived
-   from it at read time and never stored — `paid ÷ (count × pack_basis_amount)`,
-   because a line may ring up several of the pack and the pack is what ONE of
-   them comes in (migration 0050). Latest wins — no average, no sale flag, no
-   forecast (a shop's own decision log entry for 0049).
+1. **The price is the latest one paid, else the row's base price, per unit of
+   the row's basis.** A price paid is a `receipt_line` with a stated pack; the
+   figure `77¢ / 100 g` is derived from it at read time and never stored —
+   `paid ÷ (count × pack_basis_amount)`, because a line may ring up several of
+   the pack and the pack is what ONE of them comes in (migration 0050). Latest
+   wins — no average, no sale flag, no forecast (a shop's own decision log
+   entry for 0049).
+
+   A row nothing has been paid for on a receipt reads its **base price**: what
+   the household usually pays for a pack of it, typed on the ingredient page
+   and kept on the `ingredient` row (migration 0051), in the same two
+   denominations a line keeps its pack in and derived the same way. It is not
+   a receipt — a jar of cumin priced by hand is not a shop, and must not reach
+   the ledger or the week's *spent* — and it never outranks a price paid,
+   however recently it was set: what was paid is the better fact, and the base
+   price is what stands in until something has been. The choice is made in one
+   function (`costPriceOf`) that every cost reads through. A figure read off a
+   base price names it where a paid one names its shop (`base price, Sep`).
 
 2. **A recipe costs its lines.** Each line's amount is converted to the
    ingredient's basis unit through **the same conversion the macros use**
@@ -130,9 +144,10 @@ a receipt to a meal.**
 
 ## Consequences
 
-- **Nothing new is stored.** Every cost in the app is derived at read time from
-  rows that already exist, so a corrected receipt moves every screen at once
-  and there is nothing to migrate, recompute or reconcile.
+- **Nothing derived is stored.** Every cost in the app is derived at read time
+  from what was paid or stated — a receipt line, or a row's base price — so a
+  corrected receipt or a changed base price moves every screen at once and
+  there is nothing to migrate, recompute or reconcile.
 - **A price improves silently.** Re-weigh a pack or fix a discount and every
   recipe, week and shopping row that reads that row moves with it.
 - **The gap is visible and honest.** A household that has priced ten rows sees
@@ -162,6 +177,10 @@ a receipt to a meal.**
   one thing a person wants to see — that the olive oil went up — and it makes
   every figure unfollowable: no receipt line is behind it. Latest wins, and the
   panel says which month "latest" is.
+- **A hand-typed price as a one-line receipt.** How typed prices were first
+  kept: one fact, one ledger. It put every herb and cupboard staple priced by
+  hand into the receipts list and the week's spend as a "shop" that never
+  happened, which is the owner's reason for the base price.
 - **Price from the web.** Rejected on availability, not on principle: TJ's has
   no API, and Whole Foods' prices live inside Amazon. Scraping a shelf tag would
   also break the property that every figure in the app traces to something the

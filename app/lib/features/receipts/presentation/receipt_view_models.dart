@@ -65,7 +65,6 @@ class ReceiptReviewing extends ReceiptScanState {
     required this.purchasedAt,
     DateTime? openedAt,
     this.receiptId,
-    this.source = 'photo',
     this.edited = false,
     this.rows = const {},
     this.measuresById = const {},
@@ -77,18 +76,11 @@ class ReceiptReviewing extends ReceiptScanState {
   /// Save rewrites it or writes a new one accordingly.
   final String? receiptId;
 
-  /// How the receipt came to be — `photo`, or `manual` for a price typed on
-  /// an ingredient's page.
-  final String source;
-
   /// Whether anything has been changed since the review opened. A saved
   /// receipt's Save stays shut until it has.
   final bool edited;
 
   bool get isSaved => receiptId != null;
-
-  /// A price typed on an ingredient's page: there was no paper.
-  bool get isManual => source == 'manual';
 
   final ReceiptPayload payload;
   final List<ReceiptLineDraft> drafts;
@@ -126,7 +118,6 @@ class ReceiptReviewing extends ReceiptScanState {
     purchasedAt: purchasedAt,
     openedAt: openedAt,
     receiptId: receiptId,
-    source: source,
     edited: edited,
     rows: rows,
     measuresById: measuresById,
@@ -135,12 +126,12 @@ class ReceiptReviewing extends ReceiptScanState {
   );
 
   /// The review's one map: the header count, the flags, the join and Save all
-  /// read it. A hand-typed receipt has no printed totals to check against.
+  /// read it.
   ReceiptReviewMap get map => receiptReviewMap(
     drafts,
-    printedSubtotalCents: isManual ? null : payload.subtotalCents,
-    printedTaxCents: isManual ? null : payload.taxCents,
-    printedTotalCents: isManual ? null : payload.totalCents,
+    printedSubtotalCents: payload.subtotalCents,
+    printedTaxCents: payload.taxCents,
+    printedTotalCents: payload.totalCents,
   );
 
   ReceiptReviewing copyWith({
@@ -157,7 +148,6 @@ class ReceiptReviewing extends ReceiptScanState {
     purchasedAt: purchasedAt ?? this.purchasedAt,
     openedAt: openedAt,
     receiptId: receiptId,
-    source: source,
     // Rows and measures arriving under a match are part of that edit, so
     // every copy is one.
     edited: true,
@@ -346,7 +336,6 @@ class ReceiptScanController extends _$ReceiptScanController {
         store: stored.store,
         purchasedAt: stored.purchasedAt,
         receiptId: stored.id,
-        source: stored.source,
         rows: rows,
         measuresById: measures,
       );

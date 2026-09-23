@@ -1,9 +1,10 @@
 /// What a row costs. Pure Dart.
 ///
-/// A price is an event: cents paid for a stated pack, at a store, on a day.
-/// Each is one [ReceiptLine] on a [Receipt]; a hand-typed price is a `manual`
-/// receipt of one line. The per-100 figure is derived on read ([pricePer100]),
-/// never stored.
+/// A price is cents paid for a stated pack. A paid price is an event, one
+/// [ReceiptLine] on a [Receipt] ([PriceObservation]); a hand-typed price is the
+/// row's own [BasePrice], on no receipt. Both are a [UnitPrice], and the
+/// per-100 figure is derived on read ([pricePer100]), never stored. Which one a
+/// cost reads is `cost_price.dart`'s one rule.
 library;
 
 import 'package:meta/meta.dart';
@@ -19,8 +20,9 @@ import 'ingredient.dart';
 
 /// Where a receipt came from.
 enum ReceiptSource {
-  /// Typed on an ingredient page: one line, no photo, the store as the chip
-  /// word and the date as now.
+  /// A price typed on an ingredient page by a build that predates base
+  /// prices: one line, no photo. Nothing writes one now; it is still read,
+  /// as an ordinary receipt.
   manual('manual'),
 
   /// Read off a picture through the import pipeline.
@@ -67,7 +69,7 @@ enum ReceiptLineKind {
   }
 }
 
-/// One shop, or one hand-typed price. The printed totals are kept as printed,
+/// One shop. The printed totals are kept as printed,
 /// never re-derived from the lines.
 @immutable
 class Receipt {
@@ -195,10 +197,64 @@ class ReceiptLine {
   int get paidCents => cents - discountCents;
 }
 
-/// One price the household paid: a [ReceiptLine] joined to the [Receipt] that
-/// dates and places it. Every reader of a price reads this shape.
+/// What a cost can be read at: cents paid for a stated pack, per unit of the
+/// row's basis. Either a price paid on a receipt ([PriceObservation]) or the
+/// row's own base price ([BasePrice]); `costPriceOf` says which one a cost
+/// reads.
 @immutable
-class PriceObservation {
+sealed class UnitPrice {
+  const UnitPrice();
+
+  /// Identifies this price among every other, so two readings of the same one
+  /// compare equal: a receipt line's id, or the row's for a base price.
+  String get key;
+
+  /// What was paid for [count] packs.
+  int get paidCents;
+
+  /// What ONE pack is, in [basis]'s own unit. Every derived figure comes from
+  /// this, never from [packAmount].
+  double get packBasisAmount;
+
+  /// How many packs [paidCents] bought; always 1 on a base price.
+  int get count;
+
+  /// The row's basis at the time this was read.
+  MacrosBasis get basis;
+
+  /// The pack as entered: an amount in [packUnit], or, with [packUnit] null
+  /// and [measureId] set, a count of that measure.
+  double? get packAmount;
+
+  /// The catalog unit [packAmount] is said in, or null for a count of a
+  /// measure.
+  Unit? get packUnit;
+
+  /// The measure the pack was tapped as. Kept even when it has since been
+  /// deleted.
+  String? get measureId;
+
+  /// The pack's own word ("bag"). Null for a plain amount, and when the
+  /// measure has since been deleted.
+  String? get packLabel;
+
+  /// The day the figure dates from: the receipt's own, or when a base price
+  /// was last set. A recipe's `prices from` reads it.
+  DateTime get asOf;
+
+  /// What this price says per 100 of the row's basis unit, or a typed refusal
+  /// — see [pricePer100].
+  Result<PricePer100> get per100 => pricePer100(
+    paidCents: paidCents,
+    packBasisAmount: packBasisAmount,
+    count: count,
+    basis: basis,
+  );
+}
+
+/// One price the household paid: a [ReceiptLine] joined to the [Receipt] that
+/// dates and places it.
+final class PriceObservation extends UnitPrice {
   const PriceObservation({
     required this.lineId,
     required this.receiptId,
@@ -223,53 +279,137 @@ class PriceObservation {
   final int cents;
   final int discountCents;
 
-  /// What ONE pack is, in [basis]'s own unit. Positive, or the row would not
-  /// be an observation: [observationFrom] refuses to build one otherwise.
+  /// Positive, or the row would not be an observation: [observationFrom]
+  /// refuses to build one otherwise.
+  @override
   final double packBasisAmount;
 
-  /// How many packs the cents bought; see [ReceiptLine.count]. It multiplies
-  /// [packBasisAmount] in [per100] and is never carried to another receipt.
+  /// See [ReceiptLine.count]. It multiplies [packBasisAmount] in [per100] and
+  /// is never carried to another receipt.
+  @override
   final int count;
 
-  /// The ingredient's basis at the time this was read — the dimension both
-  /// [packBasisAmount] and the derived figure are denominated in.
+  @override
   final MacrosBasis basis;
 
   final String store;
   final DateTime purchasedAt;
 
-  /// What kind of paper is behind this price. Taking back a hand-typed price
-  /// deletes its whole receipt; a line of a photographed receipt only stops
-  /// being a price. Defaults to [ReceiptSource.photo], the conservative
-  /// reading.
+  /// What kind of paper is behind this price. Defaults to
+  /// [ReceiptSource.photo], the conservative reading.
   final ReceiptSource source;
 
-  /// The pack's own word ("bag"). Null for a plain amount, and when the measure
-  /// has since been deleted.
+  @override
   final String? packLabel;
 
-  /// The pack as entered; see [ReceiptLine.packAmount]. The ledger prints this
-  /// and derives from [packBasisAmount].
+  @override
   final double? packAmount;
 
-  /// The catalog unit [packAmount] is said in, or null for a count of
-  /// [packLabel]'s measure — see [ReceiptLine.packUnit].
+  @override
   final Unit? packUnit;
 
-  /// The measure the pack was tapped as, so the reopened sheet lands on the
-  /// same chip. Kept even when the measure has since been deleted.
+  /// Kept even when the measure has since been deleted, so the pack carries to
+  /// the next receipt on the same word.
+  @override
   final String? measureId;
 
+  @override
+  String get key => lineId;
+
   /// What was paid — see [ReceiptLine.paidCents].
+  @override
   int get paidCents => cents - discountCents;
 
-  /// What this observation says per 100 of the row's basis unit, or a typed
-  /// refusal — see [pricePer100].
-  Result<PricePer100> get per100 => pricePer100(
-    paidCents: paidCents,
+  @override
+  DateTime get asOf => purchasedAt;
+}
+
+/// The row's own base price: what the household usually pays for a pack of
+/// it, typed on the ingredient page and kept on the row, on no receipt. A cost
+/// reads it only when no receipt prices the row (`costPriceOf`).
+final class BasePrice extends UnitPrice {
+  const BasePrice({
+    required this.ingredientId,
+    required this.cents,
+    required this.packBasisAmount,
+    required this.basis,
+    required this.setAt,
+    this.packAmount,
+    this.packUnit,
+    this.measureId,
+    this.packLabel,
+  });
+
+  final String ingredientId;
+
+  /// What was paid for one pack.
+  final int cents;
+
+  @override
+  final double packBasisAmount;
+
+  @override
+  final MacrosBasis basis;
+
+  /// When it was last set, as the wall time it was set at.
+  final DateTime setAt;
+
+  @override
+  final double? packAmount;
+
+  @override
+  final Unit? packUnit;
+
+  @override
+  final String? measureId;
+
+  @override
+  final String? packLabel;
+
+  @override
+  String get key => 'base:$ingredientId';
+
+  @override
+  int get paidCents => cents;
+
+  @override
+  int get count => 1;
+
+  @override
+  DateTime get asOf => setAt;
+}
+
+/// The base price a row's stored columns state, or null when they state none
+/// or state one nothing could be read from (no pack, nothing paid) — an
+/// unreadable base price is unpriced, never a zero.
+BasePrice? basePriceFrom({
+  required String ingredientId,
+  required int? cents,
+  required double? packBasisAmount,
+  required MacrosBasis basis,
+  required DateTime? setAt,
+  double? packAmount,
+  Unit? packUnit,
+  String? measureId,
+  String? packLabel,
+}) {
+  if (cents == null ||
+      cents <= 0 ||
+      packBasisAmount == null ||
+      !(packBasisAmount > 0) ||
+      setAt == null) {
+    return null;
+  }
+  return BasePrice(
+    ingredientId: ingredientId,
+    cents: cents,
     packBasisAmount: packBasisAmount,
-    count: count,
     basis: basis,
+    setAt: setAt,
+    packAmount: packAmount,
+    packUnit: packUnit,
+    measureId: measureId,
+    packLabel: packLabel,
   );
 }
 
@@ -308,8 +448,8 @@ class PricePer100 {
 }
 
 /// What [paidCents] for [count] packs of [packBasisAmount] of [basis] comes to
-/// per 100 of it. Every price in the app is read through this; a hand-typed
-/// price passes a [count] of 1.
+/// per 100 of it. Every price in the app is read through this; a base price
+/// passes a [count] of 1.
 ///
 /// Refuses with:
 ///
@@ -438,9 +578,9 @@ PackAsEntered packAsEntered(double amount, UnitChoice choice) =>
     };
 
 /// The chip [price] was entered on, resolved against the row's [measures], for
-/// reopening the price sheet. Null when the line kept no entered pack or its
+/// reopening the price sheet. Null when the price kept no entered pack or its
 /// measure has been deleted.
-UnitChoice? enteredChoice(PriceObservation price, List<Measure> measures) {
+UnitChoice? enteredChoice(UnitPrice price, List<Measure> measures) {
   if (price.packAmount == null) return null;
   final unit = price.packUnit;
   if (unit != null) return UnitOption(unit);

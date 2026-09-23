@@ -1,9 +1,10 @@
 /// Recipe cost summation. Pure Dart. See ADR-0017.
 ///
 /// A line costs its amount in the ingredient's basis unit ([lineAmountInBasis])
-/// times the latest price per unit of that basis. The walk mirrors
-/// `summarizeRecipeMacros`, with imprecise and optional lines excluded through
-/// [effectiveLines]. An unpriced line is named and makes
+/// times the price per unit of that basis that the row's cost reads
+/// (`costPriceOf`: the newest receipt price, else the row's base price). The
+/// walk mirrors `summarizeRecipeMacros`, with imprecise and optional lines
+/// excluded through [effectiveLines]. An unpriced line is named and makes
 /// [RecipeCostSummary.totalCents] null; [RecipeCostSummary.pricedCents] is then
 /// a floor. Money and macros share no code
 /// (`test/structure/cost_and_macros_stay_apart_test.dart`).
@@ -19,15 +20,16 @@ import 'effective_lines.dart';
 import 'line_basis.dart';
 import 'recipe.dart';
 
-/// One vocab ingredient's basis facts and latest price. A null `price` means
-/// nobody has priced the row ([CostLineReason.noPrice]).
-typedef IngredientPricing = ({IngredientBasis row, PriceObservation? price});
+/// One vocab ingredient's basis facts and the price its cost reads. A null
+/// `price` means nobody has priced the row ([CostLineReason.noPrice]).
+typedef IngredientPricing = ({IngredientBasis row, UnitPrice? price});
 
 /// Why one line carries no cost. The first four are gaps
 /// ([RecipeCostSummary.unpriced]); the last two are exclusions by rule
 /// ([RecipeCostSummary.notCounted]).
 enum CostLineReason {
-  /// Nothing has ever been paid for this row — the price sheet is the fix.
+  /// Nothing has been paid for this row and it has no base price — the price
+  /// sheet is the fix.
   noPrice,
 
   /// The line's amount cannot reach the row's basis unit: no density, no piece
@@ -72,25 +74,25 @@ class CostLine {
   /// What this line comes to at the recipe's STORED amount.
   final double cents;
 
-  /// The observation the figure was read from (pack, store, month). Null for a
-  /// component line.
-  final PriceObservation? price;
+  /// The price the figure was read from (pack, provenance, month). Null for
+  /// a component line.
+  final UnitPrice? price;
 
   @override
   bool operator ==(Object other) =>
       other is CostLine &&
       other.cents == cents &&
-      other.price?.lineId == price?.lineId;
+      other.price?.key == price?.key;
 
   @override
-  int get hashCode => Object.hash(cents, price?.lineId);
+  int get hashCode => Object.hash(cents, price?.key);
 
   @override
   String toString() => 'CostLine($cents¢)';
 }
 
 /// The oldest priced line in a recipe, named — the panel's `OLDEST` row.
-typedef OldestPrice = ({String name, PriceObservation price});
+typedef OldestPrice = ({String name, UnitPrice price});
 
 /// A recipe's cost. [totalCents] is set only when every counted line is priced,
 /// at least one line counts and the serving count is positive; otherwise the
@@ -170,7 +172,7 @@ class RecipeCostSummary {
       _sameNotes(other.notCounted, notCounted) &&
       other.newestPrice == newestPrice &&
       other.oldest?.name == oldest?.name &&
-      other.oldest?.price.lineId == oldest?.price.lineId &&
+      other.oldest?.price.key == oldest?.price.key &&
       other.noLines == noLines &&
       other.nothingCountable == nothingCountable;
 
@@ -202,7 +204,7 @@ class RecipeCostSummary {
     Object.hashAll(unpriced),
     Object.hashAll(notCounted),
     newestPrice,
-    oldest?.price.lineId,
+    oldest?.price.key,
     noLines,
     nothingCountable,
   );
@@ -237,7 +239,7 @@ RecipeCostSummary summarizeRecipeCost({
 ).summary;
 
 /// One priced line, with the name the panel would print for it.
-typedef _Seen = ({String name, PriceObservation price});
+typedef _Seen = ({String name, UnitPrice price});
 
 /// The summary, plus every observation that went into it, including a
 /// component's, so a parent's `prices from` sees through nested recipes.
@@ -352,19 +354,17 @@ _Walk _summarize({
   _Seen? newest;
   _Seen? oldest;
   for (final s in seen) {
-    if (newest == null ||
-        s.price.purchasedAt.isAfter(newest.price.purchasedAt)) {
+    if (newest == null || s.price.asOf.isAfter(newest.price.asOf)) {
       newest = s;
     }
-    if (oldest == null ||
-        s.price.purchasedAt.isBefore(oldest.price.purchasedAt)) {
+    if (oldest == null || s.price.asOf.isBefore(oldest.price.asOf)) {
       oldest = s;
     }
   }
   final monthsDiffer =
       newest != null &&
       oldest != null &&
-      !_sameMonth(newest.price.purchasedAt, oldest.price.purchasedAt);
+      !_sameMonth(newest.price.asOf, oldest.price.asOf);
 
   return (
     seen: seen,
@@ -377,7 +377,7 @@ _Walk _summarize({
       lineCosts: lineCosts,
       unpriced: List.unmodifiable(unpriced),
       notCounted: List.unmodifiable(notCounted),
-      newestPrice: newest?.price.purchasedAt,
+      newestPrice: newest?.price.asOf,
       oldest: monthsDiffer ? oldest : null,
       noLines: noLines,
       nothingCountable: nothingCountable,

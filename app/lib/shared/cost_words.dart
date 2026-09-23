@@ -35,19 +35,23 @@ String costLineNote(CostLineReason reason) => switch (reason) {
 ///
 /// A named pack prints as that pack; a pack typed as a plain amount reads
 /// per 100 of the basis.
-String unitPriceWord(PriceObservation price) {
+String unitPriceWord(UnitPrice price) {
   final label = price.packLabel;
   if (label != null) return '${formatMoney(price.paidCents)} a $label';
   return switch (price.per100) {
     Ok(:final value) => formatPricePer100(value),
-    // Unreachable: an observation has a positive pack and payment.
+    // Unreachable: a price is built only with a positive pack and payment.
     Err() => 'no price yet',
   };
 }
 
-/// `TJ's, Sep`: where and when the price was seen.
-String priceProvenance(PriceObservation price) =>
-    '${price.store}, ${formatMonthShort(price.purchasedAt)}';
+/// `TJ's, Sep`: where and when the price was paid, or `base price, Sep` for
+/// the row's own base price, which no shop stands behind.
+String priceProvenance(UnitPrice price) => switch (price) {
+  PriceObservation(:final store, :final purchasedAt) =>
+    '$store, ${formatMonthShort(purchasedAt)}',
+  BasePrice(:final setAt) => 'base price, ${formatMonthShort(setAt)}',
+};
 
 /// `$13.16 · $1.10 / 100 g · TJ's, Sep`: a line's figure at the amount
 /// shown, its unit price and its provenance.

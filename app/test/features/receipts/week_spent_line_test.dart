@@ -8,7 +8,6 @@ library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/week_shape.dart';
-import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:ansi/features/receipts/domain/receipt_ledger.dart';
@@ -22,7 +21,6 @@ ReceiptSummary receipt({DateTime? on, int cents = 8412}) => ReceiptSummary(
   id: 'r1',
   store: "TJ's",
   purchasedAt: on ?? DateTime(2026, 9, 13),
-  source: ReceiptSource.photo,
   totalCents: cents,
 );
 

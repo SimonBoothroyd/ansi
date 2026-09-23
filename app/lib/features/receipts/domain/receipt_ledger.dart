@@ -11,7 +11,6 @@ import 'package:meta/meta.dart';
 import '../../../core/money.dart';
 import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
-import '../../ingredients/domain/price.dart';
 
 /// One receipt as the ledger lists it — the paper's own facts plus the two
 /// counts a row prints.
@@ -21,7 +20,6 @@ class ReceiptSummary {
     required this.id,
     required this.store,
     required this.purchasedAt,
-    required this.source,
     required this.totalCents,
     this.lineCount = 0,
     this.notFoodCount = 0,
@@ -30,26 +28,21 @@ class ReceiptSummary {
   final String id;
   final String store;
   final DateTime purchasedAt;
-  final ReceiptSource source;
 
   /// What the trip cost: the paper's printed total where it printed one, and
-  /// the sum of the lines where it did not (a hand-typed price is the latter).
+  /// the sum of the lines where it did not.
   final int totalCents;
 
   final int lineCount;
   final int notFoodCount;
 
-  /// `Sun 13 Sep · 24 lines · 2 not food`, or `typed by hand` on a one-liner.
+  /// `Sun 13 Sep · 24 lines · 2 not food`.
   String subLine(WeekShape shape) {
     final day = shape.labelShort(shape.offsetOf(purchasedAt));
     return [
       '$day ${formatDayMonth(purchasedAt)}',
-      if (source == ReceiptSource.manual)
-        'typed by hand'
-      else ...[
-        '$lineCount ${plural(lineCount, 'line')}',
-        if (notFoodCount > 0) '$notFoodCount not food',
-      ],
+      '$lineCount ${plural(lineCount, 'line')}',
+      if (notFoodCount > 0) '$notFoodCount not food',
     ].join(' · ');
   }
 }

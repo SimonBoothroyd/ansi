@@ -79,14 +79,6 @@ class ReceiptReviewBody extends ConsumerWidget {
         const AnsiMicroLabel('STORE'),
         const SizedBox(height: 6),
         _StoreChips(state: state),
-        if (state.isManual)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'typed by hand, on the ingredient’s page',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ),
         if (state.payload.storePrinted case final printed?)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -103,16 +95,13 @@ class ReceiptReviewBody extends ConsumerWidget {
         const SizedBox(height: 6),
         _Bought(state: state),
 
-        // A hand-typed price has no paper to print totals or to join against.
-        if (!state.isManual) ...[
-          const SizedBox(height: 16),
-          const AnsiMicroLabel('PRINTED TOTALS'),
-          const SizedBox(height: 6),
-          _PrintedTotals(payload: state.payload),
+        const SizedBox(height: 16),
+        const AnsiMicroLabel('PRINTED TOTALS'),
+        const SizedBox(height: 6),
+        _PrintedTotals(payload: state.payload),
 
-          const SizedBox(height: 12),
-          _JoinCard(map: map),
-        ],
+        const SizedBox(height: 12),
+        _JoinCard(map: map),
 
         const SizedBox(height: 14),
         _SectionRule(label: 'Lines', count: kept.length),
@@ -122,7 +111,6 @@ class ReceiptReviewBody extends ConsumerWidget {
             draft: draft,
             issues: map.issuesByIndex[draft.index] ?? const [],
             row: state.rows[draft.ingredientId],
-            manual: state.isManual,
           ),
         const SizedBox(height: 8),
         const _AddLineDoor(),

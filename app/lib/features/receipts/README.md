@@ -7,9 +7,11 @@ the board's [Receipts](../../../../docs/product-specs/board/receipts.html) view;
 behaviour is specified in
 [import-and-matching.md §12](../../../../docs/product-specs/import-and-matching.md).
 
-There is no second price table. A receipt is `receipt` + `receipt_line`, the
-same two tables a hand-typed price writes one row each of
-(`features/ingredients/domain/price.dart`).
+A receipt is `receipt` + `receipt_line`, and every matched line with a pack is
+a price paid (`features/ingredients/domain/price.dart`). A price typed on an
+ingredient page is that row's base price and never a receipt, so the ledger
+holds shops and nothing else; a `manual` receipt an older build wrote reads as
+an ordinary one.
 
 ## The rules
 

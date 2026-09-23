@@ -137,9 +137,8 @@ void main() {
     expect(find.text(r'$84.12 spent'), findsOneWidget);
   });
 
-  testWidgets('a hand-typed price is the same fact in the same ledger', (
-    tester,
-  ) async {
+  testWidgets('a price an older build typed by hand still reads, as an '
+      'ordinary receipt', (tester) async {
     tallSurface(tester);
     final ledger = FakeReceiptRepo(
       rows: [
@@ -160,7 +159,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Sat 5 Sep · typed by hand'), findsOneWidget);
+    // Nothing writes one now (a typed price is the row's base price), but a
+    // build that predates that can, and the ledger must not trip on it.
+    expect(find.text('Sat 5 Sep · 1 line'), findsOneWidget);
     expect(
       find.text(r'$87.84'),
       findsOneWidget,
@@ -367,7 +368,9 @@ void main() {
       expect(find.text('this receipt is gone'), findsOneWidget);
     });
 
-    testWidgets('a hand-typed one says it was typed', (tester) async {
+    testWidgets('one an older build typed by hand opens like any other', (
+      tester,
+    ) async {
       tallSurface(tester);
       final ledger = FakeReceiptRepo()
         ..stored['m'] = (
@@ -375,7 +378,6 @@ void main() {
           store: 'Whole Foods',
           purchasedAt: DateTime(2026, 9, 5, 12),
           source: 'manual',
-          // Stale on purpose: nothing was printed, so nothing is joined.
           subtotalCents: 999,
           taxCents: null,
           totalCents: null,
@@ -389,13 +391,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Saturday 5 Sep · 12:00'), findsOneWidget);
-      expect(
-        find.text('typed by hand, on the ingredient’s page'),
-        findsOneWidget,
-      );
-      expect(find.text('PRINTED TOTALS'), findsNothing);
-      expect(find.byKey(kReceiptJoinKey), findsNothing);
-      expect(find.text('1 to review'), findsNothing);
+      expect(find.textContaining('typed by hand'), findsNothing);
+      expect(find.text('PRINTED TOTALS'), findsOneWidget);
     });
 
     testWidgets('a line matched at a row that is gone can be re-matched', (

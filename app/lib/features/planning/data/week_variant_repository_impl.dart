@@ -16,8 +16,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
-import '../../ingredients/data/price_repository_impl.dart'
-    show loadLatestPrices;
+import '../../ingredients/data/price_repository_impl.dart' show loadCostPrices;
 import '../../recipes/data/recipe_repository_impl.dart'
     show loadRecipeMacroNodes, pricingResolver;
 import '../../recipes/domain/effective_lines.dart';
@@ -116,7 +115,7 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     final byRecipe = await _loadByRecipe(weekKey);
     if (byRecipe.isEmpty) return const {};
     final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
-    final pricingOf = pricingResolver(nutrition, await loadLatestPrices(_db));
+    final pricingOf = pricingResolver(nutrition, await loadCostPrices(_db));
     return {
       for (final entry in nodes.entries)
         if (byRecipe.containsKey(entry.key))

@@ -95,7 +95,7 @@ void main() {
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqlitePriceRepository(db, householdId: 'h');
+    repo = SqlitePriceRepository(db);
     await _seedIngredient(db);
   });
 
@@ -359,7 +359,8 @@ void main() {
         for (final price in [
           (await repo.watchPrices('banana').first).single,
           (await repo.watchLatestPrices().first)['banana']!,
-          (await loadLatestPrices(db))['banana']!,
+          (await repo.watchCostPrices().first)['banana']!,
+          (await loadCostPrices(db))['banana']!,
           (await repo.packsByPrintedName({
             'TOFU SPR FRM HGH PRTN OR',
           })).values.single.pack,
@@ -584,37 +585,46 @@ void main() {
     });
   });
 
-  group('recordManualPrice', () {
-    test('writes a one-line manual receipt, readable as a price', () async {
-      await repo.recordManualPrice(
+  /// The row's own base price: set, read back, taken back — on the
+  /// `ingredient` row, and never a receipt.
+  group('the base price', () {
+    test('is set on the row, and writes no receipt', () async {
+      await drainCrudQueue(db);
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 453.59237,
+        packAmount: 1,
+        packUnitId: 'lb',
+      );
+
+      final base = (await repo.watchBasePrice('banana').first)!;
+      expect(base.cents, 349);
+      expect(base.packAmount, 1);
+      expect(base.packUnit, lb);
+      expect(formatPricePer100(base.per100.valueOrNull!), '77¢ / 100 g');
+      expect(await db.getAll('SELECT id FROM receipt'), isEmpty);
+      expect(await db.getAll('SELECT id FROM receipt_line'), isEmpty);
+      // An UPDATE of the one row, never an upsert: the local tables are views.
+      final ops = await queuedCrudOps(db);
+      expect(ops.map((o) => (o['type'], o['op'])), [('ingredient', 'PATCH')]);
+    });
+
+    test('is dated by the wall day it was set on', () async {
+      final today = DateTime.now();
+      await repo.setBasePrice(
         ingredientId: 'banana',
         cents: 349,
         packBasisAmount: 454,
-        store: "TJ's",
-        purchasedAt: DateTime.utc(2026, 9, 13, 17, 20),
       );
-
-      final receipt = await db.get('SELECT * FROM receipt');
-      expect(receipt['source'], 'manual');
-      expect(receipt['store'], "TJ's");
+      final setAt = (await repo.watchBasePrice('banana').first)!.setAt;
       expect(
-        receipt['subtotal_cents'],
-        349,
-        reason: 'a typed price has one line, so that IS the subtotal',
+        (setAt.year, setAt.month, setAt.day),
+        (today.year, today.month, today.day),
       );
-      expect(receipt['tax_cents'], isNull);
-      expect(receipt['total_cents'], isNull);
-
-      final prices = await repo.watchPrices('banana').first;
-      expect(
-        formatPricePer100(prices.single.per100.valueOrNull!),
-        '77¢ / 100 g',
-      );
-      expect(prices.single.purchasedAt, DateTime.utc(2026, 9, 13, 17, 20));
-      expect(prices.single.store, "TJ's");
     });
 
-    test('the pack’s word rides along when one was picked', () async {
+    test('a measure pack keeps the COUNT and the word', () async {
       await _seedMeasure(
         db,
         id: 'm-bag',
@@ -622,382 +632,135 @@ void main() {
         label: 'bag',
         amount: 454,
       );
-      await repo.recordManualPrice(
+      await repo.setBasePrice(
         ingredientId: 'banana',
-        cents: 349,
-        packBasisAmount: 454,
-        store: "TJ's",
+        cents: 698,
+        packBasisAmount: 908,
+        packAmount: 2,
         measureId: 'm-bag',
       );
-
-      final prices = await repo.watchPrices('banana').first;
-      expect(prices.single.packLabel, 'bag');
+      final base = (await repo.watchBasePrice('banana').first)!;
+      expect(base.packAmount, 2);
+      expect(base.packUnit, isNull);
+      expect(base.packLabel, 'bag');
     });
 
-    test('a price typed today is dated today', () async {
-      final today = DateTime.now();
-      await repo.recordManualPrice(
+    test('a second one replaces the first', () async {
+      await repo.setBasePrice(
         ingredientId: 'banana',
         cents: 349,
         packBasisAmount: 454,
+      );
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 399,
+        packBasisAmount: 454,
+      );
+      expect((await repo.watchBasePrice('banana').first)!.cents, 399);
+    });
+
+    test('is cleared whole, and receipts stay', () async {
+      await _seedReceipt(
+        db,
+        id: 'r-sep',
         store: "TJ's",
+        purchasedAt: '2026-09-13T17:20:00Z',
       );
-      final prices = await repo.watchPrices('banana').first;
-      final dated = prices.single.purchasedAt;
-      expect(
-        (dated.year, dated.month, dated.day),
-        (today.year, today.month, today.day),
-      );
-    });
-
-    test(
-      'a typed price keeps its WALL time, so no evening is tomorrow',
-      () async {
-        // 18:30 typed on a phone four hours west of UTC is 22:30 as an instant,
-        // and 21:00 would be the next morning — a price filed into next week.
-        await repo.recordManualPrice(
-          ingredientId: 'banana',
-          cents: 349,
-          packBasisAmount: 454,
-          store: "TJ's",
-          purchasedAt: DateTime(2026, 9, 13, 18, 30),
-        );
-        final receipt = await db.get('SELECT purchased_at FROM receipt');
-        expect(receipt['purchased_at'], '2026-09-13T18:30:00.000Z');
-      },
-    );
-
-    test('the store word is trimmed, and an empty one is refused', () async {
-      await repo.recordManualPrice(
+      await _seedLine(db, id: 'l-sep', receiptId: 'r-sep');
+      await repo.setBasePrice(
         ingredientId: 'banana',
         cents: 349,
-        packBasisAmount: 454,
-        store: "  TJ's  ",
+        packBasisAmount: 453.59237,
+        packAmount: 1,
+        packUnitId: 'lb',
       );
-      expect((await repo.watchStores().first).single, "TJ's");
 
-      await expectLater(
-        repo.recordManualPrice(
-          ingredientId: 'banana',
-          cents: 349,
-          packBasisAmount: 454,
-          store: '   ',
-        ),
-        throwsArgumentError,
+      await repo.clearBasePrice('banana');
+
+      expect(await repo.watchBasePrice('banana').first, isNull);
+      final row = await db.get(
+        'SELECT base_price_cents, base_price_pack_basis_amount, '
+        'base_price_pack_amount, base_price_pack_unit, base_price_measure_id, '
+        'base_price_set_at FROM ingredient WHERE id = ?',
+        ['banana'],
       );
+      expect(row.values, everyElement(isNull));
+      expect(await repo.watchPrices('banana').first, hasLength(1));
     });
 
     test(
       'the honesty rules hold at the repository, not just the sheet',
       () async {
         await expectLater(
-          repo.recordManualPrice(
+          repo.setBasePrice(
             ingredientId: 'banana',
             cents: 0,
             packBasisAmount: 454,
-            store: "TJ's",
           ),
           throwsArgumentError,
           reason: 'a price is what was paid',
         );
         for (final pack in [0.0, -1.0, double.nan, double.infinity]) {
           await expectLater(
-            repo.recordManualPrice(
+            repo.setBasePrice(
               ingredientId: 'banana',
               cents: 349,
               packBasisAmount: pack,
-              store: "TJ's",
             ),
             throwsArgumentError,
             reason: 'pack $pack',
           );
         }
-        expect(await repo.watchPrices('banana').first, isEmpty);
-      },
-    );
-
-    test('the pack is stored twice: as entered, and in the basis', () async {
-      await repo.recordManualPrice(
-        ingredientId: 'banana',
-        cents: 349,
-        packBasisAmount: 453.59237,
-        store: "TJ's",
-        packAmount: 1,
-        packUnitId: 'lb',
-      );
-
-      final prices = await repo.watchPrices('banana').first;
-      expect(prices.single.packAmount, 1);
-      expect(prices.single.packUnit, lb);
-      expect(
-        prices.single.packBasisAmount,
-        closeTo(453.6, 0.1),
-        reason: 'the derivation still reads the basis figure',
-      );
-      expect(
-        formatPricePer100(prices.single.per100.valueOrNull!),
-        '77¢ / 100 g',
-      );
-    });
-
-    test('a measure pack keeps the COUNT and no unit', () async {
-      await _seedMeasure(
-        db,
-        id: 'm-bag',
-        ingredientId: 'banana',
-        label: 'bag',
-        amount: 454,
-      );
-      await repo.recordManualPrice(
-        ingredientId: 'banana',
-        cents: 698,
-        packBasisAmount: 908,
-        store: "TJ's",
-        packAmount: 2,
-        measureId: 'm-bag',
-      );
-
-      final prices = await repo.watchPrices('banana').first;
-      expect(prices.single.packAmount, 2);
-      expect(prices.single.packUnit, isNull);
-      expect(prices.single.packLabel, 'bag');
-    });
-
-    test(
-      'the write is two rows in one transaction, and a plain INSERT',
-      () async {
-        await drainCrudQueue(db);
-        await repo.recordManualPrice(
-          ingredientId: 'banana',
-          cents: 349,
-          packBasisAmount: 454,
-          store: "TJ's",
-        );
-        final ops = await queuedCrudOps(db);
-        expect(ops.map((o) => o['type']), ['receipt', 'receipt_line']);
-        expect(ops.every((o) => o['op'] == 'PUT'), isTrue);
+        expect(await repo.watchBasePrice('banana').first, isNull);
       },
     );
   });
 
-  group('updatePrice', () {
-    test(
-      'rewrites the line, and its one-line manual receipt with it',
-      () async {
-        await repo.recordManualPrice(
-          ingredientId: 'banana',
-          cents: 349,
-          packBasisAmount: 454,
-          store: "TJ's",
-          packAmount: 454,
-          packUnitId: 'g',
-          purchasedAt: DateTime.utc(2026, 9, 13),
-        );
-        final was = (await repo.watchPrices('banana').first).single;
+  /// What every cost reads: the newest price paid, else the base price. The
+  /// watched map and the one-shot load are the same query and must agree.
+  group('the price a cost reads', () {
+    Future<Map<String, UnitPrice>> both() async {
+      final watched = await repo.watchCostPrices().first;
+      final loaded = await loadCostPrices(db);
+      expect(
+        {for (final e in loaded.entries) e.key: e.value.key},
+        {for (final e in watched.entries) e.key: e.value.key},
+        reason: 'the one-shot read every cost load makes agrees',
+      );
+      return watched;
+    }
 
-        await repo.updatePrice(
-          lineId: was.lineId,
-          cents: 399,
-          packBasisAmount: 453.59237,
-          store: 'Whole Foods',
-          purchasedAt: was.purchasedAt,
-          packAmount: 1,
-          packUnitId: 'lb',
-        );
-
-        final now = (await repo.watchPrices('banana').first).single;
-        expect(now.lineId, was.lineId, reason: 'the same line, corrected');
-        expect(now.cents, 399);
-        expect(now.packAmount, 1);
-        expect(now.packUnit, lb);
-        expect(now.store, 'Whole Foods');
-        expect(
-          now.purchasedAt,
-          DateTime.utc(2026, 9, 13),
-          reason: 'an edit is a correction, not a second shop',
-        );
-
-        final receipt = await db.get('SELECT * FROM receipt');
-        expect(receipt['store'], 'Whole Foods');
-        expect(receipt['subtotal_cents'], 399);
-      },
-    );
-
-    test('a corrected price keeps its WALL day too', () async {
-      await repo.recordManualPrice(
+    test('a row with only a base price is priced by it', () async {
+      await repo.setBasePrice(
         ingredientId: 'banana',
         cents: 349,
         packBasisAmount: 454,
-        store: "TJ's",
-        purchasedAt: DateTime(2026, 9, 13, 18, 30),
       );
-      final was = (await repo.watchPrices('banana').first).single;
-
-      await repo.updatePrice(
-        lineId: was.lineId,
-        cents: 399,
-        packBasisAmount: 454,
-        store: "TJ's",
-        purchasedAt: DateTime(2026, 9, 13, 18, 30),
-      );
-
-      final receipt = await db.get('SELECT purchased_at FROM receipt');
-      expect(receipt['purchased_at'], '2026-09-13T18:30:00.000Z');
+      final price = (await both())['banana'];
+      expect(price, isA<BasePrice>());
+      expect(formatPricePer100(price!.per100.valueOrNull!), '77¢ / 100 g');
     });
 
-    test('a photographed receipt keeps what the paper printed', () async {
+    test('a price paid outranks the base price, however old', () async {
       await _seedReceipt(
         db,
-        id: 'r-photo',
-        store: "TJ's",
-        purchasedAt: '2026-09-13T17:20:00Z',
+        id: 'r-aug',
+        store: 'Whole Foods',
+        purchasedAt: '2026-08-02T10:00:00Z',
       );
-      await _seedLine(db, id: 'l1', receiptId: 'r-photo');
-      await _seedLine(db, id: 'l2', receiptId: 'r-photo', cents: 199);
-
-      await repo.updatePrice(
-        lineId: 'l1',
-        cents: 399,
-        packBasisAmount: 454,
-        store: 'Somewhere Else',
-        purchasedAt: DateTime.utc(2026),
-      );
-
-      final receipt = await db.get(
-        "SELECT * FROM receipt WHERE id = 'r-photo'",
-      );
-      expect(receipt['store'], "TJ's");
-      expect(receipt['purchased_at'], '2026-09-13T17:20:00Z');
-      final line = await db.get("SELECT * FROM receipt_line WHERE id = 'l1'");
-      expect(line['cents'], 399);
-    });
-
-    test('the honesty rules hold here too', () async {
-      await repo.recordManualPrice(
+      await _seedLine(db, id: 'l-aug', receiptId: 'r-aug', cents: 399);
+      // Set today, after the receipt: still the stand-in.
+      await repo.setBasePrice(
         ingredientId: 'banana',
-        cents: 349,
+        cents: 100,
         packBasisAmount: 454,
-        store: "TJ's",
       );
-      final was = (await repo.watchPrices('banana').first).single;
-      await expectLater(
-        repo.updatePrice(
-          lineId: was.lineId,
-          cents: 0,
-          packBasisAmount: 454,
-          store: "TJ's",
-          purchasedAt: was.purchasedAt,
-        ),
-        throwsArgumentError,
-      );
-      expect((await repo.watchPrices('banana').first).single.cents, 349);
+      final price = (await both())['banana'];
+      expect(price, isA<PriceObservation>());
+      expect(price!.key, 'l-aug');
     });
 
-    test('the write is an UPDATE, never an upsert', () async {
-      await repo.recordManualPrice(
-        ingredientId: 'banana',
-        cents: 349,
-        packBasisAmount: 454,
-        store: "TJ's",
-      );
-      final was = (await repo.watchPrices('banana').first).single;
-      await drainCrudQueue(db);
-      await repo.updatePrice(
-        lineId: was.lineId,
-        cents: 399,
-        packBasisAmount: 454,
-        store: "TJ's",
-        purchasedAt: was.purchasedAt,
-      );
-      final ops = await queuedCrudOps(db);
-      expect(ops.map((o) => o['op']).toSet(), {'PATCH'});
-      expect(
-        ops.map((o) => o['type']),
-        containsAll(<String>['receipt_line', 'receipt']),
-      );
-    });
-  });
-
-  group('deletePrice', () {
-    test('takes the line, and the one-line manual receipt behind it', () async {
-      await repo.recordManualPrice(
-        ingredientId: 'banana',
-        cents: 349,
-        packBasisAmount: 454,
-        store: "TJ's",
-      );
-      final was = (await repo.watchPrices('banana').first).single;
-
-      await repo.deletePrice(was.lineId);
-
-      expect(await repo.watchPrices('banana').first, isEmpty);
-      final receipt = await db.get('SELECT * FROM receipt');
-      expect(receipt['deleted_at'], isNotNull);
-      expect(
-        await repo.watchStores().first,
-        isEmpty,
-        reason: 'the store word went with the receipt that used it',
-      );
-    });
-
-    test(
-      'a photographed line keeps its place and loses only its price facts',
-      () async {
-        await _seedReceipt(
-          db,
-          id: 'r-photo',
-          store: "TJ's",
-          purchasedAt: '2026-09-13T17:20:00Z',
-        );
-        await _seedMeasure(
-          db,
-          id: 'm-bag',
-          ingredientId: 'banana',
-          label: 'bag',
-          amount: 454,
-        );
-        await _seedLine(
-          db,
-          id: 'l1',
-          receiptId: 'r-photo',
-          packAmount: 1,
-          measureId: 'm-bag',
-        );
-        await _seedLine(db, id: 'l2', receiptId: 'r-photo', cents: 199);
-
-        await repo.deletePrice('l1');
-
-        final receipt = await db.get(
-          "SELECT * FROM receipt WHERE id = 'r-photo'",
-        );
-        expect(receipt['deleted_at'], isNull, reason: 'the paper stands');
-        final line = await db.get("SELECT * FROM receipt_line WHERE id = 'l1'");
-        expect(
-          line['deleted_at'],
-          isNull,
-          reason: 'the line stays, so the receipt still adds up',
-        );
-        expect(
-          line['cents'],
-          349,
-          reason: 'the cents were paid — that is not in doubt',
-        );
-        expect(
-          line['ingredient_id'],
-          'banana',
-          reason: 'what was bought is not in doubt either; only the pack was',
-        );
-        expect(line['pack_basis_amount'], isNull);
-        expect(line['pack_amount'], isNull);
-        expect(line['pack_unit'], isNull);
-        expect(line['measure_id'], isNull);
-        expect((await repo.watchPrices('banana').first).map((p) => p.lineId), [
-          'l2',
-        ], reason: 'it stopped being a price');
-      },
-    );
-
-    test('a deleted price leaves every derivation alone', () async {
+    test('the newest LIVE line wins, on a live receipt', () async {
       await _seedReceipt(
         db,
         id: 'r-aug',
@@ -1010,24 +773,90 @@ void main() {
         store: "TJ's",
         purchasedAt: '2026-09-13T17:20:00Z',
       );
+      await _seedReceipt(
+        db,
+        id: 'r-gone',
+        store: "TJ's",
+        purchasedAt: '2026-09-20T17:20:00Z',
+        deletedAt: '2026-09-21T00:00:00Z',
+      );
       await _seedLine(db, id: 'l-aug', receiptId: 'r-aug', cents: 399);
-      await _seedLine(db, id: 'l-sep', receiptId: 'r-sep');
-
-      await repo.deletePrice('l-sep');
-
-      expect(
-        (await repo.watchLatestPrices().first)['banana']!.lineId,
-        'l-aug',
-        reason: 'the latest is the latest LIVE line',
+      await _seedLine(
+        db,
+        id: 'l-sep',
+        receiptId: 'r-sep',
+        deletedAt: '2026-09-14T00:00:00Z',
       );
-      expect(
-        (await loadLatestPrices(db))['banana']!.lineId,
-        'l-aug',
-        reason: 'the one-shot read every cost surface makes agrees',
+      await _seedLine(db, id: 'l-gone', receiptId: 'r-gone', cents: 999);
+
+      expect((await both())['banana']!.key, 'l-aug');
+    });
+
+    test('a receipt taken back hands the row to its base price', () async {
+      await _seedReceipt(
+        db,
+        id: 'r-gone',
+        store: "TJ's",
+        purchasedAt: '2026-09-20T17:20:00Z',
+        deletedAt: '2026-09-21T00:00:00Z',
       );
-      expect((await repo.watchPrices('banana').first).map((p) => p.lineId), [
-        'l-aug',
-      ]);
+      await _seedLine(db, id: 'l-gone', receiptId: 'r-gone');
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+      );
+      expect((await both())['banana'], isA<BasePrice>());
+    });
+
+    test('a row with neither is absent — unpriced, never a zero', () async {
+      await _seedIngredient(db, id: 'apple');
+      await _seedReceipt(
+        db,
+        id: 'r-sep',
+        store: "TJ's",
+        purchasedAt: '2026-09-13T17:20:00Z',
+      );
+      // A line that states no pack is not a price either.
+      await _seedLine(
+        db,
+        id: 'l-nopack',
+        receiptId: 'r-sep',
+        ingredientId: 'apple',
+        packBasisAmount: null,
+      );
+      expect(await both(), isEmpty);
+    });
+
+    test('a base price says its pack in its own words', () async {
+      await _seedMeasure(
+        db,
+        id: 'm-bag',
+        ingredientId: 'banana',
+        label: 'bag',
+        amount: 454,
+      );
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+        packAmount: 1,
+        measureId: 'm-bag',
+      );
+      expect((await both())['banana']!.packLabel, 'bag');
+    });
+
+    test('a new base price reaches a watcher without a refresh', () async {
+      final emissions = await twoEmissions(
+        repo.watchCostPrices(),
+        () => repo.setBasePrice(
+          ingredientId: 'banana',
+          cents: 349,
+          packBasisAmount: 454,
+        ),
+      );
+      expect(emissions.first, isEmpty);
+      expect(emissions.last['banana'], isA<BasePrice>());
     });
   });
 
@@ -1128,7 +957,7 @@ void main() {
       expect(names.single.lineCount, 2);
     });
 
-    test('a hand-typed price is not a name — nothing printed it', () async {
+    test('a line with no printed words is not a name', () async {
       await _seedLine(db, id: 'l-typed', receiptId: 'r-sep');
       await _seedLine(
         db,

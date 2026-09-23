@@ -14,8 +14,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
-import '../../ingredients/data/price_repository_impl.dart'
-    show loadLatestPrices;
+import '../../ingredients/data/price_repository_impl.dart' show loadCostPrices;
 import '../../ingredients/domain/price.dart';
 import '../domain/component_math.dart';
 import '../domain/method_step.dart';
@@ -87,7 +86,7 @@ class SqliteRecipeRepository implements RecipeRepository {
 
   Future<Map<String, RecipeCostSummary>> _loadCosts() async {
     final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
-    final pricingOf = pricingResolver(nutrition, await loadLatestPrices(_db));
+    final pricingOf = pricingResolver(nutrition, await loadCostPrices(_db));
     return {
       for (final entry in nodes.entries)
         entry.key: summarizeRecipeCost(
@@ -959,14 +958,14 @@ loadRecipeMacroNodes(SqliteConnection db) async {
 }
 
 /// The cost walk's ingredient lookup, from the vocab's dimension facts and the
-/// latest price per row.
+/// price each row's cost reads (`costPriceOf`).
 ///
 /// An unknown ingredient resolves to null ([CostLineReason.noPathToBasis]); a
 /// known row with no price resolves with a null price
 /// ([CostLineReason.noPrice]).
 IngredientPricing? Function(String) pricingResolver(
   Map<String, IngredientNutrition> nutrition,
-  Map<String, PriceObservation> prices,
+  Map<String, UnitPrice> prices,
 ) => (id) {
   final row = nutrition[id];
   return row == null ? null : (row: basisOf(row), price: prices[id]);

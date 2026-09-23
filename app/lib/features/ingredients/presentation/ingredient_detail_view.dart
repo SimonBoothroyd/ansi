@@ -448,15 +448,19 @@ class _ReadPosture extends ConsumerWidget {
 /// rather than counting buttons.
 const kAddPriceKey = ValueKey('add-a-price');
 
-/// The Latest line, which is a tap onto the sheet that entered it.
+/// The Latest line, which is a tap onto the receipt that carries it.
 const kLatestPriceKey = ValueKey('latest-price');
 
-/// The Price group: the latest price on one line with its derived `/100 g`, and
-/// the earlier ones under it.
+/// The Base line, which is a tap onto the price sheet that set it.
+const kBasePriceKey = ValueKey('base-price');
+
+/// The Price group: the latest price paid on one line with its derived
+/// `/100 g`, the earlier ones under it, and the row's own base price as its
+/// own entry.
 ///
 /// A row nobody has priced says so and offers the door; it never shows a zero.
-/// Every price is a tap to where it is edited: a typed price opens the sheet, a
-/// receipt line opens its receipt. Both postures draw this one widget.
+/// A price paid opens its receipt; the base price opens the sheet, which is the
+/// only thing the sheet writes. Both postures draw this one widget.
 class _PriceGroup extends ConsumerWidget {
   const _PriceGroup({
     required this.ingredient,
@@ -492,6 +496,10 @@ class _PriceGroup extends ConsumerWidget {
 
     final async = ref.watch(ingredientPricesProvider(ingredient.id));
     final prices = async.asData?.value ?? const <PriceObservation>[];
+    final base = ref
+        .watch(ingredientBasePriceProvider(ingredient.id))
+        .asData
+        ?.value;
     // A slot, so the reading posture keeps the group's rhythm without the
     // aside.
     final aside = editing
@@ -500,15 +508,6 @@ class _PriceGroup extends ConsumerWidget {
             muted: true,
           )
         : const SizedBox.shrink();
-    final door = Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: DashedAction(
-        key: kAddPriceKey,
-        icon: FLucideIcons.plus,
-        label: 'add a price',
-        onTap: () => unawaited(showPriceSheet(context, ingredient: ingredient)),
-      ),
-    );
 
     // Load-bearing emptiness: an errored stream is not "never bought".
     if (async case AsyncError(:final error, :final stackTrace)) {
@@ -530,20 +529,54 @@ class _PriceGroup extends ConsumerWidget {
       );
     }
 
+    // What a recipe reads is `costPriceOf`: the newest price paid, else this
+    // row's base price. The hints say which one that is.
+    final baseEntry = base == null
+        ? Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: DashedAction(
+              key: kAddPriceKey,
+              icon: FLucideIcons.plus,
+              label: 'set a base price',
+              onTap: () =>
+                  unawaited(showPriceSheet(context, ingredient: ingredient)),
+            ),
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Label(
+                'BASE',
+                hint: prices.isEmpty
+                    ? 'what a recipe reads'
+                    : 'read when no receipt prices it',
+              ),
+              AnsiTap(
+                key: kBasePriceKey,
+                onTap: () => unawaited(
+                  showPriceSheet(
+                    context,
+                    ingredient: ingredient,
+                    editing: base,
+                  ),
+                ),
+                minTarget: false,
+                child: _Fact(basePriceFact(base)),
+              ),
+            ],
+          );
+
     if (prices.isEmpty) {
       return _Group(
         title: 'Price',
-        suffix: '— none yet',
-        children: [aside, door],
+        suffix: base == null ? '— none yet' : null,
+        children: [aside, baseEntry],
       );
     }
 
-    // A receipt line is corrected on its receipt; the sheet holds typed prices.
-    void fix(PriceObservation price) => price.source == ReceiptSource.photo
-        ? context.pushOnce('/receipts/${price.receiptId}')
-        : unawaited(
-            showPriceSheet(context, ingredient: ingredient, editing: price),
-          );
+    // A price paid is corrected on its receipt, whichever door wrote it.
+    void open(PriceObservation price) =>
+        context.pushOnce('/receipts/${price.receiptId}');
 
     final earlier = prices.skip(1).toList();
     return _Group(
@@ -553,7 +586,7 @@ class _PriceGroup extends ConsumerWidget {
         const _Label('LATEST', hint: 'what a recipe reads'),
         AnsiTap(
           key: kLatestPriceKey,
-          onTap: () => fix(prices.first),
+          onTap: () => open(prices.first),
           // A row of words, not a glyph: it needs no square target grown
           // under it, and growing one would move the group's rhythm.
           minTarget: false,
@@ -561,14 +594,14 @@ class _PriceGroup extends ConsumerWidget {
         ),
         if (earlier.isNotEmpty) ...[
           const _Label('BEFORE'),
-          _EarlierPrices(prices: earlier, onTap: fix),
+          _EarlierPrices(prices: earlier, onTap: open),
           const _Fact(
             'a recipe reads the latest; the rest is what you paid, kept as '
             'paid',
             muted: true,
           ),
         ],
-        door,
+        baseEntry,
       ],
     );
   }

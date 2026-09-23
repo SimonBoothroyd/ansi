@@ -1,10 +1,11 @@
 /// Reading and writing what the household paid. Pure Dart.
 ///
-/// The ledger is `receipt` + `receipt_line`; a hand-typed price is a one-line
-/// `manual` receipt. The photo pipeline writes the same tables through its own
-/// door.
+/// What was paid lives on `receipt` + `receipt_line`, which the photo
+/// pipeline writes through its own door. A hand-typed price is the row's own
+/// [BasePrice], on the `ingredient` row, and never a receipt.
 library;
 
+import 'cost_price.dart';
 import 'price.dart';
 
 abstract interface class PriceRepository {
@@ -13,10 +14,21 @@ abstract interface class PriceRepository {
   /// Watched, so a synced shop lands without a refresh.
   Stream<List<PriceObservation>> watchPrices(String ingredientId);
 
-  /// The latest price for every ingredient the household has paid for, keyed by
-  /// ingredient id. One map, because every cost surface prices many rows at
-  /// once. A row with no readable price is absent.
+  /// The latest price PAID for every ingredient, keyed by ingredient id. A row
+  /// with no readable receipt price is absent.
+  ///
+  /// This is the pack a row was last bought in, for the receipt review to
+  /// carry; it is not what a cost reads — that is [watchCostPrices].
   Stream<Map<String, PriceObservation>> watchLatestPrices();
+
+  /// The price every cost reads, for every row that has one, keyed by
+  /// ingredient id: [costPrices] over the newest receipt price and the row's
+  /// base price. One map, because every cost surface prices many rows at once.
+  /// Watched, so a synced shop or a new base price moves every figure.
+  Stream<Map<String, UnitPrice>> watchCostPrices();
+
+  /// [ingredientId]'s base price, or null when it states none. Watched.
+  Stream<BasePrice?> watchBasePrice(String ingredientId);
 
   /// Every distinct name this household's receipts have printed for
   /// [ingredientId], most recently first, for the `On receipts` fold. Grouped
@@ -40,55 +52,27 @@ abstract interface class PriceRepository {
   /// price sheet's chip row. There is no store table.
   Stream<List<String>> watchStores();
 
-  /// Writes one hand-typed price: a `manual` [Receipt] with a single item
-  /// [ReceiptLine], in one transaction.
+  /// Sets [ingredientId]'s base price, replacing any it had. An UPDATE of the
+  /// row, never an upsert: the local tables are PowerSync views.
   ///
   /// [cents] is what was paid and [packBasisAmount] what it bought, in the
-  /// ingredient's basis unit; the caller resolves the pack through
-  /// `packInBasis` first. [packAmount] with [packUnitId] or [measureId] is the
-  /// pack as entered (`packAsEntered`). [purchasedAt] defaults to now.
+  /// row's basis unit; the caller resolves the pack through `packInBasis`
+  /// first. [packAmount] with [packUnitId] or [measureId] is the pack as
+  /// entered (`packAsEntered`). The date it was set is now.
   ///
-  /// Throws [ArgumentError] for a non-positive [cents] or [packBasisAmount], or
-  /// an empty [store].
-  Future<void> recordManualPrice({
+  /// Throws [ArgumentError] for a non-positive [cents] or [packBasisAmount].
+  Future<void> setBasePrice({
     required String ingredientId,
     required int cents,
     required double packBasisAmount,
-    required String store,
-    double? packAmount,
-    String? packUnitId,
-    String? measureId,
-    DateTime? purchasedAt,
-  });
-
-  /// Rewrites the stored price [lineId] in place. An UPDATE, never an upsert:
-  /// the local tables are PowerSync views, which reject `INSERT … ON CONFLICT`.
-  ///
-  /// The line's facts always move. The receipt's store, `purchased_at` and
-  /// subtotal move only when it is a one-line `manual` receipt; a photographed
-  /// receipt keeps what the paper printed. [purchasedAt] is required: an edit
-  /// passes back the date the price already carried.
-  ///
-  /// Throws [ArgumentError] as [recordManualPrice] does.
-  Future<void> updatePrice({
-    required String lineId,
-    required int cents,
-    required double packBasisAmount,
-    required String store,
-    required DateTime purchasedAt,
     double? packAmount,
     String? packUnitId,
     String? measureId,
   });
 
-  /// Takes back the stored price [lineId].
-  ///
-  /// - A hand-typed price: the line is tombstoned and its `manual` receipt goes
-  ///   with it.
-  /// - A line of a photographed receipt stays, and only its pack facts are
-  ///   cleared (`pack_basis_amount`, `pack_amount`, `pack_unit`, `measure_id`),
-  ///   so it stops pricing anything. `ingredient_id` stays.
-  Future<void> deletePrice(String lineId);
+  /// Takes back [ingredientId]'s base price, clearing it whole. Receipt prices
+  /// are untouched.
+  Future<void> clearBasePrice(String ingredientId);
 }
 
 /// One name this household's receipts have printed for an ingredient.

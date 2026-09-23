@@ -247,6 +247,16 @@ const schema = Schema([
     // never sets it; a fresh pick clears it.
     Column.integer('source_edited'),
     Column.text('match_text'),
+    // The row's base price (0051): what was paid for a pack, typed on the
+    // ingredient page. The pack is kept as entered and in the basis unit, as a
+    // receipt line keeps it; a cost reads it only when no receipt prices the
+    // row.
+    Column.integer('base_price_cents'),
+    Column.real('base_price_pack_basis_amount'),
+    Column.real('base_price_pack_amount'),
+    Column.text('base_price_pack_unit'),
+    Column.text('base_price_measure_id'),
+    Column.text('base_price_set_at'),
     ..._audit,
   ]),
   Table('ingredient_alias', [

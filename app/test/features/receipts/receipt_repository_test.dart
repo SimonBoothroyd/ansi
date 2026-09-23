@@ -344,7 +344,6 @@ void main() {
         // And it is a price on the row like any other line that says its pack.
         final prices = await SqlitePriceRepository(
           db,
-          householdId: 'h',
         ).watchPrices('banana').first;
         expect(prices, hasLength(2));
         expect(prices.every((p) => p.packBasisAmount == 454), isTrue);
@@ -474,7 +473,6 @@ void main() {
 
       final prices = await SqlitePriceRepository(
         db,
-        householdId: 'h',
       ).watchPrices('banana').first;
       expect(prices.map((p) => p.lineId), contains(added.id));
       expect(

@@ -3,7 +3,7 @@
 The household's controlled vocabulary and everything that reads or writes it:
 the **picker** recipes and shopping select from, the **quantity + unit** sheet,
 the **manager** where rows are browsed and edited, the **barcode** module, and
-the **price** a row was last bought at.
+the **price** a row was last bought at, or its own base price.
 
 **The client never fuzzy-matches for a machine decision**
 ([ADR-0004](../../../../docs/decisions/0004-matching-is-online-only.md)).
@@ -21,7 +21,7 @@ read is the barcode module's Open Food Facts fetch by product code.
 showIngredientPicker   ingredient_picker.dart     recipe editor, shopping top-up
 showQuantityUnitSheet  quantity_unit_sheet.dart   every quantity + unit in the app
 showUsdaPickSheet      usda_pick_sheet.dart       the USDA short-list
-showPriceSheet         price_sheet.dart           enter, edit or delete a price
+showPriceSheet         price_sheet.dart           set, change or clear a base price
 scanBarcodeForDraft    barcode/barcode_add.dart   the barcode module's one door
 pickLabelPhoto         label_photo_door.dart      the label door's photo intake
 ```
@@ -45,9 +45,11 @@ ingredients/
     measure_repository.dart     named per-ingredient measures
     measure_authoring.dart      the one rule for authoring a measure's label
     serving_measure.dart        the label's serving, kept as one measure
-    price.dart                  receipt, lines, PriceObservation, pricePer100,
-                                packInBasis
-    price_repository.dart       the price ledger's reads and writes, ReceiptName
+    price.dart                  receipt, lines, UnitPrice (PriceObservation,
+                                BasePrice), pricePer100, packInBasis
+    cost_price.dart             costPriceOf — the one rule a cost reads by
+    price_repository.dart       the price reads, the base price's writes,
+                                ReceiptName
     usda_probe.dart             the probe interface
     apply_draft.dart            how a barcode draft lands on the form
     label_reading.dart          one photographed label, read — the Dart half
@@ -56,7 +58,8 @@ ingredients/
   data/
     ingredient_repository_impl.dart  SqliteIngredientRepository
     measure_repository_impl.dart     measures, merge-on-read for duplicate labels
-    price_repository_impl.dart       the ledger's watched reads and its writes
+    price_repository_impl.dart       the watched price reads, loadCostPrices,
+                                     the base price's writes
     name_holder.dart                 nameHolderFor — the namespace question as SQL
     usda_probe_impl.dart             the `probe_usda` RPC
     remote_label_repository.dart     the `read-label` edge function
@@ -83,9 +86,9 @@ ingredients/
                                  widget; the one display rounding rule
     label_photo_door.dart        pickLabelPhoto — camera or gallery, one photo
     usda_pick_sheet.dart, draft_card.dart       USDA short-list; barcode result
-    price_sheet.dart, price_fields.dart         the price sheet; StoreChipRow,
-                                 PackField, PriceDerivedLine (shared with
-                                 receipts)
+    price_sheet.dart, price_fields.dart         the base-price sheet;
+                                 StoreChipRow, PackField, PriceDerivedLine
+                                 (shared with receipts)
   barcode/        scan → lookup → draft
     barcode_add.dart         scanBarcodeForDraft — the only public door
     barcode_scan_sheet.dart  camera reticle + a typed-number field
@@ -232,25 +235,44 @@ feedback message. Server side:
 Doctrine is
 [ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md).
 
-- **A price is a `receipt_line`** (migration 0044); a hand-typed price is a
-  one-line `manual` receipt. The per-basis figure is derived at read time by
-  `pricePer100` — paid (`cents - discount_cents`) over
-  `count × pack_basis_amount` — and never stored.
-- **The pack is kept twice.** `pack_basis_amount` is what a figure is derived
-  from. `pack_amount` + `pack_unit`, or a `measure_id` with a count, is what
-  the person said (migration 0046), so the ledger prints `for 1 lb`.
+- **Two kinds of price, one shape.** A price PAID is a `receipt_line`
+  (migration 0044, `PriceObservation`). A row's **base price** is on the
+  `ingredient` row itself (migration 0051, `BasePrice`): what the household
+  usually pays for a pack, typed on the ingredient page, on no receipt, so it
+  never reaches the receipts ledger or the week's spend. Both are a
+  `UnitPrice`, and the per-basis figure of either is derived at read time by
+  `pricePer100` — paid over `count × pack_basis_amount` (a base price is one
+  pack) — and never stored.
+- **A cost reads one price per row, chosen in one place.** `costPriceOf`
+  (`domain/cost_price.dart`): the newest receipt-line price, else the base
+  price, else unpriced. A base price set after a receipt does not outrank it.
+  Every cost surface — a recipe, the week, a planned snack, the shop — reads
+  the resolved map (`watchCostPrices` / `costPriceMapProvider`, or
+  `loadCostPrices` in a repository load). `watchLatestPrices` is paid-only and
+  is the receipt review's pack memory, never a cost. Held by
+  `test/structure/cost_reads_one_price_test.dart`.
+- **The pack is kept twice**, on a line and on a base price alike.
+  `pack_basis_amount` is what a figure is derived from. `pack_amount` +
+  `pack_unit`, or a `measure_id` with a count, is what the person said
+  (migration 0046, and 0051's `base_price_*` twins), so the page prints
+  `for 1 lb`.
 - **The gate is at entry.** `packInBasis` refuses across mass and volume
   without the row's density; the sheet's dock says why and Done is refused.
 - **A line that is not a price is not a zero.** No pack, not food, no
-  ingredient or nothing paid mean no observation; the Price group says
-  `— none yet`.
-- **A manual price reopens `PriceEditor`** and Done is an UPDATE
-  (`updatePrice`); Delete soft-deletes the line and its one-line receipt. A
-  photographed line opens `/receipts/:id` instead.
-- **One Price group on both the fact sheet and the form.** It is the one
-  section the form's dock does not hold: the sheet writes on Done and is
-  handed the stored row, never the draft. `/ingredients/new` offers no price
-  door.
+  ingredient or nothing paid mean no observation, and an unreadable base price
+  is none; the Price group says `— none yet`.
+- **The sheet writes the base price and nothing else.** `PriceEditor` asks
+  what was paid and for what pack — no store, because a base price is no shop
+  — and Done is `setBasePrice`, an UPDATE of the row; Delete is
+  `clearBasePrice`, which clears it whole. A price paid is corrected on its
+  receipt: its line opens `/receipts/:id`. Nothing writes a `manual` receipt;
+  one an older build wrote reads as an ordinary receipt.
+- **One Price group on both the fact sheet and the form.** `LATEST` and
+  `BEFORE` are the prices paid; `BASE` is its own entry, hinted as what a
+  recipe reads when nothing was paid and as the stand-in when something was.
+  It is the one section the form's dock does not hold: the sheet writes on
+  Done and is handed the stored row, never the draft. `/ingredients/new`
+  offers no price door.
 - **`On receipts`** lists the names this row was matched to on receipts
   ([import-and-matching.md §12.4.1](../../../../docs/product-specs/import-and-matching.md#1241-what-the-household-itself-remembers)).
   It is not the alias list. `watchReceiptNames` groups on
@@ -274,4 +296,4 @@ real `PowerSyncDatabase`, and `barcode/` runs against committed fixtures with
 no network. `density_entry_test` loads the real fonts
 (`test/helpers/fonts.dart`) because the test binding's fallback glyphs change
 the run count. Server-side: `supabase/tests/unit_admission.sql`,
-`receipts.sql` and `source_edited.sql` (pgTAP).
+`receipts.sql`, `base_price.sql` and `source_edited.sql` (pgTAP).

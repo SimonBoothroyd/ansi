@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (51 migrations, 23 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (52 migrations, 23 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -67,6 +67,14 @@ introduced in `0002_ingredients.sql` · RLS enabled · in the `powersync` public
 | `source_edited` | `boolean` | no | not null default false *(added in `0034_source_edited.sql`)* |
 | `piece_basis_amount` | `numeric` | yes | *(added in `0039_piece_weight.sql`)* |
 | `piece_source` | `text` | yes | *(added in `0039_piece_weight.sql`)* |
+| `base_price_cents` | `int` | yes | check (base_price_cents > 0) *(added in `0051_ingredient_base_price.sql`)* |
+| `base_price_pack_basis_amount` | `numeric` | yes | check (base_price_pack_basis_amount > 0) *(added in `0051_ingredient_base_price.sql`)* |
+| `base_price_pack_amount` | `numeric` | yes | check (base_price_pack_amount > 0) *(added in `0051_ingredient_base_price.sql`)* |
+| `base_price_pack_unit` | `text` | yes | *(added in `0051_ingredient_base_price.sql`)* |
+| `base_price_measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0051_ingredient_base_price.sql`)* |
+| `base_price_set_at` | `timestamptz` | yes | *(added in `0051_ingredient_base_price.sql`)* |
+
+Table constraints: `constraint ingredient_base_price_whole check ( (base_price_cents is null) = (base_price_pack_basis_amount is null) and (base_price_cents is null) = (base_price_set_at is null) )`; `constraint ingredient_base_price_unit_needs_an_amount check ( base_price_pack_unit is null or base_price_pack_amount is not null )`
 
 ## `ingredient_alias`
 

@@ -1,24 +1,19 @@
-/// [PriceRepository] over the local PowerSync SQLite (synced receipt rows).
+/// [PriceRepository] over the local PowerSync SQLite: synced receipt rows,
+/// and the base price on each `ingredient` row.
 library;
 
 import 'package:sqlite_async/sqlite_async.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../domain/cost_price.dart';
 import '../domain/price.dart';
 import '../domain/price_repository.dart';
 
-const _uuid = Uuid();
-
 class SqlitePriceRepository implements PriceRepository {
-  const SqlitePriceRepository(this._db, {required String householdId})
-    : _householdId = householdId;
+  const SqlitePriceRepository(this._db);
 
   final SqliteConnection _db;
-
-  /// The household stamped on rows this repo writes.
-  final String _householdId;
 
   /// The price rows as observations. [observationFrom] decides what is a price;
   /// lines that are not are dropped, never rendered as zero.
@@ -59,6 +54,23 @@ class SqlitePriceRepository implements PriceRepository {
         basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
         packLabel: r['measure_label'] as String?,
       );
+
+  /// The base price a row's `base_price_*` columns state, or null. Reads
+  /// `row_id`, the row's `macros_basis` and the base measure's label as
+  /// `base_measure_label`.
+  static BasePrice? _basePriceFromRow(Map<String, dynamic> r) => basePriceFrom(
+    ingredientId: r['row_id'] as String,
+    cents: (r['base_price_cents'] as num?)?.toInt(),
+    packBasisAmount: (r['base_price_pack_basis_amount'] as num?)?.toDouble(),
+    basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
+    setAt: r['base_price_set_at'] == null
+        ? null
+        : receiptInstant(r['base_price_set_at']),
+    packAmount: (r['base_price_pack_amount'] as num?)?.toDouble(),
+    packUnit: unitById((r['base_price_pack_unit'] as String?) ?? ''),
+    measureId: r['base_price_measure_id'] as String?,
+    packLabel: r['base_measure_label'] as String?,
+  );
 
   /// The SELECT is a full literal, not a shared fragment: `watch_coverage_test`
   /// reads these queries as literals. Every joined table contributes a selected
@@ -109,8 +121,8 @@ class SqlitePriceRepository implements PriceRepository {
         .map(latestByIngredient);
   }
 
-  /// The newest readable price per ingredient, from rows ordered newest first.
-  /// Shared with the recipe and week cost loads.
+  /// The newest readable receipt price per ingredient, from rows ordered newest
+  /// first.
   static Map<String, PriceObservation> latestByIngredient(
     Iterable<Map<String, dynamic>> rows,
   ) {
@@ -122,6 +134,77 @@ class SqlitePriceRepository implements PriceRepository {
       if (observation != null) latest[ingredientId] = observation;
     }
     return latest;
+  }
+
+  /// Every row with each of its live receipt lines, newest first, folded by
+  /// [costPricesFrom]. Driven from `ingredient` so a row with a base price and
+  /// no receipt is still a row. A full literal with a column selected from
+  /// every joined table, as in [watchPrices].
+  @override
+  Stream<Map<String, UnitPrice>> watchCostPrices() {
+    return _db
+        .watch(
+          'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
+          'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
+          'i.base_price_pack_unit, i.base_price_measure_id, '
+          'i.base_price_set_at, bm.label AS base_measure_label, '
+          'l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+          'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
+          'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
+          'r.id AS receipt_row, r.store, r.purchased_at, r.source, '
+          'm.label AS measure_label '
+          'FROM ingredient i '
+          'LEFT JOIN receipt_line l ON l.ingredient_id = i.id '
+          'AND l.deleted_at IS NULL '
+          'LEFT JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+          'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+          'AND m.deleted_at IS NULL '
+          'LEFT JOIN ingredient_measure bm ON bm.id = i.base_price_measure_id '
+          'AND bm.deleted_at IS NULL '
+          'ORDER BY i.id, r.purchased_at DESC, l.created_at DESC, l.id DESC',
+        )
+        .map(costPricesFrom);
+  }
+
+  /// The price each row's cost reads, from [watchCostPrices]'s rows: per row,
+  /// the first line that is a price on a live receipt, and the row's base
+  /// price, resolved by [costPrices]. Shared with the recipe and week cost
+  /// loads ([loadCostPrices]).
+  static Map<String, UnitPrice> costPricesFrom(
+    Iterable<Map<String, dynamic>> rows,
+  ) {
+    final paid = <String, PriceObservation>{};
+    final base = <String, BasePrice>{};
+    final seen = <String>{};
+    for (final r in rows) {
+      final id = r['row_id'] as String;
+      if (seen.add(id)) {
+        if (_basePriceFromRow(r) case final price?) base[id] = price;
+      }
+      // No line, or a line whose receipt was deleted: nothing paid here.
+      if (paid.containsKey(id) || r['id'] == null || r['receipt_row'] == null) {
+        continue;
+      }
+      if (_observationFromRow(r) case final price?) paid[id] = price;
+    }
+    return costPrices(latestPaid: paid, base: base);
+  }
+
+  @override
+  Stream<BasePrice?> watchBasePrice(String ingredientId) {
+    return _db
+        .watch(
+          'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
+          'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
+          'i.base_price_pack_unit, i.base_price_measure_id, '
+          'i.base_price_set_at, bm.label AS base_measure_label '
+          'FROM ingredient i '
+          'LEFT JOIN ingredient_measure bm ON bm.id = i.base_price_measure_id '
+          'AND bm.deleted_at IS NULL '
+          'WHERE i.id = ?',
+          parameters: [ingredientId],
+        )
+        .map((rows) => rows.isEmpty ? null : _basePriceFromRow(rows.first));
   }
 
   /// The names this household's receipts have printed for one ingredient. A
@@ -243,185 +326,14 @@ class SqlitePriceRepository implements PriceRepository {
   }
 
   @override
-  Future<void> recordManualPrice({
+  Future<void> setBasePrice({
     required String ingredientId,
     required int cents,
     required double packBasisAmount,
-    required String store,
-    double? packAmount,
-    String? packUnitId,
-    String? measureId,
-    DateTime? purchasedAt,
-  }) async {
-    final word = _checked(cents, packBasisAmount, store);
-
-    final receiptId = _uuid.v4();
-    final lineId = _uuid.v4();
-    final stamp = DateTime.now().toUtc().toIso8601String();
-    // Wall time, like a scanned receipt's: a real instant could file an evening
-    // price on the next day.
-    final bought = receiptStamp(purchasedAt ?? DateTime.now());
-
-    await _db.writeTransaction((tx) async {
-      // Plain INSERTs, never ON CONFLICT: the local tables are views, which
-      // reject UPSERT. The subtotal is the line's cents; tax and total stay
-      // null.
-      await tx.execute(
-        'INSERT INTO receipt (id, household_id, store, purchased_at, '
-        'subtotal_cents, source, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [receiptId, _householdId, word, bought, cents, 'manual', stamp, stamp],
-      );
-      await tx.execute(
-        'INSERT INTO receipt_line (id, household_id, receipt_id, '
-        'ingredient_id, cents, discount_cents, count, kind, '
-        'pack_basis_amount, pack_amount, pack_unit, measure_id, sort_order, '
-        'created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          lineId,
-          _householdId,
-          receiptId,
-          ingredientId,
-          cents,
-          0,
-          // A typed price counts one pack. Written explicitly: the local table
-          // is a view, and a null would not take the column's default on
-          // upload.
-          1,
-          'item',
-          packBasisAmount,
-          packAmount,
-          packUnitId,
-          measureId,
-          0,
-          stamp,
-          stamp,
-        ],
-      );
-    });
-  }
-
-  @override
-  Future<void> updatePrice({
-    required String lineId,
-    required int cents,
-    required double packBasisAmount,
-    required String store,
-    required DateTime purchasedAt,
     double? packAmount,
     String? packUnitId,
     String? measureId,
   }) async {
-    final word = _checked(cents, packBasisAmount, store);
-    final stamp = DateTime.now().toUtc().toIso8601String();
-    final bought = receiptStamp(purchasedAt);
-
-    await _db.writeTransaction((tx) async {
-      // UPDATE, never an upsert: the local tables are SQLite views, and a view
-      // rejects `INSERT … ON CONFLICT`.
-      await tx.execute(
-        'UPDATE receipt_line SET cents = ?, pack_basis_amount = ?, '
-        'pack_amount = ?, pack_unit = ?, measure_id = ?, updated_at = ? '
-        'WHERE id = ? AND deleted_at IS NULL',
-        [
-          cents,
-          packBasisAmount,
-          packAmount,
-          packUnitId,
-          measureId,
-          stamp,
-          lineId,
-        ],
-      );
-      // The store, date and subtotal move only on a one-line `manual` receipt.
-      // A photographed receipt keeps what the paper said.
-      if (await _isOneManualLine(tx, lineId)) {
-        await tx.execute(
-          'UPDATE receipt SET store = ?, purchased_at = ?, '
-          'subtotal_cents = ?, updated_at = ? '
-          'WHERE id = (SELECT receipt_id FROM receipt_line WHERE id = ?)',
-          [word, bought, cents, stamp, lineId],
-        );
-      }
-    });
-  }
-
-  @override
-  Future<void> deletePrice(String lineId) async {
-    final stamp = DateTime.now().toUtc().toIso8601String();
-    await _db.writeTransaction((tx) async {
-      // Asked BEFORE anything is written, while the line is still one of the
-      // receipt's live ones to count.
-      final manual = await _isManualReceipt(tx, lineId);
-      if (!manual) {
-        // A photographed receipt keeps its line; only the pack facts are
-        // cleared, so it stops pricing anything. No screen reaches this branch
-        // today.
-        await tx.execute(
-          'UPDATE receipt_line SET pack_basis_amount = NULL, '
-          'pack_amount = NULL, pack_unit = NULL, measure_id = NULL, '
-          'updated_at = ? WHERE id = ? AND deleted_at IS NULL',
-          [stamp, lineId],
-        );
-        return;
-      }
-      if (await _isOneManualLine(tx, lineId)) {
-        await tx.execute(
-          'UPDATE receipt SET deleted_at = ?, updated_at = ? '
-          'WHERE id = (SELECT receipt_id FROM receipt_line WHERE id = ?)',
-          [stamp, stamp, lineId],
-        );
-      }
-      await tx.execute(
-        'UPDATE receipt_line SET deleted_at = ?, updated_at = ? '
-        'WHERE id = ? AND deleted_at IS NULL',
-        [stamp, stamp, lineId],
-      );
-    });
-  }
-
-  /// Whether [lineId] belongs to this app's own hand-typed kind of receipt.
-  static Future<bool> _isManualReceipt(
-    SqliteWriteContext tx,
-    String lineId,
-  ) async {
-    final row = await tx.getOptional(
-      'SELECT r.source AS source FROM receipt_line l '
-      'JOIN receipt r ON r.id = l.receipt_id WHERE l.id = ?',
-      [lineId],
-    );
-    return row != null && row['source'] == 'manual';
-  }
-
-  /// Whether [lineId] is the only live line of a `manual` receipt. A
-  /// photographed receipt answers false however few lines it has.
-  static Future<bool> _isOneManualLine(
-    SqliteWriteContext tx,
-    String lineId,
-  ) async {
-    // `getOptional`: a line that is not there answers no rather than throwing
-    // — there is simply nothing to carry along.
-    final row = await tx.getOptional(
-      'SELECT r.source AS source, '
-      '(SELECT COUNT(*) FROM receipt_line x '
-      ' WHERE x.receipt_id = r.id AND x.deleted_at IS NULL) AS live '
-      'FROM receipt_line l JOIN receipt r ON r.id = l.receipt_id '
-      'WHERE l.id = ?',
-      [lineId],
-    );
-    return row != null &&
-        row['source'] == 'manual' &&
-        (row['live'] as num?) == 1;
-  }
-
-  /// Validates the three write rules and returns the trimmed store word. Held
-  /// at the repository so every write path shares them.
-  static String _checked(int cents, double packBasisAmount, String store) {
-    final word = store.trim();
-    if (word.isEmpty) {
-      throw ArgumentError.value(store, 'store', 'must name a store');
-    }
     if (cents <= 0) {
       throw ArgumentError.value(
         cents,
@@ -437,7 +349,42 @@ class SqlitePriceRepository implements PriceRepository {
         'a price needs to say what the cents bought',
       );
     }
-    return word;
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    // Wall time, as a receipt's date is kept, so the month a cost names is
+    // the same on every device.
+    final setAt = receiptStamp(DateTime.now());
+    // UPDATE, never an upsert: the local tables are views.
+    await _db.execute(
+      'UPDATE ingredient SET base_price_cents = ?, '
+      'base_price_pack_basis_amount = ?, base_price_pack_amount = ?, '
+      'base_price_pack_unit = ?, base_price_measure_id = ?, '
+      'base_price_set_at = ?, updated_at = ? '
+      'WHERE id = ? AND deleted_at IS NULL',
+      [
+        cents,
+        packBasisAmount,
+        packAmount,
+        packUnitId,
+        measureId,
+        setAt,
+        stamp,
+        ingredientId,
+      ],
+    );
+  }
+
+  @override
+  Future<void> clearBasePrice(String ingredientId) async {
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    // Cleared whole: the server refuses a base price missing any of its parts.
+    await _db.execute(
+      'UPDATE ingredient SET base_price_cents = NULL, '
+      'base_price_pack_basis_amount = NULL, base_price_pack_amount = NULL, '
+      'base_price_pack_unit = NULL, base_price_measure_id = NULL, '
+      'base_price_set_at = NULL, updated_at = ? '
+      'WHERE id = ?',
+      [stamp, ingredientId],
+    );
   }
 }
 
@@ -458,25 +405,30 @@ class _NameTally {
   int lines = 0;
 }
 
-/// The latest price per ingredient, read once: what the recipe and week cost
-/// loads join against. Repeats [SqlitePriceRepository.watchLatestPrices]'s
-/// query as a literal, because `watch_coverage_test` cannot see an interpolated
-/// fragment.
-Future<Map<String, PriceObservation>> loadLatestPrices(
-  SqliteConnection db,
-) async => SqlitePriceRepository.latestByIngredient(
-  await db.getAll(
-    'SELECT l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
-    'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
-    'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
-    'r.store, r.purchased_at, r.source, '
-    'i.macros_basis, m.label AS measure_label '
-    'FROM receipt_line l '
-    'JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
-    'LEFT JOIN ingredient i ON i.id = l.ingredient_id '
-    'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
-    'AND m.deleted_at IS NULL '
-    'WHERE l.ingredient_id IS NOT NULL AND l.deleted_at IS NULL '
-    'ORDER BY r.purchased_at DESC, l.created_at DESC, l.id DESC',
-  ),
-);
+/// The price every row's cost reads, loaded once: what the recipe and week
+/// cost loads join against. Repeats [SqlitePriceRepository.watchCostPrices]'s
+/// query as a literal, because `watch_coverage_test` cannot see an
+/// interpolated fragment.
+Future<Map<String, UnitPrice>> loadCostPrices(SqliteConnection db) async =>
+    SqlitePriceRepository.costPricesFrom(
+      await db.getAll(
+        'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
+        'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
+        'i.base_price_pack_unit, i.base_price_measure_id, '
+        'i.base_price_set_at, bm.label AS base_measure_label, '
+        'l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+        'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
+        'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
+        'r.id AS receipt_row, r.store, r.purchased_at, r.source, '
+        'm.label AS measure_label '
+        'FROM ingredient i '
+        'LEFT JOIN receipt_line l ON l.ingredient_id = i.id '
+        'AND l.deleted_at IS NULL '
+        'LEFT JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+        'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+        'AND m.deleted_at IS NULL '
+        'LEFT JOIN ingredient_measure bm ON bm.id = i.base_price_measure_id '
+        'AND bm.deleted_at IS NULL '
+        'ORDER BY i.id, r.purchased_at DESC, l.created_at DESC, l.id DESC',
+      ),
+    );

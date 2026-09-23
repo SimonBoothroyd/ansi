@@ -951,14 +951,14 @@ class _IngredientsTab extends ConsumerWidget {
   }
 
   /// The second line when the panel is reading cost: what the row comes to at
-  /// the amount shown, the unit price, and the store and month, or the reason
+  /// the amount shown, the unit price, and where and when, or the reason
   /// the row was left out. Scaled from the summation's per-line record, like
   /// [_macroLine].
   String? _costLine(LineUses uses, double factor) {
     final summary = cost;
     if (!showLineFigures || !costReading || summary == null) return null;
     var total = 0.0;
-    PriceObservation? price;
+    UnitPrice? price;
     for (final use in uses.uses) {
       final contribution = summary.lineCosts[use.id];
       if (contribution == null) {

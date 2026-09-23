@@ -64,6 +64,21 @@ void main() {
     test('a component line prints its figure alone', () {
       expect(lineCostText(const CostLine(cents: 250)), r'$2.50');
     });
+
+    test('a base price names no shop — it says what it is', () {
+      final base = BasePrice(
+        ingredientId: 'parsley',
+        cents: 199,
+        packBasisAmount: 60,
+        basis: MacrosBasis.perG,
+        setAt: DateTime.utc(2026, 9, 3),
+        packLabel: 'bunch',
+      );
+      expect(
+        lineCostText(CostLine(cents: 50, price: base)),
+        r'50¢ · $1.99 a bunch · base price, Sep',
+      );
+    });
   });
 
   group('what the strip is waiting on', () {

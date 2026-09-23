@@ -219,8 +219,8 @@ PlannedCost weekCost(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
   final costs = ref.watch(weekRecipeCostsProvider);
   final prices =
-      ref.watch(latestPricesProvider).asData?.value ??
-      const <String, PriceObservation>{};
+      ref.watch(costPriceMapProvider).asData?.value ??
+      const <String, UnitPrice>{};
   return sumPlannedCost(
     plan?.entries ?? const [],
     costFor: (id) => costs[id],

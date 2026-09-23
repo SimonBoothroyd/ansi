@@ -34,7 +34,6 @@ class ReceiptLineCard extends ConsumerWidget {
     required this.draft,
     required this.issues,
     this.row,
-    this.manual = false,
     super.key,
   });
 
@@ -44,13 +43,9 @@ class ReceiptLineCard extends ConsumerWidget {
   /// The matched vocabulary row, or null where the line names none.
   final Ingredient? row;
 
-  /// Whether the receipt was typed by hand on an ingredient's page. The header
-  /// already says so, so lines omit `added by hand`.
-  final bool manual;
-
   /// Whether a person added this line in the review rather than the reader
   /// reading it off the paper.
-  bool get _byHand => draft.saidByHand && !manual;
+  bool get _byHand => draft.saidByHand;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

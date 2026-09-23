@@ -8,7 +8,6 @@
 library;
 
 import 'package:ansi/core/week_shape.dart';
-import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/receipts/domain/receipt_ledger.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,14 +16,12 @@ ReceiptSummary receipt({
   String id = 'r1',
   String store = "TJ's",
   int cents = 8412,
-  ReceiptSource source = ReceiptSource.photo,
   int lines = 24,
   int notFood = 2,
 }) => ReceiptSummary(
   id: id,
   store: store,
   purchasedAt: on,
-  source: source,
   totalCents: cents,
   lineCount: lines,
   notFoodCount: notFood,
@@ -47,18 +44,6 @@ void main() {
           lines: 6,
         ).subLine(WeekShape.monday),
         'Wed 16 Sep · 6 lines',
-      );
-    });
-
-    test('a hand-typed price says it was typed, and counts nothing', () {
-      expect(
-        receipt(
-          on: DateTime(2026, 9, 5),
-          source: ReceiptSource.manual,
-          lines: 1,
-          notFood: 0,
-        ).subLine(WeekShape.monday),
-        'Sat 5 Sep · typed by hand',
       );
     });
 

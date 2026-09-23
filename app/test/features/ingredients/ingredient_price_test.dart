@@ -1,10 +1,12 @@
 /// The **Price** group on the ingredient page, and the sheet its door opens.
 ///
-/// Two things are pinned here and neither is decoration. The group **never
+/// Three things are pinned here and none is decoration. The group **never
 /// shows a zero** — an unpriced row says so beside its heading and offers one
-/// door — and the sheet's dock **states the derivation itself** rather than a
+/// door. The sheet's dock **states the derivation itself** rather than a
 /// preview of one, so the refusal a pack this row cannot weigh produces is the
-/// same refusal that keeps Done off.
+/// same refusal that keeps Done off. And what the sheet writes is the row's
+/// **base price**, never a receipt: a price paid is opened on its receipt, and
+/// the base price is its own entry beside it.
 ///
 /// The last group asks the same questions of the **editing** posture, which
 /// draws the same widget: the prices are there, each one is the same tap, and
@@ -42,10 +44,8 @@ const bananas = Ingredient(
 
 const bagMeasure = Measure(id: 'm-bag', label: 'bag', amount: 454);
 
+/// A price paid on a receipt. The sheet never writes one.
 PriceObservation price({
-  /// A hand-typed price unless a test says otherwise: that is what this
-  /// page's own sheet writes, and it is the one kind Delete tears up whole.
-  ReceiptSource source = ReceiptSource.manual,
   String lineId = 'l1',
   int cents = 349,
   int count = 1,
@@ -71,7 +71,26 @@ PriceObservation price({
   packUnit: packUnit,
   packLabel: packLabel,
   measureId: measureId,
-  source: source,
+);
+
+/// The row's own base price: a bag for $3.49, set on 13 Sep.
+BasePrice basePrice({
+  int cents = 349,
+  double pack = 454,
+  double? packAmount = 1,
+  Unit? packUnit,
+  String? measureId = 'm-bag',
+  String? packLabel = 'bag',
+}) => BasePrice(
+  ingredientId: 'banana',
+  cents: cents,
+  packBasisAmount: pack,
+  basis: MacrosBasis.perG,
+  setAt: DateTime.utc(2026, 9, 13),
+  packAmount: packAmount,
+  packUnit: packUnit,
+  measureId: measureId,
+  packLabel: packLabel,
 );
 
 Finder get paidField => find.descendant(
@@ -117,7 +136,7 @@ void main() {
 
       // The state is said where the group is named, not as a zero under it.
       expect(find.text('Price — none yet'), findsOneWidget);
-      expect(find.text('add a price'), findsOneWidget);
+      expect(find.text('set a base price'), findsOneWidget);
       // Never a fabricated figure for a row nothing was ever paid for.
       expect(find.textContaining(r'$0'), findsNothing);
       expect(find.textContaining('0¢'), findsNothing);
@@ -158,8 +177,10 @@ void main() {
       expect(find.text("TJ's · 23 Aug"), findsOneWidget);
       expect(find.text(r'88¢ / 100 g · $3.99 · bag (454 g)'), findsOneWidget);
       expect(find.text('Whole Foods · 2 Aug'), findsOneWidget);
-      // The door stays: a price is an event, and there is always another one.
+      // The door to the base price stays while the row has none: receipts are
+      // not the only way a row is priced.
       expect(find.byKey(kAddPriceKey), findsOneWidget);
+      expect(find.text('BASE'), findsNothing);
     });
 
     testWidgets('one price is a Latest with nothing before it', (tester) async {
@@ -193,7 +214,6 @@ void main() {
           prices: FakePriceRepo(
             prices: [
               price(
-                source: ReceiptSource.photo,
                 cents: 2392,
                 count: 8,
                 packLabel: null,
@@ -344,7 +364,7 @@ void main() {
     ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(stores: const ["TJ's", 'Whole Foods']);
+      final prices = FakePriceRepo();
       // No measure on the row, so the chip row opens on its basis unit and
       // the pack below is read in grams.
       await tester.pumpWidget(
@@ -366,23 +386,26 @@ void main() {
       await tester.tap(find.widgetWithText(FButton, 'Done'));
       await tester.pumpAndSettle();
 
-      expect(prices.recorded, hasLength(1));
-      expect(prices.recorded.single.cents, 349);
-      expect(prices.recorded.single.packBasisAmount, 454);
-      expect(
-        prices.recorded.single.store,
-        "TJ's",
-        reason: 'the most recent store word is the one already picked',
-      );
-      // The sheet closed onto the page, which now states the price.
+      // One base price on the row — never a receipt.
+      expect(prices.setCalls, hasLength(1));
+      expect(prices.setCalls.single.ingredientId, 'banana');
+      expect(prices.setCalls.single.cents, 349);
+      expect(prices.setCalls.single.packBasisAmount, 454);
+      expect(prices.setCalls.single.packAmount, 454);
+      expect(prices.setCalls.single.packUnitId, 'g');
+      // The sheet closed onto the page, which now states the base price as
+      // what a recipe reads.
       expect(find.byType(PriceEditor), findsNothing);
+      expect(find.text('BASE'), findsOneWidget);
+      expect(find.text('what a recipe reads'), findsOneWidget);
+      expect(find.text('Price — none yet'), findsNothing);
     });
 
     testWidgets('a new price opens on the chip the row leads with, not on its '
         'default unit (owner)', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(stores: const ["TJ's"]);
+      final prices = FakePriceRepo();
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
@@ -401,15 +424,15 @@ void main() {
 
       await tester.tap(find.widgetWithText(FButton, 'Done'));
       await tester.pumpAndSettle();
-      expect(prices.recorded.single.packBasisAmount, 454);
-      expect(prices.recorded.single.measureId, 'm-bag');
+      expect(prices.setCalls.single.packBasisAmount, 454);
+      expect(prices.setCalls.single.measureId, 'm-bag');
     });
 
     testWidgets('a pack named as a measure is stored as its weight, and the '
         'word rides with it', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(stores: const ["TJ's"]);
+      final prices = FakePriceRepo();
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
@@ -430,15 +453,15 @@ void main() {
       await tester.tap(find.widgetWithText(FButton, 'Done'));
       await tester.pumpAndSettle();
 
-      expect(prices.recorded.single.packBasisAmount, 454);
-      expect(prices.recorded.single.measureId, 'm-bag');
+      expect(prices.setCalls.single.packBasisAmount, 454);
+      expect(prices.setCalls.single.measureId, 'm-bag');
     });
 
     testWidgets('a pack that converts to nothing is refused, with the reason '
         'and the way out', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(stores: const ["TJ's"]);
+      final prices = FakePriceRepo();
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
@@ -466,7 +489,7 @@ void main() {
         isNull,
         reason: 'Done is refused while the derivation is',
       );
-      expect(prices.recorded, isEmpty);
+      expect(prices.setCalls, isEmpty);
     });
 
     testWidgets('a sum of nothing is not a price', (tester) async {
@@ -476,7 +499,7 @@ void main() {
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: FakePriceRepo(stores: const ["TJ's"]),
+          prices: FakePriceRepo(),
         ),
       );
       await tester.pumpAndSettle();
@@ -490,7 +513,7 @@ void main() {
       );
     });
 
-    testWidgets('Done waits for a store — a price is paid somewhere', (
+    testWidgets('a base price asks for no store — it is no shop', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
@@ -506,10 +529,11 @@ void main() {
       await openTheSheet(tester);
       await enterPrice(tester, paid: '3.49', pack: '454');
 
+      expect(find.text('AT'), findsNothing);
       expect(derivedText(tester), '= 77¢ / 100 g');
       expect(
         tester.widget<FButton>(find.widgetWithText(FButton, 'Done')).onPress,
-        isNull,
+        isNotNull,
       );
     });
 
@@ -522,7 +546,6 @@ void main() {
           at: ingredientDetailRoute('banana'),
           prices: FakePriceRepo(
             prices: [price(cents: 329, on: DateTime.utc(2026, 8, 23))],
-            stores: const ["TJ's"],
           ),
         ),
       );
@@ -568,20 +591,21 @@ void main() {
       // The row's own measures lead, then the catalog units it admits.
       expect(find.widgetWithText(UnitChip, 'bag'), findsOneWidget);
       expect(find.widgetWithText(UnitChip, 'kg'), findsOneWidget);
-      // One `+` inside the sheet — the store row's. The pack is a purchase,
-      // not a vocabulary edit, so the chip row draws no manage chip.
+      // No `+` inside the sheet: the pack is a purchase, not a vocabulary
+      // edit, so the chip row draws no manage chip, and a base price names no
+      // store to coin.
       expect(
         find.descendant(
           of: find.byType(PriceEditor),
           matching: find.byIcon(FLucideIcons.plus),
         ),
-        findsOneWidget,
+        findsNothing,
       );
     });
   });
 
-  group('fixing a price that is already stored', () {
-    testWidgets('the Latest line opens the sheet on that line, as entered', (
+  group('a price already stored', () {
+    testWidgets('the Base line opens the sheet on the base price, as entered', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
@@ -590,17 +614,23 @@ void main() {
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: FakePriceRepo(prices: [price()], stores: const ["TJ's"]),
+          prices: FakePriceRepo(base: basePrice()),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(kLatestPriceKey));
+      expect(
+        find.text(r'77¢ / 100 g · $3.49 for bag (454 g) · set 13 Sep'),
+        findsOneWidget,
+      );
+      // Its own door is the line itself, so the add door is gone.
+      expect(find.byKey(kAddPriceKey), findsNothing);
+
+      await tester.tap(find.byKey(kBasePriceKey));
       await tester.pumpAndSettle();
 
-      // It names the row it is about to rewrite, with its own day.
-      expect(find.text(r"editing $3.49 · TJ's · 13 Sep"), findsOneWidget);
+      expect(find.text(r'editing $3.49 · set 13 Sep'), findsOneWidget);
       // The answers are filled in as they were given: the sum, the count, and
       // the chip the pack was tapped on.
       expect(
@@ -609,20 +639,21 @@ void main() {
       );
       expect(tester.widget<EditableText>(paidField.at(1)).controller.text, '1');
       expect(derivedText(tester), '= 77¢ / 100 g');
-      // A stored line offers the way to take it back; a new one does not.
       expect(find.byKey(kPriceDeleteKey), findsOneWidget);
     });
 
-    testWidgets('Done rewrites that line rather than adding another', (
+    testWidgets('Done replaces the base price, and writes nothing else', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       final prices = FakePriceRepo(
-        prices: [
-          price(measureId: null, packLabel: null, packUnit: g, packAmount: 454),
-        ],
-        stores: const ["TJ's"],
+        base: basePrice(
+          measureId: null,
+          packLabel: null,
+          packUnit: g,
+          packAmount: 454,
+        ),
       );
       await tester.pumpWidget(
         host(
@@ -632,7 +663,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(kLatestPriceKey));
+      await tester.tap(find.byKey(kBasePriceKey));
       await tester.pumpAndSettle();
 
       await tester.enterText(paidField.at(0), '3.99');
@@ -640,52 +671,18 @@ void main() {
       await tester.tap(find.widgetWithText(FButton, 'Done'));
       await tester.pumpAndSettle();
 
-      expect(prices.recorded, isEmpty, reason: 'no second receipt');
-      expect(prices.rewritten, hasLength(1));
-      expect(prices.rewritten.single.lineId, 'l1');
-      expect(prices.rewritten.single.cents, 399);
-      expect(prices.rewritten.single.packAmount, 454);
-      expect(prices.rewritten.single.packUnitId, 'g');
-      expect(
-        prices.rewritten.single.purchasedAt,
-        DateTime.utc(2026, 9, 13),
-        reason: 'a correction is not a second shop',
-      );
+      expect(prices.setCalls, hasLength(1));
+      expect(prices.setCalls.single.cents, 399);
+      expect(prices.setCalls.single.packAmount, 454);
+      expect(prices.setCalls.single.packUnitId, 'g');
+      expect(prices.rows, isEmpty, reason: 'no receipt');
       expect(find.byType(PriceEditor), findsNothing);
-    });
-
-    testWidgets('a row under Before opens on itself, not on the latest', (
-      tester,
-    ) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final prices = FakePriceRepo(
-        prices: [
-          price(),
-          price(lineId: 'l2', cents: 329, on: DateTime.utc(2026, 8, 23)),
-        ],
-        stores: const ["TJ's"],
-      );
-      await tester.pumpWidget(
-        host(
-          FakeIngredientRepo(const [bananas]),
-          at: ingredientDetailRoute('banana'),
-          prices: prices,
-          measures: FakeMeasureRepo(const [bagMeasure]),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text(r'72¢ / 100 g · $3.29 · bag (454 g)'));
-      await tester.pumpAndSettle();
-
-      expect(find.text(r"editing $3.29 · TJ's · 23 Aug"), findsOneWidget);
     });
 
     testWidgets('Delete asks first, and a no changes nothing', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(prices: [price()], stores: const ["TJ's"]);
+      final prices = FakePriceRepo(base: basePrice());
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
@@ -695,12 +692,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(kLatestPriceKey));
+      await tester.tap(find.byKey(kBasePriceKey));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(kPriceDeleteKey));
       await tester.pumpAndSettle();
-      expect(find.text('Delete this price?'), findsOneWidget);
+      expect(find.text('Delete the base price?'), findsOneWidget);
 
       await tester.tap(
         find.descendant(
@@ -710,26 +707,55 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(prices.deleted, isEmpty, reason: 'silence is not consent');
+      expect(prices.cleared, isEmpty, reason: 'silence is not consent');
       expect(find.byType(PriceEditor), findsOneWidget);
     });
 
-    testWidgets('a line of a PHOTOGRAPHED receipt opens that receipt', (
+    testWidgets(
+      'a confirmed Delete takes the base price and closes the sheet',
+      (tester) async {
+        filterForuiSemanticsAssertions();
+        tallScreen(tester);
+        final prices = FakePriceRepo(base: basePrice());
+        await tester.pumpWidget(
+          host(
+            FakeIngredientRepo(const [bananas]),
+            at: ingredientDetailRoute('banana'),
+            prices: prices,
+            measures: FakeMeasureRepo(const [bagMeasure]),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(kBasePriceKey));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(kPriceDeleteKey));
+        await tester.pumpAndSettle();
+
+        // The sheet's own Delete is keyed; the dialog's is the other one.
+        await tester.tap(find.widgetWithText(FButton, 'Delete').last);
+        await tester.pumpAndSettle();
+
+        expect(prices.cleared, ['banana']);
+        expect(find.byType(PriceEditor), findsNothing);
+        // The group is back to the state a row nobody has priced wears — never
+        // a zero standing where the price was.
+        expect(find.text('Price — none yet'), findsOneWidget);
+      },
+    );
+
+    testWidgets('a price paid opens its receipt, never the sheet', (
       tester,
     ) async {
-      // One line, one editor. A scanned line is corrected on its own
-      // receipt — where the paper still has to add up — and this sheet holds
-      // hand-typed prices only.
+      // One line, one editor. A line is corrected on its own receipt — where
+      // the paper still has to add up — and the sheet holds the base price
+      // only.
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: FakePriceRepo(
-            prices: [price(source: ReceiptSource.photo)],
-            stores: const ["TJ's"],
-          ),
+          prices: FakePriceRepo(prices: [price()]),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
       );
@@ -742,9 +768,7 @@ void main() {
       expect(find.byType(PriceEditor), findsNothing);
     });
 
-    testWidgets('a PHOTOGRAPHED row under Before opens its own receipt', (
-      tester,
-    ) async {
+    testWidgets('a row under Before opens its own receipt', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -754,14 +778,8 @@ void main() {
           prices: FakePriceRepo(
             prices: [
               price(),
-              price(
-                lineId: 'l2',
-                cents: 329,
-                on: DateTime.utc(2026, 8, 23),
-                source: ReceiptSource.photo,
-              ),
+              price(lineId: 'l2', cents: 329, on: DateTime.utc(2026, 8, 23)),
             ],
-            stores: const ["TJ's"],
           ),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
@@ -774,47 +792,38 @@ void main() {
       expect(find.text('receipt r-l2'), findsOneWidget);
     });
 
-    testWidgets('a confirmed Delete takes the price and closes the sheet', (
+    testWidgets('beside a price paid, the base price says it stands in', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(prices: [price()], stores: const ["TJ's"]);
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: prices,
+          prices: FakePriceRepo(prices: [price(cents: 329)], base: basePrice()),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(kLatestPriceKey));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(kPriceDeleteKey));
-      await tester.pumpAndSettle();
 
-      // The sheet's own Delete is keyed; the dialog's is the other one.
-      await tester.tap(find.widgetWithText(FButton, 'Delete').last);
-      await tester.pumpAndSettle();
-
-      expect(prices.deleted, ['l1']);
-      expect(find.byType(PriceEditor), findsNothing);
-      // The group is back to the state a row nobody has priced wears — never
-      // a zero standing where the price was.
-      expect(find.text('Price — none yet'), findsOneWidget);
+      // The receipt is what a recipe reads; the base price is its own entry,
+      // named as what is read when no receipt prices the row.
+      expect(find.text('LATEST'), findsOneWidget);
+      expect(find.text('what a recipe reads'), findsOneWidget);
+      expect(find.text('BASE'), findsOneWidget);
+      expect(find.text('read when no receipt prices it'), findsOneWidget);
     });
 
-    testWidgets('a new price still writes a receipt, and offers no Delete', (
-      tester,
-    ) async {
+    testWidgets('a new base price beside a receipt offers no Delete, and says '
+        'what was last paid', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
           at: ingredientDetailRoute('banana'),
-          prices: FakePriceRepo(prices: [price()], stores: const ["TJ's"]),
+          prices: FakePriceRepo(prices: [price()]),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
       );
@@ -851,8 +860,8 @@ void main() {
       expect(find.byKey(kFormSaveKey), findsOneWidget);
     });
 
-    testWidgets('every stored price is on the editor, and each one opens the '
-        'sheet on itself', (tester) async {
+    testWidgets('every stored price is on the editor, and the base price '
+        'opens the sheet on itself', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -864,7 +873,7 @@ void main() {
               price(),
               price(lineId: 'l2', cents: 329, on: DateTime.utc(2026, 8, 23)),
             ],
-            stores: const ["TJ's"],
+            base: basePrice(cents: 299),
           ),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
@@ -878,16 +887,16 @@ void main() {
       );
       expect(find.text('BEFORE'), findsOneWidget);
 
-      await tester.tap(find.text(r'72¢ / 100 g · $3.29 · bag (454 g)'));
+      await tester.tap(find.byKey(kBasePriceKey));
       await tester.pumpAndSettle();
-      expect(find.text(r"editing $3.29 · TJ's · 23 Aug"), findsOneWidget);
+      expect(find.text(r'editing $2.99 · set 13 Sep'), findsOneWidget);
     });
 
     testWidgets('a price entered here is written at once, and the form’s Save '
         'neither loses nor doubles it', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
-      final prices = FakePriceRepo(stores: const ["TJ's"]);
+      final prices = FakePriceRepo();
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
@@ -898,18 +907,18 @@ void main() {
       await tester.pumpAndSettle();
 
       await openTheSheet(tester);
-      // The door opens on nothing: there is no line to take back yet.
+      // The door opens on nothing: there is no base price to take back yet.
       expect(find.byKey(kPriceDeleteKey), findsNothing);
       await enterPrice(tester, paid: '3.49', pack: '454');
       await tester.tap(find.widgetWithText(FButton, 'Done'));
       await tester.pumpAndSettle();
-      expect(prices.recorded, hasLength(1));
+      expect(prices.setCalls, hasLength(1));
 
-      // Save lands the FIELDS and puts the form down. The ledger is not the
-      // draft's to hold, so nothing about the price moves.
+      // Save lands the FIELDS and puts the form down. The base price is not
+      // the draft's to hold, so nothing about the price moves.
       await saveForm(tester);
-      expect(prices.recorded, hasLength(1));
-      expect(find.text('LATEST'), findsOneWidget);
+      expect(prices.setCalls, hasLength(1));
+      expect(find.text('BASE'), findsOneWidget);
     });
 
     testWidgets('a row that does not exist yet has nothing to hang a price '

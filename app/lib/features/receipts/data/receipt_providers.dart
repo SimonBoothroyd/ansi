@@ -8,7 +8,6 @@ import '../../../core/sync/database.dart';
 import '../../../core/sync/session.dart';
 import '../../account/data/household_providers.dart';
 import '../../import/data/remote_import_repository.dart';
-import '../../ingredients/domain/price.dart';
 import '../domain/receipt_ledger.dart';
 import '../domain/receipt_payload.dart';
 import '../domain/receipt_repository.dart';
@@ -65,7 +64,6 @@ Stream<List<ReceiptSummary>> receiptSummaries(Ref ref) => ref
             id: r.id,
             store: r.store,
             purchasedAt: r.purchasedAt,
-            source: ReceiptSource.fromDb(r.source),
             totalCents:
                 r.totalCents ??
                 (r.linesSumCents + (r.taxCents ?? r.taxLinesCents)),

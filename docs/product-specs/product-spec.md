@@ -832,16 +832,17 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
 
 ### Price & receipt (what a shop cost)
 
-One ledger, and every money figure in the app is derived from it at read time
+One ledger of what was paid, a base price on each row, and every money figure
+in the app derived from them at read time
 ([ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)):
 
 - `receipt: id · household_id · store · purchased_at · subtotal_cents ·
-  tax_cents · total_cents · source` ← one shop, or one hand-typed price.
+  tax_cents · total_cents · source` ← one shop.
   `store` is a word, not a row (no store table): whatever the household calls
   it, offered back as a chip next time. The printed figures are kept as
-  printed and never re-derived. `source` is `manual` (typed on an ingredient
-  page, one line, no photo) or `photo`, so a typed price and a scanned one are
-  **the same fact read the same way** — there is no separate price table.
+  printed and never re-derived. `source` is `photo`; `manual` is what a build
+  that predates base prices wrote for a hand-typed price, and still reads as an
+  ordinary receipt.
 - `receipt_line: id · receipt_id · printed_text · name_printed · cents ·
   count · discount_cents · kind · ingredient_id · pack_basis_amount ·
   pack_amount · pack_unit · measure_id` ← one row of the strip, and the app's
@@ -851,6 +852,15 @@ One ledger, and every money figure in the app is derived from it at read time
   ingredient or a pack (a constraint, not a convention). `name_printed` is the
   printed words with the money taken off — what a card is titled with, and
   what the match memory is keyed by.
+- `ingredient.base_price_cents · base_price_pack_basis_amount ·
+  base_price_pack_amount · base_price_pack_unit · base_price_measure_id ·
+  base_price_set_at` ← the row's **base price**: what the household usually
+  pays for a pack, typed on the ingredient page and on no receipt, so it never
+  reaches the ledger or a week's *spent*. The pack is kept in the same two
+  denominations a line keeps it in. Whole or absent (a constraint).
+- **Which price a cost reads** is one rule, `costPriceOf`: the newest price
+  paid on a live receipt, else the base price, else unpriced. A base price set
+  after a receipt does not outrank it.
 
 **What is load-bearing:**
 - **The pack is kept twice.** `pack_basis_amount` is what the cents bought in
@@ -873,9 +883,9 @@ One ledger, and every money figure in the app is derived from it at read time
   receipt.
 - **Printed figures are the paper's and never move.** Editing a kept receipt
   rewrites its lines; `printed_text`, the printed totals and the date stay as
-  read. Taking a price back off a photographed line clears only its pack
-  fields — the cents were paid, and the receipt has to go on adding up — while
-  a hand-typed one-liner tombstones line and receipt together.
+  read. A price paid is corrected on its receipt, never on the ingredient
+  page; taking a base price back clears it whole and leaves every receipt as
+  it was.
 - `purchased_at` is stored as **wall time**: the paper's own clock components
   with a `Z`, never converted, so a Sunday evening shop cannot file into
   Monday's week on a phone seven hours west.
@@ -1056,10 +1066,12 @@ reading posture adds no fact the form does not already hold. Honest numbers
 hold here too — a row with no panel reads **needs macros**, never four zeros.
 
 **Price is one group with two hosts.** The fact sheet and the form draw the
-same widget, last: what the row cost latest, what was paid before it, and one
-`add a price` door — every line a tap onto the sheet that entered it. It is the
-**one section the form's dock does not hold**: the price sheet writes its own
-one-line receipt when Done is tapped, the form carries a line saying so, and
+same widget, last: what the row cost latest and what was paid before it — each
+a tap onto the receipt that carries it — and the row's **base price** as its
+own entry (`BASE`), a tap onto the price sheet, or a `set a base price` door
+while it has none. The hint beside `BASE` says which one a recipe reads. It is
+the **one section the form's dock does not hold**: the price sheet writes the
+base price when Done is tapped, the form carries a line saying so, and
 backing out of the form does not take it back. `/ingredients/new` has no row to
 hang a price on, so the group says that and offers no door; a price is never a
 condition of the first Save.
@@ -1350,9 +1362,10 @@ divided by zero. The week band is labelled **PLANNED** and says outright that
 it is the sum of what is planned, not a daily target — a week that only plans
 dinners averages a dinner.
 
-**What a thing costs (shipped):** a **price** is an event, not a column: cents
-paid for a **stated pack**, at a store, on a date, kept as a line of a
-`receipt` — a hand-typed price is a one-line receipt of its own. Every figure
+**What a thing costs (shipped):** a **price** is cents paid for a **stated
+pack** — an event, at a store, on a date, kept as a line of a `receipt`; or,
+for a row nothing has been paid for on a receipt, the row's own **base price**,
+typed on the ingredient page and on no receipt. Every figure
 is derived at read time (`77¢ / 100 g` is never written back), so a corrected
 pack or discount moves every screen at once. Latest wins — no average, no sale
 flag, no forecast. Money is integer cents; what was paid is the printed figure

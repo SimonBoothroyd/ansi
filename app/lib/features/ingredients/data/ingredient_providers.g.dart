@@ -144,7 +144,7 @@ final class PriceRepositoryProvider
   }
 }
 
-String _$priceRepositoryHash() => r'eaaa255eaff7a96d4f1a63473bad4b33aa8989b4';
+String _$priceRepositoryHash() => r'906aea662a873206448aea86c0591a31d8753e08';
 
 /// The USDA probe. Talks to Supabase REST, because `usda_food` never syncs to a
 /// device (ADR-0005). With no backend configured it falls back to a probe that
@@ -870,58 +870,142 @@ final class PriceStoresProvider
 
 String _$priceStoresHash() => r'930835d3e6cba5b660423af2587e8216c250f134';
 
-/// The latest price for every row the household has paid for, keyed by
-/// ingredient id (ADR-0017).
+/// One row's base price, or null. Watched.
 
-@ProviderFor(latestPrices)
-const latestPricesProvider = LatestPricesProvider._();
+@ProviderFor(ingredientBasePrice)
+const ingredientBasePriceProvider = IngredientBasePriceFamily._();
 
-/// The latest price for every row the household has paid for, keyed by
-/// ingredient id (ADR-0017).
+/// One row's base price, or null. Watched.
 
-final class LatestPricesProvider
+final class IngredientBasePriceProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, PriceObservation>>,
-          Map<String, PriceObservation>,
-          Stream<Map<String, PriceObservation>>
+          AsyncValue<BasePrice?>,
+          BasePrice?,
+          Stream<BasePrice?>
+        >
+    with $FutureModifier<BasePrice?>, $StreamProvider<BasePrice?> {
+  /// One row's base price, or null. Watched.
+  const IngredientBasePriceProvider._({
+    required IngredientBasePriceFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'ingredientBasePriceProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientBasePriceHash();
+
+  @override
+  String toString() {
+    return r'ingredientBasePriceProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<BasePrice?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<BasePrice?> create(Ref ref) {
+    final argument = this.argument as String;
+    return ingredientBasePrice(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is IngredientBasePriceProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$ingredientBasePriceHash() =>
+    r'2987cd41a62606e028d686d0d5cff95739636720';
+
+/// One row's base price, or null. Watched.
+
+final class IngredientBasePriceFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<BasePrice?>, String> {
+  const IngredientBasePriceFamily._()
+    : super(
+        retry: null,
+        name: r'ingredientBasePriceProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// One row's base price, or null. Watched.
+
+  IngredientBasePriceProvider call(String ingredientId) =>
+      IngredientBasePriceProvider._(argument: ingredientId, from: this);
+
+  @override
+  String toString() => r'ingredientBasePriceProvider';
+}
+
+/// The price every cost reads, keyed by ingredient id: the newest receipt
+/// price, else the row's base price (`costPriceOf`, ADR-0017).
+
+@ProviderFor(costPriceMap)
+const costPriceMapProvider = CostPriceMapProvider._();
+
+/// The price every cost reads, keyed by ingredient id: the newest receipt
+/// price, else the row's base price (`costPriceOf`, ADR-0017).
+
+final class CostPriceMapProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, UnitPrice>>,
+          Map<String, UnitPrice>,
+          Stream<Map<String, UnitPrice>>
         >
     with
-        $FutureModifier<Map<String, PriceObservation>>,
-        $StreamProvider<Map<String, PriceObservation>> {
-  /// The latest price for every row the household has paid for, keyed by
-  /// ingredient id (ADR-0017).
-  const LatestPricesProvider._()
+        $FutureModifier<Map<String, UnitPrice>>,
+        $StreamProvider<Map<String, UnitPrice>> {
+  /// The price every cost reads, keyed by ingredient id: the newest receipt
+  /// price, else the row's base price (`costPriceOf`, ADR-0017).
+  const CostPriceMapProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'latestPricesProvider',
+        name: r'costPriceMapProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$latestPricesHash();
+  String debugGetCreateSourceHash() => _$costPriceMapHash();
 
   @$internal
   @override
-  $StreamProviderElement<Map<String, PriceObservation>> $createElement(
+  $StreamProviderElement<Map<String, UnitPrice>> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<Map<String, PriceObservation>> create(Ref ref) {
-    return latestPrices(ref);
+  Stream<Map<String, UnitPrice>> create(Ref ref) {
+    return costPriceMap(ref);
   }
 }
 
-String _$latestPricesHash() => r'7255ce50a4f7032725a7fee5d576ee3d5de08d57';
+String _$costPriceMapHash() => r'1489be5f53e89793f19e44a33e6d8c2a0e195ca9';
 
 /// What every vocabulary row costs and how its amounts convert, for a surface
 /// holding amounts rather than recipe lines (the Shop). Assembled from the
-/// vocabulary and latest-price watches; a row the vocabulary has not synced is
+/// vocabulary and cost-price watches; a row the vocabulary has not synced is
 /// absent.
 
 @ProviderFor(ingredientPricing)
@@ -929,7 +1013,7 @@ const ingredientPricingProvider = IngredientPricingProvider._();
 
 /// What every vocabulary row costs and how its amounts convert, for a surface
 /// holding amounts rather than recipe lines (the Shop). Assembled from the
-/// vocabulary and latest-price watches; a row the vocabulary has not synced is
+/// vocabulary and cost-price watches; a row the vocabulary has not synced is
 /// absent.
 
 final class IngredientPricingProvider
@@ -942,7 +1026,7 @@ final class IngredientPricingProvider
     with $Provider<Map<String, IngredientPricing>> {
   /// What every vocabulary row costs and how its amounts convert, for a surface
   /// holding amounts rather than recipe lines (the Shop). Assembled from the
-  /// vocabulary and latest-price watches; a row the vocabulary has not synced is
+  /// vocabulary and cost-price watches; a row the vocabulary has not synced is
   /// absent.
   const IngredientPricingProvider._()
     : super(
@@ -980,4 +1064,4 @@ final class IngredientPricingProvider
   }
 }
 
-String _$ingredientPricingHash() => r'0be8ce3ac475cc87462efef01804a21a4c2abdaf';
+String _$ingredientPricingHash() => r'2b20360881f62e0918fa6199ae5df310b59d1220';

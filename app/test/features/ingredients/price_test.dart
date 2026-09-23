@@ -35,7 +35,7 @@ const _bag = Measure(id: 'm1', label: 'bag', amount: 454);
 
 Receipt _receipt({
   String store = "TJ's",
-  ReceiptSource source = ReceiptSource.manual,
+  ReceiptSource source = ReceiptSource.photo,
 }) => Receipt(
   id: 'r1',
   store: store,
@@ -506,6 +506,60 @@ void main() {
     test('a line that kept no entered pack has no chip to name', () {
       expect(enteredChoice(stored(), const [_bag]), isNull);
     });
+
+    test('a base price reopens on its own chip, as a line does', () {
+      final base = BasePrice(
+        ingredientId: 'i1',
+        cents: 349,
+        packBasisAmount: 454,
+        basis: MacrosBasis.perG,
+        setAt: DateTime.utc(2026, 9, 13),
+        packAmount: 1,
+        measureId: 'm1',
+      );
+      expect(enteredChoice(base, const [_bag]), const MeasureOption(_bag));
+    });
+  });
+
+  group('the base price — a row’s own, on no receipt', () {
+    BasePrice? read({int? cents = 349, double? pack = 454, DateTime? setAt}) =>
+        basePriceFrom(
+          ingredientId: 'i1',
+          cents: cents,
+          packBasisAmount: pack,
+          basis: MacrosBasis.perG,
+          setAt: setAt ?? DateTime.utc(2026, 9, 13),
+        );
+
+    test('reads per 100 of the basis through the one derivation', () {
+      final base = read()!;
+      expect(formatPricePer100(base.per100.valueOrNull!), '77¢ / 100 g');
+      expect(base.count, 1, reason: 'a base price is one pack');
+      expect(base.paidCents, 349);
+      expect(base.asOf, DateTime.utc(2026, 9, 13));
+    });
+
+    test('an unreadable one is no price, never a zero', () {
+      expect(read(cents: null), isNull);
+      expect(read(cents: 0), isNull);
+      expect(read(pack: null), isNull);
+      expect(read(pack: 0), isNull);
+      expect(read(pack: double.nan), isNull);
+      expect(
+        basePriceFrom(
+          ingredientId: 'i1',
+          cents: 349,
+          packBasisAmount: 454,
+          basis: MacrosBasis.perG,
+          setAt: null,
+        ),
+        isNull,
+      );
+    });
+
+    test('its key is the row, and never a receipt line', () {
+      expect(read()!.key, 'base:i1');
+    });
   });
 
   group('the key a line’s printed words are filed under', () {
@@ -529,7 +583,8 @@ void main() {
   });
 
   group('the stored enumerations', () {
-    test('source round-trips, and an unknown one is never “typed here”', () {
+    test('source round-trips — an older build’s `manual` still reads — and '
+        'an unknown one is never “typed here”', () {
       expect(ReceiptSource.fromDb('manual'), ReceiptSource.manual);
       expect(ReceiptSource.fromDb('photo'), ReceiptSource.photo);
       expect(ReceiptSource.fromDb('something else'), ReceiptSource.photo);

@@ -157,13 +157,14 @@ real seam-finder instead of skipping it. See
 supabase start            # local stack
 supabase db reset         # re-run migrations + seed
 supabase db lint
-supabase test db          # pgTAP tests — twenty suites in tests/ (RLS + the
+supabase test db          # pgTAP tests — every suite in tests/ (RLS + the
                           #   usda server-only boundary, onboarding, the token
                           #   hook, unit admission, nested recipes, ingredient
                           #   measures and a recipe's own measures, BOTH
                           #   operator rollouts, portion factor, template seed,
                           #   shopping/week, the household's first day of the
-                          #   week, USDA search, the retire guard, and more)
+                          #   week, USDA search, the retire guard, receipts and
+                          #   a row's base price, and more)
 cd functions && deno task test  # edge-function tests (the task carries the
                           #   --allow-read the shared-vector and real-vocab
                           #   suites need; bare `deno test` fails on them)

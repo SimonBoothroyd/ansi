@@ -188,7 +188,7 @@ String measureFact(Measure measure) {
 /// follows a measure's word in brackets unless the word already states a size
 /// ([measureWordWithSize]), and stands alone on a line that kept no entered
 /// pack.
-String pricePackPhrase(PriceObservation price) {
+String pricePackPhrase(UnitPrice price) {
   final basis = price.basis.baseUnit;
   // How many of that pack the line rang up, in front of everything else, so
   // `$23.92 for 8 × block (16 oz)` reads back to the figure beside it.
@@ -275,11 +275,22 @@ String? latestPriceAside(PriceObservation? price) {
       '${formatMonthShort(price.purchasedAt)}';
 }
 
-/// What the price sheet says when opened on a stored line: `editing $3.49 ·
-/// TJ's · 13 Sep`. The full day, since it names the row being rewritten.
-String editedPriceAside(PriceObservation price) =>
-    'editing ${formatMoney(price.cents)} · ${price.store} · '
-    '${formatDayMonth(price.purchasedAt)}';
+/// The base price as one line: `$1.99 / 100 g · $1.99 for bunch (60 g) · set
+/// 13 Sep`, in [latestPriceFact]'s order. A base price names no store: it is
+/// what the household usually pays, not a shop.
+String basePriceFact(BasePrice price) {
+  final head = switch (price.per100) {
+    Ok(:final value) => '${formatPricePer100(value)} · ',
+    Err() => '',
+  };
+  return '$head${formatMoney(price.cents)} for ${pricePackPhrase(price)} · '
+      'set ${formatDayMonth(price.setAt)}';
+}
+
+/// What the price sheet says when opened on the stored base price: `editing
+/// $1.99 · set 13 Sep`.
+String editedBasePriceAside(BasePrice price) =>
+    'editing ${formatMoney(price.cents)} · set ${formatDayMonth(price.setAt)}';
 
 /// Why a price cannot be read from what has been typed: the sentence the
 /// sheet's dock shows in place of the figure. Each names a way out; an

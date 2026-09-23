@@ -166,7 +166,7 @@ final class ReceiptSummariesProvider
   }
 }
 
-String _$receiptSummariesHash() => r'd1b4e0446fa24b543947e37590078cb585891536';
+String _$receiptSummariesHash() => r'3434b831f7b15e2d91c5ae843efbb3cb6f40c8eb';
 
 /// The receipts dated inside the week beginning [weekStart] — the band's
 /// second figure, and nothing else.

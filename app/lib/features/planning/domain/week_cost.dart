@@ -3,8 +3,8 @@
 /// Sums `per serving × portions` over the meals that resolved, as
 /// `sumPlannedMacros` does, and names what kept the rest out. A recipe with an
 /// unpriced line has no cost, so its meal is left out whole. A bare ingredient
-/// meal is weighed like `ingredientPortionMacros` and priced at the row's
-/// latest price per basis unit.
+/// meal is weighed like `ingredientPortionMacros` and priced at the price its
+/// row's cost reads (`costPriceOf`), per basis unit.
 library;
 
 import '../../../core/result/result.dart';
@@ -34,7 +34,7 @@ typedef PlannedCost = ({
 /// in [CostLineReason]'s terms. The caller multiplies by the entry's demand.
 typedef PortionCost = ({double? cents, CostLineReason? reason});
 
-PortionCost ingredientPortionCost(PlanEntry entry, PriceObservation? price) {
+PortionCost ingredientPortionCost(PlanEntry entry, UnitPrice? price) {
   final nutrition = entry.nutrition;
   final quantity = entry.quantity;
   final unit = entry.unit;
@@ -86,12 +86,12 @@ PortionCost ingredientPortionCost(PlanEntry entry, PriceObservation? price) {
 /// `servings` under a lens.
 ///
 /// [costFor] returns a recipe's cost summary; null (gone or not loaded)
-/// excludes the meal by name. [priceFor] returns the latest price for a
-/// vocabulary row, which ingredient meals are costed from.
+/// excludes the meal by name. [priceFor] returns the price a vocabulary row's
+/// cost reads, which ingredient meals are costed from.
 PlannedCost sumPlannedCost(
   Iterable<PlanEntry> entries, {
   required RecipeCostSummary? Function(String recipeId) costFor,
-  required PriceObservation? Function(String ingredientId) priceFor,
+  required UnitPrice? Function(String ingredientId) priceFor,
   String? lensMemberId,
   Map<String, Member> membersById = const {},
 }) {
