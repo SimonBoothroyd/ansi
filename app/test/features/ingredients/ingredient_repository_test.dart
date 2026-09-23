@@ -558,7 +558,13 @@ void main() {
           density: DensitySet.fromSaid(thirdCupWeighs40g)!,
         ),
       );
-      expect(densitySaidOf(saved!), thirdCupWeighs40g);
+      // The amounts come back through SQLite REAL, so ⅓ may differ in the
+      // last bit by platform; the sentence and the density are what must hold.
+      final back = densitySaidOf(saved!)!;
+      expect(back.sentence, thirdCupWeighs40g.sentence);
+      expect(back.unit, thirdCupWeighs40g.unit);
+      expect(back.weighsUnit, thirdCupWeighs40g.weighsUnit);
+      expect(back.agreesWith(thirdCupWeighs40g.gPerMl), isTrue);
     });
 
     test('a number rewritten without its sentence — an older build, or the '
