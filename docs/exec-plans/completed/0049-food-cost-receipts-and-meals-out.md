@@ -1,6 +1,6 @@
 # Exec plan: Food cost, receipts, and a meal eaten out
 
-- **Status:** active — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`, the feedback passes as `v0.21.0`, `v0.24.0` (a line's count) and `v0.24.1` (add a line); open: the desk's three-column receipt review
+- **Status:** done — phases one and three shipped as `v0.19.0`, phase two as `v0.20.0`, the feedback passes as `v0.21.0`, `v0.24.0` (a line's count), `v0.24.1` (add a line) and `v0.26.1` (a receipt's time); the desk's three-column receipt review is a [backlog](../backlog.md) row
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the first ideas off the backlog
 - **Created:** 2026-09-16
@@ -307,7 +307,8 @@ and can run beside phase one.
   - An unmatched card was titled with the whole printed line, price and all.
     `name_printed` now rides the wire (additive) and titles the card.
   - **Bought is a door** (supersedes the entry above): a calendar sheet, the
-    day moves and the clock stays, no day after today.
+    day moves and the clock stays, no day after today. *(The clock moves too
+    now — see the last entry.)*
   - **PRICE is a chip on every open card**, not only on a line whose figure
     read as zero.
   - **One screen for a receipt** (owner: "the edit receipt and import receipt
@@ -515,6 +516,13 @@ and can run beside phase one.
   nothing from it and two hand-added lines are never twins — and it is a line
   like any other from there: in the sum, in the join, holding Save until it has
   a pack, a price once it does.
+- 2026-09-27 — **Bought moves the clock as well as the day** (owner). The
+  sheet holds the calendar and a 24-hour clock under it, and *Use it* commits
+  both, so a day tap no longer closes it. A moment later than now is refused,
+  not clamped: *Use it* greys out and the sheet says so. A day-only move keeps
+  the old clock to the second; a moved clock zeroes the seconds. A saved
+  receipt re-times through the same review, and `updateReceipt` writes the new
+  `purchased_at`.
 
 ## Notes / open questions
 
@@ -546,8 +554,8 @@ and can run beside phase one.
       still in the hatch is the desk's three-column receipt review, which
       has a backlog row of its own.)*
 - [x] ADR-0017 (cost is a unit price) written at P2's landing.
-- [ ] `make ci` green on every landing so far; `make test-sim` on one
-      simulator, serially, when the owner says go.
+- [x] `make ci` green on every landing. `make test-sim` was not run for
+      this plan.
 - [x] On cloud: `0044`–`0046` went with the hand-run `deploy-supabase` for R1;
       `0047`, `0050` and the `import-receipt` deploys are in the
       [ledger](../../cloud-setup.md#last-verified-ledger). Both receipt sync
