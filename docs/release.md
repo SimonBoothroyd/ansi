@@ -401,6 +401,7 @@ went first when the tag needed one.
 | `v0.24.1` | 2026-09-20 | A line the reader missed is added by hand from the foot of the receipt's Lines list — picker, then price — and stores no printed words, so the match memory learns nothing from it; plus the board audited against the code. No migrations, no deploy | release 35540489722 |
 | `v0.25.0` | 2026-09-21 | The ingredient form reads a nutrition label off a photo as a draft (the new `read-label` function, figures as printed, never computed), and receipt names keep every printed word. No migrations. Deploy 35673295982 went first | release 35674072824 |
 | `v0.26.0` | 2026-09-23 | A label read blocks the form behind a progress screen, sets the density from the serving line and replaces an old one; a density reads back as said (`⅓ cup weighs 40 g`, an ounce-only label keeps `1 oz`) or as a worked-out sentence; a typed price is the row's base price with an optional store, never a manual receipt, and a cost is the newest receipt price, else the base price. Migrations `0051`–`0053` (additive). Deploy 35874525431 went first | release 35876842531 |
+| `v0.26.1` | 2026-09-27 | A receipt's time moves as well as its day — the Bought sheet holds a 24-hour clock under the calendar, *Use it* commits both, and a moment later than now is refused; plan 0049 closes. No migrations, no deploy | release 36350896806 |
 
 ## 4. Deploy Supabase
 
