@@ -210,8 +210,8 @@ class _StoreChips extends ConsumerWidget {
   }
 }
 
-/// When the shop happened, and the door to correct it. An undated receipt opens
-/// on the scan day and says so.
+/// When the shop happened, and the door to correct its day and time. An undated
+/// receipt opens on the scan day and says so.
 class _Bought extends ConsumerWidget {
   const _Bought({required this.state});
 
@@ -226,7 +226,7 @@ class _Bought extends ConsumerWidget {
         '${at.hour.toString().padLeft(2, '0')}:'
         '${at.minute.toString().padLeft(2, '0')}';
     final caption = state.purchasedAt != state.openedAt
-        ? 'the day you said'
+        ? 'the day and time you said'
         // A saved receipt's date was confirmed when it was saved.
         : state.isSaved
         ? null
@@ -248,7 +248,7 @@ class _Bought extends ConsumerWidget {
                 .read(receiptScanControllerProvider.notifier)
                 .setPurchasedAt(picked);
           },
-          semanticsLabel: 'Change the date',
+          semanticsLabel: 'Change the date and time',
           minTarget: false,
           child: Row(
             mainAxisSize: MainAxisSize.min,

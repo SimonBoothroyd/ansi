@@ -5,6 +5,7 @@ import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
+import 'package:ansi/features/receipts/presentation/receipt_date_sheet.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -251,6 +252,35 @@ void main() {
       expect(write.store, "TJ's");
       expect(write.lines.map((l) => l.lineId), ['l1', 'l2']);
       expect(write.lines.first.cents, 399);
+    });
+
+    testWidgets('a kept receipt is re-timed, and Save writes the new time', (
+      tester,
+    ) async {
+      tallSurface(tester);
+      final ledger = FakeReceiptRepo()..stored['a'] = tjs();
+      await tester.pumpWidget(
+        storedReceiptHost(
+          overrides: receiptOverrides(ledger: ledger),
+          receiptId: 'a',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(kReceiptBoughtKey));
+      await tester.pumpAndSettle();
+      await turnReceiptClock(tester, 0, 9);
+      await turnReceiptClock(tester, 1, 5);
+      await tester.tap(find.byKey(kReceiptDateUseKey));
+      await tester.pumpAndSettle();
+      expect(find.text('Sunday 13 Sep · 09:05'), findsOneWidget);
+
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      final (id, write) = ledger.updated.single;
+      expect(id, 'a');
+      expect(write.purchasedAt, DateTime(2026, 9, 13, 9, 5));
     });
 
     testWidgets(

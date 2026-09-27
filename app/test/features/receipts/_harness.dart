@@ -20,6 +20,7 @@ import 'package:ansi/features/receipts/data/replay_receipt_repository.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
 import 'package:ansi/features/receipts/domain/receipt_save.dart';
+import 'package:ansi/features/receipts/presentation/receipt_date_sheet.dart';
 import 'package:ansi/features/receipts/presentation/receipt_ledger_view.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
 import 'package:ansi/features/receipts/presentation/receipt_scan_view.dart';
@@ -381,5 +382,17 @@ Future<void> runTheScan(
   await container
       .read(receiptScanControllerProvider.notifier)
       .scan(const ReceiptPhotos(['a.jpg']));
+  await tester.pumpAndSettle();
+}
+
+/// Turns the date sheet's clock: [wheel] 0 is the hours, 1 the minutes.
+Future<void> turnReceiptClock(WidgetTester tester, int wheel, int item) async {
+  final wheels = find.descendant(
+    of: find.byKey(kReceiptTimePickerKey),
+    matching: find.byType(ListWheelScrollView),
+  );
+  (tester.widget<ListWheelScrollView>(wheels.at(wheel)).controller!
+          as FixedExtentScrollController)
+      .jumpToItem(item);
   await tester.pumpAndSettle();
 }

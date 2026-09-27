@@ -427,6 +427,22 @@ void main() {
       expect(gone['deleted_at'], isNotNull, reason: 'a tombstone, not a hole');
     });
 
+    test(
+      'a new time alone is written, as the wall time it was said in',
+      () async {
+        final id = await repo.saveReceipt(write([line()]));
+        final [kept] = (await repo.watchReceipt(id).first)!.lines;
+
+        await repo.updateReceipt(
+          id,
+          write([line(lineId: kept.id)], on: DateTime(2026, 9, 13, 9, 5)),
+        );
+
+        final after = (await repo.watchReceipt(id).first)!;
+        expect(after.purchasedAt, DateTime.utc(2026, 9, 13, 9, 5));
+      },
+    );
+
     test('a line added by hand lands after the paper’s own, with no printed '
         'words and a price of its own', () async {
       final id = await repo.saveReceipt(write([line(), line(sortOrder: 1)]));

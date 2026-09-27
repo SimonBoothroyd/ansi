@@ -353,9 +353,14 @@ void main() {
               .first,
         );
         await tester.pumpAndSettle();
+        await tester.tap(find.byKey(kReceiptDateUseKey));
+        await tester.pumpAndSettle();
 
         expect(find.text('Saturday 12 Sep · 17:42'), findsOneWidget);
-        expect(find.textContaining('the day you said'), findsOneWidget);
+        expect(
+          find.textContaining('the day and time you said'),
+          findsOneWidget,
+        );
 
         await answerEveryLine(tester, container);
         await tester.tap(find.byKey(kReceiptSaveKey));

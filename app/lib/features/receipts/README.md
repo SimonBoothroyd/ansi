@@ -80,7 +80,7 @@ presentation/
   receipt_review_body.dart   the paper's own facts, then the lines
   receipt_line_card.dart     one line, money first
   receipt_pack_sheet.dart    *Say what the pack is*, + *keep as a measure*
-  receipt_date_sheet.dart    *When was this shop* — the day moves, the clock stays
+  receipt_date_sheet.dart    *When was this shop* — a day and a 24-hour clock, never later than now
   receipt_ledger_view.dart   `/receipts`, and `/receipts/:id` hosting the review
 ```
 
