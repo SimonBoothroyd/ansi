@@ -22,6 +22,9 @@ range, tokenizing prose) is source-derived or it doesn't happen.
   "yield_raw": null,           // printed yield when it isn't portions, e.g. "Makes 1 cup" / "Makes 8 sliders"; else null
   "total_time_seconds": null,  // {low,high} object if a range is printed (see time), else a number, else null (RE-READ the image for these two)
   "cook_time_seconds": null,
+  "keeps_for_days": 3,         // fridge days for the FINISHED dish as printed; a range's low end; else null
+  "freezable": false,          // true only when the page says it freezes
+  "freezer_days": null,        // printed freezer window in days (week = 7, month = 30); else null
   "truncated": false,          // true only for the deliberately-missing-page case
   "image_quality": "ok",       // ok | degraded | poor — your honest legibility read
   "parse_warnings": [],
@@ -31,6 +34,16 @@ range, tokenizing prose) is source-derived or it doesn't happen.
 ```
 
 Nutrition banners are **ignored** (we compute macros ourselves).
+
+**Shelf life** is labelled from wherever the page states how the finished dish
+keeps — a "Fridge life" banner, the intro, a step, a note — and the sentence
+stays in its step or line as printed. Never from the kind of dish. A range
+takes the low end ("Fridge life: 3–4 days" → 3). "Freezes well" with no time →
+`freezable: true`, `freezer_days: null`; "not suitable for freezing" →
+`freezable: false`. Room-temperature storage ("store at room temperature for up
+to 1 month") is not fridge life and sets nothing, and neither does a component
+kept on its own ("the dressing keeps a week"). A file without the three fields
+reads as nothing printed (null / false / null).
 
 ## Groups (`groups[]`)
 

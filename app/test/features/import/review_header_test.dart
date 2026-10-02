@@ -36,12 +36,18 @@ ReconciliationPayload _payload({
   String? yieldRaw,
   int? servingsBase = 8,
   TimeRange? cookTime,
+  int? keepsForDays,
+  bool freezable = false,
+  int? freezerDays,
   List<String> parseWarnings = const [],
 }) => reconPayload(
   title: 'Sausage Sliders',
   servingsBase: servingsBase,
   yieldRaw: yieldRaw,
   cookTimeSeconds: cookTime,
+  keepsForDays: keepsForDays,
+  freezable: freezable,
+  freezerDays: freezerDays,
   parseWarnings: parseWarnings,
   [
     reconLine(
@@ -206,8 +212,36 @@ void main() {
     expect(find.textContaining('didn’t say what this makes'), findsOneWidget);
   });
 
-  testWidgets('TIMES is prefilled from the page; SHELF LIFE starts unset and '
-      'FILE UNDER on the default book', (tester) async {
+  testWidgets('SHELF LIFE is prefilled from what the page printed, and rides '
+      'the commit untouched', (tester) async {
+    filterForuiSemanticsAssertions();
+    _tallViewport(tester);
+    final container = await _reviewing(
+      _payload(keepsForDays: 3, freezable: true, freezerDays: 90),
+    );
+    await tester.pumpWidget(_host(container));
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 days'), findsOneWidget);
+    expect(find.text('90 days'), findsOneWidget);
+    final header = _state(container).header;
+    expect(header.keepsForDays, 3);
+    expect(header.freezable, isTrue);
+    expect(header.freezerDays, 90);
+
+    await tester.tap(find.text('Save recipe'));
+    await tester.pumpAndSettle();
+    final committed =
+        (container.read(importRepositoryProvider) as FakeImportRepo).committed!;
+    expect(committed.keepsForDays, 3);
+    expect(committed.freezable, isTrue);
+    expect(committed.freezerDays, 90);
+  });
+
+  testWidgets('TIMES is prefilled from the page; SHELF LIFE starts unset when '
+      'the page printed none, and FILE UNDER on the default book', (
+    tester,
+  ) async {
     filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(

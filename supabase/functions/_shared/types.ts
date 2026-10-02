@@ -109,6 +109,11 @@ export interface ExtractionResult {
   yield_raw: string | null; // printed yield that isn't portions ("Makes 1 cup")
   total_time_seconds: TimeField;
   cook_time_seconds: TimeField;
+  // Shelf life of the FINISHED dish, only as the source prints it; never
+  // inferred from the kind of dish. A range takes its low end.
+  keeps_for_days: number | null; // fridge days; null when not printed
+  freezable: boolean; // true only when the source says it freezes
+  freezer_days: number | null; // printed freezer window; null when none
   truncated: boolean; // true only for a deliberately-incomplete source (missing page)
   image_quality: ImageQuality;
   parse_warnings: string[];
@@ -258,6 +263,9 @@ export interface ReconciliationPayload {
   yield_raw: string | null;
   total_time_seconds: TimeField;
   cook_time_seconds: TimeField;
+  keeps_for_days: number | null;
+  freezable: boolean;
+  freezer_days: number | null;
   truncated: boolean;
   image_quality: ImageQuality;
   parse_warnings: string[];

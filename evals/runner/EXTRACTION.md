@@ -61,6 +61,10 @@ a fair test rather than a friendly one:
 - **No normalized-token leak.** A gold line with no `raw_amount` renders printed
   prose ("1 red bell pepper", "2 teaspoons salt"), never the structured
   `"1 piece"` — that would hand over our unit vocabulary.
+- **Shelf life prints as a banner.** A gold with `keeps_for_days` renders
+  `Fridge life: N days` (and a freezer line when `freezable`), so D2 tests the
+  field at all; a printed range or a storage sentence elsewhere on the page is
+  only tested by D3.
 - **No double-print.** When the printed amount already spells the identity
   ("Juice of 1 lemon"), it is not repeated, and a note that merely restates the
   amount (", juiced") is dropped.
@@ -89,6 +93,7 @@ equally, the micro does not.
 | **notes agreement**              | Cook-prep survived into the note slot (see the notes rule below). Over the gold denominator.                                                                     |
 | **servings**                     | `servings_base` exact (null-safe).                                                                                                                               |
 | **time total / cook**            | `TimeField` equality (null-safe, range-aware).                                                                                                                   |
+| **shelf fridge / freezes / freezer** | `keeps_for_days`, `freezable`, `freezer_days` each exact; a gold without them reads null / false / null. |
 | **step-ref F1**                  | Multiset match of step `ref` tokens, with the model's flattened line indices remapped through the line alignment. **n/a recipes excluded** (see below).           |
 | **timer F1**                     | Multiset match of `timer` tokens (low/high seconds). **n/a recipes excluded** (see below).                                                                       |
 | **calibration ECE**              | Expected calibration error of per-line `confidence` vs actual (qty+unit) correctness, 10 bins. A calibration tool, not a gate.                                    |
@@ -145,6 +150,8 @@ disqualified. Counts, per case, summed per provider:
 - `forced_unit` — gold amount was unmappable, the model mapped it to a unit.
 - `invented_time` / `invented_servings` / `invented_timers` — a recipe-level
   value the source doesn't carry.
+- `invented_shelf_life` — fridge days, `freezable: true` or freezer days where
+  the gold has none (one count per field).
 
 Adapters additionally self-flag structural inconsistencies
 (`validateExtractionResult`) into `parse_warnings`; the scorer counts those too.

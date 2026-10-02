@@ -214,6 +214,9 @@ _ReconciliationPayload _$ReconciliationPayloadFromJson(
   cookTimeSeconds: const TimeFieldConverter().fromJson(
     json['cook_time_seconds'],
   ),
+  keepsForDays: (json['keeps_for_days'] as num?)?.toInt(),
+  freezable: json['freezable'] as bool? ?? false,
+  freezerDays: (json['freezer_days'] as num?)?.toInt(),
   truncated: json['truncated'] as bool? ?? false,
   imageQuality:
       $enumDecodeNullable(_$ImportImageQualityEnumMap, json['image_quality']) ??
@@ -249,6 +252,9 @@ Map<String, dynamic> _$ReconciliationPayloadToJson(
   'cook_time_seconds': const TimeFieldConverter().toJson(
     instance.cookTimeSeconds,
   ),
+  'keeps_for_days': instance.keepsForDays,
+  'freezable': instance.freezable,
+  'freezer_days': instance.freezerDays,
   'truncated': instance.truncated,
   'image_quality': _$ImportImageQualityEnumMap[instance.imageQuality]!,
   'parse_warnings': instance.parseWarnings,

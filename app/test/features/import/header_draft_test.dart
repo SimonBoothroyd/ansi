@@ -1,5 +1,5 @@
-/// The review's header draft (plan 0025 #4, board frame b): prefilled only
-/// where the page plainly said it, unset everywhere else.
+/// The review's header draft (board frame b): prefilled only where the page
+/// plainly said it, unset everywhere else.
 library;
 
 import 'package:ansi/core/units/units.dart';
@@ -31,6 +31,21 @@ void main() {
       expect(draft.bookId, 'b1');
     },
   );
+
+  test('shelf life rides in from the page as the server read it', () {
+    final draft = headerDraft(
+      const ReconciliationPayload(
+        title: 'T',
+        keepsForDays: 3,
+        freezable: true,
+        freezerDays: 90,
+      ),
+      bookId: 'b1',
+    );
+    expect(draft.keepsForDays, 3);
+    expect(draft.freezable, isTrue);
+    expect(draft.freezerDays, 90);
+  });
 
   test('what no page prints starts unset: shelf life, the second '
       'denomination, a section', () {

@@ -51,6 +51,12 @@ Deno.test("replay — a saved run case extracts the recipe it recorded, with no 
     result.groups.reduce((n, g) => n + g.line_items.length, 0),
     9,
   );
+  // The recorded shelf life rides through decode: the dish's fridge range at
+  // its low end, the dressing's own week ignored.
+  assertEquals(
+    [result.keeps_for_days, result.freezable, result.freezer_days],
+    [3, false, null],
+  );
 });
 
 Deno.test("replay — refuses a fixture recorded from another provider", () => {

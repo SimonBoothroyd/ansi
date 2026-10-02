@@ -78,6 +78,9 @@ function contractSampler(): ExtractionResult {
     // Both TimeField forms in one payload: a bare number and a {low,high} range.
     total_time_seconds: 5400,
     cook_time_seconds: { low_seconds: 2700, high_seconds: 3600 },
+    keeps_for_days: 3,
+    freezable: true,
+    freezer_days: 90,
     truncated: true,
     image_quality: "degraded",
     parse_warnings: [
@@ -367,6 +370,11 @@ Deno.test("golden payload — the fixture covers every load-bearing shape", asyn
   assert(
     p.cook_time_seconds !== null && typeof p.cook_time_seconds === "object",
     "cook_time_seconds must be the {low,high} range form",
+  );
+  // Shelf life, all three set, so the Dart mirror decodes every one.
+  assertEquals(
+    [p.keeps_for_days, p.freezable, p.freezer_days],
+    [3, true, 90],
   );
   assert(p.truncated);
   assertEquals(p.image_quality, "degraded");

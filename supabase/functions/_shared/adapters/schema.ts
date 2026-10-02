@@ -116,6 +116,9 @@ export const EXTRACTION_JSON_SCHEMA = {
     "yield_raw",
     "total_time_seconds",
     "cook_time_seconds",
+    "keeps_for_days",
+    "freezable",
+    "freezer_days",
     "truncated",
     "image_quality",
     "parse_warnings",
@@ -129,6 +132,9 @@ export const EXTRACTION_JSON_SCHEMA = {
     yield_raw: { type: ["string", "null"] },
     total_time_seconds: timeObject,
     cook_time_seconds: timeObject,
+    keeps_for_days: { type: ["integer", "null"] },
+    freezable: { type: "boolean" },
+    freezer_days: { type: ["integer", "null"] },
     truncated: { type: "boolean" },
     image_quality: { type: "string", enum: ["ok", "degraded", "poor"] },
     parse_warnings: { type: "array", items: { type: "string" } },
@@ -318,6 +324,19 @@ function coerceTime(v: unknown): TimeField {
   return { low_seconds: lo, high_seconds: hi } satisfies TimeRange;
 }
 
+/**
+ * A shelf-life day count: a finite, non-negative whole number, else null. A
+ * fractional answer rounds; garbage, negatives and absurd values are nulled.
+ */
+export const MAX_SHELF_LIFE_DAYS = 3650;
+
+function coerceDays(v: unknown): number | null {
+  const n = numOrNull(v);
+  if (n === null || n < 0) return null;
+  const days = Math.round(n);
+  return days > MAX_SHELF_LIFE_DAYS ? null : days;
+}
+
 function coerceImageQuality(v: unknown): ImageQuality {
   return v === "degraded" || v === "poor" ? v : "ok";
 }
@@ -462,6 +481,7 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
     })
     : [];
   const servings = numOrNull(o.servings_base);
+  const freezable = boolOr(o.freezable, false);
   return {
     // The one place every import's title is cased, URL and photo alike.
     title: titleCaseIfUncased(cap(String(o.title ?? ""), CAPS.title)),
@@ -470,6 +490,10 @@ export function coerceExtractionResult(raw: unknown): ExtractionResult {
     yield_raw: strOrNull(o.yield_raw, CAPS.yield_raw),
     total_time_seconds: coerceTime(o.total_time_seconds),
     cook_time_seconds: coerceTime(o.cook_time_seconds),
+    keeps_for_days: coerceDays(o.keeps_for_days),
+    freezable,
+    // A freezer window only means something on a dish that freezes.
+    freezer_days: freezable ? coerceDays(o.freezer_days) : null,
     truncated: boolOr(o.truncated, false),
     image_quality: coerceImageQuality(o.image_quality),
     parse_warnings: Array.isArray(o.parse_warnings)

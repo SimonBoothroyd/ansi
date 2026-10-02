@@ -46,6 +46,9 @@ function cannedExtraction(): ExtractionResult {
     yield_raw: null,
     total_time_seconds: 1800,
     cook_time_seconds: { low_seconds: 600, high_seconds: 900 },
+    keeps_for_days: 4,
+    freezable: false,
+    freezer_days: null,
     truncated: false,
     image_quality: "ok",
     parse_warnings: ["light grey type on the amounts column"],
@@ -159,6 +162,10 @@ Deno.test("importRecipe — URL path builds a valid ReconciliationPayload", asyn
     low_seconds: 600,
     high_seconds: 900,
   });
+  assertEquals(
+    [payload.keeps_for_days, payload.freezable, payload.freezer_days],
+    [4, false, null],
+  );
   // Group shape preserved.
   assertEquals(payload.groups.map((g) => g.name), [
     "for the curry",

@@ -18,7 +18,9 @@ const kImportHeaderDraftId = 'import-draft';
 /// - makes from `yield_raw` only when it was a plain amount and unit
 ///   ([parseYieldRaw]);
 /// - times from the printed cook and total time, the low end of a range;
-/// - shelf life unset, and filed into [bookId].
+/// - shelf life (fridge days, whether it freezes, freezer days) as printed;
+///   the server leaves each unset when the page said nothing;
+/// - filed into [bookId].
 Recipe headerDraft(
   ReconciliationPayload payload, {
   required String? bookId,
@@ -33,6 +35,9 @@ Recipe headerDraft(
     yieldUnit: prefill?.unit,
     cookTimeSeconds: payload.cookTimeSeconds?.lowSeconds,
     totalTimeSeconds: payload.totalTimeSeconds?.lowSeconds,
+    keepsForDays: payload.keepsForDays,
+    freezable: payload.freezable,
+    freezerDays: payload.freezerDays,
     bookId: bookId,
     sectionId: sectionId,
   );

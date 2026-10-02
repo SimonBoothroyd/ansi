@@ -61,6 +61,9 @@ function recipe(lines: RawLineItem[]): ExtractionResult {
     yield_raw: null,
     total_time_seconds: null,
     cook_time_seconds: null,
+    keeps_for_days: null,
+    freezable: false,
+    freezer_days: null,
     truncated: false,
     image_quality: "ok",
     parse_warnings: [],
@@ -68,6 +71,58 @@ function recipe(lines: RawLineItem[]): ExtractionResult {
     steps: [],
   };
 }
+
+Deno.test("shelf life — each field scores on its own, and a value the gold does not carry is an invention", () => {
+  const gold = {
+    ...recipe([]),
+    keeps_for_days: 3,
+    source_images: [],
+    _review: [],
+  };
+  const right = scoreExtraction(
+    "c",
+    gold,
+    { ...recipe([]), keeps_for_days: 3 },
+    true,
+  );
+  assert(
+    right.keeps_correct && right.freezable_correct && right.freezer_correct,
+  );
+  assertEquals(right.ledger.invented_shelf_life, 0);
+
+  // A dropped fridge life is a miss, not an invention.
+  const dropped = scoreExtraction("c", gold, recipe([]), true);
+  assertEquals(dropped.keeps_correct, false);
+  assertEquals(dropped.ledger.invented_shelf_life, 0);
+
+  // Freezing the gold never mentions is invented twice over.
+  const invented = scoreExtraction(
+    "c",
+    gold,
+    { ...recipe([]), keeps_for_days: 3, freezable: true, freezer_days: 90 },
+    true,
+  );
+  assert(invented.keeps_correct);
+  assertEquals(invented.freezable_correct, false);
+  assertEquals(invented.freezer_correct, false);
+  assertEquals(invented.ledger.invented_shelf_life, 2);
+  assertEquals(ledgerTotal(invented.ledger), 2);
+
+  // A gold labelled before the fields existed reads as "nothing printed".
+  const legacy = { ...recipe([]), source_images: [], _review: [] } as
+    & Partial<ExtractionResult>
+    & Record<string, unknown>;
+  delete legacy.keeps_for_days;
+  delete legacy.freezable;
+  delete legacy.freezer_days;
+  const old = scoreExtraction(
+    "c",
+    legacy as unknown as typeof gold,
+    recipe([]),
+    true,
+  );
+  assert(old.keeps_correct && old.freezable_correct && old.freezer_correct);
+});
 
 goldTest("oracle mock scores the gold perfectly, empty ledger", async () => {
   const cases = await loadGold();
@@ -94,6 +149,9 @@ goldTest("oracle mock scores the gold perfectly, empty ledger", async () => {
   assertEquals(s.normalize_agree, 1);
   assertEquals(s.servings_acc, 1);
   assertEquals(s.total_time_acc, 1);
+  assertEquals(s.keeps_acc, 1);
+  assertEquals(s.freezable_acc, 1);
+  assertEquals(s.freezer_acc, 1);
   assertEquals(s.step_ref_f1, 1);
   assertEquals(s.timer_f1, 1);
   assertEquals(

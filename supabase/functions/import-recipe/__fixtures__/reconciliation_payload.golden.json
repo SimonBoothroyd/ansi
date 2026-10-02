@@ -8,6 +8,9 @@
     "low_seconds": 2700,
     "high_seconds": 3600
   },
+  "keeps_for_days": 3,
+  "freezable": true,
+  "freezer_days": 90,
   "truncated": true,
   "image_quality": "degraded",
   "parse_warnings": [

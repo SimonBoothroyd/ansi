@@ -260,6 +260,12 @@ abstract class ReconciliationPayload with _$ReconciliationPayload {
     String? yieldRaw,
     @TimeFieldConverter() TimeRange? totalTimeSeconds,
     @TimeFieldConverter() TimeRange? cookTimeSeconds,
+
+    /// Shelf life of the finished dish, only as the source printed it: fridge
+    /// days (a range's low end), whether it freezes, and the freezer window.
+    int? keepsForDays,
+    @Default(false) bool freezable,
+    int? freezerDays,
     @Default(false) bool truncated,
     @Default(ImportImageQuality.ok) ImportImageQuality imageQuality,
     @Default(<String>[]) List<String> parseWarnings,

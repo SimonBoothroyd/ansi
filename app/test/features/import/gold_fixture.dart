@@ -56,6 +56,9 @@ ReconciliationPayload goldPayload(String name) {
     cookTimeSeconds: const TimeFieldConverter().fromJson(
       json['cook_time_seconds'],
     ),
+    keepsForDays: (json['keeps_for_days'] as num?)?.toInt(),
+    freezable: (json['freezable'] as bool?) ?? false,
+    freezerDays: (json['freezer_days'] as num?)?.toInt(),
     truncated: (json['truncated'] as bool?) ?? false,
     imageQuality: _imageQuality(json['image_quality'] as String?),
     parseWarnings: (json['parse_warnings'] as List? ?? const []).cast<String>(),

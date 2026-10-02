@@ -2989,7 +2989,9 @@ as List<ReconLine>,
 /// @nodoc
 mixin _$ReconciliationPayload {
 
- String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;/// The text the server read this recipe from: a link import's fetched page,
+ String get title; int? get servingsBase; String? get servingsRaw; String? get yieldRaw;@TimeFieldConverter() TimeRange? get totalTimeSeconds;@TimeFieldConverter() TimeRange? get cookTimeSeconds;/// Shelf life of the finished dish, only as the source printed it: fridge
+/// days (a range's low end), whether it freezes, and the freezer window.
+ int? get keepsForDays; bool get freezable; int? get freezerDays; bool get truncated; ImportImageQuality get imageQuality; List<String> get parseWarnings; List<ReconGroup> get groups; List<Step> get steps;/// The text the server read this recipe from: a link import's fetched page,
 /// capped server-side (`import-recipe/index.ts`). Null for a photo import.
 /// Feeds the wide review's source column.
  String? get sourceText;
@@ -3005,16 +3007,16 @@ $ReconciliationPayloadCopyWith<ReconciliationPayload> get copyWith => _$Reconcil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other.parseWarnings, parseWarnings)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&(identical(other.sourceText, sourceText) || other.sourceText == sourceText));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other.parseWarnings, parseWarnings)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.steps, steps)&&(identical(other.sourceText, sourceText) || other.sourceText == sourceText));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,truncated,imageQuality,const DeepCollectionEquality().hash(parseWarnings),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),sourceText);
+int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,keepsForDays,freezable,freezerDays,truncated,imageQuality,const DeepCollectionEquality().hash(parseWarnings),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(steps),sourceText);
 
 @override
 String toString() {
-  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps, sourceText: $sourceText)';
+  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps, sourceText: $sourceText)';
 }
 
 
@@ -3025,7 +3027,7 @@ abstract mixin class $ReconciliationPayloadCopyWith<$Res>  {
   factory $ReconciliationPayloadCopyWith(ReconciliationPayload value, $Res Function(ReconciliationPayload) _then) = _$ReconciliationPayloadCopyWithImpl;
 @useResult
 $Res call({
- String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps, String? sourceText
+ String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, int? keepsForDays, bool freezable, int? freezerDays, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps, String? sourceText
 });
 
 
@@ -3042,7 +3044,7 @@ class _$ReconciliationPayloadCopyWithImpl<$Res>
 
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,Object? sourceText = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,Object? sourceText = freezed,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: freezed == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
@@ -3050,7 +3052,10 @@ as int?,servingsRaw: freezed == servingsRaw ? _self.servingsRaw : servingsRaw //
 as String?,yieldRaw: freezed == yieldRaw ? _self.yieldRaw : yieldRaw // ignore: cast_nullable_to_non_nullable
 as String?,totalTimeSeconds: freezed == totalTimeSeconds ? _self.totalTimeSeconds : totalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as TimeRange?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
-as TimeRange?,truncated: null == truncated ? _self.truncated : truncated // ignore: cast_nullable_to_non_nullable
+as TimeRange?,keepsForDays: freezed == keepsForDays ? _self.keepsForDays : keepsForDays // ignore: cast_nullable_to_non_nullable
+as int?,freezable: null == freezable ? _self.freezable : freezable // ignore: cast_nullable_to_non_nullable
+as bool,freezerDays: freezed == freezerDays ? _self.freezerDays : freezerDays // ignore: cast_nullable_to_non_nullable
+as int?,truncated: null == truncated ? _self.truncated : truncated // ignore: cast_nullable_to_non_nullable
 as bool,imageQuality: null == imageQuality ? _self.imageQuality : imageQuality // ignore: cast_nullable_to_non_nullable
 as ImportImageQuality,parseWarnings: null == parseWarnings ? _self.parseWarnings : parseWarnings // ignore: cast_nullable_to_non_nullable
 as List<String>,groups: null == groups ? _self.groups : groups // ignore: cast_nullable_to_non_nullable
@@ -3165,10 +3170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  int? keepsForDays,  bool freezable,  int? freezerDays,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReconciliationPayload() when $default != null:
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
   return orElse();
 
 }
@@ -3186,10 +3191,10 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  int? keepsForDays,  bool freezable,  int? freezerDays,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationPayload():
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -3206,10 +3211,10 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  int? servingsBase,  String? servingsRaw,  String? yieldRaw, @TimeFieldConverter()  TimeRange? totalTimeSeconds, @TimeFieldConverter()  TimeRange? cookTimeSeconds,  int? keepsForDays,  bool freezable,  int? freezerDays,  bool truncated,  ImportImageQuality imageQuality,  List<String> parseWarnings,  List<ReconGroup> groups,  List<Step> steps,  String? sourceText)?  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationPayload() when $default != null:
-return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
+return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,_that.totalTimeSeconds,_that.cookTimeSeconds,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.truncated,_that.imageQuality,_that.parseWarnings,_that.groups,_that.steps,_that.sourceText);case _:
   return null;
 
 }
@@ -3221,7 +3226,7 @@ return $default(_that.title,_that.servingsBase,_that.servingsRaw,_that.yieldRaw,
 @JsonSerializable()
 
 class _ReconciliationPayload implements ReconciliationPayload {
-  const _ReconciliationPayload({required this.title, this.servingsBase, this.servingsRaw, this.yieldRaw, @TimeFieldConverter() this.totalTimeSeconds, @TimeFieldConverter() this.cookTimeSeconds, this.truncated = false, this.imageQuality = ImportImageQuality.ok, final  List<String> parseWarnings = const <String>[], final  List<ReconGroup> groups = const <ReconGroup>[], final  List<Step> steps = const <Step>[], this.sourceText}): _parseWarnings = parseWarnings,_groups = groups,_steps = steps;
+  const _ReconciliationPayload({required this.title, this.servingsBase, this.servingsRaw, this.yieldRaw, @TimeFieldConverter() this.totalTimeSeconds, @TimeFieldConverter() this.cookTimeSeconds, this.keepsForDays, this.freezable = false, this.freezerDays, this.truncated = false, this.imageQuality = ImportImageQuality.ok, final  List<String> parseWarnings = const <String>[], final  List<ReconGroup> groups = const <ReconGroup>[], final  List<Step> steps = const <Step>[], this.sourceText}): _parseWarnings = parseWarnings,_groups = groups,_steps = steps;
   factory _ReconciliationPayload.fromJson(Map<String, dynamic> json) => _$ReconciliationPayloadFromJson(json);
 
 @override final  String title;
@@ -3230,6 +3235,11 @@ class _ReconciliationPayload implements ReconciliationPayload {
 @override final  String? yieldRaw;
 @override@TimeFieldConverter() final  TimeRange? totalTimeSeconds;
 @override@TimeFieldConverter() final  TimeRange? cookTimeSeconds;
+/// Shelf life of the finished dish, only as the source printed it: fridge
+/// days (a range's low end), whether it freezes, and the freezer window.
+@override final  int? keepsForDays;
+@override@JsonKey() final  bool freezable;
+@override final  int? freezerDays;
 @override@JsonKey() final  bool truncated;
 @override@JsonKey() final  ImportImageQuality imageQuality;
  final  List<String> _parseWarnings;
@@ -3271,16 +3281,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other._parseWarnings, _parseWarnings)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&(identical(other.sourceText, sourceText) || other.sourceText == sourceText));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconciliationPayload&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.servingsRaw, servingsRaw) || other.servingsRaw == servingsRaw)&&(identical(other.yieldRaw, yieldRaw) || other.yieldRaw == yieldRaw)&&(identical(other.totalTimeSeconds, totalTimeSeconds) || other.totalTimeSeconds == totalTimeSeconds)&&(identical(other.cookTimeSeconds, cookTimeSeconds) || other.cookTimeSeconds == cookTimeSeconds)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&(identical(other.truncated, truncated) || other.truncated == truncated)&&(identical(other.imageQuality, imageQuality) || other.imageQuality == imageQuality)&&const DeepCollectionEquality().equals(other._parseWarnings, _parseWarnings)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._steps, _steps)&&(identical(other.sourceText, sourceText) || other.sourceText == sourceText));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,truncated,imageQuality,const DeepCollectionEquality().hash(_parseWarnings),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),sourceText);
+int get hashCode => Object.hash(runtimeType,title,servingsBase,servingsRaw,yieldRaw,totalTimeSeconds,cookTimeSeconds,keepsForDays,freezable,freezerDays,truncated,imageQuality,const DeepCollectionEquality().hash(_parseWarnings),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_steps),sourceText);
 
 @override
 String toString() {
-  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps, sourceText: $sourceText)';
+  return 'ReconciliationPayload(title: $title, servingsBase: $servingsBase, servingsRaw: $servingsRaw, yieldRaw: $yieldRaw, totalTimeSeconds: $totalTimeSeconds, cookTimeSeconds: $cookTimeSeconds, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, truncated: $truncated, imageQuality: $imageQuality, parseWarnings: $parseWarnings, groups: $groups, steps: $steps, sourceText: $sourceText)';
 }
 
 
@@ -3291,7 +3301,7 @@ abstract mixin class _$ReconciliationPayloadCopyWith<$Res> implements $Reconcili
   factory _$ReconciliationPayloadCopyWith(_ReconciliationPayload value, $Res Function(_ReconciliationPayload) _then) = __$ReconciliationPayloadCopyWithImpl;
 @override @useResult
 $Res call({
- String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps, String? sourceText
+ String title, int? servingsBase, String? servingsRaw, String? yieldRaw,@TimeFieldConverter() TimeRange? totalTimeSeconds,@TimeFieldConverter() TimeRange? cookTimeSeconds, int? keepsForDays, bool freezable, int? freezerDays, bool truncated, ImportImageQuality imageQuality, List<String> parseWarnings, List<ReconGroup> groups, List<Step> steps, String? sourceText
 });
 
 
@@ -3308,7 +3318,7 @@ class __$ReconciliationPayloadCopyWithImpl<$Res>
 
 /// Create a copy of ReconciliationPayload
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,Object? sourceText = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? servingsBase = freezed,Object? servingsRaw = freezed,Object? yieldRaw = freezed,Object? totalTimeSeconds = freezed,Object? cookTimeSeconds = freezed,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? truncated = null,Object? imageQuality = null,Object? parseWarnings = null,Object? groups = null,Object? steps = null,Object? sourceText = freezed,}) {
   return _then(_ReconciliationPayload(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,servingsBase: freezed == servingsBase ? _self.servingsBase : servingsBase // ignore: cast_nullable_to_non_nullable
@@ -3316,7 +3326,10 @@ as int?,servingsRaw: freezed == servingsRaw ? _self.servingsRaw : servingsRaw //
 as String?,yieldRaw: freezed == yieldRaw ? _self.yieldRaw : yieldRaw // ignore: cast_nullable_to_non_nullable
 as String?,totalTimeSeconds: freezed == totalTimeSeconds ? _self.totalTimeSeconds : totalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as TimeRange?,cookTimeSeconds: freezed == cookTimeSeconds ? _self.cookTimeSeconds : cookTimeSeconds // ignore: cast_nullable_to_non_nullable
-as TimeRange?,truncated: null == truncated ? _self.truncated : truncated // ignore: cast_nullable_to_non_nullable
+as TimeRange?,keepsForDays: freezed == keepsForDays ? _self.keepsForDays : keepsForDays // ignore: cast_nullable_to_non_nullable
+as int?,freezable: null == freezable ? _self.freezable : freezable // ignore: cast_nullable_to_non_nullable
+as bool,freezerDays: freezed == freezerDays ? _self.freezerDays : freezerDays // ignore: cast_nullable_to_non_nullable
+as int?,truncated: null == truncated ? _self.truncated : truncated // ignore: cast_nullable_to_non_nullable
 as bool,imageQuality: null == imageQuality ? _self.imageQuality : imageQuality // ignore: cast_nullable_to_non_nullable
 as ImportImageQuality,parseWarnings: null == parseWarnings ? _self._parseWarnings : parseWarnings // ignore: cast_nullable_to_non_nullable
 as List<String>,groups: null == groups ? _self._groups : groups // ignore: cast_nullable_to_non_nullable

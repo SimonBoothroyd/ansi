@@ -396,6 +396,7 @@ export interface Ledger {
   invented_time: number; // gold time null, model emitted a time
   invented_servings: number; // gold servings null, model emitted a number
   invented_timers: number; // more timer tokens than the source has
+  invented_shelf_life: number; // gold printed no shelf-life value, model set one
   structural_flags: number; // adapter's own structural parse_warnings
 }
 
@@ -409,6 +410,7 @@ function emptyLedger(): Ledger {
     invented_time: 0,
     invented_servings: 0,
     invented_timers: 0,
+    invented_shelf_life: 0,
     structural_flags: 0,
   };
 }
@@ -421,7 +423,8 @@ function addLedger(a: Ledger, b: Ledger): Ledger {
 
 export function ledgerTotal(l: Ledger): number {
   return l.invented_lines + l.invented_qty + l.collapsed_range +
-    l.forced_unit + l.invented_time + l.invented_servings + l.invented_timers;
+    l.forced_unit + l.invented_time + l.invented_servings + l.invented_timers +
+    l.invented_shelf_life;
 }
 
 // --- per-case score ----------------------------------------------------------
@@ -454,6 +457,10 @@ export interface CaseScore {
   servings_correct: boolean;
   total_time_correct: boolean;
   cook_time_correct: boolean;
+  /** Shelf life, field by field, null-safe (a gold without them reads null). */
+  keeps_correct: boolean;
+  freezable_correct: boolean;
+  freezer_correct: boolean;
   line: { p: number; r: number; f1: number };
   /**
    * HEADLINE field accuracies — over the GOLD denominator: an omitted line is a
@@ -499,12 +506,28 @@ export const EMPTY_RESULT: ExtractionResult = {
   yield_raw: null,
   total_time_seconds: null,
   cook_time_seconds: null,
+  keeps_for_days: null,
+  freezable: false,
+  freezer_days: null,
   truncated: false,
   image_quality: "poor",
   parse_warnings: [],
   groups: [],
   steps: [],
 };
+
+/** The three shelf-life fields, defaulted the "nothing printed" way. */
+function shelfLife(r: Partial<ExtractionResult>): {
+  keeps: number | null;
+  freezable: boolean;
+  freezer: number | null;
+} {
+  return {
+    keeps: r.keeps_for_days ?? null,
+    freezable: r.freezable ?? false,
+    freezer: r.freezer_days ?? null,
+  };
+}
 
 export function scoreExtraction(
   id: string,
@@ -575,6 +598,20 @@ export function scoreExtraction(
   if (gold.servings_base === null && got.servings_base !== null) {
     ledger.invented_servings++;
   }
+  // Shelf life: a value the gold does not carry is an invention. Read with
+  // defaults so a gold or a saved response from before the fields scores as
+  // "nothing printed".
+  const goldShelf = shelfLife(gold);
+  const gotShelf = shelfLife(got);
+  if (goldShelf.keeps === null && gotShelf.keeps !== null) {
+    ledger.invented_shelf_life++;
+  }
+  if (!goldShelf.freezable && gotShelf.freezable) {
+    ledger.invented_shelf_life++;
+  }
+  if (goldShelf.freezer === null && gotShelf.freezer !== null) {
+    ledger.invented_shelf_life++;
+  }
 
   // steps: map got flattened index → gold flattened index via the alignment
   const gotToGold = new Map<number, number>();
@@ -597,6 +634,9 @@ export function scoreExtraction(
     servings_correct: gold.servings_base === got.servings_base,
     total_time_correct: timeEq(gold.total_time_seconds, got.total_time_seconds),
     cook_time_correct: timeEq(gold.cook_time_seconds, got.cook_time_seconds),
+    keeps_correct: goldShelf.keeps === gotShelf.keeps,
+    freezable_correct: goldShelf.freezable === gotShelf.freezable,
+    freezer_correct: goldShelf.freezer === gotShelf.freezer,
     line: prF1({
       matched: align.pairs.length,
       gold: goldLines.length,
@@ -718,6 +758,9 @@ export interface Summary {
   servings_acc: number;
   total_time_acc: number;
   cook_time_acc: number;
+  keeps_acc: number;
+  freezable_acc: number;
+  freezer_acc: number;
   line_p: number;
   line_r: number;
   line_f1: number;
@@ -778,6 +821,9 @@ export function summarize(provider: string, scores: CaseScore[]): Summary {
     servings_acc: mean(scores.map((s) => (s.servings_correct ? 1 : 0))),
     total_time_acc: mean(scores.map((s) => (s.total_time_correct ? 1 : 0))),
     cook_time_acc: mean(scores.map((s) => (s.cook_time_correct ? 1 : 0))),
+    keeps_acc: mean(scores.map((s) => (s.keeps_correct ? 1 : 0))),
+    freezable_acc: mean(scores.map((s) => (s.freezable_correct ? 1 : 0))),
+    freezer_acc: mean(scores.map((s) => (s.freezer_correct ? 1 : 0))),
     line_p: mean(scores.map((s) => s.line.p)),
     line_r: mean(scores.map((s) => s.line.r)),
     line_f1: mean(scores.map((s) => s.line.f1)),
@@ -1136,6 +1182,10 @@ export function printSummary(s: Summary): void {
     `    time total/cook ${pct(s.total_time_acc)} / ${pct(s.cook_time_acc)}`,
   );
   console.log(
+    `    shelf fridge/freezes/freezer ${pct(s.keeps_acc)} / ` +
+      `${pct(s.freezable_acc)} / ${pct(s.freezer_acc)}`,
+  );
+  console.log(
     `    step-ref F1     ${pct(s.step_ref_f1)} (over ${
       pct(s.step_ref_coverage)
     } of recipes — n/a cases excluded)`,
@@ -1157,7 +1207,8 @@ export function printSummary(s: Summary): void {
     `    LEDGER  invented_lines=${l.invented_lines} invented_qty=${l.invented_qty} ` +
       `collapsed_range=${l.collapsed_range} forced_unit=${l.forced_unit} ` +
       `invented_time=${l.invented_time} invented_servings=${l.invented_servings} ` +
-      `invented_timers=${l.invented_timers}  (omitted_lines=${l.omitted_lines}, ` +
+      `invented_timers=${l.invented_timers} ` +
+      `invented_shelf_life=${l.invented_shelf_life}  (omitted_lines=${l.omitted_lines}, ` +
       `dangerous_total=${s.ledger_total})`,
   );
 }

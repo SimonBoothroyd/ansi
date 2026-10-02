@@ -208,6 +208,9 @@ function provScore(
   if (s.ledger.invented_timers > 0) {
     recipeDanger.push(`invented_timers ×${s.ledger.invented_timers}`);
   }
+  if (s.ledger.invented_shelf_life > 0) {
+    recipeDanger.push(`invented_shelf_life ×${s.ledger.invented_shelf_life}`);
+  }
   if (s.ledger.structural_flags > 0) {
     recipeDanger.push(`structural_flags ×${s.ledger.structural_flags}`);
   }

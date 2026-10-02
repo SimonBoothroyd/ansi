@@ -81,6 +81,12 @@ void main() {
       );
     });
 
+    test('shelf life decodes, every field off its default', () {
+      expect(payload.keepsForDays, 3);
+      expect(payload.freezable, isTrue);
+      expect(payload.freezerDays, 90);
+    });
+
     test('the honesty flags are not defaults', () {
       // Every one of these has a Dart default that would mask a rename:
       // truncated=false, imageQuality=ok, parseWarnings=[].

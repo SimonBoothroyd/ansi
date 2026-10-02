@@ -162,6 +162,16 @@ SERVINGS / YIELD / TIMES:
   TOTAL TIME, COOK TIME). Emit {low_seconds, high_seconds} (a single printed
   time → both equal; a printed range → low/high). No banner → null. Never derive
   a time from the steps.
+- SHELF LIFE (keeps_for_days, freezable, freezer_days): ONLY from what the
+  source prints about storing the FINISHED dish, wherever it sits (a "Fridge
+  life" banner, the intro, a step, a note). Leave that text in place, as printed.
+  keeps_for_days = days in the FRIDGE ("Fridge life: 3 days" → 3). A range
+  takes the low end ("3–4 days" → 3); a week = 7 days, a month = 30.
+  freezable=true only when the source says it freezes; freezer_days = the
+  printed freezer time, else null. Nothing printed, or "not suitable for
+  freezing" → freezable=false. Never infer from the kind of dish. Room-
+  temperature storage, or a component kept on its own ("the dressing keeps a
+  week"), sets nothing.
 - image_quality: your honest legibility read (ok | degraded | poor).
 - truncated=true ONLY when the source is deliberately cut off (a missing page).`;
 }

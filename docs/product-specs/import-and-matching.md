@@ -199,6 +199,11 @@ wrapped as `{raw, band, candidates}` (§6).
   "total_time_seconds": 3600,         // number | {low_seconds, high_seconds} | null
   "cook_time_seconds": { "low_seconds": 900, "high_seconds": 1200 },
 
+  // --- Shelf life of the FINISHED dish, only as the source prints it ---------
+  "keeps_for_days": 3,                // fridge days | null; a range's low end
+  "freezable": true,                  // true only when the source says it freezes
+  "freezer_days": 90,                 // printed freezer window | null (1 month = 30)
+
   // --- Honesty flags (never-invent) -----------------------------------------
   "truncated": false,                 // the SOURCE was deliberately incomplete
   "image_quality": "ok",              // ok | degraded | poor
@@ -238,7 +243,7 @@ wrapped as `{raw, band, candidates}` (§6).
 }
 ```
 
-Five fields carry the never-invent invariant, and they are the ones to preserve if
+These fields carry the never-invent invariant, and they are the ones to preserve if
 this contract is ever touched:
 
 - **`qty_low`/`qty_high`** — a printed range is kept as a range. The *user* picks
@@ -251,6 +256,13 @@ this contract is ever touched:
   beneath the line ("from source: …").
 - **`servings_base: null` + `servings_raw`** — "Makes 1 cup" is a real null, not a
   guessed 4.
+- **`keeps_for_days` / `freezable` / `freezer_days`** — read from wherever the
+  source states how the finished dish keeps (a "Fridge life" banner, the intro,
+  a step, a note), never inferred from the kind of dish. A range takes its low
+  end, a week is 7 days and a month 30. Room-temperature storage and a
+  component kept on its own ("the dressing keeps a week") set nothing, and the
+  sentence stays in the step or line text as printed. The review's header form
+  starts from these values; with nothing printed it starts unset.
 - **`truncated`**, **`image_quality`**, **`parse_warnings`**, per-line
   `confidence` — the shaky-import signals, asked of the model in the same call.
   They are rendered at the top of the review screen, never swallowed.

@@ -46,11 +46,24 @@ export async function loadGold(): Promise<GoldCase[]> {
   for await (const entry of Deno.readDir(GOLD_DIR)) {
     if (!entry.isFile || !entry.name.endsWith(".json")) continue;
     const text = await Deno.readTextFile(new URL(entry.name, GOLD_DIR));
-    const gold = JSON.parse(text) as GoldRecipe;
+    const gold = withShelfLifeDefaults(JSON.parse(text) as GoldRecipe);
     cases.push({ id: entry.name.replace(/\.json$/, ""), gold });
   }
   cases.sort((a, b) => a.id.localeCompare(b.id));
   return cases;
+}
+
+/**
+ * A gold labelled before the shelf-life fields existed reads as "nothing
+ * printed": null fridge days, not freezable, null freezer days.
+ */
+export function withShelfLifeDefaults(gold: GoldRecipe): GoldRecipe {
+  return {
+    ...gold,
+    keeps_for_days: gold.keeps_for_days ?? null,
+    freezable: gold.freezable ?? false,
+    freezer_days: gold.freezer_days ?? null,
+  };
 }
 
 // --- printed-amount rendering ------------------------------------------------
@@ -239,6 +252,16 @@ export function goldToSourceText(gold: GoldRecipe): string {
   if (total) lines.push(`TOTAL TIME: ${total}`);
   const cook = timeToText(gold.cook_time_seconds);
   if (cook) lines.push(`COOK TIME: ${cook}`);
+  if (gold.keeps_for_days != null) {
+    lines.push(`Fridge life: ${gold.keeps_for_days} days`);
+  }
+  if (gold.freezable) {
+    lines.push(
+      gold.freezer_days != null
+        ? `Freezes for up to ${gold.freezer_days} days`
+        : "Freezes well",
+    );
+  }
   lines.push("", "INGREDIENTS");
   for (const group of gold.groups) {
     if (group.name) lines.push("", group.name);
