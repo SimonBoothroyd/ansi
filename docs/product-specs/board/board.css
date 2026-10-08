@@ -1928,3 +1928,91 @@
        gained the selector rather than a second copy of itself, and all a name
        needs is the gap before the words */
     .frame-name .tag-prop{margin-right:7px;}
+
+    /* timers on the recipe page — plan 0050, proposed. A timer is the one
+       chip that is a clock rather than a word: the outlined pill it already
+       wears, a herb ▸ to say a tap starts it, a herb wash that drains as it
+       runs (--p is the share still to go), and the Gone red once it is due.
+       The same four states are the dock's pills, so a pill and its chip
+       always read alike. */
+    .tchip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;
+      font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:var(--paper);white-space:nowrap;
+      text-decoration:none;vertical-align:baseline;}
+    .tchip .tg{color:var(--herb);font-size:9px;}
+    .tchip.run{color:var(--herb-deep);font-weight:500;border-color:#B9D2BC;
+      background:linear-gradient(90deg,var(--herb-soft) var(--p,60%),var(--frame) var(--p,60%));}
+    .tchip.paused{color:var(--muted);border-style:dashed;background:var(--frame);}
+    .tchip.due{color:#fff;background:var(--gone);border-color:var(--gone);font-weight:500;}
+    .tchip.due .tg,.tchip.run .tg{color:inherit;}
+    .mrow.struck .tchip{text-decoration:none;}
+
+    /* the dock: one row of pills at the foot of every screen while a timer
+       runs — above the bar on a tab, at the screen's foot on a pushed page */
+    .tdock{display:flex;gap:6px;align-items:center;margin:14px 12px 0;padding:8px;border:1px solid var(--line);
+      border-radius:14px;background:var(--frame);box-shadow:var(--shadow);overflow:hidden;}
+    .tdock .tk{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 2px 0 4px;flex:none;}
+    .tdock .awk{margin-left:auto;flex:none;color:var(--herb);font-size:13px;padding:0 4px;}
+    .tpill{display:inline-flex;align-items:baseline;gap:6px;flex:none;border:1px solid #B9D2BC;border-radius:999px;padding:4px 10px;
+      background:linear-gradient(90deg,var(--herb-soft) var(--p,60%),var(--frame) var(--p,60%));}
+    .tpill .tl{font-size:10.5px;color:var(--herb-deep);max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .tpill .tv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);}
+    .tpill.paused{border-style:dashed;border-color:var(--line);background:var(--frame);}
+    .tpill.paused .tl,.tpill.paused .tv{color:var(--muted);}
+    .tpill.due{background:var(--gone);border-color:var(--gone);}
+    .tpill.due .tl,.tpill.due .tv{color:#fff;}
+    .tdock.web-note{flex-wrap:wrap;}
+    .tdock .wn{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7A5A16;background:#FBF3E3;border-radius:8px;padding:5px 8px;margin-top:2px;}
+
+    /* a timer going off while the app is open: one red band under the bar,
+       the page still readable beneath it */
+    .tband{margin:0 12px 10px;background:var(--gone);color:#fff;border-radius:14px;padding:11px 12px;display:flex;align-items:center;gap:10px;}
+    .tband .tb-x{flex:1;min-width:0;}
+    .tband .tb-t{font-size:13px;font-weight:600;}
+    .tband .tb-s{font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.85;margin-top:1px;}
+    .tband .tb-v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;}
+    .tband .tb-b{font-size:11.5px;font-weight:600;border:1px solid rgba(255,255,255,.55);border-radius:9px;padding:5px 9px;white-space:nowrap;}
+    .tband .tb-b.solid{background:#fff;color:var(--gone);border-color:#fff;}
+
+    /* the chip's sheet: the clock large, four verbs under it */
+    .tsheet{border-top:1px solid var(--line);margin-top:12px;padding:0 20px 4px;background:var(--frame);border-radius:22px 22px 0 0;box-shadow:0 -8px 24px rgba(24,33,28,.06);}
+    .tsheet .ts-k{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--herb);}
+    .tsheet .ts-h{font-family:'Spectral',serif;font-size:18px;font-weight:500;margin:4px 0 0;}
+    .tsheet .ts-v{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:500;letter-spacing:-.03em;margin:10px 0 2px;}
+    .tsheet .ts-r{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
+    .tsheet .ts-bar{height:6px;border-radius:3px;background:var(--line);margin:12px 0 14px;overflow:hidden;}
+    .tsheet .ts-bar i{display:block;height:100%;width:var(--p,60%);background:var(--herb);border-radius:3px;}
+    .tsheet .ts-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .tsheet .tbtn{border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--ink);}
+    .tsheet .tbtn.pri{background:var(--herb);border-color:var(--herb);color:#fff;}
+    .tsheet .tbtn.dz{color:var(--gone);}
+
+    /* the bar's sun: Keep screen on, held */
+    .abar .awake{color:var(--herb);font-size:15px;margin-left:auto;margin-right:14px;}
+
+    /* the locked phone: the OS's own surfaces, drawn plainly */
+    .lockscr{background:linear-gradient(180deg,#24302A,#18211C);color:#fff;padding:18px 14px 26px;min-height:520px;}
+    .lockscr .lk-t{text-align:center;font-size:52px;font-weight:300;letter-spacing:-.02em;margin:18px 0 2px;}
+    .lockscr .lk-d{text-align:center;font-size:12px;opacity:.75;margin-bottom:26px;}
+    .lnote{background:rgba(255,255,255,.92);color:var(--ink);border-radius:16px;padding:11px 12px;margin-bottom:8px;}
+    .lnote .ln-h{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);}
+    .lnote .ln-h .ap{width:16px;height:16px;border-radius:4px;background:var(--herb);color:#fff;display:grid;place-items:center;font-family:'Spectral',serif;font-size:11px;}
+    .lnote .ln-h .wh{margin-left:auto;}
+    .lnote .ln-t{font-size:13px;font-weight:600;margin-top:5px;}
+    .lnote .ln-b{font-size:12px;color:var(--muted);margin-top:1px;}
+    .lnote .ln-v{font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--ink);}
+    .lnote .ln-a{display:flex;gap:6px;margin-top:9px;}
+    .lnote .ln-a span{flex:1;text-align:center;font-size:12px;font-weight:600;background:var(--paper);border-radius:9px;padding:7px;}
+    .lnote.due .ln-t{color:var(--gone);}
+
+    /* the web: a browser's tab strip over the phone, to show the title */
+    .btabs{display:flex;gap:4px;padding:6px 10px 0;background:var(--paper);border-bottom:1px solid var(--line);}
+    .btab{font-size:10.5px;padding:5px 10px;border-radius:8px 8px 0 0;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
+    .btab.on{background:var(--frame);color:var(--ink);border:1px solid var(--line);border-bottom:none;margin-bottom:-1px;}
+    .btab .bt-v{font-family:'IBM Plex Mono',monospace;font-weight:500;}
+
+    /* wide: the sidebar holds the dock, above the footer door — the sidebar
+       is the one surface that survives a push there */
+    .desk .rail .rtimers{border-top:1px solid var(--line);margin:6px 0 4px;padding:10px 4px 2px;display:flex;flex-direction:column;gap:6px;}
+    .desk .rail .rtimers .tk{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 6px;display:flex;justify-content:space-between;}
+    .desk .rail .rtimers .tpill{display:flex;justify-content:space-between;border-radius:10px;padding:6px 9px;}
+    .desk .rail .rtimers .tpill .tl{max-width:110px;}

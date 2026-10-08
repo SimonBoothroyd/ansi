@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: <span class="prop">proposed</span> <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, for this reading of the page only.</p>
 </header>
 
@@ -65,6 +65,76 @@
                 <p class="conv-note">step 3 shows the one suppression: an <b>imprecise</b> chip prints <i>no</i> pill when the prose right after it already says the same words &mdash; <b>Season with salt to taste</b>, never <i>salt</i> <code>to taste</code> <i>to taste</i>. The chip keeps the word wherever the sentence does not</p>
                 <p class="conv-note">the step number is a <b>mono digit in its own column</b>, sitting on the first line of the step. The ink discs stacked a column of filled circles down a page whose argument is that the words come first</p>
                 <p class="conv-note">the bar carries <b>for 4 servings &middot; 1&times;</b> at its end, off the <i>same</i> servings state the Ingredients tab&rsquo;s scaler holds &mdash; the chips&rsquo; numbers are scaled, and the scaler is a tab away. It is not drawn on the tabs that say it better (Ingredients has the scaler itself) </p>
+            </div></div>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A timer is tapped</b> &middot; the chip starts at the middle of its range and counts down where it stands; the dock at the foot holds every one that is running</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
+                <div class="mrow struck"><span class="mn">1</span><span>Season the <span class="mchip struck">chicken thigh<span class="mqn">6</span></span> and brown it in a wide pan in two batches. Lift it out.</span></div>
+                <div class="mrow struck"><span class="mn">2</span><span>Turn the heat down, add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens, <span class="tchip run" style="--p:68%"><span class="tg">&#9201;</span>6:12</span>.</span></div>
+                <div class="mrow"><span class="mn">3</span><span>Stir in the <span class="mchip">garlic<span class="mqn">2 clove</span></span> and the <span class="mchip">smoked paprika<span class="mqn">1 tsp</span></span> and let them toast.</span></div>
+                <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>.</span></div>
+                <div class="tdock"><span class="tk">timer</span><span class="tpill" style="--p:68%"><span class="tl">Step 2</span><span class="tv">6:12</span></span></div>
+                <p class="conv-note">a timer that has not started prints <b>the recipe&rsquo;s own words</b> &mdash; <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span> &mdash; with a herb <b>&#9654;</b> where the clock glyph was, because the tap now does something. Tapped, a range runs to its <b>middle</b>: this one starts at <b>22:30</b></p>
+                <p class="conv-note">running, the chip is the <b>count</b> and nothing else &mdash; <span class="tchip run" style="--p:68%"><span class="tg">&#9201;</span>6:12</span> &mdash; with a herb wash that <b>drains</b> as it goes, so a glance down the page finds the live one without reading digits</p>
+                <p class="conv-note">step 2 is <b>struck and its timer still runs</b>. A cook strikes &ldquo;cook until it softens&rdquo; at the moment they start it, so the rule crosses the prose and the ingredient chips &mdash; <i>never</i> a timer. A timer chip&rsquo;s tap is the timer&rsquo;s; it rules nothing off, and a tap on the step around it rules the step as it does today</p>
+                <p class="conv-note">the <b>dock</b> is the app&rsquo;s, not the page&rsquo;s: it sits at the foot of every screen while anything runs (<a href="./navigation.html">navigation</a>). On the timer&rsquo;s own recipe a pill says only <b>Step 2</b></p>
+            </div></div>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A running timer is tapped</b> &middot; its sheet: the clock large, what it is the middle of, and four verbs</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
+                <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip run" style="--p:62%"><span class="tg">&#9201;</span>14:07</span>.</span></div>
+                <div class="tsheet">
+                    <div class="grab"></div>
+                    <span class="ts-k">Step 4 &middot; 20&ndash;25 min</span>
+                    <p class="ts-h">Harissa Chicken &amp; Butter Beans</p>
+                    <div class="ts-v">14:07</div>
+                    <div class="ts-r">of 22:30, the middle of 20&ndash;25 min &middot; rings at 18:47</div>
+                    <div class="ts-bar" style="--p:38%"><i></i></div>
+                    <div class="ts-btns"><span class="tbtn pri">Pause</span><span class="tbtn">&minus;1 min</span><span class="tbtn">+1 min</span><span class="tbtn dz">Cancel</span></div>
+                </div>
+                <p class="conv-note">the sheet names the <b>step and the recipe</b>, never a verb lifted out of the sentence &mdash; reading <i>simmer</i> out of the prose would be the render-time reading ADR-0004 refuses. The step number and the title are data; the step itself is one line above the sheet</p>
+                <p class="conv-note"><b>&minus;1 / +1 min</b> are how you lean to either end of the range &mdash; and how you give a sauce one more minute once it has rung. They move the end time; the sheet says <b>rings at</b> the clock time, so the change reads as a time, not a sum</p>
+                <p class="conv-note"><b>Pause</b> turns the chip and its pill <b>dashed and muted</b> &mdash; <span class="tchip paused"><span class="tg">&#10074;&#10074;</span>14:07</span> &mdash; and the button reads <b>Resume</b>. <b>Cancel</b> puts the chip back to <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>, ready to start again</p>
+            </div></div>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A timer goes off</b> &middot; one red band under the bar, the chip and its pill turn Gone red and count on past zero</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="tband"><div class="tb-x"><div class="tb-t">Step 4 is done</div><div class="tb-s">Harissa Chicken &middot; rang at 18:47</div></div><span class="tb-v">+0:42</span><span class="tb-b">+1 min</span><span class="tb-b solid">Stop</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
+                <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip due"><span class="tg">&#9201;</span>+0:42</span>.</span></div>
+                <div class="mrow"><span class="mn">5</span><span>Fold through the <span class="mchip">butter beans<span class="mqn">2 can</span></span> and warm them in the sauce.</span></div>
+                <div class="tdock"><span class="tk">2 timers</span><span class="tpill due"><span class="tl">Step 4</span><span class="tv">+0:42</span></span><span class="tpill" style="--p:30%"><span class="tl">Romesco Aioli &middot; 2</span><span class="tv">3:10</span></span></div>
+                <p class="conv-note">the band is the one <b>loud</b> thing the page ever draws, and it is the only place <b>Stop</b> lives besides the sheet. It names step and recipe, because the timer that rang may not be on this page &mdash; here a sauce is still running from <b>another recipe</b>, and its pill says so</p>
+                <p class="conv-note">it rings for <b>a minute</b>, with the phone&rsquo;s haptic, then falls silent and <b>stays red</b>, counting how long the pan has sat: <span class="tchip due"><span class="tg">&#9201;</span>+0:42</span>. Silence is not done &mdash; only <b>Stop</b> is</p>
+                <p class="conv-note">a step is <b>never struck for you</b>. A timer ringing says time is up, not that the step is finished; the rule stays the cook&rsquo;s hand</p>
+            </div></div>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Keep screen on</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu, and a sun in the bar for as long as it holds</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="dots">&ctdot;</span></div>
+                <div class="lib-menu">
+                    <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
+                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Let the screen sleep</span></div>
+                    <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit</span></div>
+                    <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
+                </div>
+                <p class="conv-note">it reads <b>Keep screen on</b> while off and <b>Let the screen sleep</b> once on &mdash; the shape <i>Show line figures</i> already has. The <b>sun</b> sits beside the <b>&ctdot;</b> while it holds, so a phone that never dims is never a mystery, and tapping the sun is the other way off</p>
+                <p class="conv-note">it is a <b>posture</b>, held for the session and across recipes, like line figures: nothing is written or synced. It holds until it is turned off or the app is closed &mdash; not until the page is left, because the dock is the reason to leave it</p>
+                <p class="conv-note">it is <b>separate from the timers</b> on a phone: a sleeping phone still rings, through the notification the timer scheduled when it started. On the <b>web</b> it is not separate &mdash; a slept browser is a silent one, so starting a timer turns it on there (<a href="./navigation.html">navigation</a>)</p>
             </div></div>
         </div>
 

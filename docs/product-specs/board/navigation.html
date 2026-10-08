@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Navigation &amp; the shell</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: differs 2026-09-20: the shell, the rail, the neutral chrome and the dialogs are built as drawn, except that a pushed page's back control is the header chevron it already carries rather than the word <code>‹ Library</code>, and a modal's barrier stops at the content pane, so the sidebar stays clickable beside it</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: differs 2026-09-20: the shell, the rail, the neutral chrome and the dialogs are built as drawn, except that a pushed page's back control is the header chevron it already carries rather than the word <code>‹ Library</code>, and a modal's barrier stops at the content pane, so the sidebar stays clickable beside it · timers: <span class="prop">proposed</span> <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
     <p class="view-blurb">One bar that never moves, one place a tap can go, and one stated rule for back. The bar is the fixed point in every transition.</p>
 </header>
 
@@ -177,6 +177,60 @@
         <p class="conv-note">Keeping the Library at <b>/</b> rather than renaming it <span style="font-family:'IBM Plex Mono',monospace">/library</span> is deliberate: every existing link, every <span style="font-family:'IBM Plex Mono',monospace">?from=</span> in flight and the redirect’s own <span style="font-family:'IBM Plex Mono',monospace">loc == '/'</span> case keep working untouched.</p>
     </div>
 
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The timer dock</b> &middot; while anything runs, one row of pills sits on the bar of every tab &mdash; soonest first, each one a door back to its step</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="ttl">Shop</span><span class="dots">&ctdot;</span></div>
+            <div class="wnv-slab" style="margin:0 20px;min-height:250px">the Shop list, untouched &mdash; the dock takes its height from the foot of the scroller, never from the rows</div>
+            <div class="tdock"><span class="tk">3</span><span class="tpill due"><span class="tl">Harissa &middot; 4</span><span class="tv">+0:42</span></span><span class="tpill" style="--p:30%"><span class="tl">Aioli &middot; 2</span><span class="tv">3:10</span></span><span class="tpill paused"><span class="tl">Rag&ugrave; &middot; 1</span><span class="tv">1:12:00</span></span></div>
+            <div class="nav" style="margin-top:8px"><div class="ni"><span class="ic">&#9636;</span>Library</div><div class="ni"><span class="ic">&#9638;</span>Week</div><div class="ni"><span class="ic">&#9677;</span>Cook</div><div class="ni on"><span class="ic">&#9636;</span>Shop</div></div>
+        </div></div>
+        <p class="conv-note">one dock, drawn by the <b>shell</b>, on every route: <b>above the bar</b> on a tab, at the <b>screen&rsquo;s foot</b> on a pushed page (the bar is covered there, the dock is not). It is absent while nothing runs &mdash; no empty state, no timers tab</p>
+        <p class="conv-note">a pill is <b>recipe &middot; step</b> and the count, in the chip&rsquo;s own four states: draining herb, <b>dashed</b> when paused, <b>Gone red</b> and counting on once due. The title is cut to its first word away from its own page; on it, the pill says only <b>Step 4</b>. Soonest first, a due one before all; more than fit <b>scroll sideways</b>, and the count at the start says how many there are</p>
+        <p class="conv-note">a tap <b>pushes the recipe at its step</b> &mdash; <span style="font-family:'IBM Plex Mono',monospace">/recipes/:id?step=4</span> opens on Method, scrolled to it, the pill&rsquo;s chip flashing once. From that recipe&rsquo;s own page it only scrolls. A <b>long-press</b> on a pill is its sheet, so a ringing timer is stopped from wherever you are</p>
+        <p class="conv-note">every timer is held by its <b>end time</b>, kept on this phone and nowhere else: a slept or killed app reads the right number when it wakes, and the other cook&rsquo;s phone never sees it</p>
+    </div>
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The phone is locked</b> &middot; a timer rings through the notification it scheduled when it started; the app does not have to be awake</p>
+        <div class="phone"><div class="notch" style="background:#24302A"></div>
+            <div class="lockscr">
+                <div class="lk-t">18:48</div>
+                <div class="lk-d">Thursday 8 October</div>
+                <div class="lnote due">
+                    <div class="ln-h"><span class="ap">A</span>ANSI<span class="wh">now</span></div>
+                    <div class="ln-t">Step 4 is done</div>
+                    <div class="ln-b">Harissa Chicken &amp; Butter Beans &middot; 20&ndash;25 min</div>
+                    <div class="ln-a"><span>+1 min</span><span>Stop</span></div>
+                </div>
+                <div class="lnote">
+                    <div class="ln-h"><span class="ap">A</span>ANSI &middot; ongoing<span class="wh">Android</span></div>
+                    <div class="ln-t">2 timers running</div>
+                    <div class="ln-b">Aioli &middot; step 2 in <span class="ln-v">3:10</span> &middot; Rag&ugrave; paused</div>
+                </div>
+            </div>
+        </div>
+        <p class="conv-note">the start <b>schedules a local notification</b> at the end time, and every change (pause, &plusmn;1 min, cancel) moves or withdraws it. It carries <b>+1 min</b> and <b>Stop</b> as actions, and a tap on its body opens the step, as a pill&rsquo;s tap does</p>
+        <p class="conv-note">Android also keeps <b>one ongoing notification</b> while anything runs, counting the soonest down with the OS&rsquo;s own chronometer &mdash; the app draws no number while it sleeps. iOS has no such surface short of a Live Activity, which this does not reach for</p>
+        <p class="conv-note">a ring on time needs Android&rsquo;s <b>exact alarm</b> permission, and Play allows that only to an app whose timers are a real feature &mdash; which these are. Notification permission is asked <b>on the first timer started</b>, never at launch</p>
+    </div>
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>On the web</b> &middot; a closed tab cannot ring, so the browser is kept awake and the tab&rsquo;s title does the counting</p>
+        <div class="phone">
+            <div class="btabs"><span class="btab on"><span class="bt-v">&#9201; 3:10</span> &middot; Ansi</span><span class="btab">Inbox</span></div>
+            <div class="screen">
+                <div class="abar" style="padding-top:12px"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="dots">&ctdot;</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span></div>
+                <div class="mrow"><span class="mn">2</span><span>Blitz the peppers with the <span class="mchip">almonds<span class="mqn">50 g</span></span>, then rest the sauce for <span class="tchip run" style="--p:30%"><span class="tg">&#9201;</span>3:10</span>.</span></div>
+                <div class="tdock web-note"><span class="tk">timer</span><span class="tpill" style="--p:30%"><span class="tl">Step 2</span><span class="tv">3:10</span></span><span class="awk">&#9728;</span><span class="wn">Keep this tab open &mdash; a closed tab can&rsquo;t ring.</span></div>
+            </div>
+        </div>
+        <p class="conv-note">starting a timer on the web <b>turns Keep screen on on by itself</b> (the Screen Wake Lock), because a browser whose screen has slept is a silent one. The sun says so, in the bar and on the dock, and the browser drops the lock when the tab is hidden &mdash; it is taken again when the tab comes back</p>
+        <p class="conv-note">the <b>tab&rsquo;s title</b> counts the soonest timer down &mdash; <span style="font-family:'IBM Plex Mono',monospace">&#9201; 3:10 &middot; Ansi</span> &mdash; so at a desk with ten tabs it is still in sight. If the browser grants it, a hidden tab shows a <b>notification</b> at the end time; a throttled tab may show it up to a minute late, and the end time keeps the number right regardless</p>
+        <p class="conv-note">the line under the dock is said <b>once</b>, the first time a timer starts in this browser, and not again. It is the web&rsquo;s whole limit in one sentence: there is no push service behind a kitchen timer</p>
+    </div>
+
 </div>
 
 <h2 class="wide-rule">Wide · ≥ 1024</h2>
@@ -335,6 +389,37 @@
             <div>&nbsp;&nbsp;&nbsp;└─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· with it, the per-week editor; without it, the recipe’s own</span></div>
         </div>
         <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit. <b>Twelve of them</b>, in the router’s own order; the queries beside each are what its builder reads. <b>/</b>, <b>/week</b>, <b>/cook</b> and <b>/shop</b> take the whole pane; <b>/recipes/:id</b> and <b>/recipes/:id/edit</b> are capped a measure and a half wide; the rest hold the 640 measure.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><span class="tag-prop">proposed</span><b>wide &middot; the dock is in the sidebar</b> &middot; the one surface that survives a push holds the timers, between the destinations and the footer door</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="btabs"><span class="btab on"><span class="bt-v">&#9201; +0:42</span> &middot; Ansi</span><span class="btab">Inbox</span></div>
+            <div class="dscreen wr-short">
+                <div class="rail">
+                    <div class="wm">Ansi<span class="dot">.</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span><span>Library</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span><span>Week</span></div>
+                    <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span><span>Cook</span></div>
+                    <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span><span>Shop</span></div>
+                    <div class="grow"></div>
+                    <div class="rtimers">
+                        <div class="tk"><span>Timers &middot; 3</span><span style="color:var(--herb);font-size:13px;letter-spacing:0">&#9728;</span></div>
+                        <span class="tpill due"><span class="tl">Harissa &middot; 4</span><span class="tv">+0:42</span></span>
+                        <span class="tpill" style="--p:30%"><span class="tl">Aioli &middot; 2</span><span class="tv">3:10</span></span>
+                        <span class="tpill paused"><span class="tl">Rag&ugrave; &middot; 1</span><span class="tv">1:12:00</span></span>
+                    </div>
+                    <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Account</span></div>
+                </div>
+                <div class="main">
+                    <div class="tband" style="margin:0 0 14px"><div class="tb-x"><div class="tb-t">Step 4 is done</div><div class="tb-s">Harissa Chicken &amp; Butter Beans &middot; rang at 18:47</div></div><span class="tb-v">+0:42</span><span class="tb-b">+1 min</span><span class="tb-b solid">Stop</span></div>
+                    <p class="ttl">Cook</p>
+                    <div class="wnv-slab">the Cook lane draws the schedule &mdash; this frame is the shell around it</div>
+                </div>
+            </div>
+        </div>
+        <p class="wide-cap">On wide the pills <b>stack in the sidebar</b>, above the footer door, rather than float over the page: the outer shell already draws the sidebar beside every pushed route, so the timers stay put through a push, exactly as the destinations do. Same order, same four states, same tap. The <b>band</b> crosses the content pane only &mdash; the sidebar is not covered, so the pill that rang is still beside it. The browser tab carries the count, as on the phone-width web, and the <b>sun</b> beside the heading says the wake lock holds.</p>
     </div>
 
 </div>
