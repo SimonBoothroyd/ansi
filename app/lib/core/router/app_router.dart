@@ -27,6 +27,7 @@ import '../../features/receipts/presentation/receipt_scan_view.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
 import '../../features/shopping/presentation/shopping_view.dart';
+import '../../features/timers/presentation/timer_chrome.dart';
 import '../../shared/ansi_layout.dart';
 import '../../shared/ansi_tab_shell.dart';
 import '../../shared/ansi_wide_shell.dart';
@@ -181,12 +182,18 @@ GoRouter router(Ref ref) {
       // the chrome. Modals open on its key ([ansiShellNavigatorKey]).
       ShellRoute(
         navigatorKey: ansiShellNavigatorKey,
-        builder: (context, state, child) => AnsiWideShell(child: child),
+        // The timers' band and dock sit inside the pane, around whatever the
+        // shell navigator shows; a desk's sidebar holds their list.
+        builder: (context, state, child) => AnsiWideShell(
+          sidebarExtra: const TimerSideList(),
+          child: TimerFrame(child: child),
+        ),
         routes: [
           // Not `.indexedStack`: that constructor leaves no hook for the
           // cross-fade. All four roots take the pane and cap themselves.
           StatefulShellRoute(
-            builder: (context, state, shell) => AnsiTabShell(shell: shell),
+            builder: (context, state, shell) =>
+                AnsiTabShell(shell: shell, dock: const TimerDock()),
             navigatorContainerBuilder: crossFadeBranchContainer,
             branches: [
               StatefulShellBranch(
@@ -329,7 +336,8 @@ GoRouter router(Ref ref) {
             ),
           ),
           // `?week=YYYY-MM-DD`: opened from a week that plans this recipe, so
-          // the page offers the week door. The page re-checks it.
+          // the page offers the week door. The page re-checks it. `?step=N`:
+          // opened from a timer, so the page opens on that step.
           _page(
             path: '/recipes/:id',
             name: 'recipe',
@@ -338,6 +346,7 @@ GoRouter router(Ref ref) {
             builder: (state) => RecipeView(
               recipeId: state.pathParameters['id']!,
               weekKey: state.uri.queryParameters['week'],
+              step: int.tryParse(state.uri.queryParameters['step'] ?? ''),
             ),
           ),
           // `?week=YYYY-MM-DD` opens the editor in week mode: Save writes a

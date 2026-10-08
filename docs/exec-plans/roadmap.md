@@ -12,8 +12,10 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. The next idea off the [backlog](./backlog.md), not yet chosen.
-2. Step 11 (anti-waste), still stretch.
+1. Timers on the recipe page — [plan 0050](./active/0050-recipe-timers.md):
+   built on its branch; the native setup awaits a release build and a phone.
+2. The next idea off the [backlog](./backlog.md), not yet chosen.
+3. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.

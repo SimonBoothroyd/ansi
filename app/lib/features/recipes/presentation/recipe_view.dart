@@ -40,6 +40,9 @@ import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_recipe_band.dart';
 import '../../planning/presentation/week_variant_format.dart';
 import '../../planning/presentation/week_view_models.dart';
+import '../../timers/data/timer_providers.dart';
+import '../../timers/domain/cook_timer.dart';
+import '../../timers/presentation/timer_sheet.dart';
 import '../data/recipe_providers.dart';
 import '../domain/effective_lines.dart';
 import '../domain/line_display.dart';
@@ -58,9 +61,18 @@ import 'recipe_macro_panel.dart';
 import 'recipe_view_models.dart';
 
 class RecipeView extends ConsumerWidget {
-  const RecipeView({required this.recipeId, this.weekKey, super.key});
+  const RecipeView({
+    required this.recipeId,
+    this.weekKey,
+    this.step,
+    super.key,
+  });
 
   final String recipeId;
+
+  /// The method step to open on (`?step=N`, from 0): a timer's dock row or
+  /// notification asked for it.
+  final int? step;
 
   /// The week this page was opened from (`?week=YYYY-MM-DD`). Null from the
   /// Library, and treated as null when that week does not plan this recipe; see
@@ -90,31 +102,67 @@ class RecipeView extends ConsumerWidget {
                 ),
               ),
             )
-          : _RecipeBody(recipe: recipe, weekKey: weekKey),
+          : _RecipeBody(recipe: recipe, weekKey: weekKey, step: step),
     );
   }
 }
 
 class _RecipeBody extends HookConsumerWidget {
-  const _RecipeBody({required this.recipe, this.weekKey});
+  const _RecipeBody({required this.recipe, this.weekKey, this.step});
 
   final Recipe recipe;
 
   /// See [RecipeView.weekKey].
   final String? weekKey;
 
+  /// See [RecipeView.step].
+  final int? step;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final servings = useState(recipe.servingsBase);
-    final tab = useState(0);
-    // What the cook has ticked off in the method. Page-local and unsynced; the
+    // Opened at a timer's step, the page opens on the method.
+    final tab = useState(step == null ? 0 : 1);
+    // What the cook has ticked off in the method: unsynced, and kept past the
+    // page only while one of this recipe's timers is held ([MethodTicks]). The
     // keys are positional (`s2`, `s2:c0`, see [_MethodTab]).
-    final struck = useState(const <String>{});
-    void toggleStruck(String key) {
-      final next = {...struck.value};
-      if (!next.remove(key)) next.add(key);
-      struck.value = next;
+    final struck =
+        ref.watch(methodTicksProvider.select((t) => t[recipe.id])) ??
+        const <String>{};
+    final ticks = ref.read(methodTicksProvider.notifier);
+    useEffect(() {
+      ticks.opened(recipe.id);
+      return () => ticks.closed(recipe.id);
+    }, [recipe.id]);
+    void toggleStruck(String key) => ticks.toggle(recipe.id, key);
+
+    // A step asked for — by `?step=`, or by a dock row tapped while this page
+    // is on screen — is shown: the method tab, scrolled to it.
+    final stepKeys = useMemoized(() => <int, GlobalKey>{}, [recipe.id]);
+    void showStep(int index) {
+      tab.value = 1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = stepKeys[index]?.currentContext;
+        if (target == null || !target.mounted) return;
+        unawaited(
+          Scrollable.ensureVisible(
+            target,
+            alignment: 0.2,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          ),
+        );
+      });
     }
+
+    useEffect(() {
+      final asked = step;
+      if (asked != null) showStep(asked);
+      return null;
+    }, [step]);
+    ref.listen(methodStepFocusProvider, (_, focus) {
+      if (focus != null && focus.recipeId == recipe.id) showStep(focus.step);
+    });
 
     // Both columns are on screen at expanded: no tab bar, the scaler and `⋯` in
     // the hero, the back-links under the ingredients column.
@@ -221,8 +269,9 @@ class _RecipeBody extends HookConsumerWidget {
     final method = _MethodTab(
       recipe: recipe,
       servings: servings.value,
-      struck: struck.value,
+      struck: struck,
       onToggle: toggleStruck,
+      stepKey: (i) => stepKeys.putIfAbsent(i, GlobalKey.new),
       // The lines this week leaves out, so the method's chips can say so too.
       weekExcluded: {
         for (final o in overrides)
@@ -253,7 +302,9 @@ class _RecipeBody extends HookConsumerWidget {
         ],
         // At expanded the same menu hangs in the hero beside the scaler, which
         // is where the width gives it room. One door either way.
-        suffixes: [if (!wide) menu],
+        suffixes: [
+          if (!wide) ...[const _AwakeSun(inHeader: true), menu],
+        ],
       ),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -274,6 +325,7 @@ class _RecipeBody extends HookConsumerWidget {
                       children: [
                         SizedBox(width: _kScalerWidth, child: scaler),
                         const SizedBox(width: 12),
+                        const _AwakeSun(inHeader: false),
                         menu,
                       ],
                     ),
@@ -420,6 +472,38 @@ class _ColumnHeading extends StatelessWidget {
   }
 }
 
+/// Keep screen on, while it holds: a sun beside the `⋯`, and the other way
+/// off. Nothing while the screen may sleep.
+class _AwakeSun extends ConsumerWidget {
+  const _AwakeSun({required this.inHeader});
+
+  /// Whether it is an [FHeaderAction], as the `⋯` is on a phone.
+  final bool inHeader;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(keepScreenOnProvider)) return const SizedBox.shrink();
+    void off() => ref.read(keepScreenOnProvider.notifier).toggle();
+    const sun = Icon(FLucideIcons.sun, color: AnsiColors.herb);
+    return inHeader
+        ? FHeaderAction(
+            icon: sun,
+            semanticsLabel: 'Let the screen sleep',
+            onPress: off,
+          )
+        : AnsiTap(
+            onTap: off,
+            semanticsLabel: 'Let the screen sleep',
+            padding: const EdgeInsets.all(6),
+            child: const Icon(
+              FLucideIcons.sun,
+              size: 18,
+              color: AnsiColors.herb,
+            ),
+          );
+  }
+}
+
 /// The page's menu: favourite, per-line figures, Edit and, from a week, that
 /// week's editor. In the header on a phone, in the hero at
 /// [AnsiLayout.expanded].
@@ -504,6 +588,21 @@ class _RecipeMenu extends ConsumerWidget {
                   ref.read(showLineFiguresProvider.notifier).toggle();
                 },
               ),
+            // A posture held for the session, like line figures. Off, the
+            // phone sleeps as it would; a running timer still rings through
+            // its notification.
+            FItem(
+              prefix: const Icon(FLucideIcons.sun),
+              title: Text(
+                ref.watch(keepScreenOnProvider)
+                    ? 'Let the screen sleep'
+                    : 'Keep screen on',
+              ),
+              onPress: () {
+                unawaited(controller.hide());
+                ref.read(keepScreenOnProvider.notifier).toggle();
+              },
+            ),
             // Named "Edit recipe" only where the week door stands beside it.
             FItem(
               prefix: const Icon(FLucideIcons.pencil),
@@ -1282,19 +1381,24 @@ class _ScaleControl extends StatelessWidget {
   }
 }
 
-/// The method, with the cook's ticks on it.
+/// The method, with the cook's ticks and timers on it.
 ///
 /// Tapping a chip strikes it; tapping the row strikes the prose and every chip
 /// in it, because a text decoration does not cross into widget spans.
 /// Un-striking a step leaves each chip as it was. Keys are positional: `s2` for
 /// the step, `s2:c0` for its nth chip.
-class _MethodTab extends StatelessWidget {
+///
+/// A timer chip is never struck: its tap starts the timer at the middle of its
+/// range, and once held opens its sheet. Watching the timers here, not in the
+/// page, keeps the once-a-second count from rebuilding the ingredients.
+class _MethodTab extends ConsumerWidget {
   const _MethodTab({
     required this.recipe,
     required this.servings,
     this.struck = const {},
     this.onToggle,
     this.weekExcluded = const {},
+    this.stepKey,
   });
 
   final Recipe recipe;
@@ -1309,6 +1413,9 @@ class _MethodTab extends StatelessWidget {
   /// Line ids this week leaves out — muted in the method, never ruled through.
   final Set<String> weekExcluded;
 
+  /// The key a step is found by when a timer asks the page to show it.
+  final GlobalKey Function(int index)? stepKey;
+
   /// The chip ordinals struck within step [index].
   Set<int> _struckChips(int index) {
     final prefix = 's$index:c';
@@ -1319,7 +1426,7 @@ class _MethodTab extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokenized = recipe.methodSteps;
     final plain = recipe.steps;
     if ((tokenized == null || tokenized.isEmpty) && plain.isEmpty) {
@@ -1340,6 +1447,26 @@ class _MethodTab extends StatelessWidget {
           for (final i in g.items) i.id: i,
       };
       final factor = scaleFactorFor(recipe, servings);
+      final timers = ref.watch(cookTimersProvider);
+      final title = recipe.title.isEmpty ? 'Untitled recipe' : recipe.title;
+      void onTimer(int step, int ordinal, MethodTimerSpan span) {
+        final id = timerIdFor(recipe.id, step, ordinal);
+        if (timers[id] != null) {
+          unawaited(showTimerSheet(context, id));
+          return;
+        }
+        ref
+            .read(cookTimersProvider.notifier)
+            .start(
+              recipeId: recipe.id,
+              recipeTitle: title,
+              step: step,
+              ordinal: ordinal,
+              lowSeconds: span.lowSeconds,
+              highSeconds: span.highSeconds,
+            );
+      }
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1347,6 +1474,7 @@ class _MethodTab extends StatelessWidget {
           for (var i = 0; i < tokenized.length; i++) ...[
             if (i > 0) const FDivider(),
             _StepRow(
+              key: stepKey?.call(i),
               number: i + 1,
               struck: struck.contains('s$i'),
               onToggle: onToggle == null ? null : () => onToggle!('s$i'),
@@ -1360,6 +1488,9 @@ class _MethodTab extends StatelessWidget {
                     ? null
                     : (chip) => onToggle!('s$i:c$chip'),
                 weekExcluded: weekExcluded,
+                timerAt: (ordinal) => timers[timerIdFor(recipe.id, i, ordinal)],
+                now: timers.now,
+                onTimer: (ordinal, span) => onTimer(i, ordinal, span),
               ),
             ),
           ],
@@ -1403,6 +1534,7 @@ class _StepRow extends StatelessWidget {
     required this.child,
     this.struck = false,
     this.onToggle,
+    super.key,
   });
 
   final int number;

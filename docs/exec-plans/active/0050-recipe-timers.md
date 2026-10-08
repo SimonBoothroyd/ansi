@@ -1,6 +1,6 @@
 # Exec plan: Timers on the recipe page
 
-- **Status:** proposed — frames drawn on the board, nothing built
+- **Status:** built on `claude/recipe-view-timers-rfva7e` — tests, analyze and the web build pass; the Android and iOS native setup has not been compiled yet (CI builds them only on a release tag) and nothing has run on a phone
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 1 — the next idea off the backlog
 - **Created:** 2026-10-08
@@ -13,7 +13,7 @@ is the clock. Every method already stores its durations as `timer` tokens
 (`lowSeconds`, `highSeconds`), so this needs no prose read and no schema
 change.
 
-Drawn as `proposed` frames in
+Drawn, and now built, in
 [recipe-page.html](../../product-specs/board/recipe-page.html) (the chip, its
 sheet, a timer going off, keeping the screen on) and
 [navigation.html](../../product-specs/board/navigation.html) (the dock across
@@ -73,39 +73,69 @@ has slept. So on the web:
   it; a two-person household does not need a push service for a kitchen
   timer.
 
-## Open questions
+## Rulings on the open questions
 
-- **The struck set's lifetime.** Today it is "this reading of this page" and
-  clears when the page closes. With timers outliving the page, returning via
-  the dock to a running simmer finds every step un-struck. Proposed: hold the
-  struck set in memory per recipe while the app runs (still never stored or
-  synced), cleared when that recipe has no running timer and its page closes.
-- **How long it rings.** Proposed: the sound repeats for a minute, then the
-  chip and its dock row stay red and keep counting overtime silently.
-- **When to ask for notification permission.** Proposed: on the first timer
-  started, not at launch.
+All three as proposed — *"yes to all three, go ahead and build it"*, the
+owner, 2026-10-08:
 
-## Acceptance criteria (a sketch until the rulings settle)
+- **The struck set** is held per recipe in memory (`MethodTicks`), never stored
+  or synced, and dropped when the page closes unless one of that recipe's
+  timers is still held; then it waits for that timer.
+- **It rings for a minute**, then the chip and its dock row stay red and keep
+  counting overtime silently until Stop.
+- **Permission is asked on the first timer started**, not at launch, and never
+  twice. On Android the same first start asks for the exact-alarm permission
+  when it is not already granted (it opens a system settings page on Android
+  14+); without it the ring is scheduled inexactly.
+
+## Decisions made while building
+
+- **Notification actions open the app.** Stop and +1 min are foreground
+  actions, so they act on the one set of timers in the running app rather than
+  on a copy in a background isolate.
+- **Android rings through the notification**: insistent on the alarm stream,
+  withdrawn after the minute; the app does not chime over it. Where
+  notifications are refused, and on iOS in the foreground, and on the web, the
+  app chimes for the minute itself (`assets/sounds/timer_chime.wav`, generated
+  for this app).
+- **The web does not use the notification plugin's service worker**, which
+  would replace the app's own; a hidden tab uses the browser's `Notification`
+  directly, and Chrome on Android, which allows only service-worker
+  notifications, gets the chime and the tab title.
+- **No flash on arrival.** `?step=N` opens the method scrolled to the step; the
+  frame's "chip flashing once" was dropped as unneeded.
+
+## Acceptance criteria
 
 Phase one — on the page and across the app:
 
-- [ ] A pure-Dart timer model (`core/timers` or `recipes/domain`): start at
+- [x] A pure-Dart timer model (`features/timers/domain`): start at
       the midpoint, pause, resume, ±1 min, overtime, ordered by end time —
       tested.
-- [ ] An app-wide store held by end time, persisted locally so a killed app
+- [x] An app-wide store held by end time, persisted locally so a killed app
       restores its timers.
-- [ ] The chip's four states (ready, running, paused, done) in
+- [x] The chip's four states (ready, running, paused, done) in
       `method_step_text.dart`; the sheet; the done banner with sound and
       haptics.
-- [ ] The dock in the shell, on every route: the one row, +N, and the
+- [x] The dock in the shell, on every route: the one row, +N, and the
       opened list; a row's tap opens the recipe's Method at the step.
-- [ ] Keep screen on in the ⋯ menu.
+- [x] Keep screen on in the ⋯ menu.
 
 Phase two — asleep and on the web:
 
-- [ ] Scheduled local notifications with *Stop* and *+1 min*; the Android
+- [x] Scheduled local notifications with *Stop* and *+1 min*; the Android
       ongoing notification; the exact-alarm permission handled as Play allows.
-- [ ] The web: wake lock on start, the counting tab title, the hidden-tab
+- [x] The web: wake lock on start, the counting tab title, the hidden-tab
       notification, the one-time *keep this tab open* line.
-- [ ] The board's frames move from `proposed` to built; the recipe page's
+- [x] The board's frames move from `proposed` to built; the recipe page's
       "Timers are not tappable" note is deleted with the frames it replaces.
+
+Before this plan moves to `completed/`:
+
+- [ ] The release build compiles the Android setup (desugaring, receivers,
+      `ic_stat_timer`) and the iOS one (the notification delegate).
+- [ ] On a phone: a timer rings with the screen locked and with the app
+      killed; Stop and +1 min work from the notification; the exact-alarm ask
+      on Android 14+ reads as reasonable.
+- [ ] On the web: the tab title counts, the wake lock holds, the chime sounds
+      in a background tab.

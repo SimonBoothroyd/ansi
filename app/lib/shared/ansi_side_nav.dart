@@ -39,7 +39,7 @@ List<String> get ansiBranchLocations => [
 ];
 
 class AnsiSideNav extends StatelessWidget {
-  const AnsiSideNav({required this.form, this.index, super.key});
+  const AnsiSideNav({required this.form, this.index, this.extra, super.key});
 
   /// [AnsiShell.rail] draws icons with tooltips; [AnsiShell.sidebar] draws
   /// icons with their labels. [AnsiShell.bar] never reaches here.
@@ -47,6 +47,10 @@ class AnsiSideNav extends StatelessWidget {
 
   /// The lit destination, or null for the neutral form.
   final int? index;
+
+  /// Drawn above the footer door in the full sidebar; the rail has no room
+  /// for it.
+  final Widget? extra;
 
   bool get _rail => form == AnsiShell.rail;
 
@@ -65,16 +69,23 @@ class AnsiSideNav extends StatelessWidget {
       ),
     ),
     header: _Wordmark(rail: _rail),
-    footer: FSidebarGroup(
+    footer: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // A push, unlike the destinations: Account is a page over where you
-        // were, so its back chevron has something to pop. A `go` would
-        // replace the stack and leave back with nothing under it.
-        _Item(
-          icon: FLucideIcons.users,
-          label: 'Account',
-          rail: _rail,
-          onPress: () => context.pushOnce(_accountRoute),
+        if (!_rail) ?extra,
+        FSidebarGroup(
+          children: [
+            // A push, unlike the destinations: Account is a page over where you
+            // were, so its back chevron has something to pop. A `go` would
+            // replace the stack and leave back with nothing under it.
+            _Item(
+              icon: FLucideIcons.users,
+              label: 'Account',
+              rail: _rail,
+              onPress: () => context.pushOnce(_accountRoute),
+            ),
+          ],
         ),
       ],
     ),

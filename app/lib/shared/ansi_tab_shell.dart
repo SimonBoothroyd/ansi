@@ -22,9 +22,13 @@ const kHomeBranch = 0;
 const kTabFade = Duration(milliseconds: 120);
 
 class AnsiTabShell extends StatelessWidget {
-  const AnsiTabShell({required this.shell, super.key});
+  const AnsiTabShell({required this.shell, this.dock, super.key});
 
   final StatefulNavigationShell shell;
+
+  /// What sits on the bar, above it: the timer dock. It draws nothing while
+  /// no timer is held.
+  final Widget? dock;
 
   @override
   Widget build(BuildContext context) => PopScope(
@@ -36,15 +40,18 @@ class AnsiTabShell extends StatelessWidget {
     },
     child: AnsiShell.of(context).beside
         ? _PaneShell(shell: shell)
-        : AnsiMeasure(child: _BarShell(shell: shell)),
+        : AnsiMeasure(
+            child: _BarShell(shell: shell, dock: dock),
+          ),
   );
 }
 
 /// The shell with its bar under the content, up to `lg`.
 class _BarShell extends StatelessWidget {
-  const _BarShell({required this.shell});
+  const _BarShell({required this.shell, this.dock});
 
   final StatefulNavigationShell shell;
+  final Widget? dock;
 
   @override
   Widget build(BuildContext context) => FScaffold(
@@ -57,6 +64,7 @@ class _BarShell extends StatelessWidget {
         // sync is healthy.
         const AnsiSyncBanner(),
         Expanded(child: shell),
+        ?dock,
       ],
     ),
   );

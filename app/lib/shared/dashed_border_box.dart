@@ -14,17 +14,19 @@ class DashedBorderBox extends StatelessWidget {
     required this.child,
     this.color = AnsiColors.herb,
     this.padding = const EdgeInsets.symmetric(vertical: 11, horizontal: 12),
+    this.radius = 12,
     super.key,
   });
 
   final Widget child;
   final Color color;
   final EdgeInsetsGeometry padding;
+  final double radius;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _DashedRectPainter(color),
+      painter: _DashedRectPainter(color, radius),
       child: Padding(padding: padding, child: child),
     );
   }
@@ -84,9 +86,10 @@ class DashedAction extends StatelessWidget {
 }
 
 class _DashedRectPainter extends CustomPainter {
-  _DashedRectPainter(this.color);
+  _DashedRectPainter(this.color, this.radius);
 
   final Color color;
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -96,7 +99,7 @@ class _DashedRectPainter extends CustomPainter {
       ..strokeWidth = 1;
     final rrect = RRect.fromRectAndRadius(
       Offset.zero & size,
-      const Radius.circular(12),
+      Radius.circular(radius),
     );
     final path = Path()..addRRect(rrect);
     const dash = 4.0;
@@ -112,5 +115,5 @@ class _DashedRectPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DashedRectPainter oldDelegate) =>
-      oldDelegate.color != color;
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }

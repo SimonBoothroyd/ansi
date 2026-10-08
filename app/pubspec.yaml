@@ -46,6 +46,13 @@ dependencies:
   mobile_scanner: ^7.4.0  # camera preview + detector (iOS: AVFoundation+Vision)
   http: ^1.2.0            # the keyless Open Food Facts GET, run on-device (D2)
   url_launcher: ^6.3.0    # the camera-off panel's "Open Settings" (app-settings:)
+
+  # Kitchen timers on the recipe page (plan 0050).
+  flutter_local_notifications: 22.3.1  # a timer rings with the phone asleep
+  timezone: ^0.11.1       # zonedSchedule's instant (UTC only — no tz database)
+  wakelock_plus: 1.8.0    # Keep screen on; on the web, any running timer
+  audioplayers: ^6.8.1    # the in-app chime: the web, or notifications refused
+  web: ^1.1.1             # the web's own Notification and tab title
   # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
 
 dev_dependencies:
@@ -75,6 +82,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # The kitchen timer's chime, looped while a due timer rings in the app
+  # (features/timers). Generated for this app: two bell tones, a fifth apart.
+  assets:
+    - assets/sounds/timer_chime.wav
 
   # Bundled (offline) fonts for the three design-board type roles. OFL 1.1;
   # see assets/fonts/OFL.txt. Wired into core/theme/ansi_theme.dart.

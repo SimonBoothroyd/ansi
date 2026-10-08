@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Kitchen timers ring through a scheduled notification while the phone
+         sleeps. The plugin declares POST_NOTIFICATIONS and VIBRATE itself;
+         a schedule survives a reboot with RECEIVE_BOOT_COMPLETED, and lands on
+         the minute with SCHEDULE_EXACT_ALARM, which the first timer asks for
+         (without it Android may hold the ring back). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <!-- enableOnBackInvokedCallback: Flutter's PredictiveBackPageTransitionsBuilder
          needs this opt-in (it is absent from Flutter's own app template), and
          without it every back falls through to the FadeForwards fallback. With
@@ -47,6 +54,18 @@
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <!-- flutter_local_notifications: a timer's scheduled ring, its
+             rescheduling after a reboot, and its Stop / +1 min buttons. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

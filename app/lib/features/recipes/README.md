@@ -64,10 +64,20 @@ timer chip keeps its outlined pill, and a chip whose imprecise amount the prose
 already says prints no pill.
 
 On the recipe page a tap rules a chip off, and a tap elsewhere on the step rules
-off the prose and every chip in it. The set is ephemeral — a `useState` keyed
-positionally (`s2`, `s2:c0`) — and a line this week leaves out reads muted,
-never ruled. Full cook mode is a [backlog](../../../../docs/exec-plans/backlog.md)
-row.
+off the prose and every chip in it. The set is keyed positionally (`s2`,
+`s2:c0`), never stored or synced, and held by `MethodTicks`
+([`features/timers`](../timers/README.md)): it goes when the page closes,
+unless one of the recipe's timers is still running, so coming back through
+the dock finds the page as it was left. A line this week leaves out reads
+muted, never ruled.
+
+A **timer chip** is never ruled off. Its tap starts the timer at the middle of
+its range (`20–25 min` → `22:30`) and the chip shows the count in place; a tap
+on a running chip opens its sheet. `?step=N` opens the page on the method,
+scrolled to that step — the dock and a timer's notification link there. The
+page's `⋯` menu holds **Keep screen on**, with a sun beside the `⋯` while it
+holds. Full cook mode stays a [backlog](../../../../docs/exec-plans/backlog.md)
+row; the recipe page is where cooking happens.
 
 ## The header form
 

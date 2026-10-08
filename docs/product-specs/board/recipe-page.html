@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: <span class="prop">proposed</span> <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
-    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, for this reading of the page only.</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
+    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, and a tap on a <b>timer</b> starts it: the count runs in the step, and in the dock at the foot of every screen.</p>
 </header>
 
 <div class="board">
@@ -56,20 +56,20 @@
                 <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow struck"><span class="mn">1</span><span>Warm the <span class="mchip struck">olive oil<span class="mqn">2 tbsp</span></span> in a wide pan, then add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens.</span></div>
-                <div class="mrow"><span class="mn">2</span><span>Stir in the <span class="mchip struck">smoked paprika<span class="mqn">1 tsp</span></span>, the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and the <span class="mchip">butter beans<span class="mqn">2 can</span></span>. Simmer for <span class="ichip tmr">&#9201; 20&ndash;25 min</span>.</span></div>
+                <div class="mrow"><span class="mn">2</span><span>Stir in the <span class="mchip struck">smoked paprika<span class="mqn">1 tsp</span></span>, the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and the <span class="mchip">butter beans<span class="mqn">2 can</span></span>. Simmer for <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>.</span></div>
                 <div class="mrow"><span class="mn">3</span><span>Season with <span class="mchip">salt</span> to taste, then finish with the <span class="mchip wk">lime<span class="mqn">1 lime, whole</span></span>.</span></div>
                 <p class="conv-note">the word is <b>plain bold herb</b>, the amount is the <b>pill</b>. The boxed chip made every ingredient a button in the middle of a sentence; the number is the part that is actually live &mdash; it moves with the scaler &mdash; so it is the part that is marked. Nothing pads the chip sideways, so the comma after one <b>hugs</b> it</p>
-                <p class="conv-note"><b>ticking off while you cook.</b> Step 1 was tapped: its prose is ruled through and <i>every chip in it goes with it</i>, because a rule on a sentence does not cross into a chip. Step 2 shows the other half &mdash; a single chip tapped on its own, the sentence around it still live. Tapping a step again lifts the step&rsquo;s rule and leaves the chips as they were. It is <b>this reading of this page</b>: nothing is stored, nothing syncs, and closing the recipe clears it. Timers are not tappable &mdash; a duration is not a thing you add</p>
+                <p class="conv-note"><b>ticking off while you cook.</b> Step 1 was tapped: its prose is ruled through and <i>every chip in it goes with it</i>, because a rule on a sentence does not cross into a chip. Step 2 shows the other half &mdash; a single chip tapped on its own, the sentence around it still live. Tapping a step again lifts the step&rsquo;s rule and leaves the chips as they were. Nothing is stored and nothing syncs: closing the recipe clears it, <b>unless one of its timers is still running</b> &mdash; then the ticks wait for that timer, so coming back through the dock finds the page as it was left. A timer is never ruled off; its tap is its own (below)</p>
                 <p class="conv-note">step 3&rsquo;s <span class="mchip wk">lime</span> is the <b>other</b> struck state: a line <i>this week</i> leaves out, opened from that week. <b>Muted, never ruled</b> &mdash; the rule belongs to the cook&rsquo;s hand, and the two must not read alike. It is still tappable, and a tap draws the cook&rsquo;s rule over it</p>
-                <p class="conv-note">a <b>timer</b> keeps its outlined pill with the clock: it is not a word in the sentence, it is a measurement the step hands you</p>
+                <p class="conv-note">a <b>timer</b> keeps its outlined pill: it is not a word in the sentence, it is a measurement the step hands you. A herb <b>&#9654;</b> says the tap starts it</p>
                 <p class="conv-note">step 3 shows the one suppression: an <b>imprecise</b> chip prints <i>no</i> pill when the prose right after it already says the same words &mdash; <b>Season with salt to taste</b>, never <i>salt</i> <code>to taste</code> <i>to taste</i>. The chip keeps the word wherever the sentence does not</p>
                 <p class="conv-note">the step number is a <b>mono digit in its own column</b>, sitting on the first line of the step. The ink discs stacked a column of filled circles down a page whose argument is that the words come first</p>
                 <p class="conv-note">the bar carries <b>for 4 servings &middot; 1&times;</b> at its end, off the <i>same</i> servings state the Ingredients tab&rsquo;s scaler holds &mdash; the chips&rsquo; numbers are scaled, and the scaler is a tab away. It is not drawn on the tabs that say it better (Ingredients has the scaler itself) </p>
             </div></div>
         </div>
 
-        <div class="frame prop">
-            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A timer is tapped</b> &middot; the chip starts at the middle of its range and counts down where it stands; the dock at the foot holds every one that is running</p>
+        <div class="frame">
+            <p class="frame-name"><b>A timer is tapped</b> &middot; the chip starts at the middle of its range and counts down where it stands; the dock at the foot holds every one that is running</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
@@ -85,29 +85,30 @@
             </div></div>
         </div>
 
-        <div class="frame prop">
-            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A running timer is tapped</b> &middot; its sheet: the clock large, what it is the middle of, and four verbs</p>
+        <div class="frame">
+            <p class="frame-name"><b>A running timer is tapped</b> &middot; its sheet: the clock large, what it is the middle of, three verbs, and Cancel under them</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip run" style="--p:62%"><span class="tg">&#9201;</span>14:07</span>.</span></div>
                 <div class="tsheet">
                     <div class="grab"></div>
-                    <span class="ts-k">Step 4 &middot; 20&ndash;25 min</span>
-                    <p class="ts-h">Harissa Chicken &amp; Butter Beans</p>
+                    <p class="ts-h"><span class="ts-x">&times;</span>Harissa Chicken &amp; Butter Beans</p>
+                    <span class="ts-k">step 4 &middot; 20&ndash;25 min</span>
                     <div class="ts-v">14:07</div>
                     <div class="ts-r">of 22:30, the middle of 20&ndash;25 min &middot; rings at 18:47</div>
-                    <div class="ts-bar" style="--p:38%"><i></i></div>
-                    <div class="ts-btns"><span class="tbtn pri">Pause</span><span class="tbtn">&minus;1 min</span><span class="tbtn">+1 min</span><span class="tbtn dz">Cancel</span></div>
+                    <div class="ts-bar" style="--p:62%"><i></i></div>
+                    <div class="ts-btns three"><span class="tbtn pri">Pause</span><span class="tbtn">&minus;1 min</span><span class="tbtn">+1 min</span></div>
+                    <div class="ts-ghost">Cancel &middot; back to 20&ndash;25 min</div>
                 </div>
                 <p class="conv-note">the sheet names the <b>step and the recipe</b>, never a verb lifted out of the sentence &mdash; reading <i>simmer</i> out of the prose would be the render-time reading ADR-0004 refuses. The step number and the title are data; the step itself is one line above the sheet</p>
                 <p class="conv-note"><b>&minus;1 / +1 min</b> are how you lean to either end of the range &mdash; and how you give a sauce one more minute once it has rung. They move the end time; the sheet says <b>rings at</b> the clock time, so the change reads as a time, not a sum</p>
-                <p class="conv-note"><b>Pause</b> turns the chip and its dock row <b>dashed and muted</b> &mdash; <span class="tchip paused"><span class="tg">&#10074;&#10074;</span>14:07</span> &mdash; and the button reads <b>Resume</b>. <b>Cancel</b> puts the chip back to <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>, ready to start again</p>
+                <p class="conv-note"><b>Pause</b> turns the chip and its dock row <b>dashed and muted</b> &mdash; <span class="tchip paused"><span class="tg">&#10074;&#10074;</span>14:07</span> &mdash; and the button reads <b>Resume</b>. <b>Cancel</b> says what it does &mdash; <i>back to 20&ndash;25 min</i> &mdash; and puts the chip back to <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>, ready to start again. Due, the sheet&rsquo;s verbs are <b>+1 min</b> and <b>Stop</b></p>
             </div></div>
         </div>
 
-        <div class="frame prop">
-            <p class="frame-name"><span class="proposed-tag">proposed</span><b>A timer goes off</b> &middot; one red band under the bar, the chip and its dock row turn Gone red and count on past zero</p>
+        <div class="frame">
+            <p class="frame-name"><b>A timer goes off</b> &middot; one red band under the bar, the chip and its dock row turn Gone red and count on past zero</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
                 <div class="tband"><div class="tb-x"><div class="tb-t">Step 4 is done</div><div class="tb-s">Harissa Chicken &amp; Butter Beans</div></div><span class="tb-v">+0:42</span><div class="tb-acts"><span class="tb-b">+1 min</span><span class="tb-b solid">Stop</span></div></div>
@@ -121,8 +122,8 @@
             </div></div>
         </div>
 
-        <div class="frame prop">
-            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Keep screen on</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu, and a sun in the bar for as long as it holds</p>
+        <div class="frame">
+            <p class="frame-name"><b>Keep screen on</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu, and a sun in the bar for as long as it holds</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
@@ -544,7 +545,7 @@
                                 <div class="mrow"><span class="mn">2</span><span>Turn the heat down, add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens.</span></div>
                                 <div class="mrow"><span class="mn">3</span><span>Stir in the <span class="mchip">garlic<span class="mqn">2 clove</span></span> and the <span class="mchip">smoked paprika<span class="mqn">1 tsp</span></span>, and let them toast until the pan smells of both.</span></div>
                                 <div class="mrow"><span class="mn">4</span><span>Tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span>, scraping the base of the pan as they loosen everything stuck to it.</span></div>
-                                <div class="mrow"><span class="mn">5</span><span>Return the <span class="mchip">chicken thigh</span> and any juices to the pan and simmer uncovered for <span class="ichip tmr">&#9201; 20&ndash;25 min</span>, until the sauce is thick and the chicken is tender.</span></div>
+                                <div class="mrow"><span class="mn">5</span><span>Return the <span class="mchip">chicken thigh</span> and any juices to the pan and simmer uncovered for <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>, until the sauce is thick and the chicken is tender.</span></div>
                                 <div class="mrow"><span class="mn">6</span><span>Fold through the <span class="mchip">butter beans<span class="mqn">2 can</span></span> and warm them in the sauce, pressing a few against the side of the pan to thicken it.</span></div>
                                 <div class="mrow"><span class="mn">7</span><span>Taste, season, and squeeze over the <span class="mchip">lime<span class="mqn">1 lime, whole</span></span>.</span></div>
                                 <div class="mrow"><span class="mn">8</span><span>Off the heat, scatter over the sliced <span class="mchip">garlic<span class="mqn">1 clove</span></span> and take the pan to the table.</span></div>
@@ -555,7 +556,7 @@
             </div>
         </div>
         <p class="conv-note" style="margin:10px 4px 0">a recipe is a <b>pushed page</b>, so the sidebar is neutral and the page carries its own back · the <b>⋯</b> menu is the page's one door for its less-used verbs here too, <i>Show line figures</i> included — and with it on, each line's own figures sit under its name in the left column, exactly as they do on the phone</p>
-        <p class="conv-note" style="margin:4px 4px 0">the method column is the <b>phone's line, unwidened</b>: a mono number in its own column, the ingredient a <b>plain herb word</b>, the live amount its <b>pill</b>, and the timer keeping the outlined pill it has because it is a measurement rather than a word in the sentence. A second step re-using the chicken carries <i>no</i> pill, because the amount was already said</p>
+        <p class="conv-note" style="margin:4px 4px 0">the method column is the <b>phone's line, unwidened</b>: a mono number in its own column, the ingredient a <b>plain herb word</b>, the live amount its <b>pill</b>, and the timer keeping the outlined pill it has because it is a measurement rather than a word in the sentence, with the <b>&#9654;</b> its tap starts. A second step re-using the chicken carries <i>no</i> pill, because the amount was already said</p>
         <p class="conv-note" style="margin:4px 4px 0">ticking off is the same gesture here, on the same set: step 1 struck whole, one chip struck inside step 2 · both columns are one page, so a chip ticked in the method stays ticked whatever the window does, and the <b>left column is untouched</b> &mdash; a tick is about the method, not about the line</p>
         <p class="conv-note" style="margin:4px 4px 0">an amount reads the same in both columns: <b>2 onion, medium</b> and <b>1 lime, whole</b> say the measure's own words (<a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a>), the chicken stays a bare <b>6</b> because its row names no size, and the amount cell wraps rather than shove the name out of the column</p>
         <p class="conv-note" style="margin:4px 4px 0">the panel is <b>not a right rail</b>: a per-serving total belongs at the end of the lines it sums, at their width · <b>Used in · N</b> is absent because nothing points at this recipe, exactly as on the phone</p>
@@ -743,7 +744,7 @@
                                 <div class="mrow"><span class="mn">2</span><span>Turn the heat down, add the <span class="mchip">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens.</span></div>
                                 <div class="mrow"><span class="mn">3</span><span>Stir in the <span class="mchip">smoked paprika<span class="mqn">1 tsp</span></span> and let it toast until the pan smells of it.</span></div>
                                 <div class="mrow"><span class="mn">4</span><span>Tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span>, scraping the base of the pan as they loosen everything stuck to it.</span></div>
-                                <div class="mrow"><span class="mn">5</span><span>Return the <span class="mchip">chicken thigh</span> and simmer uncovered for <span class="ichip tmr">&#9201; 20&ndash;25 min</span>, until the sauce is thick.</span></div>
+                                <div class="mrow"><span class="mn">5</span><span>Return the <span class="mchip">chicken thigh</span> and simmer uncovered for <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>, until the sauce is thick.</span></div>
                                 <div class="mrow"><span class="mn">6</span><span>Fold through the <span class="mchip">butter beans<span class="mqn">2 can</span></span>, warm them in the sauce, and squeeze over the <span class="mchip">lime<span class="mqn">1 lime, whole</span></span>.</span></div>
                             </div>
                         </div>

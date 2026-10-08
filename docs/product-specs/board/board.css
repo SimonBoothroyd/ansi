@@ -2041,3 +2041,10 @@
     .desk .rail .rtimers .tli{margin-bottom:0;padding:8px 9px;grid-template-columns:1fr auto;}
     .desk .rail .rtimers .tli .nm{font-size:11.5px;}
     .desk .rail .rtimers .tli .tv{font-size:12px;}
+    /* the sheet as built: the title row carries the sheet's X; Cancel is the
+       ghost line under three verbs, naming what it goes back to */
+    .tsheet .ts-x{color:var(--muted);font-family:'Inter',sans-serif;font-size:18px;margin-right:10px;}
+    .tsheet .ts-btns.three{grid-template-columns:repeat(3,1fr);}
+    .tsheet .ts-ghost{text-align:center;font-size:13px;font-weight:500;color:var(--herb-deep);padding:12px 0 2px;}
+    .tsheet .ts-h + .ts-k{display:block;color:var(--muted);text-transform:none;letter-spacing:0;margin:2px 0 0 28px;}
+    .tlist .tl-h .t{font-family:'Spectral',serif;font-size:19px;font-weight:500;color:var(--ink);}

@@ -35,6 +35,15 @@ can read your household's data.
 The camera is used only when you choose to scan a barcode, photograph a
 recipe or scan a receipt.
 
+## Notifications and kitchen timers
+
+A timer you start on a recipe is kept only on the device you started it on;
+it is never sent to a server or to the other people in your household. When it
+ends, the device itself shows the notification — nothing is sent anywhere to
+make it ring. Ansi asks for permission to send notifications (and, on Android,
+to ring on time) the first time you start a timer, and works without it: the
+timer then sounds only while Ansi is open.
+
 ## Deleting your account
 
 Email **wkndvibes@proton.me** from the address you sign in with and ask for your

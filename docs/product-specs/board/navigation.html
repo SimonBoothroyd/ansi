@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Navigation &amp; the shell</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: differs 2026-09-20: the shell, the rail, the neutral chrome and the dialogs are built as drawn, except that a pushed page's back control is the header chevron it already carries rather than the word <code>‹ Library</code>, and a modal's barrier stops at the content pane, so the sidebar stays clickable beside it · timers: <span class="prop">proposed</span> <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>core/router</code> · <code>shared/ansi_tab_shell.dart</code> · <a href="../../design-docs/navigation.md">navigation.md</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · wide: differs 2026-09-20: the shell, the rail, the neutral chrome and the dialogs are built as drawn, except that a pushed page's back control is the header chevron it already carries rather than the word <code>‹ Library</code>, and a modal's barrier stops at the content pane, so the sidebar stays clickable beside it · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
     <p class="view-blurb">One bar that never moves, one place a tap can go, and one stated rule for back. The bar is the fixed point in every transition.</p>
 </header>
 
@@ -177,8 +177,8 @@
         <p class="conv-note">Keeping the Library at <b>/</b> rather than renaming it <span style="font-family:'IBM Plex Mono',monospace">/library</span> is deliberate: every existing link, every <span style="font-family:'IBM Plex Mono',monospace">?from=</span> in flight and the redirect’s own <span style="font-family:'IBM Plex Mono',monospace">loc == '/'</span> case keep working untouched.</p>
     </div>
 
-    <div class="frame prop">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The timer dock</b> &middot; while anything runs, one full-width row sits on the bar of every tab &mdash; the soonest timer, its recipe&rsquo;s whole title, and <b>+N</b> for the rest</p>
+    <div class="frame">
+        <p class="frame-name"><b>The timer dock</b> &middot; while anything runs, one full-width row sits on the bar of every tab &mdash; the soonest timer, its recipe&rsquo;s whole title, and <b>+N</b> for the rest</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="ttl">Shop</span><span class="dots">&ctdot;</span></div>
             <div class="wnv-slab" style="margin:0 20px;min-height:250px">the Shop list, untouched &mdash; the dock takes its height from the foot of the scroller, never from the rows</div>
@@ -188,18 +188,18 @@
         <p class="conv-note">one dock, drawn by the <b>shell</b>, on every route: <b>above the bar</b> on a tab, at the <b>screen&rsquo;s foot</b> on a pushed page (the bar is covered there, the dock is not). It is absent while nothing runs &mdash; no empty state, no timers tab</p>
         <p class="conv-note">collapsed it is <b>one row</b>, not a strip of pills: a recipe&rsquo;s title is the only thing that tells two timers apart, and titles here run to <b>thirty and forty characters</b>. A row gives the title the whole width &mdash; the step in the mono column the method uses, the title cut <b>at its end</b> with an ellipsis, the count. A title is never shortened to a word: <i>Slow-Cooker</i> and <i>Sticky</i> name nothing</p>
         <p class="conv-note">the row is the <b>one that needs you first</b>: a due timer before all, then the soonest. <b>+2</b> says how many more and opens the list. The row wears the chip&rsquo;s four states &mdash; draining herb, <b>dashed</b> when paused, <b>Gone red</b> and counting on once due</p>
-        <p class="conv-note">a tap on the row <b>pushes the recipe at its step</b> &mdash; <span style="font-family:'IBM Plex Mono',monospace">/recipes/:id?step=4</span> opens on Method, scrolled to it, the chip flashing once. From that recipe&rsquo;s own page it only scrolls</p>
+        <p class="conv-note">a tap on the row <b>pushes the recipe at its step</b> &mdash; <span style="font-family:'IBM Plex Mono',monospace">/recipes/:id?step=4</span> opens on Method, scrolled to it. From that recipe&rsquo;s own page it only scrolls; a <b>long-press</b> on the row opens its sheet</p>
         <p class="conv-note">every timer is held by its <b>end time</b>, kept on this phone and nowhere else: a slept or killed app reads the right number when it wakes, and the other cook&rsquo;s phone never sees it</p>
     </div>
 
-    <div class="frame prop">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The dock opened</b> &middot; <b>+2</b> lifts it into a list of every timer, each title whole on up to two lines</p>
+    <div class="frame">
+        <p class="frame-name"><b>The dock opened</b> &middot; <b>+2</b> lifts it into a list of every timer, each title whole on up to two lines</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="ttl">Shop</span><span class="dots">&ctdot;</span></div>
             <div class="wnv-slab" style="margin:0 20px;min-height:120px">the Shop list, behind the sheet</div>
             <div class="tlist">
                 <div class="grab"></div>
-                <div class="tl-h"><span class="k">3 timers</span><span class="x">Done</span></div>
+                <div class="tl-h"><span class="t">3 timers</span><span class="x">Close</span></div>
                 <div class="tli due"><span class="nm">Harissa Chicken &amp; Butter Beans</span><span class="tv">+0:42</span><span class="ac">Stop</span><span class="mt">step 4 &middot; rang at 18:47</span></div>
                 <div class="tli" style="--p:30%"><span class="nm">Sticky Gochujang Pork Belly with Smacked Cucumber</span><span class="tv">3:10</span><span class="ac">&#10074;&#10074;</span><span class="mt">step 3 &middot; rings at 18:51</span></div>
                 <div class="tli paused"><span class="nm">Slow-Cooker Beef Rag&ugrave;</span><span class="tv">1:12:00</span><span class="ac">&#9654;</span><span class="mt">step 2 &middot; paused</span></div>
@@ -210,8 +210,8 @@
         <p class="conv-note">the same order as the collapsed row: due first, then soonest. With <b>one</b> timer running there is no +N and nothing to open &mdash; the row already says everything</p>
     </div>
 
-    <div class="frame prop">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The phone is locked</b> &middot; a timer rings through the notification it scheduled when it started; the app does not have to be awake</p>
+    <div class="frame">
+        <p class="frame-name"><b>The phone is locked</b> &middot; a timer rings through the notification it scheduled when it started; the app does not have to be awake</p>
         <div class="phone"><div class="notch" style="background:#24302A"></div>
             <div class="lockscr">
                 <div class="lk-t">18:48</div>
@@ -219,23 +219,23 @@
                 <div class="lnote due">
                     <div class="ln-h"><span class="ap">A</span>ANSI<span class="wh">now</span></div>
                     <div class="ln-t">Step 4 is done</div>
-                    <div class="ln-b">Harissa Chicken &amp; Butter Beans &middot; step 4</div>
+                    <div class="ln-b">Harissa Chicken &amp; Butter Beans</div>
                     <div class="ln-a"><span>+1 min</span><span>Stop</span></div>
                 </div>
                 <div class="lnote">
-                    <div class="ln-h"><span class="ap">A</span>ANSI &middot; ongoing<span class="wh">Android</span></div>
+                    <div class="ln-h"><span class="ap">A</span>ANSI &middot; <span class="ln-v">3:10</span><span class="wh">Android</span></div>
                     <div class="ln-t">2 timers running</div>
-                    <div class="ln-b">Sticky Gochujang Pork Belly with Smacked Cucumber &middot; step 3 in <span class="ln-v">3:10</span></div>
+                    <div class="ln-b">Sticky Gochujang Pork Belly with Smacked Cucumber &middot; step 3</div>
                 </div>
             </div>
         </div>
         <p class="conv-note">the start <b>schedules a local notification</b> at the end time, and every change (pause, &plusmn;1 min, cancel) moves or withdraws it. It carries <b>+1 min</b> and <b>Stop</b> as actions, and a tap on its body opens the step, as the dockas a pill&rsquo;s tap doesrsquo;s row does</p>
-        <p class="conv-note">Android also keeps <b>one ongoing notification</b> while anything runs, counting the soonest down with the OS&rsquo;s own chronometer &mdash; the app draws no number while it sleeps. iOS has no such surface short of a Live Activity, which this does not reach for</p>
+        <p class="conv-note">Android also keeps <b>one ongoing notification</b> while anything runs, counting the soonest down with the OS&rsquo;s own chronometer in its header &mdash; the app draws no number while it sleeps. A paused timer is not in it. iOS has no such surface short of a Live Activity, which this does not reach for</p>
         <p class="conv-note">a ring on time needs Android&rsquo;s <b>exact alarm</b> permission, and Play allows that only to an app whose timers are a real feature &mdash; which these are. Notification permission is asked <b>on the first timer started</b>, never at launch</p>
     </div>
 
-    <div class="frame prop">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>On the web</b> &middot; a closed tab cannot ring, so the browser is kept awake and the tab&rsquo;s title does the counting</p>
+    <div class="frame">
+        <p class="frame-name"><b>On the web</b> &middot; a closed tab cannot ring, so the browser is kept awake and the tab&rsquo;s title does the counting</p>
         <div class="phone">
             <div class="btabs"><span class="btab on"><span class="bt-v">&#9201; 3:10</span> &middot; Ansi</span><span class="btab">Inbox</span></div>
             <div class="screen">
@@ -411,7 +411,7 @@
     </div>
 
     <div class="frame wide">
-        <p class="frame-name"><span class="tag-prop">proposed</span><b>wide &middot; the dock is in the sidebar</b> &middot; the one surface that survives a push holds the timers, between the destinations and the footer door</p>
+        <p class="frame-name"><b>wide &middot; the dock is in the sidebar</b> &middot; the one surface that survives a push holds the timers, between the destinations and the footer door</p>
         <div class="desk">
             <div class="lip"><i></i><i></i><i></i></div>
             <div class="btabs"><span class="btab on"><span class="bt-v">&#9201; +0:42</span> &middot; Ansi</span><span class="btab">Inbox</span></div>
@@ -427,7 +427,7 @@
                         <div class="tk"><span>Timers &middot; 3</span><span style="color:var(--herb);font-size:13px;letter-spacing:0">&#9728;</span></div>
                         <div class="tli due"><span class="nm">Harissa Chicken &amp; Butter Beans</span><span class="tv">+0:42</span><span class="mt">step 4</span></div>
                         <div class="tli" style="--p:30%"><span class="nm">Sticky Gochujang Pork Belly with Smacked Cucumber</span><span class="tv">3:10</span><span class="mt">step 3</span></div>
-                        <div class="tli paused"><span class="nm">Slow-Cooker Beef Rag&ugrave;</span><span class="tv">1:12:00</span><span class="mt">step 2 &middot; paused</span></div>
+                        <div class="tli paused"><span class="nm">Slow-Cooker Beef Rag&ugrave;</span><span class="tv">1:12:00</span><span class="mt">step 2</span></div>
                     </div>
                     <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span>Account</span></div>
                 </div>

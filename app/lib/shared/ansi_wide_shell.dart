@@ -15,10 +15,13 @@ import 'ansi_layout.dart';
 import 'ansi_side_nav.dart';
 
 class AnsiWideShell extends StatelessWidget {
-  const AnsiWideShell({required this.child, super.key});
+  const AnsiWideShell({required this.child, this.sidebarExtra, super.key});
 
   /// The shell navigator: the tab shell and whatever is pushed over it.
   final Widget child;
+
+  /// What the full sidebar holds above its footer door: the timers.
+  final Widget? sidebarExtra;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +36,11 @@ class AnsiWideShell extends StatelessWidget {
       // inset here too would subtract it twice.
       childPad: false,
       resizeToAvoidBottomInset: false,
-      sidebar: AnsiSideNav(form: form, index: lit < 0 ? null : lit),
+      sidebar: AnsiSideNav(
+        form: form,
+        index: lit < 0 ? null : lit,
+        extra: sidebarExtra,
+      ),
       child: child,
     );
   }

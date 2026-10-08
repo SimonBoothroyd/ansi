@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/sync/session.dart';
 import 'core/theme/ansi_theme.dart';
+import 'features/timers/presentation/timer_chrome.dart';
 import 'shared/ansi_scroll.dart';
 import 'shared/ansi_toast.dart';
 
@@ -33,7 +34,11 @@ class AnsiApp extends ConsumerWidget {
         child: FToaster(
           // The anchor the zone handler toasts through: it runs outside the
           // widget tree and has no context of its own.
-          child: KeyedSubtree(key: ansiToastAnchor, child: child!),
+          child: KeyedSubtree(
+            key: ansiToastAnchor,
+            // On the web the tab's title counts the soonest timer down.
+            child: TimerTabTitle(title: 'Ansi', child: child!),
+          ),
         ),
       ),
     );

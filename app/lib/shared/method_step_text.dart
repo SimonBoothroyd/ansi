@@ -3,7 +3,9 @@
 ///
 /// Two struck states that must not read alike: ticked off by the cook is
 /// muted and ruled through; left out by the week
-/// ([MethodStepText.weekExcluded]) is muted only.
+/// ([MethodStepText.weekExcluded]) is muted only. A timer chip is never
+/// ruled: where [MethodStepText.onTimer] is given its tap starts the timer,
+/// and once started it shows the count ([TimerWash]).
 library;
 
 import 'package:flutter/widgets.dart';
@@ -14,6 +16,8 @@ import '../core/theme/ansi_tokens.dart';
 import '../core/units/units.dart';
 import '../features/recipes/domain/method_step.dart';
 import '../features/recipes/domain/recipe.dart';
+import '../features/timers/domain/cook_timer.dart';
+import 'timer_wash.dart';
 
 /// Renders [step]'s tokens, deriving each chip's live amount from [lineById]
 /// scaled by [factor]. [textSize] is the prose size; the chips size with it.
@@ -32,6 +36,9 @@ class MethodStepText extends StatelessWidget {
     this.stepStruck = false,
     this.onToggleChip,
     this.weekExcluded = const {},
+    this.timerAt,
+    this.now,
+    this.onTimer,
     super.key,
   });
 
@@ -52,19 +59,42 @@ class MethodStepText extends StatelessWidget {
   /// The line ids a week leaves out. Their chips read muted, never ruled.
   final Set<String> weekExcluded;
 
+  /// The running timer behind the step's nth timer chip, if one is held.
+  final CookTimer? Function(int ordinal)? timerAt;
+
+  /// The moment [timerAt]'s counts are read at.
+  final DateTime? now;
+
+  /// A tap on the step's nth timer chip. Null leaves timers inert, as in the
+  /// editor's preview and the import review.
+  final void Function(int ordinal, MethodTimerSpan span)? onTimer;
+
   @override
   Widget build(BuildContext context) {
     final spans = foldMethod(step, lineById: lineById, factor: factor);
     final children = <InlineSpan>[];
     var chip = 0;
+    var timer = 0;
     for (var i = 0; i < spans.length; i++) {
       final span = spans[i];
       switch (span) {
         case MethodTextSpan(:final text):
           children.add(TextSpan(text: text));
-        case MethodTimerSpan(:final text):
+        case final MethodTimerSpan span:
+          final text = span.text;
+          final ordinal = timer++;
+          final onTimer = this.onTimer;
           children.add(
-            _chip(MethodChip(label: text, timer: true, textSize: textSize)),
+            _chip(
+              MethodChip(
+                label: text,
+                timer: true,
+                textSize: textSize,
+                running: timerAt?.call(ordinal),
+                now: now,
+                onTap: onTimer == null ? null : () => onTimer(ordinal, span),
+              ),
+            ),
           );
         case MethodChipSpan(
           :final label,
@@ -209,9 +239,11 @@ String? _unrepeatedAmount(String? amount, MethodSpan? next) {
 ///
 /// An ingredient chip is its word in bold `herbDeep`, unboxed, with its live
 /// [amount] in a small mono pill. A [timer] chip keeps its outlined pill and
-/// clock glyph and never ticks off. [struck] mutes and rules through;
-/// [weekStruck] only mutes. Neither moves the geometry, so the step never
-/// reflows as it is ticked through.
+/// never ticks off: with an [onTap] it wears a herb play glyph, because the
+/// tap starts it, and once [running] it shows the count instead of the
+/// recipe's words. [struck] mutes and rules through; [weekStruck] only mutes.
+/// Neither moves the geometry, so the step never reflows as it is ticked
+/// through.
 class MethodChip extends StatelessWidget {
   const MethodChip({
     required this.label,
@@ -221,6 +253,8 @@ class MethodChip extends StatelessWidget {
     this.struck = false,
     this.weekStruck = false,
     this.onTap,
+    this.running,
+    this.now,
     super.key,
   });
 
@@ -235,8 +269,15 @@ class MethodChip extends StatelessWidget {
   /// Left out by the week: muted only.
   final bool weekStruck;
 
-  /// Toggles [struck]. Null leaves the chip inert.
+  /// Toggles [struck], or for a [timer] starts or opens it. Null leaves the
+  /// chip inert.
   final VoidCallback? onTap;
+
+  /// The timer this chip started, while it is held. Timer chips only.
+  final CookTimer? running;
+
+  /// The moment [running]'s count is read at.
+  final DateTime? now;
 
   @override
   Widget build(BuildContext context) {
@@ -290,25 +331,55 @@ class MethodChip extends StatelessWidget {
     );
   }
 
-  Widget _timer(String text) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 1),
-    child: DecoratedBox(
-      decoration: BoxDecoration(
-        color: AnsiColors.paper,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+  Widget _timer(String text) {
+    final timer = running;
+    final at = now ?? DateTime.now();
+    final state = timer?.stateAt(at);
+    final ink = timerInk(state);
+    final onTap = this.onTap;
+    final glyph = switch (state) {
+      null when onTap != null => FLucideIcons.play,
+      CookTimerState.paused => FLucideIcons.pause,
+      _ => FLucideIcons.timer,
+    };
+    final words = timer == null ? text : formatTimerClock(timer.left(at));
+    final chip = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: TimerWash(
+        state: state,
+        share: timer?.remainingShare(at) ?? 1,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(FLucideIcons.timer, size: 12, color: AnsiColors.muted),
+            Icon(
+              glyph,
+              size: glyph == FLucideIcons.play ? 10 : 12,
+              color: switch (state) {
+                null => onTap == null ? AnsiColors.muted : AnsiColors.herb,
+                _ => ink,
+              },
+            ),
             const SizedBox(width: 4),
-            Text(text, style: ansiMono(size: 12)),
+            Text(
+              words,
+              style: ansiMono(
+                size: 12,
+                color: ink,
+                weight: state == null ? FontWeight.w400 : FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
-    ),
-  );
+    );
+    if (onTap == null) return chip;
+    return FTappable(
+      onPress: onTap,
+      semanticsLabel: timer == null
+          ? 'Start timer, $text'
+          : 'Timer, ${state == CookTimerState.due ? 'done' : '$words left'}',
+      behavior: HitTestBehavior.opaque,
+      child: chip,
+    );
+  }
 }

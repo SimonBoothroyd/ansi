@@ -15,6 +15,18 @@ abstract final class DevicePrefs {
   /// Absent means expanded.
   static const bookCollapsedPrefix = 'ansi.book_collapsed.';
 
+  /// `+ v1` → this phone's kitchen timers, as JSON, so a killed app finds
+  /// them again (`features/timers`).
+  static const cookTimersPrefix = 'ansi.cook_timers.';
+
+  /// `+ notifications_asked` → set once the first timer has asked for
+  /// notifications, so it is never asked twice.
+  static const timerAlarmPrefix = 'ansi.timer_alarm.';
+
   /// Every prefix above, in the order sign-out sweeps them.
-  static const sweptOnSignOut = [householdIdPrefix, bookCollapsedPrefix];
+  static const sweptOnSignOut = [
+    householdIdPrefix,
+    bookCollapsedPrefix,
+    cookTimersPrefix,
+  ];
 }

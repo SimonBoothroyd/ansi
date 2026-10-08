@@ -126,10 +126,17 @@ class MethodChipSpan extends MethodSpan {
   final List<String> lineIds;
 }
 
-/// A timer chip, its span already formatted ("6–8 min").
+/// A timer chip, its span already formatted ("6–8 min"), with the seconds it
+/// was folded from so a tap can start it.
 class MethodTimerSpan extends MethodSpan {
-  const MethodTimerSpan(this.text);
+  const MethodTimerSpan(
+    this.text, {
+    required this.lowSeconds,
+    required this.highSeconds,
+  });
   final String text;
+  final int lowSeconds;
+  final int highSeconds;
 }
 
 /// Folds one [step] into render-ready spans, deriving each chip's number from
@@ -145,7 +152,13 @@ List<MethodSpan> foldMethod(
       case MethodText(:final s):
         spans.add(MethodTextSpan(s));
       case MethodTimer(:final lowSeconds, :final highSeconds):
-        spans.add(MethodTimerSpan(formatTimerRange(lowSeconds, highSeconds)));
+        spans.add(
+          MethodTimerSpan(
+            formatTimerRange(lowSeconds, highSeconds),
+            lowSeconds: lowSeconds,
+            highSeconds: highSeconds,
+          ),
+        );
       case MethodRef(
         :final refs,
         :final label,
