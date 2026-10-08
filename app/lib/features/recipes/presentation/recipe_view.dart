@@ -123,18 +123,15 @@ class _RecipeBody extends HookConsumerWidget {
     final servings = useState(recipe.servingsBase);
     // Opened at a timer's step, the page opens on the method.
     final tab = useState(step == null ? 0 : 1);
-    // What the cook has ticked off in the method: unsynced, and kept past the
-    // page only while one of this recipe's timers is held ([MethodTicks]). The
+    // What the cook has ticked off in the method. Page-local and unsynced, and
+    // gone when the page closes — a timer still running keeps no ticks. The
     // keys are positional (`s2`, `s2:c0`, see [_MethodTab]).
-    final struck =
-        ref.watch(methodTicksProvider.select((t) => t[recipe.id])) ??
-        const <String>{};
-    final ticks = ref.read(methodTicksProvider.notifier);
-    useEffect(() {
-      ticks.opened(recipe.id);
-      return () => ticks.closed(recipe.id);
-    }, [recipe.id]);
-    void toggleStruck(String key) => ticks.toggle(recipe.id, key);
+    final struck = useState(const <String>{});
+    void toggleStruck(String key) {
+      final next = {...struck.value};
+      if (!next.remove(key)) next.add(key);
+      struck.value = next;
+    }
 
     // A step asked for — by `?step=`, or by a dock row tapped while this page
     // is on screen — is shown: the method tab, scrolled to it.
@@ -269,7 +266,7 @@ class _RecipeBody extends HookConsumerWidget {
     final method = _MethodTab(
       recipe: recipe,
       servings: servings.value,
-      struck: struck,
+      struck: struck.value,
       onToggle: toggleStruck,
       stepKey: (i) => stepKeys.putIfAbsent(i, GlobalKey.new),
       // The lines this week leaves out, so the method's chips can say so too.

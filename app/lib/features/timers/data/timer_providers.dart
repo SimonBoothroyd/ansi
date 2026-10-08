@@ -1,7 +1,6 @@
 /// The app's timers, held once for every screen: the dock, the chips, the
-/// band and the sidebar all read [CookTimers]. Also the method's ticks
-/// ([MethodTicks]), which live as long as a recipe has a timer running, and
-/// Keep screen on ([KeepScreenOn]).
+/// band and the sidebar all read [CookTimers]. Also Keep screen on
+/// ([KeepScreenOn]).
 library;
 
 import 'dart:async';
@@ -53,9 +52,6 @@ class CookTimersState {
   ];
 
   CookTimer? operator [](String id) => byId[id];
-
-  bool hasTimersFor(String recipeId) =>
-      byId.values.any((t) => t.recipeId == recipeId);
 }
 
 /// A request to open a timer's step, from its notification. The shell
@@ -257,56 +253,6 @@ class CookTimers extends _$CookTimers {
           ref.read(timerOpenRequestProvider.notifier).ask(timer);
         }
     }
-  }
-}
-
-/// What the cook has ticked off in each recipe's method: positional keys,
-/// `s2` for a step and `s2:c0` for its first chip.
-///
-/// Never stored, never synced. A recipe's ticks are dropped when its page
-/// closes, unless one of its timers is still held; then they wait for that
-/// timer, so coming back through the dock finds the page as it was left.
-@Riverpod(keepAlive: true)
-class MethodTicks extends _$MethodTicks {
-  final Map<String, int> _open = {};
-
-  @override
-  Map<String, Set<String>> build() {
-    ref.listen(cookTimersProvider, (_, timers) => _release(timers));
-    return const {};
-  }
-
-  void toggle(String recipeId, String key) {
-    final ticks = {...?state[recipeId]};
-    if (!ticks.remove(key)) ticks.add(key);
-    state = {...state, recipeId: ticks};
-  }
-
-  /// A page for [recipeId] has opened.
-  void opened(String recipeId) =>
-      _open.update(recipeId, (n) => n + 1, ifAbsent: () => 1);
-
-  /// A page for [recipeId] has closed. Called from a widget's teardown,
-  /// where a provider must not change, so the drop waits a microtask.
-  void closed(String recipeId) {
-    final n = (_open[recipeId] ?? 1) - 1;
-    if (n <= 0) {
-      _open.remove(recipeId);
-    } else {
-      _open[recipeId] = n;
-    }
-    scheduleMicrotask(() {
-      if (ref.mounted) _release(ref.read(cookTimersProvider));
-    });
-  }
-
-  void _release(CookTimersState timers) {
-    final keep = {
-      for (final entry in state.entries)
-        if (_open.containsKey(entry.key) || timers.hasTimersFor(entry.key))
-          entry.key: entry.value,
-    };
-    if (keep.length != state.length) state = keep;
   }
 }
 

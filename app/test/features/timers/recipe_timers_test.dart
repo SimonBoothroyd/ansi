@@ -1,7 +1,7 @@
 /// Timers on the recipe page: a timer chip's tap starts it at the middle of
 /// its range and the chip counts where it stands; a running chip opens its
-/// sheet; a struck step never rules its timer; and the ticks wait for a held
-/// timer after the page closes.
+/// sheet; a struck step never rules its timer; and the ticks go with the
+/// page even while a timer runs.
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
@@ -60,6 +60,19 @@ const _harissa = Recipe(
     ),
   ],
 );
+
+/// The style a method step's prose is set in.
+TextStyle _stepStyle(WidgetTester tester, int step) => tester
+    .widget<Text>(
+      find
+          .descendant(
+            of: find.byType(MethodStepText).at(step),
+            matching: find.byType(Text),
+          )
+          .first,
+    )
+    .textSpan!
+    .style!;
 
 void main() {
   late FakeTimerPlatform platform;
@@ -155,7 +168,7 @@ void main() {
     await tester.tap(find.text('1'));
     await tester.pump();
 
-    expect(container.read(methodTicksProvider)['h1'], {'s0'});
+    expect(_stepStyle(tester, 0).decoration, TextDecoration.lineThrough);
     final count = tester.widget<Text>(find.text('9:00'));
     expect(count.style?.decoration, isNot(TextDecoration.lineThrough));
     expect(count.style?.color, AnsiColors.herbDeep);
@@ -194,7 +207,7 @@ void main() {
     expect(find.text('20–25 min'), findsOneWidget);
   });
 
-  testWidgets('the ticks wait for a held timer after the page closes', (
+  testWidgets('the ticks go with the page, even while its timer runs', (
     tester,
   ) async {
     await openMethod(tester);
@@ -202,17 +215,21 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('1'));
     await tester.pump();
+    bool firstStepStruck() =>
+        _stepStyle(tester, 0).decoration == TextDecoration.lineThrough;
+    expect(firstStepStruck(), isTrue);
 
     await pump(tester, show: false);
     await pump(tester);
     await tester.tap(find.text('Method'));
-    await tester.pumpAndSettle();
-    expect(container.read(methodTicksProvider)['h1'], {'s0'});
-
-    // With the timer stopped and the page closed, they go.
+    await tester.pump();
+    // The timer is still held, and the step is not struck.
+    expect(
+      container.read(cookTimersProvider)[timerIdFor('h1', 1, 0)],
+      isNotNull,
+    );
+    expect(firstStepStruck(), isFalse);
     await stopAll(tester);
-    await pump(tester, show: false);
-    expect(container.read(methodTicksProvider)['h1'], isNull);
   });
 
   testWidgets('Keep screen on is the menu item, and the sun is its way off', (

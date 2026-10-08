@@ -18,7 +18,7 @@ timers/
                           lock) · CookTimerStore — both faked in tests
   data/
     timer_providers.dart  CookTimers (the one set, ticking once a second
-                          while any is held) · MethodTicks · KeepScreenOn ·
+                          while any is held) · KeepScreenOn ·
                           MethodStepFocus · TimerOpenRequest · WebTabNote
     local_timer_platform.dart   flutter_local_notifications, audioplayers,
                           wakelock_plus; browser_alarm(_web).dart on the web
@@ -45,7 +45,8 @@ states: ready (the recipe's words), running (a herb wash draining), paused
   it again, and swept on sign-out.
 - **It rings for a minute** ([kTimerRingFor]), with one haptic beat as it
   falls due, then stays red and counts its overtime until Stop. A step is never
-  struck for you.
+  struck for you, and the page's ticks are not kept for a timer: they go when
+  the page closes, as they always have.
 - **Where it shows.** One dock row — the timer that needs you first, as step ·
   the recipe's whole title · count — and **+N** for the rest, which opens the
   list (titles wrap to two lines; one verb each). Above the bar on a tab, at the

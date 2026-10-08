@@ -75,12 +75,13 @@ has slept. So on the web:
 
 ## Rulings on the open questions
 
-All three as proposed — *"yes to all three, go ahead and build it"*, the
-owner, 2026-10-08:
+The owner, 2026-10-08 — first *"yes to all three, go ahead and build it"*,
+then, on seeing it built, the first one reversed (*"No they shouldn't"*):
 
-- **The struck set** is held per recipe in memory (`MethodTicks`), never stored
-  or synced, and dropped when the page closes unless one of that recipe's
-  timers is still held; then it waits for that timer.
+- **The struck set stays the page's.** Crossed-off steps go when the page
+  closes, as before this plan, even while one of that recipe's timers runs.
+  (It was briefly held per recipe for as long as a timer ran; that was taken
+  out.)
 - **It rings for a minute**, then the chip and its dock row stay red and keep
   counting overtime silently until Stop.
 - **Permission is asked on the first timer started**, not at launch, and never

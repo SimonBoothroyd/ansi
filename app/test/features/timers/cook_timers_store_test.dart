@@ -1,5 +1,4 @@
-/// The app's one set of timers ([CookTimers]) and the method's ticks that
-/// wait on them ([MethodTicks]), on a scripted clock.
+/// The app's one set of timers ([CookTimers]), on a scripted clock.
 library;
 
 import 'package:ansi/features/timers/data/timer_providers.dart';
@@ -177,53 +176,6 @@ void main() {
       expect(container.read(keepScreenOnProvider), isTrue);
       expect(platform.awake, isTrue);
       container.read(cookTimersProvider.notifier).stop('r1:s3:t0');
-    });
-  });
-
-  group('the method ticks', () {
-    test('drop when the page closes with no timer held', () {
-      fakeAsync((async) {
-        final (:container, platform: _, store: _) = scripted(async);
-        final ticks = container.read(methodTicksProvider.notifier)
-          ..opened('r1')
-          ..toggle('r1', 's0');
-        expect(container.read(methodTicksProvider)['r1'], {'s0'});
-        ticks.closed('r1');
-        async.flushMicrotasks();
-        expect(container.read(methodTicksProvider)['r1'], isNull);
-      });
-    });
-
-    test('wait for a timer, and go with its stop', () {
-      fakeAsync((async) {
-        final (:container, platform: _, store: _) = scripted(async);
-        container.listen(methodTicksProvider, (_, _) {});
-        final ticks = container.read(methodTicksProvider.notifier)
-          ..opened('r1')
-          ..toggle('r1', 's2');
-        startSimmer(container);
-        ticks.closed('r1');
-        async.flushMicrotasks();
-        expect(container.read(methodTicksProvider)['r1'], {'s2'});
-
-        container.read(cookTimersProvider.notifier).stop('r1:s3:t0');
-        async.flushMicrotasks();
-        expect(container.read(methodTicksProvider)['r1'], isNull);
-      });
-    });
-
-    test('stay while the page is open, timer or not', () {
-      fakeAsync((async) {
-        final (:container, platform: _, store: _) = scripted(async);
-        container.listen(methodTicksProvider, (_, _) {});
-        container.read(methodTicksProvider.notifier)
-          ..opened('r1')
-          ..toggle('r1', 's2');
-        startSimmer(container);
-        container.read(cookTimersProvider.notifier).stop('r1:s3:t0');
-        async.flushMicrotasks();
-        expect(container.read(methodTicksProvider)['r1'], {'s2'});
-      });
     });
   });
 }
