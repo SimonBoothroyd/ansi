@@ -229,9 +229,9 @@
                 </div>
             </div>
         </div>
-        <p class="conv-note">the start <b>schedules a local notification</b> at the end time, and every change (pause, &plusmn;1 min, cancel) moves or withdraws it. It carries <b>+1 min</b> and <b>Stop</b> as actions, and a tap on its body opens the step, as the dockas a pill&rsquo;s tap doesrsquo;s row does</p>
+        <p class="conv-note">the start <b>schedules a local notification</b> at the end time, and every change (pause, &plusmn;1 min, cancel) moves or withdraws it. It carries <b>+1 min</b> and <b>Stop</b> as actions, and a tap on its body opens the step, as the dock&rsquo;s row does</p>
         <p class="conv-note">Android also keeps <b>one ongoing notification</b> while anything runs, counting the soonest down with the OS&rsquo;s own chronometer in its header &mdash; the app draws no number while it sleeps. A paused timer is not in it. iOS has no such surface short of a Live Activity, which this does not reach for</p>
-        <p class="conv-note">a ring on time needs Android&rsquo;s <b>exact alarm</b> permission, and Play allows that only to an app whose timers are a real feature &mdash; which these are. Notification permission is asked <b>on the first timer started</b>, never at launch</p>
+        <p class="conv-note">a ring on time needs Android&rsquo;s <b>exact alarm</b> permission, which the cook grants: the first timer asks for it once, and on Android 14 and up that is a settings page. Without it Android may hold the ring back by minutes. Notification permission is asked on the <b>first timer started</b>, never at launch</p>
     </div>
 
     <div class="frame">
@@ -404,7 +404,7 @@
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/new</b> <span class="neut">neutral rail</span> <span class="qp">?name=</span> <span style="opacity:.7">· the words already typed into a picker</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/ingredients/:id</b> <span class="neut">neutral rail</span> <span class="qp">?edit=1</span> <span style="opacity:.7">· the form, not the fact sheet</span></div>
             <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/new</b> <span class="neut">neutral rail</span> <span class="qp">?title= ?book= ?section= ?handback=1</span> <span style="opacity:.7">· handback pops it onto the waiting line</span></div>
-            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· the week that plans it, so the page can offer the week door</span></div>
+            <div>&nbsp;&nbsp;&nbsp;├─ <b>/recipes/:id</b> <span class="neut">neutral rail</span> <span class="qp">?week= ?step=</span> <span style="opacity:.7">· the week that plans it, so the page can offer the week door; the method step a timer opens it on</span></div>
             <div>&nbsp;&nbsp;&nbsp;└─ <b>/recipes/:id/edit</b> <span class="neut">neutral rail</span> <span class="qp">?week=</span> <span style="opacity:.7">· with it, the per-week editor; without it, the recipe’s own</span></div>
         </div>
         <p class="wide-cap">The pushed routes stay siblings of the tab shell — on the phone they cover the bar; on wide the outer shell keeps drawing the sidebar beside them, unlit. <b>Twelve of them</b>, in the router’s own order; the queries beside each are what its builder reads. <b>/</b>, <b>/week</b>, <b>/cook</b> and <b>/shop</b> take the whole pane; <b>/recipes/:id</b> and <b>/recipes/:id/edit</b> are capped a measure and a half wide; the rest hold the 640 measure.</p>

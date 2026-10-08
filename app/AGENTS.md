@@ -36,6 +36,8 @@ Forui's own functions default to the *branch* navigator and leave the bar
 tappable beside the barrier. Tap-driven navigation goes through
 `context.pushOnce`/`goOnce`. The whole picture, including what back does on each
 screen: [`../docs/design-docs/navigation.md`](../docs/design-docs/navigation.md).
+The kitchen timers' dock, band and sidebar list (`features/timers`) are slots
+the router hands the shells, so the shells never import the feature.
 
 ## Rules specific to the app
 

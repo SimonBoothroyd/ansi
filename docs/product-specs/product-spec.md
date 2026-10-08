@@ -595,6 +595,11 @@ is write-never, read-legacy. The recipe page, the import review screen, the
 editor's preview and cook mode therefore all read one method model through one
 renderer (`method_step_text.dart`) and one fold (`foldMethod`).
 
+**A timer token is also a timer.** On the recipe page its chip starts a kitchen
+timer at the middle of its range (`20–25 min` runs `22:30`) and shows the count
+in place; elsewhere it is inert. Nothing about a running timer is stored in the
+recipe or synced — see [`features/timers`](../../app/lib/features/timers/README.md).
+
 **The editor's document is text plus ranges.** A ref's `label` already *is* the
 word standing at that position, so a token stream flattens to exactly the
 sentence a human would type with one range marked: `toDraft`/`toTokens`

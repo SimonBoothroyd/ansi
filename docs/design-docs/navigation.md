@@ -51,6 +51,14 @@ Three consequences fall out of the structure rather than being features:
 `StatefulShellRoute`, not the `.indexedStack` convenience constructor: that one
 hard-wires its container and leaves no hook for the cross-fade.
 
+**The kitchen timers ride the same two shells** (`features/timers`). The tab
+shell takes a `dock` slot that sits **on the bar, above it**, and draws nothing
+while no timer is held; the outer `ShellRoute` wraps the shell navigator in
+`TimerFrame`, which puts the same dock at the **foot of a pushed page** (the bar
+is covered there, the dock is not) and raises the due timer's band at the top
+of the pane. Both hide the dock while the keyboard is up. Being drawn by the
+shells, a timer outlives every page and survives a push, as the bar does.
+
 ## 2. The cross-fade — the only motion in a tab switch
 
 `crossFadeBranchContainer` → `_CrossFadeBranches`, same file. The spec, exactly:
@@ -388,6 +396,11 @@ sits at the same depth under both and the element is reused. Two builders would
 put it at two depths, and the first pick would throw the screen away and rebuild
 it — the scroll, the search field's text and the pane's posture with it. A
 restatement that reloads the screen is not a restatement.
+
+One more parameter is a door rather than view state: **`?step=N` on
+`/recipes/:id`**, which a timer's dock row and notification use to open the
+recipe on its method, scrolled to that step. A row tapped while that very
+recipe is on screen does not push it again; it asks the page to scroll.
 
 These deliberately stay out:
 

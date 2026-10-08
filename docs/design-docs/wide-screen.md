@@ -137,8 +137,8 @@ page: `app/lib/shared/ansi_side_nav.dart` draws them, and
 | Form | Width | What it draws |
 |---|---|---|
 | `bar` | `< 1024` | nothing — the tab shell keeps its bottom bar, and the outer shell returns the navigator untouched |
-| `rail` | `1024 – 1279` | a 64 px icon rail, labels as tooltips on hover or focus |
-| `sidebar` | `≥ 1280` | the 188 px sidebar: the wordmark, the four destinations with their labels, Account in the footer |
+| `rail` | `1024 – 1279` | a 64 px icon rail, labels as tooltips on hover or focus; while a timer runs, the phone's one-row timer dock sits at the foot of the pane |
+| `sidebar` | `≥ 1280` | the 188 px sidebar: the wordmark, the four destinations with their labels, Account in the footer — and, while a timer runs, the list of every timer held open above Account (`AnsiSideNav.extra`) |
 
 Three things follow from the sidebar being drawn **outside** the navigator that
 holds the pages, and they are the reason it is:
