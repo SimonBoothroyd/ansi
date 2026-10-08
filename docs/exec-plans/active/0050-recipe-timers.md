@@ -33,10 +33,16 @@ the app, the locked phone, the web, the wide sidebar).
   a batch afternoon runs the ragù's simmer while the aioli is open. Each one
   is labelled by recipe and step, and is held by its **end time**, never by a
   ticking count, so a slept or killed app reads the right number on return.
-- **One dock, everywhere.** A row of timer pills sits at the foot of every
-  screen while any timer runs — above the bar on a tab, at the screen's foot
-  on a pushed page, in the sidebar on wide. A pill's tap opens that recipe's
-  Method at that step.
+- **One dock, everywhere — one row, the whole title.** While any timer runs,
+  the dock sits at the foot of every screen: above the bar on a tab, at the
+  screen's foot on a pushed page. Collapsed it is one full-width row — the
+  timer that needs you first (due, else soonest) as step · title · count —
+  and **+N** opens a list of every timer, each title whole on up to two
+  lines, with Stop or pause beside its count. On wide the sidebar holds that
+  list, always open. A title is cut at its end with an ellipsis, never
+  shortened to a word: *"most recipe names are pretty long"* — the owner,
+  2026-10-08, and *Slow-Cooker* or *Sticky* name nothing. A row's tap opens
+  that recipe's Method at that step.
 - **A timer survives the phone sleeping.** Native: a scheduled local
   notification at the end time, with *Stop* and *+1 min*; Android also keeps
   one ongoing notification counting the soonest timer down.
@@ -75,7 +81,7 @@ has slept. So on the web:
   struck set in memory per recipe while the app runs (still never stored or
   synced), cleared when that recipe has no running timer and its page closes.
 - **How long it rings.** Proposed: the sound repeats for a minute, then the
-  chip and the pill stay red and keep counting overtime silently.
+  chip and its dock row stay red and keep counting overtime silently.
 - **When to ask for notification permission.** Proposed: on the first timer
   started, not at launch.
 
@@ -91,8 +97,8 @@ Phase one — on the page and across the app:
 - [ ] The chip's four states (ready, running, paused, done) in
       `method_step_text.dart`; the sheet; the done banner with sound and
       haptics.
-- [ ] The dock in the shell, on every route; a pill's tap opens the recipe's
-      Method at the step.
+- [ ] The dock in the shell, on every route: the one row, +N, and the
+      opened list; a row's tap opens the recipe's Method at the step.
 - [ ] Keep screen on in the ⋯ menu.
 
 Phase two — asleep and on the web:

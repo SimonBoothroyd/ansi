@@ -1946,29 +1946,53 @@
     .tchip.due .tg,.tchip.run .tg{color:inherit;}
     .mrow.struck .tchip{text-decoration:none;}
 
-    /* the dock: one row of pills at the foot of every screen while a timer
-       runs — above the bar on a tab, at the screen's foot on a pushed page */
-    .tdock{display:flex;gap:6px;align-items:center;margin:14px 12px 0;padding:8px;border:1px solid var(--line);
-      border-radius:14px;background:var(--frame);box-shadow:var(--shadow);overflow:hidden;}
-    .tdock .tk{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 2px 0 4px;flex:none;}
-    .tdock .awk{margin-left:auto;flex:none;color:var(--herb);font-size:13px;padding:0 4px;}
-    .tpill{display:inline-flex;align-items:baseline;gap:6px;flex:none;border:1px solid #B9D2BC;border-radius:999px;padding:4px 10px;
+    /* the dock: at the foot of every screen while a timer runs — above the
+       bar on a tab, at the screen's foot on a pushed page. Collapsed it is
+       ONE full-width row, the soonest timer, because a recipe's title is the
+       only thing that tells two timers apart and a title needs the width;
+       +N opens the list, where a title wraps to two lines and is never cut
+       to a word. A row wears the chip's four states. */
+    .tdock{display:flex;gap:6px;align-items:stretch;margin:14px 12px 0;padding:6px;border:1px solid var(--line);
+      border-radius:14px;background:var(--frame);box-shadow:var(--shadow);}
+    .trow{flex:1;min-width:0;display:flex;align-items:center;gap:9px;border:1px solid #B9D2BC;border-radius:10px;padding:7px 10px;
       background:linear-gradient(90deg,var(--herb-soft) var(--p,60%),var(--frame) var(--p,60%));}
-    .tpill .tl{font-size:10.5px;color:var(--herb-deep);max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .tpill .tv{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);}
-    .tpill.paused{border-style:dashed;border-color:var(--line);background:var(--frame);}
-    .tpill.paused .tl,.tpill.paused .tv{color:var(--muted);}
-    .tpill.due{background:var(--gone);border-color:var(--gone);}
-    .tpill.due .tl,.tpill.due .tv{color:#fff;}
+    .trow .tn{flex:none;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--herb);}
+    .trow .tl{flex:1;min-width:0;font-size:12px;color:var(--herb-deep);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .trow .tv{flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink);}
+    .trow.paused{border-style:dashed;border-color:var(--line);background:var(--frame);}
+    .trow.paused .tn,.trow.paused .tl,.trow.paused .tv{color:var(--muted);}
+    .trow.due{background:var(--gone);border-color:var(--gone);}
+    .trow.due .tn,.trow.due .tl,.trow.due .tv{color:#fff;}
+    .tmore{flex:none;display:grid;place-items:center;min-width:38px;border:1px solid var(--line);border-radius:10px;background:var(--paper);
+      font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:var(--ink);}
+    .tdock .awk{flex:none;display:grid;place-items:center;color:var(--herb);font-size:14px;padding:0 6px;}
     .tdock.web-note{flex-wrap:wrap;}
-    .tdock .wn{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7A5A16;background:#FBF3E3;border-radius:8px;padding:5px 8px;margin-top:2px;}
+    .tdock .wn{flex-basis:100%;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#7A5A16;background:#FBF3E3;border-radius:8px;padding:5px 8px;}
+
+    /* the dock opened: every timer, the whole title on up to two lines */
+    .tlist{margin:10px 0 0;border-top:1px solid var(--line);background:var(--frame);border-radius:22px 22px 0 0;box-shadow:0 -8px 24px rgba(24,33,28,.06);padding:0 12px 4px;}
+    .tlist .tl-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 6px 8px;}
+    .tlist .tl-h .k{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+    .tlist .tl-h .x{font-size:12px;color:var(--herb);font-weight:500;}
+    .tli{display:grid;grid-template-columns:1fr auto auto;gap:4px 10px;align-items:center;border:1px solid #B9D2BC;border-radius:12px;padding:9px 10px;margin-bottom:6px;
+      background:linear-gradient(90deg,var(--herb-soft) var(--p,60%),var(--frame) var(--p,60%));}
+    .tli .nm{font-size:12.5px;font-weight:500;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .tli .mt{grid-column:1;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+    .tli .tv{grid-column:2;grid-row:1 / span 2;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;color:var(--ink);}
+    .tli .ac{grid-column:3;grid-row:1 / span 2;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--frame);display:grid;place-items:center;font-size:11px;color:var(--ink);}
+    .tli.paused{border-style:dashed;border-color:var(--line);background:var(--frame);}
+    .tli.paused .nm,.tli.paused .tv{color:var(--muted);}
+    .tli.due{background:var(--gone);border-color:var(--gone);}
+    .tli.due .nm,.tli.due .mt,.tli.due .tv{color:#fff;}
+    .tli.due .ac{background:#fff;border-color:#fff;color:var(--gone);font-weight:600;width:auto;padding:0 9px;font-size:11.5px;}
 
     /* a timer going off while the app is open: one red band under the bar,
        the page still readable beneath it */
-    .tband{margin:0 12px 10px;background:var(--gone);color:#fff;border-radius:14px;padding:11px 12px;display:flex;align-items:center;gap:10px;}
+    .tband{margin:0 12px 10px;background:var(--gone);color:#fff;border-radius:14px;padding:11px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;}
+    .tband .tb-acts{flex-basis:100%;display:flex;gap:8px;justify-content:flex-end;}
     .tband .tb-x{flex:1;min-width:0;}
     .tband .tb-t{font-size:13px;font-weight:600;}
-    .tband .tb-s{font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.85;margin-top:1px;}
+    .tband .tb-s{font-size:12px;opacity:.9;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .tband .tb-v{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;}
     .tband .tb-b{font-size:11.5px;font-weight:600;border:1px solid rgba(255,255,255,.55);border-radius:9px;padding:5px 9px;white-space:nowrap;}
     .tband .tb-b.solid{background:#fff;color:var(--gone);border-color:#fff;}
@@ -2014,5 +2038,6 @@
        is the one surface that survives a push there */
     .desk .rail .rtimers{border-top:1px solid var(--line);margin:6px 0 4px;padding:10px 4px 2px;display:flex;flex-direction:column;gap:6px;}
     .desk .rail .rtimers .tk{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 6px;display:flex;justify-content:space-between;}
-    .desk .rail .rtimers .tpill{display:flex;justify-content:space-between;border-radius:10px;padding:6px 9px;}
-    .desk .rail .rtimers .tpill .tl{max-width:110px;}
+    .desk .rail .rtimers .tli{margin-bottom:0;padding:8px 9px;grid-template-columns:1fr auto;}
+    .desk .rail .rtimers .tli .nm{font-size:11.5px;}
+    .desk .rail .rtimers .tli .tv{font-size:12px;}
