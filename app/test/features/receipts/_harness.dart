@@ -15,6 +15,7 @@ import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/ingredients/presentation/ingredient_picker.dart';
+import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/receipts/data/replay_receipt_repository.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
@@ -217,6 +218,9 @@ List<Override> receiptOverrides({
   String json = sampleReceiptJson,
   Duration pace = Duration.zero,
 }) => [
+  // Every fixture here is from September 2026, so the ledger reads the
+  // month's band as "so far" whatever the real date is.
+  clockProvider.overrideWithValue(() => DateTime(2026, 9, 18, 12)),
   currentHouseholdIdProvider.overrideWithValue('h'),
   receiptImportRepositoryProvider.overrideWithValue(
     ReplayReceiptRepository(json: json, pace: pace),

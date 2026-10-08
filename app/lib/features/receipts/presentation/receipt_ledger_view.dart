@@ -123,7 +123,9 @@ class _MonthBand extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          monthHeading(month, today: DateTime.now()).toUpperCase(),
+          // The app's day, not the wall clock read here: it turns over at
+          // midnight on its own, and a test can say which day it is.
+          monthHeading(month, today: ref.watch(todayProvider)).toUpperCase(),
           style: ansiMono(size: 9.5, color: AnsiColors.muted, letterSpacing: 1),
         ),
         const SizedBox(height: 8),
