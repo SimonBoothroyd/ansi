@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (54 migrations, 23 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (55 migrations, 24 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -438,3 +438,16 @@ introduced in `0048_recipe_measure.sql` · RLS enabled · in the `powersync` pub
 | `deleted_at` | `timestamptz` | yes |  |
 
 Table constraints: `constraint recipe_measure_unit_can_measure check ( coalesce(unit_family(unit) in ('mass', 'volume', 'count'), false) )`
+
+## `recipe_share`
+
+introduced in `0054_recipe_share.sql` · RLS enabled
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `recipe_id` | `uuid` | no | not null references recipe(id) on delete cascade |
+| `token` | `text` | no | not null unique constraint recipe_share_token_shape check (token ~ '^[A-Za-z0-9_-]{22}$') |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |

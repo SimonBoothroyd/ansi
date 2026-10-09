@@ -164,7 +164,8 @@ supabase test db          # pgTAP tests — every suite in tests/ (RLS + the
                           #   operator rollouts, portion factor, template seed,
                           #   shopping/week, the household's first day of the
                           #   week, USDA search, the retire guard, receipts and
-                          #   a row's base price, and more)
+                          #   a row's base price, a recipe's share link, and
+                          #   more)
 cd functions && deno task test  # edge-function tests (the task carries the
                           #   --allow-read the shared-vector and real-vocab
                           #   suites need; bare `deno test` fails on them)

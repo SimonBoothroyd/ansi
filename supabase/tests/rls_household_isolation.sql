@@ -8,10 +8,10 @@
 -- `supabase test db`.
 
 begin;
--- 17 tables x (select isolation + cross-household insert rejection)
+-- 18 tables x (select isolation + cross-household insert rejection)
 -- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks
 -- + 2 household column-grant checks + 4 usda_search_* denials.
-select plan(47);
+select plan(49);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -51,6 +51,9 @@ insert into recipe_line_item (id, household_id, group_id, ingredient_id, unit) v
 insert into recipe_measure (id, household_id, recipe_id, label, amount, unit) values
  ('aaaaaaaa-0000-0000-0000-000000000014','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000004','loaf',900,'g'),
  ('bbbbbbbb-0000-0000-0000-000000000014','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','roll',75,'g');
+insert into recipe_share (id, household_id, recipe_id, token) values
+ ('aaaaaaaa-0000-0000-0000-000000000015','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000004','aaaaaaaaaaaaaaaaaaaaaa'),
+ ('bbbbbbbb-0000-0000-0000-000000000015','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','bbbbbbbbbbbbbbbbbbbbbb');
 insert into week_plan (id, household_id, week_start_date) values
  ('aaaaaaaa-0000-0000-0000-000000000007','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','2026-01-05'),
  ('bbbbbbbb-0000-0000-0000-000000000007','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','2026-01-05');
@@ -144,7 +147,12 @@ insert into iso_case values
  (17, 'recipe_measure',
       $$ insert into recipe_measure (household_id, recipe_id, label, amount, unit)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','contraband',4,'g') $$,
-      'new row violates row-level security policy for table "recipe_measure"');
+      'new row violates row-level security policy for table "recipe_measure"'),
+ -- No client write path at all (0054): a share is minted by share_recipe().
+ (18, 'recipe_share',
+      $$ insert into recipe_share (household_id, recipe_id, token)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','cccccccccccccccccccccc') $$,
+      'permission denied for table recipe_share');
 grant select on iso_case to authenticated;
 
 -- Row-count helper. Invoker rights, so when called as `authenticated` the

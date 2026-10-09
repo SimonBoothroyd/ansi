@@ -4,7 +4,7 @@ pgTAP tests for RLS policies and constraints. Run with `supabase test db`
 (also run in CI, `.github/workflows/backend.yml`). Each `*.sql` file wraps its
 assertions in `begin … rollback` so runs leave no residue.
 
-- `rls_household_isolation.sql` — data-driven over ALL 17 household-scoped
+- `rls_household_isolation.sql` — data-driven over ALL 18 household-scoped
   tables: a household can't read or write another's rows (select isolation +
   cross-household insert rejection per table); `usda_food` is denied to client
   roles but readable by `service_role`. New table? Add one setup row + one
@@ -66,6 +66,12 @@ assertions in `begin … rollback` so runs leave no residue.
   that a soft-deleted link doesn't count, and that a `sub_recipe_id` can
   never reach another household's recipe (from `authenticated` AND from a
   superuser write, where RLS isn't doing the work).
+- `recipe_share.sql` — a recipe's share link (0054, plan 0051): the token is
+  minted by `share_recipe()` alone (22 url-safe characters, the same one while
+  live, a fresh one after `unshare_recipe()`); a member cannot insert or update
+  a share directly; another household's recipe, a deleted one and a missing
+  one are all refused 42501; household B sees none of A's shares; `anon` can
+  call neither function; `service_role` finds a recipe by its live token.
 - `recipe_measure.sql` — a recipe's own word for one of what it makes (0048,
   0049): the shape (a label that is a word, a positive `amount`, a `unit` in a
   mass, volume or count family — never `batch`, an imprecise word or an

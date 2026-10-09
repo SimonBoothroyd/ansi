@@ -51,6 +51,17 @@ Hobby scale, but the basics are non-negotiable.
   client is untrusted. The sync rules mirror those boundaries.
 - Deletes are soft-delete tombstones (spec §3), not hard deletes — the PowerSync
   connector maps even a stray CRUD delete to a `deleted_at` update.
+- **A recipe's share link** (`recipe_share`, migration 0054, plan
+  [0051](./exec-plans/active/0051-recipe-share-link.md)) is the one door meant
+  to reach people outside the household. A link carries a 128-bit random
+  token, and a public page will look it up as `service_role` and show that one
+  recipe read-only. The token is **minted by the server**: members can read
+  their household's shares, but only `share_recipe` / `unshare_recipe` write
+  (`SECURITY DEFINER`). Each checks that the recipe is the caller's own
+  household's, so a client cannot write a share pointing at another
+  household's recipe, nor choose a guessable token. `anon` can call neither
+  and read nothing. A revoke stamps `deleted_at`, and a revoked token is never
+  reissued. Not synced.
 - **Standing up a real cloud project** (Supabase Cloud + PowerSync Cloud + Google
   OAuth), and the gotchas that bite — see [`cloud-setup.md`](./cloud-setup.md).
 

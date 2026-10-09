@@ -1,6 +1,6 @@
 # Exec plan: A recipe's share link
 
-- **Status:** draft — rulings taken, nothing built; phase 0 (the host spike) comes first
+- **Status:** active — phase 0 (the Dart spike) and phase 1 (the share row) landed; phase 2 (the ⋯ menu) next
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 2 — the next idea off the backlog
 - **Created:** 2026-10-09
@@ -88,12 +88,14 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    and the Supabase CLI's local stack, no cloud. The host is proven by the
    real thing in phase 5 — a browser renders `getansi.app/r/<token>`, Import
    accepts it, a WhatsApp / iMessage preview unfurls.
-1. **The share row.** Migration `0054_recipe_share`: `recipe_share (id,
-   household_id, recipe_id unique, token unique, created_at)`, the token 128
-   random bits, base64url. RLS: a member creates, reads and deletes their own
-   household's rows; no anon policy at all. Two RPCs, `share_recipe(recipe_id)
-   → token` (returns the existing one) and `unshare_recipe(recipe_id)`. pgTAP
-   for both, including a member of another household being refused.
+1. **The share row — done.** Migration `0054_recipe_share`: `recipe_share
+   (id, household_id, recipe_id, token unique, created_at, deleted_at)`, one
+   live row per recipe (a partial unique index), the token 128 random bits,
+   base64url. Members only READ it; `share_recipe(recipe_id) → token` (the
+   live one, or a fresh one) and `unshare_recipe(recipe_id) → boolean` are the
+   only writers, `security definer`, each checking the recipe is the caller's
+   own. No anon grant at all. Not synced. pgTAP in `recipe_share.sql`, and a
+   row in `rls_household_isolation.sql`.
 2. **The ⋯ menu.** *Share link* on the recipe page's ⋯ menu calls the RPC and
    opens the system share sheet with the URL (the clipboard on a browser
    without `navigator.share`). Once shared, the menu also offers *Stop
@@ -182,6 +184,20 @@ Append-only.
 - 2026-10-09 — The `supabase.co` HTML probe is dropped from phase 0: the Worker
   overrides the header whatever Supabase sends, so its answer changes nothing.
 - 2026-10-09 — Phase 0 ran: one Dart renderer for server and browser.
+- 2026-10-09 — Phase 1: **members cannot write a share row.** The plan first
+  had RLS letting a member create their own rows; but a client-written row
+  can carry its own household id beside ANOTHER household's recipe id, and
+  the public page would publish that recipe. So the table grants members
+  SELECT only, and two `security definer` functions mint and revoke, each
+  checking ownership first. The same move stops a client choosing a
+  guessable token.
+- 2026-10-09 — Phase 1: **a revoke is soft** (`deleted_at`), as every delete
+  here is; the live-link rule is a partial unique index, and a token is
+  unique across revoked rows too, so it is never reissued.
+- 2026-10-09 — Phase 1 was verified on Postgres **16** with a stand-in for
+  Supabase's roles and `auth` schema (every migration and seed, all 24 pgTAP
+  files green); the container images for the real local stack could not be
+  pulled here. CI's `migrations` job runs it on the real stack.
 
 ## Notes / open questions
 
