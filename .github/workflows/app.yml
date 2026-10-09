@@ -2,9 +2,9 @@ name: app
 
 on:
   push:
-    paths: ["app/**", ".github/workflows/app.yml"]
+    paths: ["app/**", "scripts/share_bundle*", ".github/workflows/app.yml"]
   pull_request:
-    paths: ["app/**", ".github/workflows/app.yml"]
+    paths: ["app/**", "scripts/share_bundle*", ".github/workflows/app.yml"]
 
 defaults:
   run:
@@ -44,6 +44,14 @@ jobs:
             echo "::error::domain/units layer must be pure Dart (no package:flutter imports)"
             exit 1
           fi
+      # A recipe's share page is this app's Dart compiled to JS, rendered by
+      # an edge function. Compiling it also holds the page free of Flutter;
+      # the smoke run renders the test fixture in Deno, as the function will.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.5 # the version backend.yml pins
+      - name: Share page bundle compiles and renders
+        run: ../scripts/share_bundle.sh
       - uses: codecov/codecov-action@v4
         with:
           files: app/coverage/lcov.info

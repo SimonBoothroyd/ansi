@@ -15,11 +15,12 @@ import '../../../core/units/units.dart';
 import '../domain/component_math.dart';
 import '../domain/recipe_measure_authoring.dart';
 import '../domain/recipe_measure_repository.dart';
+import '../domain/recipe_rows.dart';
 
 const _uuid = Uuid();
 
 /// The columns every read asks for. A measure's denomination (`amount` +
-/// `unit`, ADR-0018) is named only here, in [_rowOf] and in
+/// `unit`, ADR-0018) is named only here, in [recipeMeasureOfRow] and in
 /// [_insertRow]/[_updateRow].
 const _columns =
     'rm.id, rm.recipe_id, rm.label, rm.amount, rm.unit, rm.sort_order, '
@@ -30,35 +31,14 @@ const _columns =
 /// ([recipeMeasureById] finds them; [offeredRecipeMeasures] does not). One
 /// query for the household. A non-positive amount loads as a measure
 /// [RecipeMeasure.saysAnAmount] refuses; an unknown `unit` is skipped
-/// ([_rowOf]).
+/// ([recipeMeasureOfRow]).
 Future<Map<String, List<RecipeMeasure>>> loadRecipeMeasures(
   SqliteConnection db,
 ) async {
   final rows = await db.getAll(
     'SELECT $_columns FROM recipe_measure rm WHERE rm.deleted_at IS NULL',
   );
-  final byRecipe = <String, List<StoredMeasure<RecipeMeasure>>>{};
-  for (final r in rows) {
-    final recipeId = r['recipe_id'] as String?;
-    if (recipeId == null) continue;
-    final row = _rowOf(r, recipeId);
-    if (row == null) continue;
-    (byRecipe[recipeId] ??= []).add(row);
-  }
-  return {for (final e in byRecipe.entries) e.key: _offeredThenHidden(e.value)};
-}
-
-/// [rows] as the merged offer, then every live row the merge hid.
-List<RecipeMeasure> _offeredThenHidden(
-  List<StoredMeasure<RecipeMeasure>> rows,
-) {
-  final merged = mergeByLabel(rows);
-  final shown = {for (final m in merged) m.id};
-  return [
-    ...merged,
-    for (final r in rows)
-      if (!shown.contains(r.measure.id)) r.measure,
-  ];
+  return recipeMeasuresByRecipe(rows);
 }
 
 /// Makes [recipeId]'s stored measures equal [measures], inside `saveRecipe`'s
@@ -405,34 +385,16 @@ Future<void> _refuseWhileSaid(
   throw RecipeMeasureInUse(measureId: measureId, label: label, usage: usage);
 }
 
-/// Every stored row this build can read, as [mergeByLabel] takes them.
+/// Every stored row this build can read, as [mergeByLabel] takes them; an
+/// unknown `unit` is skipped ([recipeMeasureOfRow]). [recipeId] is the recipe
+/// the query asked for, so a row is read as that recipe's.
 List<StoredMeasure<RecipeMeasure>> _rowsOf(
   Iterable<Map<String, Object?>> rows,
   String recipeId,
 ) => [
   for (final r in rows)
-    if (_rowOf(r, recipeId) case final row?) row,
+    if (recipeMeasureOfRow({...r, 'recipe_id': recipeId}) case final row?) row,
 ];
-
-/// One stored row as [mergeByLabel] takes it, or null for a row whose `unit`
-/// this build does not know (a later build coined it). Dropped rather than
-/// given a `pieces` stand-in, which would produce a wrong batch share (ADR-0018
-/// rule 7); the line naming it reads [ComponentMeasureMissing].
-StoredMeasure<RecipeMeasure>? _rowOf(Map<String, Object?> r, String recipeId) {
-  final unit = unitById(r['unit'] as String? ?? '');
-  if (unit == null) return null;
-  return (
-    measure: RecipeMeasure(
-      id: r['id']! as String,
-      recipeId: recipeId,
-      label: r['label'] as String? ?? '',
-      amount: (r['amount'] as num?)?.toDouble() ?? 0,
-      unit: unit,
-      sortOrder: (r['sort_order'] as int?) ?? 0,
-    ),
-    createdAt: r['created_at'],
-  );
-}
 
 /// The authored measure, or the authoring refusal as a throw (repositories
 /// throw; see `core/result/result.dart`).

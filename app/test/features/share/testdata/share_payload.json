@@ -1,0 +1,84 @@
+{
+  "recipes": [
+    {
+      "id": "r1",
+      "title": "Miso Noodles <spicy>",
+      "servings_base": 2,
+      "total_time_seconds": 1500,
+      "cook_time_seconds": null,
+      "yield_qty": null,
+      "yield_unit": null,
+      "yield_qty_2": null,
+      "yield_unit_2": null,
+      "steps": [
+        {"tokens": [
+          {"t": "text", "s": "Boil the "},
+          {"t": "ref", "refs": ["l1"], "label": "udon", "mention": "new"},
+          {"t": "text", "s": " for "},
+          {"t": "timer", "low_seconds": 240, "high_seconds": 300},
+          {"t": "text", "s": "."}
+        ]},
+        {"tokens": [
+          {"t": "text", "s": "Toss with the "},
+          {"t": "ref", "refs": ["l2"], "label": "miso butter", "mention": "new"},
+          {"t": "text", "s": " and the soy."}
+        ]}
+      ]
+    },
+    {
+      "id": "mb",
+      "title": "Miso butter",
+      "servings_base": 1,
+      "total_time_seconds": null,
+      "cook_time_seconds": null,
+      "yield_qty": "150",
+      "yield_unit": "g",
+      "yield_qty_2": null,
+      "yield_unit_2": null,
+      "steps": ["Beat the butter and miso together."]
+    }
+  ],
+  "groups": [
+    {"id": "g1", "recipe_id": "r1", "name": null, "sort_order": 0},
+    {"id": "g2", "recipe_id": "mb", "name": null, "sort_order": 0}
+  ],
+  "lines": [
+    {"id": "l1", "group_id": "g1", "ingredient_id": "udon", "sub_recipe_id": null,
+     "quantity": 400, "unit": "g", "recipe_measure_id": null, "optional": false,
+     "note": null, "measure_id": null,
+     "ingredient_name": "Udon", "ingredient_basis": "g",
+     "ingredient_macros": {"kcal": 130, "protein": 3, "carb": 27, "fat": 0.5},
+     "ingredient_density": null, "ingredient_piece_weight": null,
+     "ingredient_status": "complete", "ingredient_deleted_at": null},
+    {"id": "l2", "group_id": "g1", "ingredient_id": null, "sub_recipe_id": "mb",
+     "quantity": 2, "unit": null, "recipe_measure_id": "m-blob", "optional": false,
+     "note": null, "measure_id": null,
+     "sub_title": "Miso butter", "sub_yield_qty": "150", "sub_yield_unit": "g",
+     "sub_yield_qty_2": null, "sub_yield_unit_2": null},
+    {"id": "l3", "group_id": "g1", "ingredient_id": "soy", "sub_recipe_id": null,
+     "quantity": "1", "unit": "tbsp", "recipe_measure_id": null, "optional": false,
+     "note": "light", "measure_id": null,
+     "ingredient_name": "Soy sauce", "ingredient_basis": "g",
+     "ingredient_macros": {"kcal": 53, "protein": 8, "carb": 5, "fat": 0},
+     "ingredient_density": "1.2", "ingredient_piece_weight": null,
+     "ingredient_status": "complete", "ingredient_deleted_at": null},
+    {"id": "l4", "group_id": "g2", "ingredient_id": "butter", "sub_recipe_id": null,
+     "quantity": 100, "unit": "g", "recipe_measure_id": null, "optional": false,
+     "note": null, "measure_id": null,
+     "ingredient_name": "Butter", "ingredient_basis": "g",
+     "ingredient_macros": {"kcal": 717, "protein": 0.9, "carb": 0.1, "fat": 81},
+     "ingredient_density": null, "ingredient_piece_weight": null,
+     "ingredient_status": "complete", "ingredient_deleted_at": null},
+    {"id": "l5", "group_id": "g2", "ingredient_id": "miso", "sub_recipe_id": null,
+     "quantity": 50, "unit": "g", "recipe_measure_id": null, "optional": false,
+     "note": null, "measure_id": null,
+     "ingredient_name": "White miso", "ingredient_basis": "g",
+     "ingredient_macros": {"kcal": 198, "protein": 12, "carb": 26, "fat": 6},
+     "ingredient_density": null, "ingredient_piece_weight": null,
+     "ingredient_status": "complete", "ingredient_deleted_at": null}
+  ],
+  "recipe_measures": [
+    {"id": "m-blob", "recipe_id": "mb", "label": "blob", "amount": "15", "unit": "g",
+     "sort_order": 0, "created_at": "2026-10-01T00:00:00Z"}
+  ]
+}

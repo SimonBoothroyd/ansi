@@ -7,7 +7,6 @@ library;
 
 import 'dart:convert';
 
-import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 
 import '../../../core/units/macros.dart';
@@ -17,12 +16,12 @@ import '../../../core/units/units.dart';
 import '../../ingredients/data/price_repository_impl.dart' show loadCostPrices;
 import '../../ingredients/domain/price.dart';
 import '../domain/component_math.dart';
-import '../domain/method_step.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_cost.dart';
 import '../domain/recipe_macros.dart';
 import '../domain/recipe_measure_authoring.dart' show offeredRecipeMeasures;
 import '../domain/recipe_repository.dart';
+import '../domain/recipe_rows.dart';
 import 'recipe_measure_repository_impl.dart'
     show loadRecipeMeasures, writeRecipeMeasures;
 
@@ -142,15 +141,15 @@ class SqliteRecipeRepository implements RecipeRepository {
           id: r['id'] as String,
           ingredientId: r['ingredient_id'] as String?,
           subRecipeId: r['sub_recipe_id'] as String?,
-          subRecipe: _toSubRecipeTarget(r, measuresByRecipe),
+          subRecipe: subRecipeTargetOfRow(r, measuresByRecipe),
           // The name is carried because a macro summary names the lines it is
           // waiting on.
           ingredientName:
               r['sub_title'] as String? ?? r['ing_name'] as String? ?? '',
-          unit: _lineUnit(r),
+          unit: lineUnitOfRow(r),
           recipeMeasureId: r['recipe_measure_id'] as String?,
           quantity: (r['quantity'] as num?)?.toDouble(),
-          optional: _flag(r['optional']),
+          optional: rowFlag(r['optional']),
           measureId: measureId,
           // Full construction incl. sort_order/source (the 51c80b9 rule:
           // every loader selects what Measure's == compares).
@@ -174,15 +173,12 @@ class SqliteRecipeRepository implements RecipeRepository {
       // its target.
       final ingredientId = r['ingredient_id'] as String?;
       if (ingredientId != null && r['status'] != null) {
-        nutritionByIngredient[ingredientId] = (
-          // A stub's macros are excluded even if a value lingers on the row —
-          // status is the source of truth for completeness (invariant 3).
-          macros: r['status'] == 'complete'
-              ? Macros.tryParse(r['macros'] as String?)
-              : null,
-          basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-          densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
-          pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
+        nutritionByIngredient[ingredientId] = ingredientNutrition(
+          status: r['status'],
+          macros: r['macros'],
+          basis: r['macros_basis'],
+          density: r['density_g_per_ml'],
+          pieceWeight: r['piece_basis_amount'],
         );
       }
     }
@@ -194,7 +190,7 @@ class SqliteRecipeRepository implements RecipeRepository {
         r['id'] as String: (
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
-          yields: _yieldsOf(r),
+          yields: yieldsOfRow(r),
           measures: measuresByRecipe[r['id']] ?? const <RecipeMeasure>[],
         ),
     };
@@ -224,28 +220,6 @@ class SqliteRecipeRepository implements RecipeRepository {
           ),
         ),
     ];
-  }
-
-  /// The component target joined onto a line row as `sub_title` /
-  /// `sub_yield_*`, or null for an ingredient line or a missing target row.
-  SubRecipeTarget? _toSubRecipeTarget(
-    Row r,
-    Map<String, List<RecipeMeasure>> measuresByRecipe,
-  ) {
-    final id = r['sub_recipe_id'] as String?;
-    final title = r['sub_title'] as String?;
-    if (id == null || title == null) return null;
-    return SubRecipeTarget(
-      id: id,
-      title: title,
-      yieldQty: (r['sub_yield_qty'] as num?)?.toDouble(),
-      yieldUnit: unitById(r['sub_yield_unit'] as String? ?? ''),
-      yieldQty2: (r['sub_yield_qty_2'] as num?)?.toDouble(),
-      yieldUnit2: unitById(r['sub_yield_unit_2'] as String? ?? ''),
-      // The target's own measures come from the batched map: one query for
-      // every recipe rather than one per line.
-      measures: measuresByRecipe[id] ?? const <RecipeMeasure>[],
-    );
   }
 
   @override
@@ -337,26 +311,13 @@ class SqliteRecipeRepository implements RecipeRepository {
     final lines = <LineItem>[];
     final nutritionByIngredient = <String, IngredientNutrition>{};
     for (final row in itemRows) {
-      final line = _toLineItem(row, measuresByRecipe);
+      final line = lineItemOfRow(row, measuresByRecipe);
       lines.add(line);
       (itemsByGroup[row['group_id'] as String] ??= []).add(line);
       // A tombstoned or unknown ingredient contributes no nutrition, so its
       // lines read as stubs, matching the picker rows.
-      final rowIngredientId = row['ingredient_id'] as String?;
-      if (rowIngredientId != null &&
-          row['ingredient_status'] != null &&
-          row['ingredient_deleted_at'] == null) {
-        nutritionByIngredient[rowIngredientId] = (
-          // A stub's macros are excluded even if a value lingers on the row —
-          // status is the source of truth for completeness (invariant 3).
-          macros: row['ingredient_status'] == 'complete'
-              ? Macros.tryParse(row['ingredient_macros'] as String?)
-              : null,
-          basis: MacrosBasis.fromDb(row['ingredient_basis'] as String?),
-          densityGPerMl: (row['ingredient_density'] as num?)?.toDouble(),
-          pieceBasisAmount: (row['ingredient_piece_weight'] as num?)
-              ?.toDouble(),
-        );
+      if (nutritionOfLineRow(row) case final nutrition?) {
+        nutritionByIngredient[row['ingredient_id']! as String] = nutrition;
       }
     }
 
@@ -371,7 +332,7 @@ class SqliteRecipeRepository implements RecipeRepository {
     // same nutrition the parent's do.
     nutritionByIngredient.addAll(subNutrition);
 
-    final (plainSteps, methodSteps) = _parseSteps(r['steps'] as String?);
+    final (plainSteps, methodSteps) = stepsOfColumn(r['steps']);
     return Recipe(
       id: r['id'] as String,
       title: r['title'] as String,
@@ -379,7 +340,7 @@ class SqliteRecipeRepository implements RecipeRepository {
       steps: plainSteps,
       methodSteps: methodSteps,
       keepsForDays: r['keeps_for_days'] as int?,
-      freezable: (r['freezable'] as int? ?? 0) == 1,
+      freezable: rowFlag(r['freezable']),
       freezerDays: r['freezer_days'] as int?,
       bookId: r['book_id'] as String?,
       sectionId: r['section_id'] as String?,
@@ -411,54 +372,6 @@ class SqliteRecipeRepository implements RecipeRepository {
             items: itemsByGroup[g['id']] ?? const [],
           ),
       ],
-    );
-  }
-
-  LineItem _toLineItem(
-    Row r,
-    Map<String, List<RecipeMeasure>> measuresByRecipe,
-  ) {
-    // The measure resolves only when its row is live locally; the raw
-    // measure_id is kept regardless so a save never strips it (see [LineItem]).
-    final measureId = r['measure_id'] as String?;
-    final measureLabel = r['measure_label'] as String?;
-    final measureAmount = (r['measure_amount'] as num?)?.toDouble();
-    final subRecipeId = r['sub_recipe_id'] as String?;
-    return LineItem(
-      id: r['id'] as String,
-      ingredientId: r['ingredient_id'] as String?,
-      subRecipeId: subRecipeId,
-      subRecipe: _toSubRecipeTarget(r, measuresByRecipe),
-      // A component line's name is its target's title; a missing target reads
-      // as unknown and derives nothing.
-      ingredientName: subRecipeId != null
-          ? r['sub_title'] as String? ?? '(unknown recipe)'
-          : r['ingredient_name'] as String? ?? '(unknown ingredient)',
-      unit: _lineUnit(r),
-      recipeMeasureId: r['recipe_measure_id'] as String?,
-      quantity: (r['quantity'] as num?)?.toDouble(),
-      optional: _flag(r['optional']),
-      measureId: measureId,
-      // Null on every query that does not ask (the flag is a display fact,
-      // and the surfaces that print it all read this one).
-      measureDeleted: r['measure_deleted_at'] != null,
-      // The vocab row is joined without the liveness guard so a retired
-      // ingredient keeps its last name; this flag marks it as retired.
-      ingredientDeleted: r['ingredient_deleted_at'] != null,
-      measure:
-          measureId == null || measureLabel == null || measureAmount == null
-          ? null
-          : Measure(
-              id: measureId,
-              label: measureLabel,
-              amount: measureAmount,
-              // The line ingredient's basis denominates its measures
-              // (ADR-0008); a tombstoned ingredient falls back per-g.
-              basis: MacrosBasis.fromDb(r['ingredient_basis'] as String?),
-              sortOrder: (r['measure_sort'] as int?) ?? 0,
-              source: r['measure_source'] as String?,
-            ),
-      note: r['note'] as String?,
     );
   }
 
@@ -537,21 +450,6 @@ class SqliteRecipeRepository implements RecipeRepository {
       from: recipeId,
       to: subRecipeId,
       componentsOf: (id) => edges[id] ?? const [],
-    );
-  }
-
-  /// Reads the `steps` jsonb: an array of plain-text strings, or an array of
-  /// tokenized step objects (objects with `tokens`), never both.
-  (List<String>, List<MethodStep>?) _parseSteps(String? raw) {
-    final decoded = jsonDecode(raw ?? '[]');
-    if (decoded is! List || decoded.isEmpty) return (const [], null);
-    if (decoded.first is String) return (decoded.cast<String>(), null);
-    return (
-      const <String>[],
-      [
-        for (final e in decoded)
-          MethodStep.fromJson((e as Map).cast<String, Object?>()),
-      ],
     );
   }
 
@@ -813,28 +711,6 @@ class SqliteRecipeRepository implements RecipeRepository {
   }
 }
 
-/// The recipe row's stated yields, from the four `yield_*` columns.
-List<YieldDenomination> _yieldsOf(Row r) => yieldDenominations(
-  (r['yield_qty'] as num?)?.toDouble(),
-  unitById(r['yield_unit'] as String? ?? ''),
-  (r['yield_qty_2'] as num?)?.toDouble(),
-  unitById(r['yield_unit_2'] as String? ?? ''),
-);
-
-/// A 0/1 flag column as a bool. Null (a row synced from a server that had not
-/// yet learned the column) reads as false — the column's own default.
-bool _flag(Object? v) => v == 1 || v == true;
-
-/// The catalog unit a line row is denominated in, or null when the row names a
-/// recipe measure (`recipe_measure_id`).
-///
-/// The word is asked first, so a row carrying both columns reads as the word. A
-/// wordless row with an unknown unit id falls back to `pieces` rather than
-/// throwing. The row must carry both `recipe_measure_id` and `unit`.
-Unit? _lineUnit(Row r) => r['recipe_measure_id'] != null
-    ? null
-    : unitById(r['unit'] as String? ?? '') ?? pieces;
-
 /// What one line's identity and denomination columns are written as, resolved
 /// in one place against the three stored XORs.
 ///
@@ -909,12 +785,12 @@ loadRecipeMacroNodes(SqliteConnection db) async {
         // week's re-summations and the cost walk both print these.
         ingredientName:
             (r['ing_name'] as String?) ?? (r['sub_title'] as String?) ?? '',
-        unit: _lineUnit(r),
+        unit: lineUnitOfRow(r),
         recipeMeasureId: r['recipe_measure_id'] as String?,
         quantity: (r['quantity'] as num?)?.toDouble(),
         // A sub-recipe's own optional lines leave ITS total the same way
         // (the walk runs the same seam at every level).
-        optional: _flag(r['optional']),
+        optional: rowFlag(r['optional']),
         measureId: measureId,
         measure:
             measureId == null || measureLabel == null || measureAmount == null
@@ -931,13 +807,12 @@ loadRecipeMacroNodes(SqliteConnection db) async {
     );
     final ingredientId = r['ingredient_id'] as String?;
     if (ingredientId != null && r['status'] != null) {
-      nutrition[ingredientId] = (
-        macros: r['status'] == 'complete'
-            ? Macros.tryParse(r['macros'] as String?)
-            : null,
-        basis: MacrosBasis.fromDb(r['macros_basis'] as String?),
-        densityGPerMl: (r['density_g_per_ml'] as num?)?.toDouble(),
-        pieceBasisAmount: (r['piece_basis_amount'] as num?)?.toDouble(),
+      nutrition[ingredientId] = ingredientNutrition(
+        status: r['status'],
+        macros: r['macros'],
+        basis: r['macros_basis'],
+        density: r['density_g_per_ml'],
+        pieceWeight: r['piece_basis_amount'],
       );
     }
   }
@@ -948,7 +823,7 @@ loadRecipeMacroNodes(SqliteConnection db) async {
         r['id'] as String: (
           servingsBase: (r['servings_base'] as num).toDouble(),
           lines: linesByRecipe[r['id']] ?? const <LineItem>[],
-          yields: _yieldsOf(r),
+          yields: yieldsOfRow(r),
           // The node's own measures, which a parent's line resolves through.
           measures: measuresByRecipe[r['id']] ?? const <RecipeMeasure>[],
         ),

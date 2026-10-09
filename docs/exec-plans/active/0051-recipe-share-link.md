@@ -1,6 +1,6 @@
 # Exec plan: A recipe's share link
 
-- **Status:** active — phases 0–2 landed (the Dart spike, the share row, the ⋯ menu); phase 3 (the renderer) next
+- **Status:** active — phases 0–3 landed (the Dart spike, the share row, the ⋯ menu, the renderer); phase 4 (the edge function) next
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 2 — the next idea off the backlog
 - **Created:** 2026-10-09
@@ -106,13 +106,18 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    the build carries `SHARE_BASE_URL`**, so no shipped build offers a link
    before phase 5 makes it work. `features/share`, drawn in
    [recipe-page.html](../../product-specs/board/recipe-page.html).
-3. **The renderer, in Dart.** A new pure-Dart entry point (say
-   `app/lib/features/share/domain/`) takes a recipe payload — the recipe, its
-   lines, its sub-recipes, the ingredient facts the macros and units need — and
-   produces the page's sections, the JSON-LD and the scaled lines for a given
-   servings. It reuses `scaling.dart`, `line_display.dart`, `component_math.dart`
-   and `recipe_macros.dart`; it does not re-state them. Unit tests mirror it.
-   Compiled once with `dart compile js` into a bundle checked by CI.
+3. **The renderer — landed.** `features/share/page/`, pure Dart compiled
+   to one JS bundle by `make share-bundle`: `ShareTree.fromPayload` reads the
+   database's own rows, `renderSharePage` writes the whole document (preview
+   tags, JSON-LD, the body, the embedded payload, the script tag),
+   `renderShareBody` the part the stepper re-renders, and the bundle's entry
+   exports `ansiSharePage(payloadJson, url, bundleUrl)` for the server and
+   wires the stepper and timers in a browser. **The row rules moved into
+   `recipes/domain/recipe_rows.dart`**, which the app's repository now reads
+   through too, so a row cannot be read one way in the app and another on
+   the page. The payload contract is `test/features/share/testdata/
+   share_payload.json`. CI compiles the bundle and renders that fixture in
+   Deno.
 4. **The edge function `share-recipe`.** `GET /r/<token>`: look the token up
    with the service role, read the recipe tree (soft-deleted rows excluded),
    build the payload and render the page at base servings — server-side, so the
@@ -204,6 +209,23 @@ Append-only.
 - 2026-10-09 — Phase 2: the menu item is **gated on `SHARE_BASE_URL`**. A
   link handed out before the page exists is a dead link in somebody's chat;
   the release workflow gains the define in phase 5, with the Worker.
+- 2026-10-09 — Phase 3: **the payload is rows, not a shape of its own.** The
+  edge function selects the recipe page's own columns and aliases as JSON;
+  the renderer reads them through the same functions the app's SQLite
+  repository does (`recipe_rows.dart`, extracted from it). The two stores
+  differ only in representation — 0/1 or true, jsonb as text or as an
+  object, a `numeric` as a number or as text — and those are read in one
+  place.
+- 2026-10-09 — Phase 3: **a sub-recipe is drawn as written**, at its own
+  yield. The parent's line says how much of it the scaled dish needs (`4 blob
+  (60 g)`); the nested section does not rescale with the parent.
+- 2026-10-09 — Phase 3: **no stub wording on a public page.** When the walk
+  leaves no total the page says some ingredients have no nutrition data yet,
+  not which are stubs; the household's bookkeeping is not a stranger's.
+- 2026-10-09 — Phase 3: the bundle is **159 KB, 49 KB gzipped** at `-O4`;
+  rendered in Deno 2.9.6 and driven in Chromium (stepper, a timer through a
+  rescale), with no script errors. The page loads its three faces from Google
+  Fonts, as the design board does.
 - 2026-10-09 — Phase 1 was verified on Postgres **16** with a stand-in for
   Supabase's roles and `auth` schema (every migration and seed, all 24 pgTAP
   files green); the container images for the real local stack could not be
@@ -222,7 +244,11 @@ Append-only.
   the RPC whether a link exists, so both see *Stop sharing* without
   `recipe_share` joining a sync stream. Revisit if that round-trip is felt.
 - **A sub-recipe deleted after sharing** renders as its name only, the way the
-  app treats a missing component. Confirm when building phase 3.
+  app treats a missing component: its row is absent from the payload, so the
+  line has no target and links nowhere.
+- **A board page for the public page.** The board draws the app's screens;
+  the share page is a web page outside the app. Phase 6 decides whether it
+  gets a file of its own.
 - **A measured component line did not scale — fixed ahead of this plan.**
   Phase 0 found `2 blob miso butter` stayed `2 blob` at any servings:
   `scaleLineItem` went through `LineItem.asQuantity`, null on a line said in a
