@@ -53,6 +53,7 @@ dependencies:
   wakelock_plus: 1.8.0    # Keep screen on; on the web, any running timer
   audioplayers: ^6.8.1    # the in-app chime: the web, or notifications refused
   web: ^1.1.1             # the web's own Notification and tab title
+  share_plus: ^13.3.1     # a recipe's share link, to the phone's share sheet
   # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
 
 dev_dependencies:

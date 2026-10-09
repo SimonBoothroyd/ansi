@@ -238,7 +238,10 @@ Written down so the next sweep doesn't over-correct into a nagging app.
    malformed jsonb parsing to null (invariant 3). All correct.
 7. **Success.** No "Saved!" toasts — a checkbox that ticks is its own
    confirmation. The two textual confirmations on the ingredient form stay,
-   because that form has no other visible change to show.
+   because that form has no other visible change to show. **Link copied.** is
+   the same case: on the web a recipe's share link is copied rather than
+   offered to a share sheet, and a copy changes nothing on screen, so without
+   a word the tap would read as dead.
 
 ---
 
@@ -253,7 +256,7 @@ app/lib/
     sync/connector.dart             reports a drop beside the debugPrint
   shared/
     write.dart                      guardedWrite + ref.write / ref.writeOk
-    ansi_toast.dart                 the two toasts, and the zone's anchor
+    ansi_toast.dart                 the toasts, and the zone's anchor
     ansi_error_state.dart           what · why · Try again · Copy details
     describe_failure.dart           one honest sentence per failure family
     sync_words.dart                 the copy, written once

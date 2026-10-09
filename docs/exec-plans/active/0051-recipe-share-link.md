@@ -1,6 +1,6 @@
 # Exec plan: A recipe's share link
 
-- **Status:** active — phase 0 (the Dart spike) and phase 1 (the share row) landed; phase 2 (the ⋯ menu) next
+- **Status:** active — phases 0–2 landed (the Dart spike, the share row, the ⋯ menu); phase 3 (the renderer) next
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 2 — the next idea off the backlog
 - **Created:** 2026-10-09
@@ -96,11 +96,15 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    only writers, `security definer`, each checking the recipe is the caller's
    own. No anon grant at all. Not synced. pgTAP in `recipe_share.sql`, and a
    row in `rls_household_isolation.sql`.
-2. **The ⋯ menu.** *Share link* on the recipe page's ⋯ menu calls the RPC and
-   opens the system share sheet with the URL (the clipboard on a browser
-   without `navigator.share`). Once shared, the menu also offers *Stop
-   sharing*. The action is online, like Import; offline it says so rather than
-   queueing a link that would not work yet. Drawn first as `proposed` in
+2. **The ⋯ menu — landed.** *Share link* on the recipe page's ⋯ menu calls
+   `share_recipe` and hands `https://getansi.app/r/<token>` and the title to
+   the share sheet (`share_plus`); on the web, where the plugin would fall
+   back to a `mailto:`, it copies the link and says **Link copied.** *Stop
+   sharing* appears only while the server says a link stands, asks first,
+   and calls `unshare_recipe`. Online, through the one write door: offline
+   says "Couldn't share this recipe." and hands nothing over. **Hidden unless
+   the build carries `SHARE_BASE_URL`**, so no shipped build offers a link
+   before phase 5 makes it work. `features/share`, drawn in
    [recipe-page.html](../../product-specs/board/recipe-page.html).
 3. **The renderer, in Dart.** A new pure-Dart entry point (say
    `app/lib/features/share/domain/`) takes a recipe payload — the recipe, its
@@ -194,6 +198,12 @@ Append-only.
 - 2026-10-09 — Phase 1: **a revoke is soft** (`deleted_at`), as every delete
   here is; the live-link rule is a partial unique index, and a token is
   unique across revoked rows too, so it is never reissued.
+- 2026-10-09 — Phase 2: the owner chose the **system share sheet** over
+  copy-only, accepting a native plugin (`share_plus`) whose Android and iOS
+  builds cannot be compiled in the session that wrote it.
+- 2026-10-09 — Phase 2: the menu item is **gated on `SHARE_BASE_URL`**. A
+  link handed out before the page exists is a dead link in somebody's chat;
+  the release workflow gains the define in phase 5, with the Worker.
 - 2026-10-09 — Phase 1 was verified on Postgres **16** with a stand-in for
   Supabase's roles and `auth` schema (every migration and seed, all 24 pgTAP
   files green); the container images for the real local stack could not be

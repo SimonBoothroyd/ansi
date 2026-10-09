@@ -41,6 +41,7 @@ const _readVerbs = {
   'usedIn',
   'mostRecentWeekBefore',
   'componentLinkWouldCycle',
+  'isShared',
 };
 
 /// Deliberate exceptions, keyed `<path>:<method>`, each with its reason.

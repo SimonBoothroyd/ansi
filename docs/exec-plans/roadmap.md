@@ -14,9 +14,10 @@ The detail is in the plan; the landing dates are in the
 
 1. Plan 0050's phone test: a timer ringing locked and killed, its notification's
    Stop and +1 min, and the exact-alarm ask on Android 14+.
-2. A recipe's share link — [plan 0051](./active/0051-recipe-share-link.md): phase 0
-   (the dart2js spike) and phase 1 (the share row, migration `0054`, on the
-   branch and **not on cloud**) landed; phase 2, the ⋯ menu, is next.
+2. A recipe's share link — [plan 0051](./active/0051-recipe-share-link.md): phases
+   0–2 landed on the branch (the dart2js spike; the share row, migration
+   `0054`, **not on cloud**; the ⋯ menu, hidden until a build carries
+   `SHARE_BASE_URL`); phase 3, the renderer, is next.
 3. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));

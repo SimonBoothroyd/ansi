@@ -73,8 +73,22 @@ void showAnsiProblemToast(
   );
 }
 
+/// Says that a link was copied, where copying was the whole act.
+///
+/// An exception to "no success toasts", like the undo toast: a copy changes
+/// nothing on screen, so without a word the tap would read as dead. [what]
+/// names the thing copied, in the user's own nouns. Primary, not destructive.
+void showAnsiCopiedToast(BuildContext context, {required String what}) {
+  showFToast(
+    context: context,
+    duration: _toastDuration,
+    icon: const Icon(FLucideIcons.link),
+    title: Text('$what copied.'),
+  );
+}
+
 /// Reports that something the user removed is recoverable, and carries the
-/// undo. The one exception to "no success toasts"
+/// undo. An exception to "no success toasts"
 /// (`docs/design-docs/errors-and-sync-health.md`, D1).
 ///
 /// [what] is what went, in the user's own nouns; [detail] names what would

@@ -10,6 +10,11 @@ abstract final class Env {
   static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
   static const powersyncUrl = String.fromEnvironment('POWERSYNC_URL');
 
+  /// The origin a recipe's share link is served from (`https://getansi.app`).
+  /// Optional and outside [defines]: blank means the build offers no share
+  /// link, which is right until the public page exists.
+  static const shareBaseUrl = String.fromEnvironment('SHARE_BASE_URL');
+
   /// True when the core config is present. Fail fast in bootstrap if false.
   static bool get isConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;

@@ -18,7 +18,8 @@ endif
 DART_DEFINES := \
 	--dart-define=SUPABASE_URL=$(SUPABASE_URL) \
 	--dart-define=SUPABASE_ANON_KEY=$(SUPABASE_ANON_KEY) \
-	--dart-define=POWERSYNC_URL=$(POWERSYNC_URL)
+	--dart-define=POWERSYNC_URL=$(POWERSYNC_URL) \
+	--dart-define=SHARE_BASE_URL=$(SHARE_BASE_URL)
 
 .DEFAULT_GOAL := help
 

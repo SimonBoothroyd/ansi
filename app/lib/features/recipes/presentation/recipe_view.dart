@@ -40,6 +40,8 @@ import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_recipe_band.dart';
 import '../../planning/presentation/week_variant_format.dart';
 import '../../planning/presentation/week_view_models.dart';
+import '../../share/data/share_providers.dart';
+import '../../share/presentation/share_actions.dart';
 import '../../timers/data/timer_providers.dart';
 import '../../timers/domain/cook_timer.dart';
 import '../../timers/presentation/timer_sheet.dart';
@@ -549,6 +551,10 @@ class _RecipeMenu extends ConsumerWidget {
             ?.favorite ??
         false;
     final plannedWeek = this.plannedWeek;
+    final shareBase = ref.watch(shareBaseUrlProvider);
+    final shared =
+        shareBase.isNotEmpty &&
+        (ref.watch(recipeSharedProvider(recipe.id)).value ?? false);
     return FPopoverMenu(
       // `menuBuilder`, not `menu`: an item has to be able to dismiss the
       // menu it was picked from before it navigates or opens a dialog.
@@ -600,6 +606,35 @@ class _RecipeMenu extends ConsumerWidget {
                 ref.read(keepScreenOnProvider.notifier).toggle();
               },
             ),
+            // A public, read-only link to the recipe as it is now. Offered
+            // only by a build that knows where the page is served from.
+            if (shareBase.isNotEmpty)
+              FItem(
+                prefix: const Icon(FLucideIcons.link),
+                title: const Text('Share link'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(
+                    shareRecipeLink(
+                      context,
+                      recipeId: recipe.id,
+                      title: recipe.title,
+                      base: shareBase,
+                    ),
+                  );
+                },
+              ),
+            // Only while a link stands, and only once the server has said so:
+            // a page that could not ask offers sharing alone.
+            if (shared)
+              FItem(
+                prefix: const Icon(FLucideIcons.unlink),
+                title: const Text('Stop sharing'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(stopSharingRecipe(context, recipeId: recipe.id));
+                },
+              ),
             // Named "Edit recipe" only where the week door stands beside it.
             FItem(
               prefix: const Icon(FLucideIcons.pencil),

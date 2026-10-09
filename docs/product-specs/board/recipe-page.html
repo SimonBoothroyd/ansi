@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a> · share link: matches code 2026-10-09, offered only by a build given a share host · <a href="../../exec-plans/active/0051-recipe-share-link.md">plan 0051</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, and a tap on a <b>timer</b> starts it: the count runs in the step, and in the dock at the foot of every screen.</p>
 </header>
 
@@ -136,6 +136,46 @@
                 <p class="conv-note">it reads <b>Keep screen on</b> while off and <b>Let the screen sleep</b> once on &mdash; the shape <i>Show line figures</i> already has. The <b>sun</b> sits beside the <b>&ctdot;</b> while it holds, so a phone that never dims is never a mystery, and tapping the sun is the other way off</p>
                 <p class="conv-note">it is a <b>posture</b>, held for the session and across recipes, like line figures: nothing is written or synced. It holds until it is turned off or the app is closed &mdash; not until the page is left, because the dock is the reason to leave it</p>
                 <p class="conv-note">it is <b>separate from the timers</b> on a phone: a sleeping phone still rings, through the notification the timer scheduled when it started. On the <b>web</b> it is not separate &mdash; a slept browser is a silent one, so starting a timer turns it on there (<a href="./navigation.html">navigation</a>)</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Share link</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu hands the recipe to the phone&rsquo;s share sheet as a link</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="lib-menu">
+                    <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
+                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
+                    <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
+                    <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit</span></div>
+                    <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
+                </div>
+                <p class="conv-note">a tap asks the server for the recipe&rsquo;s link &mdash; the same one every time while it stands &mdash; and opens the <b>share sheet</b> with <code>getansi.app/r/&hellip;</code> and the recipe&rsquo;s title. On the web, where there may be no sheet, the link is copied instead and a toast says so</p>
+                <p class="conv-note">the link shows the recipe <b>as it is now</b>: an edit after sharing reaches everyone holding it. It is read-only, needs no account, and an Ansi user can paste it into <b>Import</b></p>
+                <p class="conv-note">it needs a connection, like Import. Offline, the one toast surface says <b>Couldn&rsquo;t share this recipe.</b> &mdash; nothing is queued, because a link that does not work yet is worse than none</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>Stop sharing</b> &middot; once a link stands, the menu offers to take it back</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="lib-menu">
+                    <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
+                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
+                    <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
+                    <div class="mi"><span class="ic">&#8856;</span><span class="lb">Stop sharing</span></div>
+                    <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit</span></div>
+                    <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
+                </div>
+                <div class="lib-dlg">
+                    <div class="dh">Stop sharing this recipe?</div>
+                    <div class="db">Anyone who opens the link will find nothing there. Sharing again makes a new link.</div>
+                    <div class="acts"><span class="b p">Stop sharing</span><span class="b g">Cancel</span></div>
+                </div>
+                <p class="conv-note"><b>Share link</b> stays beside it, so the link can be sent again to someone else without taking it back. <b>Stop sharing</b> appears only while a link stands, and only when the page could ask &mdash; offline the menu shows <b>Share link</b> alone</p>
             </div></div>
         </div>
 
