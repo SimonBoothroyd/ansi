@@ -2,9 +2,9 @@ name: app
 
 on:
   push:
-    paths: ["app/**", "scripts/share_bundle*", ".github/workflows/app.yml"]
+    paths: ["app/**", "scripts/share_bundle*", "supabase/functions/share-recipe/share_page*", ".github/workflows/app.yml"]
   pull_request:
-    paths: ["app/**", "scripts/share_bundle*", ".github/workflows/app.yml"]
+    paths: ["app/**", "scripts/share_bundle*", "supabase/functions/share-recipe/share_page*", ".github/workflows/app.yml"]
 
 defaults:
   run:
@@ -45,13 +45,20 @@ jobs:
             exit 1
           fi
       # A recipe's share page is this app's Dart compiled to JS, rendered by
-      # an edge function. Compiling it also holds the page free of Flutter;
-      # the smoke run renders the test fixture in Deno, as the function will.
+      # the share-recipe edge function. Compiling it also holds the page free
+      # of Flutter; the smoke run renders the test fixture in Deno, as the
+      # function will; and the committed copy beside the function must be
+      # what this commit's Dart compiles to.
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.9.5 # the version backend.yml pins
-      - name: Share page bundle compiles and renders
-        run: ../scripts/share_bundle.sh
+      - name: Share page bundle compiles, renders, and is committed fresh
+        run: |
+          ../scripts/share_bundle.sh
+          git diff --exit-code -- ../supabase/functions/share-recipe/ || {
+            echo "::error::the share page bundle is stale — run make share-bundle and commit supabase/functions/share-recipe/share_page*"
+            exit 1
+          }
       - uses: codecov/codecov-action@v4
         with:
           files: app/coverage/lcov.info

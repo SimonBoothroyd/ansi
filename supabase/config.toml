@@ -58,6 +58,13 @@ schemas = ["public"]
 enabled = true
 verify_jwt = true
 
+# A recipe's share page (plan 0051) is read by people with no account, so the
+# gateway checks no JWT and the function is the whole boundary: GET and HEAD,
+# one share's rows by token, nothing else (supabase/functions/share-recipe).
+[functions.share-recipe]
+enabled = true
+verify_jwt = false
+
 # PowerSync needs asymmetric JWTs + (for the demo pattern) anonymous sign-in.
 # See the powersync-community/flutter-powersync-supabase starter.
 # signing_keys_path = "./signing_keys.json"

@@ -1,6 +1,6 @@
 # Exec plan: A recipe's share link
 
-- **Status:** active — phases 0–3 landed (the Dart spike, the share row, the ⋯ menu, the renderer); phase 4 (the edge function) next
+- **Status:** active — phases 0–4 landed (the Dart spike, the share row, the ⋯ menu, the renderer, the edge function); phase 5 (the Worker on `getansi.app`) next
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 2 — the next idea off the backlog
 - **Created:** 2026-10-09
@@ -118,16 +118,18 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    the page. The payload contract is `test/features/share/testdata/
    share_payload.json`. CI compiles the bundle and renders that fixture in
    Deno.
-4. **The edge function `share-recipe`.** `GET /r/<token>`: look the token up
-   with the service role, read the recipe tree (soft-deleted rows excluded),
-   build the payload and render the page at base servings — server-side, so the
-   JSON-LD and the link preview are in the served HTML. The same bundle runs in
-   the browser for the stepper, the macros at the new size and the timers. An
-   unknown or revoked token is a plain 404 page. `noindex`, and a short
-   `max-age` so a revoke or an edit shows within a minute. Deno tests against a
-   seeded recipe, including a nested component and a recipe measure. Phase 0
-   settled the shape: the same compiled Dart renders the page inside the
-   function and runs the stepper in the browser.
+4. **The edge function — landed.** `supabase/functions/share-recipe`,
+   deployed with no JWT check. `GET r/<token>` runs one query as service role
+   (`payload.ts`: a live share of a live recipe, the sub-recipes it reaches
+   inside that household, as the recipe page's rows) and renders it with the
+   committed bundle; `GET r/share.js?v=<hash>` serves the bundle itself, so
+   one Worker route covers both. 404 for a revoked, deleted or unknown token
+   and for a token of the wrong shape (refused before the database); 405 for
+   anything but GET and HEAD; a generic 500 page with the detail logged.
+   `noindex`, a 60-second cache, and a content-security policy that runs only
+   the page's own bundle. `SHARE_BASE_URL` (optional secret) names the
+   canonical link. `make share-bundle` writes the bundle beside the function;
+   the app's CI fails when the committed copy is stale.
 5. **The Worker.** `cloudflare/share-worker/` (or similar): forwards
    `GET /r/<token>` and the bundle's path, nothing else; sets
    `content-type: text/html; charset=utf-8` and the cache header. Deployed by
@@ -226,6 +228,26 @@ Append-only.
   rendered in Deno 2.9.6 and driven in Chromium (stepper, a timer through a
   rescale), with no script errors. The page loads its three faces from Google
   Fonts, as the design board does.
+- 2026-10-09 — Phase 4: **the bundle is committed beside the function**, as
+  two generated files: `share_page.js`, imported for its effect so the
+  deploy ships it and evaluation needs no `eval`, and `share_page_source.ts`,
+  the same source as a string to serve — a deployed function is modules, not
+  files it can read. The backend CI has no Flutter and the function's tests
+  need the bundle, so building it at deploy time was not the simpler road;
+  the app CI's freshness check is the `docs/generated` pattern. dart2js
+  output is byte-identical across builds on one SDK, which that check rests
+  on.
+- 2026-10-09 — Phase 4: **the bundle is served by the function** at
+  `r/share.js?v=<hash>`, not from the Worker or Pages, so one route serves
+  the page and its script and the hash a page names is the bundle that
+  rendered it.
+- 2026-10-09 — Phase 4 verified: the handler's tests over the real bundle;
+  the query against Postgres 16 with every migration (rows that render the
+  fixture's page, 346 kcal included; a revoked token, a deleted recipe and an
+  unknown token answer nothing); and the function served locally through
+  `live.ts` and driven in Chromium under its own content-security policy,
+  with no script errors. **Not yet on cloud**, and not reachable as a page
+  there until the Worker stands in front of it.
 - 2026-10-09 — Phase 1 was verified on Postgres **16** with a stand-in for
   Supabase's roles and `auth` schema (every migration and seed, all 24 pgTAP
   files green); the container images for the real local stack could not be

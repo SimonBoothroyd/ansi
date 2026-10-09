@@ -62,6 +62,17 @@ Hobby scale, but the basics are non-negotiable.
   household's recipe, nor choose a guessable token. `anon` can call neither
   and read nothing. A revoke stamps `deleted_at`, and a revoked token is never
   reissued. Not synced.
+- **The share page** (`supabase/functions/share-recipe`) is the one function
+  with **no JWT check**, so it is its own boundary: GET and HEAD only, a token
+  of the wrong shape refused before the database, and one query that answers
+  only for a live share of a live recipe, reaching sub-recipes only inside
+  that share's household. It selects what a cook needs — titles, lines,
+  method, yields, the nutrition facts the macros need — and no price, book or
+  household. The page carries `noindex`, a 60-second cache (so a revoke shows
+  within a minute), and a content-security policy that runs only its own
+  bundle; a title is escaped as text and cannot close the data block it is
+  embedded in. A database failure answers a generic page and logs the
+  detail.
 - **Standing up a real cloud project** (Supabase Cloud + PowerSync Cloud + Google
   OAuth), and the gotchas that bite — see [`cloud-setup.md`](./cloud-setup.md).
 

@@ -17,6 +17,15 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   one model call, a plain JSON answer, and **no SQL at all** — it matches
   nothing, because the person had already named the row (`no_write.test.ts`).
   All three are deployed BY NAME in `deploy-supabase.yml`.
+- `functions/share-recipe/` — a recipe's **public** share page (plan 0051),
+  the one function deployed with no JWT check. It answers GET and HEAD on
+  `r/<token>` and `r/share.js`, reads one share's rows by token as service
+  role, and renders them with `share_page.js` — the app's own Dart compiled
+  to JS by `scripts/share_bundle.sh`, committed beside it with its string
+  twin `share_page_source.ts`. Both are generated: rebuild with `make
+  share-bundle`, never edit; the app's CI fails when they are stale.
+  `payload.test.ts` runs the query against a real database when
+  `SHARE_TEST_DB_URL` is set, and is ignored otherwise.
 - `seed/` — two seeds with different owners. The **household vocabulary** is
   an export of the owner's live household (`seed/snapshot.jsonl`) turned into
   one `../seed_vocab.sql` by `seed/scripts/gen_seed.ts` — the direction is

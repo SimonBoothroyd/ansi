@@ -168,7 +168,7 @@ seed-test: ## Seed-generator tests (collision detection, the miner)
 scripts-test: ## Shell-script tests (the deploy's CLI readback helper)
 	./scripts/tests/db_query_value_test.sh
 
-share-bundle: ## Build the share page's JS bundle and render the fixture with it in Deno
+share-bundle: ## Rebuild the share page's JS bundle beside share-recipe, and render the fixture with it in Deno
 	./scripts/share_bundle.sh
 
 ci: format analyze fns-lint test seed-test scripts-test share-bundle docs-check ## The fast local subset of CI

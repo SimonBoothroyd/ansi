@@ -443,6 +443,27 @@ set them. The function reads the caller's `household_id` from the **verified
 JWT** and never from the request body, so a service-role DB connection stays
 safely household-scoped.
 
+**`share-recipe`** (a recipe's public share page, plan
+[0051](./exec-plans/active/0051-recipe-share-link.md)) is the one function
+deployed **without** JWT verification — `supabase functions deploy
+share-recipe --no-verify-jwt`, as `deploy-supabase.yml` does, and
+`verify_jwt = false` in `config.toml` — because the people who open a link
+have no account. It reads one share's rows by token and nothing else. One
+optional secret:
+
+```bash
+supabase secrets set SHARE_BASE_URL=https://getansi.app
+```
+
+- **`SHARE_BASE_URL`** — the origin share links are minted under, for the
+  page's canonical and preview URLs. Unset, the page names the origin it was
+  requested from. It is the same value the app is built with
+  (`--dart-define=SHARE_BASE_URL`).
+
+On the bare `*.supabase.co` domain the platform serves no HTML from a
+function, so the page is reached through the share host's Worker, never
+directly (plan 0051's host section).
+
 Verify a deploy: sign in on the device and import a URL. On failure, `supabase
 functions logs import-recipe` shows the handled `{error, detail}` the app
 surfaces.
