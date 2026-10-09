@@ -12,8 +12,8 @@ The detail is in the plan; the landing dates are in the
 
 ## Next
 
-1. Timers on the recipe page — [plan 0050](./active/0050-recipe-timers.md):
-   built on its branch; the native setup awaits a release build and a phone.
+1. Plan 0050's phone test: a timer ringing locked and killed, its notification's
+   Stop and +1 min, and the exact-alarm ask on Android 14+.
 2. The next idea off the [backlog](./backlog.md), not yet chosen.
 3. Step 11 (anti-waste), still stretch.
 
@@ -26,6 +26,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| Timers on the recipe page — a timer chip starts at the middle of its range and counts in the step; a dock on every screen with the recipe's whole title and +N, the list in the wide sidebar; a due band that rings a minute; scheduled notifications with the phone asleep; Keep screen on in the page's menu. Also the receipts ledger reading the app's day | [0050](./active/0050-recipe-timers.md) |
 
 ## Shipped
 
