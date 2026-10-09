@@ -47,7 +47,10 @@ Taken one at a time with the owner, 2026-10-09.
 - **A custom domain, served by a free Cloudflare Worker.** Not the Supabase
   Custom Domain add-on: it needs the Pro plan, about $35 a month together,
   against a free-tier budget ([ADR-0002](../../decisions/0002-stack-flutter-supabase-powersync.md)).
-  A domain is about $10 a year; the Worker's free tier is 100k requests a day.
+  The domain is **`getansi.app`**, held by the owner; a link reads
+  `https://getansi.app/r/<token>`. `.app` is HSTS-preloaded, so it is HTTPS
+  only — which the Worker gives for free. The Worker's free tier is 100k
+  requests a day.
 
 ## Why there is a Worker at all
 
@@ -65,7 +68,7 @@ The edge function owns every decision; the Worker owns only the domain and
 the header.
 
 ```
-browser ──GET /r/<token>──▶ Worker (ansi domain)
+browser ──GET /r/<token>──▶ Worker (getansi.app)
                               │  forwards GET only, /r/<token> only
                               ▼
                      edge function `share-recipe`
@@ -117,7 +120,8 @@ browser ──GET /r/<token>──▶ Worker (ansi domain)
    `GET /r/<token>` and the bundle's path, nothing else; sets
    `content-type: text/html; charset=utf-8` and the cache header. Deployed by
    `wrangler` from CI with a `CLOUDFLARE_API_TOKEN` secret, after
-   `deploy-supabase`. The domain is bought and pointed at it by the owner.
+   `deploy-supabase`. `getansi.app` is routed to it as a Worker custom domain
+   (the zone must be on the owner's Cloudflare account).
 6. **Docs.** `docs/SECURITY.md` (a public, unauthenticated surface: what it
    exposes and why only by token), `docs/cloud-setup.md` (the domain, the
    Worker, the token secret), `docs/release.md` (the Worker's deploy), the
@@ -148,12 +152,17 @@ Append-only.
   dropped on reading that `*.supabase.co` does not serve HTML without a Custom
   Domain. The Supabase add-on (~$35/month with Pro) was weighed against a free
   Worker on a ~$10/year domain; the owner chose the domain and the Worker.
+- 2026-10-09 — The domain is `getansi.app`, already held by the owner.
 
 ## Notes / open questions
 
-- **The domain's name** — the owner's to pick and buy. Until it exists, phase 0
-  and the build run on `workers.dev`; nothing but a DNS record and the share
-  URL's base changes when it lands.
+- **Where `getansi.app`'s DNS lives.** If it was not bought through Cloudflare,
+  its nameservers move to Cloudflare first (a free zone) so the Worker can
+  answer on it. Phase 0 can run on `workers.dev` meanwhile; only the share
+  URL's base changes.
+- **The rest of `getansi.app`.** The share page needs only `/r/*`. The root
+  could later redirect to, or serve, the web app now on GitHub Pages — not in
+  this plan.
 - **Does a household member see the other's share?** Proposed: the ⋯ menu asks
   the RPC whether a link exists, so both see *Stop sharing* without
   `recipe_share` joining a sync stream. Revisit if that round-trip is felt.
