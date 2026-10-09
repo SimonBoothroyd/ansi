@@ -26,7 +26,6 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
-| Timers on the recipe page — a timer chip starts at the middle of its range and counts in the step; a dock on every screen with the recipe's whole title and +N, the list in the wide sidebar; a due band that rings a minute; scheduled notifications with the phone asleep; Keep screen on in the page's menu. Also the receipts ledger reading the app's day | [0050](./active/0050-recipe-timers.md) |
 
 ## Shipped
 
@@ -100,6 +99,7 @@ rows below, in that order.)
 | — | The ingredient form reads a nutrition label off a photo as a draft (the `read-label` function, figures as printed, never computed), and receipt names keep every printed word. No migrations | `v0.25.0` | — |
 | — | A label read blocks the form behind a progress screen and sets the density from the serving line; a density reads back as said; a typed price is the row's base price, never a receipt, and a cost is the newest receipt price, else the base price. Migrations `0051`–`0053` | `v0.26.0` | — |
 | — | A receipt's time moves as well as its day — the Bought sheet holds a 24-hour clock under the calendar, and a moment later than now is refused. No migrations | `v0.26.1` | [0049](./completed/0049-food-cost-receipts-and-meals-out.md) |
+| — | Timers on the recipe page — a timer chip starts at the middle of its range and counts in the step; a dock on every screen with the recipe's whole title and +N, the list in the wide sidebar; a due band that rings a minute; scheduled notifications with the phone asleep; Keep screen on in the page's menu. Also the receipts ledger reading the app's day | `v0.27.0` | [0050](./active/0050-recipe-timers.md) |
 
 ## Stretch
 
