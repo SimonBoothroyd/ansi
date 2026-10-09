@@ -14,7 +14,8 @@ The detail is in the plan; the landing dates are in the
 
 1. Plan 0050's phone test: a timer ringing locked and killed, its notification's
    Stop and +1 min, and the exact-alarm ask on Android 14+.
-2. The next idea off the [backlog](./backlog.md), not yet chosen.
+2. A recipe's share link — [plan 0051](./active/0051-recipe-share-link.md), drafted;
+   its phase 0 (the host and dart2js spike) comes first.
 3. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
