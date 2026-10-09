@@ -29,9 +29,10 @@ Taken one at a time with the owner, 2026-10-09.
 - **A recipe's own measure is said both ways.** `2 blobs (30 g) miso butter`
   — the recipe's word ([ADR-0018](../../decisions/0018-a-recipe-measure-is-a-named-amount.md))
   and the amount it stands for.
-- **Macros and timers, no cost.** Macros per portion, a `stub` ingredient
-  excluded and the total marked partial — the same honest-numbers rule as the
-  app (invariant 3). Cost is left off: it comes from the household's own
+- **Macros and timers, no cost.** Macros per portion, by the app's own rule
+  (invariant 3): a stub, an unconvertible line or a bare count leaves **no
+  total at all** (`perServing` is null), and the page names the lines that
+  cost it, as the recipe page does. Cost is left off: it comes from the household's own
   receipts. A method's timer chips start a countdown on the page. No photo:
   recipe photos do not exist yet ([backlog](../backlog.md)).
 - **Scaling, in v1.** A servings stepper on the page.
@@ -113,9 +114,9 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    the browser for the stepper, the macros at the new size and the timers. An
    unknown or revoked token is a plain 404 page. `noindex`, and a short
    `max-age` so a revoke or an edit shows within a minute. Deno tests against a
-   seeded recipe, including a nested component and a recipe measure. Whether
-   the Dart renders inside Deno or the HTML is templated in TS around the
-   bundle's output is phase 0's answer.
+   seeded recipe, including a nested component and a recipe measure. Phase 0
+   settled the shape: the same compiled Dart renders the page inside the
+   function and runs the stepper in the browser.
 5. **The Worker.** `cloudflare/share-worker/` (or similar): forwards
    `GET /r/<token>` and the bundle's path, nothing else; sets
    `content-type: text/html; charset=utf-8` and the cache header. Deployed by
@@ -134,7 +135,8 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
 - [ ] On `getansi.app`: a browser renders the page, Import accepts it, a
       WhatsApp / iMessage preview unfurls.
 - [ ] A shared link renders a cookable page: nested sub-recipes, `2 blobs
-      (30 g)`, macros with stubs excluded and marked partial, running timers.
+      (30 g)`, macros by the app's rule (no total while a line is excluded),
+      running timers.
 - [ ] The stepper rescales lines and macros with the app's own rules — the
       same numbers the recipe page shows at that servings.
 - [ ] Pasting the link into Ansi's Import reads it through JSON-LD.
@@ -144,6 +146,27 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
 - [ ] Tests: pgTAP on the RPCs, Dart unit tests on the renderer, Deno tests on
       the function, a simulator test on the ⋯ menu.
 - [ ] Docs updated (phase 6).
+
+## Phase 0 — the Dart spike (2026-10-09)
+
+A scratch package linked `app/lib` and compiled one entry point that takes a
+JSON payload, scales with `scaleGroups`, prints lines with `amountOfLine` and
+totals with `summarizeRecipeMacros` — the app's code unmodified, needing only
+`meta` and `freezed_annotation`. Dart SDK 3.13.5.
+
+- **Size:** 99 KB raw, **30 KB gzipped** at `-O4` (102 KB / 31 KB at `-O2`).
+  Small enough to load with the page; no deferral needed.
+- **Runs unmodified** in Deno 2.9.6 — evaluated as a script and as a static
+  `import`, as an edge function bundles it — and in Chromium. Node needs a
+  one-line `self = globalThis` shim. **Not run in Supabase's own edge
+  runtime**: its image could not be pulled here (Docker Hub 429, the ECR
+  mirror refused). Deno 2 stands in; the first deploy confirms.
+- **Speed:** about 0.14 ms a render in Chromium (1,000 in 143 ms).
+- **Numbers check by hand:** 400 g udon at 130 kcal/100 g plus 1 tbsp soy at
+  density 1.2 and 53 kcal/100 g, over 2 servings, is 265 kcal a serving; the
+  bundle says 265, and rescaling leaves it, as a per-serving figure should.
+- **What it found:** a measured component line does not scale (see the notes),
+  and the plan's "partial total" was wrong — the app shows none.
 
 ## Decision log
 
@@ -157,6 +180,7 @@ Append-only.
 - 2026-10-09 — The domain is `getansi.app`, already held by the owner.
 - 2026-10-09 — The `supabase.co` HTML probe is dropped from phase 0: the Worker
   overrides the header whatever Supabase sends, so its answer changes nothing.
+- 2026-10-09 — Phase 0 ran: one Dart renderer for server and browser.
 
 ## Notes / open questions
 
@@ -172,9 +196,14 @@ Append-only.
   `recipe_share` joining a sync stream. Revisit if that round-trip is felt.
 - **A sub-recipe deleted after sharing** renders as its name only, the way the
   app treats a missing component. Confirm when building phase 3.
-- **The bundle's size.** If `dart compile js` of the units core is large, the
-  page renders fully server-side and the bundle loads deferred, only for the
-  stepper and timers.
+- **A measured component line does not scale.** Phase 0 found `2 blob miso
+  butter` stays `2 blob` at any servings: `scaleLineItem` goes through
+  `LineItem.asQuantity`, which is null when a line is said in a recipe measure
+  (`unit` is null). The recipe page's stepper calls the same function
+  (`recipe_view.dart`), so the app very likely has the same gap — read from the
+  code, not yet seen on a device, and no test covers it. It is an app fix in
+  its own right, ahead of this plan; the share page inherits whatever the app
+  does.
 - **Ingredient facts become public.** The macros need per-ingredient macro and
   density rows for the lines on the page; only those rows, only those fields.
 
