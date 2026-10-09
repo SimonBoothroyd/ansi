@@ -59,8 +59,9 @@ Supabase serves no browser-renderable HTML from Edge Functions on the shared
 changelog, October 2024: *"XHTML responses are only allowed with a Custom
 Domain enabled"*). A share page there would not render, and Ansi's own import
 refuses a non-HTML response (`supabase/functions/_shared/jsonld.ts`,
-`HTML_TYPES`). **Not yet observed on our project** — this session's network
-could not reach Supabase — so phase 0 proves it before anything is built on it.
+`HTML_TYPES`). It was never observed on our project, and it no longer needs
+to be: the Worker sets the header whatever Supabase sends, so the design holds
+either way.
 
 ## Approach
 
@@ -79,14 +80,13 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
                      Worker sets content-type: text/html, caching
 ```
 
-0. **Spike the host.** Deploy a throwaway `html-probe` function and record the
-   `content-type` it is served with on `*.supabase.co`. Stand the Worker up on
-   `workers.dev` in front of it and confirm a browser renders it, the existing
-   import's `fetchBlob` accepts it, and a WhatsApp / iMessage preview unfurls.
-   **Also spike the Dart:** compile a toy `core/units` entry point with
+0. **Spike the Dart.** Compile a toy `core/units` entry point with
    `dart compile js` and run it both in a browser and inside the Deno edge
    runtime (dart2js output may want a `self` preamble there). Its size, and
-   whether it runs in Deno, decide phase 3's shape. Delete the probe.
+   whether it runs in Deno, decide phase 3's shape. Local only: the Dart SDK
+   and the Supabase CLI's local stack, no cloud. The host is proven by the
+   real thing in phase 5 — a browser renders `getansi.app/r/<token>`, Import
+   accepts it, a WhatsApp / iMessage preview unfurls.
 1. **The share row.** Migration `0054_recipe_share`: `recipe_share (id,
    household_id, recipe_id unique, token unique, created_at)`, the token 128
    random bits, base64url. RLS: a member creates, reads and deletes their own
@@ -129,8 +129,10 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
 
 ## Acceptance criteria
 
-- [ ] Phase 0 recorded below: the `supabase.co` content-type, the Worker
-      rendering, the import accepting it, a preview unfurling, dart2js in Deno.
+- [ ] Phase 0 recorded below: the bundle's size, and whether dart2js output
+      runs in the Deno edge runtime.
+- [ ] On `getansi.app`: a browser renders the page, Import accepts it, a
+      WhatsApp / iMessage preview unfurls.
 - [ ] A shared link renders a cookable page: nested sub-recipes, `2 blobs
       (30 g)`, macros with stubs excluded and marked partial, running timers.
 - [ ] The stepper rescales lines and macros with the app's own rules — the
@@ -153,6 +155,8 @@ Append-only.
   Domain. The Supabase add-on (~$35/month with Pro) was weighed against a free
   Worker on a ~$10/year domain; the owner chose the domain and the Worker.
 - 2026-10-09 — The domain is `getansi.app`, already held by the owner.
+- 2026-10-09 — The `supabase.co` HTML probe is dropped from phase 0: the Worker
+  overrides the header whatever Supabase sends, so its answer changes nothing.
 
 ## Notes / open questions
 
