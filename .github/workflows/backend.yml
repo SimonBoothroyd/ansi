@@ -6,11 +6,11 @@ name: backend
 # fail a run — and nothing else triggers on scripts/db_query_value.sh.
 on:
   push:
-    paths: ["supabase/**", ".github/workflows/backend.yml",
+    paths: ["supabase/**", "cloudflare/**", ".github/workflows/backend.yml",
             ".github/workflows/deploy-supabase.yml",
             "scripts/db_query_value.sh", "scripts/tests/**"]
   pull_request:
-    paths: ["supabase/**", ".github/workflows/backend.yml",
+    paths: ["supabase/**", "cloudflare/**", ".github/workflows/backend.yml",
             ".github/workflows/deploy-supabase.yml",
             "scripts/db_query_value.sh", "scripts/tests/**"]
 
@@ -35,6 +35,14 @@ jobs:
           deno fmt --check
           deno lint
           deno task test
+      # The share host's Worker (plan 0051): Web-standard TypeScript, so the
+      # same Deno runs its tests; wrangler only bundles it at deploy.
+      - name: Lint + test the share Worker
+        working-directory: cloudflare/share-worker
+        run: |
+          deno fmt --check
+          deno lint
+          deno test --no-lock
       - name: Lint + test seed scripts
         working-directory: supabase/seed/scripts
         run: |

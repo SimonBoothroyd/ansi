@@ -152,7 +152,7 @@ docs-check: ## Validate the knowledge base (links + required files)
 # Two targets because one of CI's legs needs Docker. `ci` is everything that
 # runs on a laptop in seconds; `ci-full` adds the database legs, which is the
 # only way to run the pgTAP suite at all.
-.PHONY: fns-lint seed-test scripts-test share-bundle ci ci-full
+.PHONY: fns-lint seed-test scripts-test share-bundle worker-test ci ci-full
 
 fns-lint: ## Deno fmt + lint on the edge functions and the seed scripts
 	cd $(FNS) && deno fmt --check && deno lint
@@ -171,6 +171,9 @@ scripts-test: ## Shell-script tests (the deploy's CLI readback helper)
 share-bundle: ## Rebuild the share page's JS bundle beside share-recipe, and render the fixture with it in Deno
 	./scripts/share_bundle.sh
 
-ci: format analyze fns-lint test seed-test scripts-test share-bundle docs-check ## The fast local subset of CI
+worker-test: ## The share host's Cloudflare Worker: fmt, lint and tests (Deno)
+	cd cloudflare/share-worker && deno fmt --check && deno lint && deno test --no-lock
+
+ci: format analyze fns-lint test seed-test scripts-test share-bundle worker-test docs-check ## The fast local subset of CI
 ci-full: ci db-reset ## Everything CI runs, needs Docker (adds migrations + pgTAP)
 	$(SUPABASE) test db

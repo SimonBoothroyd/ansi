@@ -73,6 +73,15 @@ Hobby scale, but the basics are non-negotiable.
   bundle; a title is escaped as text and cannot close the data block it is
   embedded in. A database failure answers a generic page and logs the
   detail.
+- **The share host's Worker** (`cloudflare/share-worker`, on `getansi.app`)
+  forwards exactly two shapes of path — `/r/<22-character token>` and
+  `/r/share.js` — and answers everything else itself with a 404, so nothing
+  else reaches the function. It passes on none of the visitor's headers (no
+  cookie, no authorization), follows no redirect, never shows an origin
+  error's body, and sets the page's type and security headers itself rather
+  than trusting what the gateway rewrote. The function's URL is a deploy-time
+  variable, not committed. Cloudflare's API token lives only in GitHub
+  secrets.
 - **Standing up a real cloud project** (Supabase Cloud + PowerSync Cloud + Google
   OAuth), and the gotchas that bite — see [`cloud-setup.md`](./cloud-setup.md).
 

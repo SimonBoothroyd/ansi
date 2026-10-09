@@ -425,6 +425,14 @@ gh secret set POWERSYNC_ADMIN_TOKEN
 # PowerSync instance id — the <id> in https://<id>.powersync.journeyapps.com
 # (the CLOUD_POWERSYNC_URL in cloud.env)
 gh secret set POWERSYNC_INSTANCE_ID --body '<id>'
+
+# Optional — the share host's Worker (cloud-setup §3d). Unset, step 3b skips.
+gh secret set CLOUDFLARE_API_TOKEN
+gh variable set CLOUDFLARE_ACCOUNT_ID --body '<account id>'
+
+# Optional — turns a recipe's Share link on in release builds, and sets the
+# share-recipe function's SHARE_BASE_URL to match. Set it last (§3d step 6).
+gh variable set SHARE_BASE_URL --body 'https://getansi.app'
 ```
 
 ### 4.2 Run it

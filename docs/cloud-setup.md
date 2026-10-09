@@ -486,6 +486,65 @@ throwaway user — flip sign-up on for the length of that run, then off again.
 `scripts/cloud_verify.sh` checks this toggle (via `/auth/v1/settings`) and fails
 if sign-up is open.
 
+## 3d. The share host — `getansi.app` on Cloudflare
+
+A recipe's share link (plan
+[0051](./exec-plans/active/0051-recipe-share-link.md)) is
+`https://getansi.app/r/<token>`. The page is rendered by the `share-recipe`
+function (§3b), but the platform serves no HTML from a function on the bare
+`*.supabase.co` domain, so a Cloudflare Worker (`cloudflare/share-worker`)
+stands on the share host in front of it and sets the page's headers itself.
+Free tier: 100k requests a day.
+
+Do these once, in this order. Nothing here is a secret except the token.
+
+1. **Put the domain on Cloudflare.** Dashboard → *Add a domain* →
+   `getansi.app` (Free plan). If it was bought elsewhere, change its
+   nameservers at the registrar to the two Cloudflare names and wait for the
+   zone to read *Active*. `.app` is HTTPS-only (HSTS-preloaded); Cloudflare's
+   certificate covers it with nothing to configure.
+2. **Make an API token.** Dashboard → *My Profile → API Tokens → Create
+   Token* → the **Edit Cloudflare Workers** template, with *Account
+   Resources* limited to this account and *Zone Resources* to `getansi.app`.
+   If the first deploy refuses the custom domain on permissions, add *Zone →
+   DNS → Edit* to the same token.
+3. **Hand both to GitHub.**
+
+   ```bash
+   gh secret set CLOUDFLARE_API_TOKEN
+   gh variable set CLOUDFLARE_ACCOUNT_ID --body '<account id>'   # dashboard → Workers & Pages, right column
+   ```
+
+4. **Run `deploy-supabase`.** Its step 3b deploys the Worker with the
+   function's URL (built from `SUPABASE_PROJECT_REF`, never committed) and
+   claims `getansi.app` as the Worker's custom domain — Cloudflare makes the
+   DNS record and the certificate. Without the token and the variable the
+   step says so and skips.
+5. **Check it from anywhere**, with a token `share_recipe()` minted (§3b's
+   function is deployed by the same run):
+
+   ```bash
+   curl -sI https://getansi.app/r/<token> | grep -iE '^HTTP|content-type|x-robots'
+   #   HTTP/2 200 · content-type: text/html; charset=utf-8 · x-robots-tag: noindex
+   curl -sI https://getansi.app/r/AAAAAAAAAAAAAAAAAAAAAA | head -1   # HTTP/2 404
+   ```
+
+   Then open the link on a phone, and paste it into WhatsApp or Messages to
+   see the preview unfurl.
+6. **Only then, turn the app's Share link on.** The item stays hidden until a
+   build carries the share host:
+
+   ```bash
+   gh variable set SHARE_BASE_URL --body 'https://getansi.app'
+   ```
+
+   The next release builds every platform with it, and the next
+   `deploy-supabase` sets the function's `SHARE_BASE_URL` secret to match. A
+   build cut before the variable is set offers no link — which is the point:
+   no link reaches anybody's chat before the page it names works.
+
+Locally the chain runs without Cloudflare: `cloudflare/share-worker/README.md`.
+
 ## 4. Point the app at cloud
 
 The app reads three `--dart-define`s (see the `Makefile`). To run against cloud

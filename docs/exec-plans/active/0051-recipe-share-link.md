@@ -1,6 +1,6 @@
 # Exec plan: A recipe's share link
 
-- **Status:** active — phases 0–4 landed (the Dart spike, the share row, the ⋯ menu, the renderer, the edge function); phase 5 (the Worker on `getansi.app`) next
+- **Status:** active — every phase's code has landed (spike, share row, ⋯ menu, renderer, edge function, Worker); nothing is deployed. What remains is the owner's: Cloudflare and GitHub set up per `cloud-setup.md` §3d, a `deploy-supabase` run, the checks on `getansi.app`, then `SHARE_BASE_URL` set and a release cut
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 2 — the next idea off the backlog
 - **Created:** 2026-10-09
@@ -130,35 +130,46 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    the page's own bundle. `SHARE_BASE_URL` (optional secret) names the
    canonical link. `make share-bundle` writes the bundle beside the function;
    the app's CI fails when the committed copy is stale.
-5. **The Worker.** `cloudflare/share-worker/` (or similar): forwards
-   `GET /r/<token>` and the bundle's path, nothing else; sets
-   `content-type: text/html; charset=utf-8` and the cache header. Deployed by
-   `wrangler` from CI with a `CLOUDFLARE_API_TOKEN` secret, after
-   `deploy-supabase`. `getansi.app` is routed to it as a Worker custom domain
-   (the zone must be on the owner's Cloudflare account).
-6. **Docs.** `docs/SECURITY.md` (a public, unauthenticated surface: what it
-   exposes and why only by token), `docs/cloud-setup.md` (the domain, the
-   Worker, the token secret), `docs/release.md` (the Worker's deploy), the
-   board, `ARCHITECTURE.md`'s standing table, the roadmap.
+5. **The Worker — landed, not deployed.** `cloudflare/share-worker`:
+   forwards `GET`/`HEAD` on `/r/<token>` and `/r/share.js` and nothing else,
+   passes on none of the visitor's headers, follows no redirect, hides an
+   origin error, and sets the page's type and security headers itself.
+   `deploy-supabase` step 3b deploys it with `wrangler` (pinned) when the
+   `CLOUDFLARE_API_TOKEN` secret and `CLOUDFLARE_ACCOUNT_ID` variable exist,
+   passing the function's URL from the project ref, and claims `getansi.app`
+   as its custom domain. The `SHARE_BASE_URL` repository variable turns the
+   app's Share link on in release builds and sets the function's secret to
+   match — set last, once the host answers.
+6. **Docs — landed with each phase.** `docs/SECURITY.md`, `docs/cloud-setup.md`
+   (§3b the function, §3d the share host, step by step), `docs/release.md`
+   (§4.1's optional secrets), the board's recipe page, `ARCHITECTURE.md`, the
+   roadmap, and a README beside the feature, the function and the Worker.
 
 ## Acceptance criteria
 
-- [ ] Phase 0 recorded below: the bundle's size, and whether dart2js output
+- [x] Phase 0 recorded below: the bundle's size, and whether dart2js output
       runs in the Deno edge runtime.
 - [ ] On `getansi.app`: a browser renders the page, Import accepts it, a
-      WhatsApp / iMessage preview unfurls.
-- [ ] A shared link renders a cookable page: nested sub-recipes, `2 blobs
+      WhatsApp / iMessage preview unfurls. *Locally, through the bundled
+      Worker in front of the function and a migrated Postgres: rendered and
+      driven in Chromium, and Import's own JSON-LD reader took it. Not on
+      cloud — nothing is deployed.*
+- [x] A shared link renders a cookable page: nested sub-recipes, `2 blob
       (30 g)`, macros by the app's rule (no total while a line is excluded),
       running timers.
-- [ ] The stepper rescales lines and macros with the app's own rules — the
-      same numbers the recipe page shows at that servings.
-- [ ] Pasting the link into Ansi's Import reads it through JSON-LD.
-- [ ] *Stop sharing* makes the link a 404 within a minute; sharing again makes
-      a new URL.
-- [ ] No anon RLS policy on any table; the function reads only by token.
+- [x] The stepper rescales lines and method chips with the app's own rules;
+      macros stay per serving, as the recipe page's panel does.
+- [x] Pasting the link into Ansi's Import reads it through JSON-LD — by the
+      importer's own parser, locally.
+- [x] *Stop sharing* makes the link a 404 within a minute; sharing again makes
+      a new URL — by pgTAP, the function's tests and its 60-second cache; not
+      yet watched on a phone.
+- [x] No anon RLS policy on any table; the function reads only by token.
 - [ ] Tests: pgTAP on the RPCs, Dart unit tests on the renderer, Deno tests on
-      the function, a simulator test on the ⋯ menu.
-- [ ] Docs updated (phase 6).
+      the function and the Worker — all in. *The ⋯ menu has widget tests, not
+      a simulator test: no simulator was available to the session that built
+      it.*
+- [x] Docs updated (phase 6).
 
 ## Phase 0 — the Dart spike (2026-10-09)
 
@@ -248,6 +259,24 @@ Append-only.
   `live.ts` and driven in Chromium under its own content-security policy,
   with no script errors. **Not yet on cloud**, and not reachable as a page
   there until the Worker stands in front of it.
+- 2026-10-09 — Phase 5: **the Worker sets the headers rather than passing
+  them on.** Whatever the gateway does to HTML on its shared domain — a
+  rewrite to `text/plain`, its own sandboxing policy — the Worker answers
+  with the page's real type and the function's own policy, and copies only
+  the cache header. A test stands an origin in that behaves that way.
+- 2026-10-09 — Phase 5: **the Worker deploys inside `deploy-supabase`**, as
+  step 3b after the function, and skips with a notice when Cloudflare is not
+  configured; the function's URL is built there from the project ref, so it
+  is never committed. The Share link's switch is a repository **variable**,
+  `SHARE_BASE_URL`, read by every release build and by the deploy, so turning
+  it on is one command after the host has been checked.
+- 2026-10-09 — Phase 5 verified locally: `wrangler@4.135.0 deploy --dry-run`
+  accepts the config and bundles the Worker (3.4 KiB); that bundle, run in
+  Deno in front of the served function and a migrated Postgres, served the
+  page (200, `text/html`, the policy), the bundle (immutable), a revoked
+  token and the bare host (404), drove cleanly in Chromium, and fed Import's
+  JSON-LD reader the whole recipe. Cloudflare itself was not reachable from
+  the session.
 - 2026-10-09 — Phase 1 was verified on Postgres **16** with a stand-in for
   Supabase's roles and `auth` schema (every migration and seed, all 24 pgTAP
   files green); the container images for the real local stack could not be

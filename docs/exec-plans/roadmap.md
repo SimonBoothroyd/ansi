@@ -14,12 +14,13 @@ The detail is in the plan; the landing dates are in the
 
 1. Plan 0050's phone test: a timer ringing locked and killed, its notification's
    Stop and +1 min, and the exact-alarm ask on Android 14+.
-2. A recipe's share link — [plan 0051](./active/0051-recipe-share-link.md): phases
-   0–4 landed on the branch (the dart2js spike; the share row, migration
+2. A recipe's share link — [plan 0051](./active/0051-recipe-share-link.md): every
+   phase's code landed on the branch (the dart2js spike; the share row, migration
    `0054`, **not on cloud**; the ⋯ menu, hidden until a build carries
    `SHARE_BASE_URL`; the renderer, compiled to JS; the `share-recipe` edge
-   function, **not deployed**); phase 5, the Worker on `getansi.app`, is
-   next.
+   function and the Worker on `getansi.app`, **none deployed**). Next is the
+   owner's: Cloudflare per [cloud-setup §3d](../cloud-setup.md), a
+   `deploy-supabase` run, the checks on the host, then `SHARE_BASE_URL`.
 3. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));

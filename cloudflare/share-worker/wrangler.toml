@@ -1,0 +1,15 @@
+# The share host's Worker (exec plan 0051): getansi.app/r/* → the
+# share-recipe edge function. Deployed by deploy-supabase.yml, after the
+# function, with the function's URL passed as SHARE_ORIGIN — the project ref
+# names a private family's infrastructure and is never committed.
+name = "ansi-share"
+main = "worker.ts"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+# The share host itself. A Worker custom domain: Cloudflare makes the DNS
+# record and the certificate, but the zone must already be on this account.
+routes = [{ pattern = "getansi.app", custom_domain = true }]
+
+[observability]
+enabled = true
