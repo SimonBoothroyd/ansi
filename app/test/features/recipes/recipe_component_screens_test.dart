@@ -178,6 +178,54 @@ void main() {
     expect(find.text('3 piece'), findsNothing);
   });
 
+  testWidgets('the scaler moves a line said in the target’s own word', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        _FakeRecipeRepo({
+          'sliders': _sliders(
+            component: const LineItem(
+              id: 'i2',
+              subRecipeId: 'aioli',
+              subRecipe: SubRecipeTarget(
+                id: 'aioli',
+                title: 'Romesco Aioli',
+                yieldQty: 1,
+                yieldUnit: cup,
+                measures: [
+                  RecipeMeasure(
+                    id: 'm-blob',
+                    recipeId: 'aioli',
+                    label: 'blob',
+                    amount: 50,
+                    unit: ml,
+                  ),
+                ],
+              ),
+              ingredientName: 'Romesco Aioli',
+              quantity: 4,
+              recipeMeasureId: 'm-blob',
+            ),
+          ),
+          'aioli': _aioliRecipe,
+        }),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('4 blob'), findsOneWidget);
+
+    // 8 servings → 10: ×1.25, so the four blobs become five, beside the
+    // ingredient line moving the same way.
+    await tester.tap(find.byIcon(FLucideIcons.plus));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(FLucideIcons.plus));
+    await tester.pumpAndSettle();
+    expect(find.text('5 blob'), findsOneWidget);
+    expect(find.text('4 blob'), findsNothing);
+    expect(find.text('2½ tbsp'), findsOneWidget);
+  });
+
   testWidgets('the chip pushes the target recipe', (tester) async {
     await tester.pumpWidget(
       _host(_FakeRecipeRepo({'sliders': _sliders(), 'aioli': _aioliRecipe})),

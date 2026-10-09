@@ -1,3 +1,4 @@
+import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/scaling.dart';
@@ -41,6 +42,50 @@ void main() {
     test('scales count units linearly', () {
       final scaled = scaleLineItem(_line('egg', 2, pieces), 2);
       expect(scaled.quantity, closeTo(4, 1e-9));
+    });
+
+    test("scales a component line said in its target's own word", () {
+      // `2 blob` has no catalog unit, so no Quantity; a blob is a fixed
+      // amount, so doubling the recipe doubles the blobs.
+      const line = LineItem(
+        id: 'butter',
+        subRecipeId: 'mb',
+        subRecipe: SubRecipeTarget(
+          id: 'mb',
+          title: 'Miso butter',
+          yieldQty: 150,
+          yieldUnit: g,
+          measures: [
+            RecipeMeasure(
+              id: 'm-blob',
+              recipeId: 'mb',
+              label: 'blob',
+              amount: 15,
+              unit: g,
+            ),
+          ],
+        ),
+        ingredientName: 'Miso butter',
+        quantity: 2,
+        recipeMeasureId: 'm-blob',
+      );
+      final scaled = scaleLineItem(line, 2);
+      expect(scaled.quantity, closeTo(4, 1e-9));
+      expect(scaled.unit, isNull);
+      expect(scaled.recipeMeasureId, 'm-blob');
+    });
+
+    test('scales a word line whose word has gone, keeping no unit', () {
+      // The target no longer has `m-blob`: the number still reads (see
+      // `amountOfLine`), so it still scales; nothing is re-read as a count.
+      const line = LineItem(
+        id: 'butter',
+        subRecipeId: 'mb',
+        ingredientName: 'Miso butter',
+        quantity: 3,
+        recipeMeasureId: 'm-blob',
+      );
+      expect(scaleLineItem(line, 1.5).quantity, closeTo(4.5, 1e-9));
     });
   });
 

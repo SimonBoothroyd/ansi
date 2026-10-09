@@ -16,7 +16,9 @@ recipes/
 ```
 
 - **Scaling is a view concern** — `scaling.dart` scales displayed quantities;
-  the stored recipe is untouched, and imprecise units never scale.
+  the stored recipe is untouched, and imprecise units never scale. A component
+  line said in its target's own word (`2 blob`) scales its count like any
+  other line.
 - **Save diffs children, never replaces them.** PowerSync queues ops literally,
   so `saveRecipe` UPDATEs a kept id and soft-deletes a dropped one; a DELETE of
   a kept row would tombstone it for every other device.

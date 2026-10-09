@@ -165,7 +165,8 @@ totals with `summarizeRecipeMacros` — the app's code unmodified, needing only
 - **Numbers check by hand:** 400 g udon at 130 kcal/100 g plus 1 tbsp soy at
   density 1.2 and 53 kcal/100 g, over 2 servings, is 265 kcal a serving; the
   bundle says 265, and rescaling leaves it, as a per-serving figure should.
-- **What it found:** a measured component line does not scale (see the notes),
+- **What it found:** a measured component line did not scale (fixed; see the
+  notes),
   and the plan's "partial total" was wrong — the app shows none.
 
 ## Decision log
@@ -196,14 +197,12 @@ Append-only.
   `recipe_share` joining a sync stream. Revisit if that round-trip is felt.
 - **A sub-recipe deleted after sharing** renders as its name only, the way the
   app treats a missing component. Confirm when building phase 3.
-- **A measured component line does not scale.** Phase 0 found `2 blob miso
-  butter` stays `2 blob` at any servings: `scaleLineItem` goes through
-  `LineItem.asQuantity`, which is null when a line is said in a recipe measure
-  (`unit` is null). The recipe page's stepper calls the same function
-  (`recipe_view.dart`), so the app very likely has the same gap — read from the
-  code, not yet seen on a device, and no test covers it. It is an app fix in
-  its own right, ahead of this plan; the share page inherits whatever the app
-  does.
+- **A measured component line did not scale — fixed ahead of this plan.**
+  Phase 0 found `2 blob miso butter` stayed `2 blob` at any servings:
+  `scaleLineItem` went through `LineItem.asQuantity`, null on a line said in a
+  recipe measure. The recipe page's stepper had the same gap (a widget test
+  reproduced it: `4 blob` at 8 servings stayed `4 blob` at 10). Now the count
+  scales; `scaling_test.dart` and `recipe_component_screens_test.dart` hold it.
 - **Ingredient facts become public.** The macros need per-ingredient macro and
   density rows for the lines on the page; only those rows, only those fields.
 

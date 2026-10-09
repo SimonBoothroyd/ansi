@@ -12,11 +12,18 @@ double scaleFactorFor(Recipe recipe, double targetServings) =>
 
 /// [item] with its quantity multiplied by [factor]. A line with no number or an
 /// imprecise unit is returned unchanged.
+///
+/// A component line said in its target's own word (`2 blob`) has no catalog
+/// unit, so no [LineItem.asQuantity]; a word is a fixed amount (ADR-0018), so
+/// its count scales linearly like any other.
 LineItem scaleLineItem(LineItem item, double factor) {
   final q = item.asQuantity;
-  if (q == null) return item;
-  final scaled = scale(q, factor);
-  return item.copyWith(quantity: scaled.amount);
+  if (q != null) return item.copyWith(quantity: scale(q, factor).amount);
+  final count = item.quantity;
+  if (count != null && item.isMeasuredComponent) {
+    return item.copyWith(quantity: count * factor);
+  }
+  return item;
 }
 
 /// [recipe]'s groups with every line item scaled to [targetServings], order
