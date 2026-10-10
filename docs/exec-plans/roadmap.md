@@ -14,13 +14,8 @@ The detail is in the plan; the landing dates are in the
 
 1. Plan 0050's phone test: a timer ringing locked and killed, its notification's
    Stop and +1 min, and the exact-alarm ask on Android 14+.
-2. A recipe's share link — [plan 0051](./active/0051-recipe-share-link.md): every
-   phase's code landed on the branch (the dart2js spike; the share row, migration
-   `0054`, **not on cloud**; the ⋯ menu, hidden until a build carries
-   `SHARE_BASE_URL`; the renderer, compiled to JS; the `share-recipe` edge
-   function and the Worker on `getansi.app`, **none deployed**). Next is the
-   owner's: Cloudflare per [cloud-setup §3d](../cloud-setup.md), a
-   `deploy-supabase` run, the checks on the host, then `SHARE_BASE_URL`.
+2. Plan 0051's simulator smoke for the ⋯ menu's *Share link* and *Stop
+   sharing* — the one check the share link shipped without.
 3. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
@@ -106,6 +101,7 @@ rows below, in that order.)
 | — | A label read blocks the form behind a progress screen and sets the density from the serving line; a density reads back as said; a typed price is the row's base price, never a receipt, and a cost is the newest receipt price, else the base price. Migrations `0051`–`0053` | `v0.26.0` | — |
 | — | A receipt's time moves as well as its day — the Bought sheet holds a 24-hour clock under the calendar, and a moment later than now is refused. No migrations | `v0.26.1` | [0049](./completed/0049-food-cost-receipts-and-meals-out.md) |
 | — | Timers on the recipe page — a timer chip starts at the middle of its range and counts in the step; a dock on every screen with the recipe's whole title and +N, the list in the wide sidebar; a due band that rings a minute; scheduled notifications with the phone asleep; Keep screen on in the page's menu. Also the receipts ledger reading the app's day | `v0.27.0` | [0050](./active/0050-recipe-timers.md) |
+| — | A recipe's share link — *Share link* and *Stop sharing* in the recipe page's ⋯ menu; a public, read-only page on `getansi.app` rendered by the app's own Dart compiled to JS (the `share-recipe` function behind the `ansi-share` Cloudflare Worker), with nested sub-recipes, macros, a servings stepper, timers and JSON-LD for Import. Also a line said in a recipe's own word scaling with servings. Migration `0054`, on cloud | `v0.28.0` | [0051](./active/0051-recipe-share-link.md) |
 
 ## Stretch
 

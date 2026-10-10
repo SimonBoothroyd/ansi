@@ -16,6 +16,9 @@ queueing a link that does not work yet.
 
 The menu offers **Share link** only when the build carries a share host
 (`--dart-define=SHARE_BASE_URL=https://getansi.app`); a blank one hides it.
+Release builds read it from the repository variable of the same name, set
+since `v0.28.0`; a local build reads `.env.local`. Turning the feature off is
+deleting that variable and cutting a release (`docs/cloud-setup.md` §3d).
 **Stop sharing** appears only while a link stands and the server has said so.
 
 ## The public page

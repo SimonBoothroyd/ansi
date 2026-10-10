@@ -210,6 +210,13 @@ exists for the tag it uploads with `--clobber` instead of failing. To rebuild
 from different code you must move the tag (`git tag -f`, `git push -f origin
 v0.1.0`) — which is a rewrite, so prefer a new patch tag.
 
+**Tagging without a terminal.** GitHub → *Releases → Draft a new release →
+Choose a tag* → type the new tag → *Create new tag … on publish*, target
+`main`, *Publish release*. Publishing makes the tag, the tag starts this
+workflow, and the publish step uploads into the Release that already exists.
+This is also the road when an agent session tags: its git proxy pushes
+branches but refuses tags (`v0.28.0` was made this way).
+
 **Rehearsing without a tag.** Actions → release → Run workflow. Everything runs
 except the Release publish and the Play upload (both are gated on the ref being
 a tag); the builds land as artifacts.
@@ -403,13 +410,20 @@ went first when the tag needed one.
 | `v0.26.0` | 2026-09-23 | A label read blocks the form behind a progress screen, sets the density from the serving line and replaces an old one; a density reads back as said (`⅓ cup weighs 40 g`, an ounce-only label keeps `1 oz`) or as a worked-out sentence; a typed price is the row's base price with an optional store, never a manual receipt, and a cost is the newest receipt price, else the base price. Migrations `0051`–`0053` (additive). Deploy 35874525431 went first | release 35876842531 |
 | `v0.26.1` | 2026-09-27 | A receipt's time moves as well as its day — the Bought sheet holds a 24-hour clock under the calendar, *Use it* commits both, and a moment later than now is refused; plan 0049 closes. No migrations, no deploy | release 36350896806 |
 | `v0.27.0` | 2026-10-09 | Timers on the recipe page (plan 0050) — a method's timer chip starts a timer at the middle of its range and counts in the step; one dock row on every screen with the recipe's whole title and +N for the list, held open in the wide sidebar; a due band with +1 min and Stop that rings for a minute; a scheduled local notification rings with the phone asleep (Android: insistent on the alarm stream, an ongoing countdown, the exact-alarm ask on the first timer; iOS: the notification delegate); Keep screen on in the page's ⋯ menu, and on the web a timer holds the wake lock and counts in the tab title. Also the receipts ledger's month reads the app's day. New packages and Android desugaring; no migrations, no deploy. Rehearsed first on the branch (run 37900879424: android · web green, iOS compiled) | release 37909905933 |
+| `v0.28.0` | 2026-10-10 | A recipe's share link (plan 0051) — *Share link* in the recipe page's ⋯ menu hands `https://getansi.app/r/<token>` to the share sheet (`share_plus`; the web copies it), *Stop sharing* revokes it; the public page is the app's own Dart compiled to JS, rendered by the new `share-recipe` function behind the `ansi-share` Cloudflare Worker on `getansi.app` — nested sub-recipes, a recipe's own word with its amount, macros by the app's rule, a servings stepper, timers, schema.org JSON-LD that Import reads. Also: a line said in a recipe's own word scales with servings. Migration `0054`; deploy 38029317915 went first, 38029878853 set `SHARE_BASE_URL`; the first build to carry `SHARE_BASE_URL` and the first to compile `share_plus` for Android and iOS. Tagged from GitHub's Releases page | release 38031359237 |
 
 ## 4. Deploy Supabase
 
 ### 4.1 Configure it (once)
 
 ```bash
-# Personal access token — supabase.com/dashboard/account/tokens
+# Personal access token — supabase.com/dashboard/account/tokens (starts sbp_).
+# Not a project API key (sb_publishable_… / sb_secret_…): those are the
+# app's and the functions' keys, and the CLI refuses them. If the token page
+# offers scopes, give this project database, edge-function and secrets read +
+# write. A step-1 "Invalid access token" means the stored token is no longer
+# valid (revoked, or expired); "necessary privileges" means it is scoped too
+# narrowly. Either way: a new token, then update this secret.
 gh secret set SUPABASE_ACCESS_TOKEN
 
 # The project's database password (Supabase → Project Settings → Database)

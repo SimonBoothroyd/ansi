@@ -1,8 +1,8 @@
 # Exec plan: A recipe's share link
 
-- **Status:** active — every phase's code has landed (spike, share row, ⋯ menu, renderer, edge function, Worker); nothing is deployed. What remains is the owner's: Cloudflare and GitHub set up per `cloud-setup.md` §3d, a `deploy-supabase` run, the checks on `getansi.app`, then `SHARE_BASE_URL` set and a release cut
+- **Status:** active — shipped in `v0.28.0` and live on `getansi.app` (migration `0054`, `share-recipe` and the `ansi-share` Worker on cloud since 2026-10-10; the owner opened a shared link on a phone). One item stays open: a simulator run of the ⋯ menu's *Share link* and *Stop sharing*
 - **Owner:** Simon (design and rulings), agents in lanes
-- **Roadmap step:** Next 2 — the next idea off the backlog
+- **Roadmap step:** Shipped `v0.28.0`; its simulator smoke is Next 2
 - **Created:** 2026-10-09
 
 ## Goal
@@ -130,7 +130,7 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
    the page's own bundle. `SHARE_BASE_URL` (optional secret) names the
    canonical link. `make share-bundle` writes the bundle beside the function;
    the app's CI fails when the committed copy is stale.
-5. **The Worker — landed, not deployed.** `cloudflare/share-worker`:
+5. **The Worker — live on `getansi.app` from `v0.28.0`.** `cloudflare/share-worker`:
    forwards `GET`/`HEAD` on `/r/<token>` and `/r/share.js` and nothing else,
    passes on none of the visitor's headers, follows no redirect, hides an
    origin error, and sets the page's type and security headers itself.
@@ -149,11 +149,11 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
 
 - [x] Phase 0 recorded below: the bundle's size, and whether dart2js output
       runs in the Deno edge runtime.
-- [ ] On `getansi.app`: a browser renders the page, Import accepts it, a
-      WhatsApp / iMessage preview unfurls. *Locally, through the bundled
-      Worker in front of the function and a migrated Postgres: rendered and
-      driven in Chromium, and Import's own JSON-LD reader took it. Not on
-      cloud — nothing is deployed.*
+- [x] On `getansi.app`: a browser renders the page, Import accepts it, a
+      WhatsApp / iMessage preview unfurls. *Locally first, through the
+      bundled Worker in front of the function and a migrated Postgres; then
+      on cloud from `v0.28.0`, where the owner shared a recipe from the app
+      and opened the link on a phone (2026-10-10).*
 - [x] A shared link renders a cookable page: nested sub-recipes, `2 blob
       (30 g)`, macros by the app's rule (no total while a line is excluded),
       running timers.
@@ -162,13 +162,13 @@ browser ──GET /r/<token>──▶ Worker (getansi.app)
 - [x] Pasting the link into Ansi's Import reads it through JSON-LD — by the
       importer's own parser, locally.
 - [x] *Stop sharing* makes the link a 404 within a minute; sharing again makes
-      a new URL — by pgTAP, the function's tests and its 60-second cache; not
-      yet watched on a phone.
+      a new URL — by pgTAP, the function's tests and its 60-second cache.
+      *Not yet watched on a phone.*
 - [x] No anon RLS policy on any table; the function reads only by token.
 - [ ] Tests: pgTAP on the RPCs, Dart unit tests on the renderer, Deno tests on
       the function and the Worker — all in. *The ⋯ menu has widget tests, not
       a simulator test: no simulator was available to the session that built
-      it.*
+      it. That run is the roadmap's Next 2.*
 - [x] Docs updated (phase 6).
 
 ## Phase 0 — the Dart spike (2026-10-09)
@@ -281,13 +281,26 @@ Append-only.
   Supabase's roles and `auth` schema (every migration and seed, all 24 pgTAP
   files green); the container images for the real local stack could not be
   pulled here. CI's `migrations` job runs it on the real stack.
+- 2026-10-10 — **On cloud, `v0.28.0`.** `getansi.app` turned out to be
+  registered with **Cloudflare Registrar** in the same account, so it was a
+  Cloudflare zone already: no nameserver move, and the Worker's custom domain
+  owns the bare host. Cloudflare's token page did not list the zone under
+  *Specific zone*; *All zones from an account* did. The first two
+  `deploy-supabase` runs failed before the share steps: an invalid
+  `SUPABASE_ACCESS_TOKEN` (replaced with a new `sbp_` personal access token,
+  not a project key), then one scoped too narrowly. The third applied `0054`
+  and deployed `share-recipe` and the Worker; `SHARE_BASE_URL` was set and a
+  fourth run gave the function its secret. The tag was made from GitHub's
+  Releases page, since the session could not push tags; the release was the
+  first build of `share_plus` for Android and iOS, and it was green. The
+  owner shared a recipe from the app and opened it on a phone. Runs:
+  `cloud-setup.md`'s ledger, 2026-10-10.
 
 ## Notes / open questions
 
-- **Where `getansi.app`'s DNS lives.** If it was not bought through Cloudflare,
-  its nameservers move to Cloudflare first (a free zone) so the Worker can
-  answer on it. Phase 0 can run on `workers.dev` meanwhile; only the share
-  URL's base changes.
+- **Where `getansi.app`'s DNS lives — settled.** It was bought through
+  Cloudflare Registrar, so its DNS was already a Cloudflare zone and no
+  nameservers moved (decision log, 2026-10-10).
 - **The rest of `getansi.app`.** The share page needs only `/r/*`. The root
   could later redirect to, or serve, the web app now on GitHub Pages — not in
   this plan.
@@ -314,15 +327,15 @@ Append-only.
 The code landing is not the step landing. Tick these before setting Status to
 done and moving this file to `completed/`.
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what was
+- [x] Roadmap row updated: status flipped, one line on what shipped and what was
       deliberately deferred.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
+- [x] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
+- [x] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
       can't reach), and the result recorded here.
 - [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
-- [ ] New migrations or seed changes? Say in the roadmap row whether they have
+- [x] New migrations or seed changes? Say in the roadmap row whether they have
       reached **cloud** yet, and append a `docs/cloud-setup.md` ledger entry
       when they do. A "pending cloud push" note nobody clears becomes a false
       claim the moment the push happens.

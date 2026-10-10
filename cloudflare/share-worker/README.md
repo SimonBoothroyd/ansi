@@ -3,6 +3,13 @@
 The share host's Cloudflare Worker: `getansi.app/r/*` → the `share-recipe` edge
 function ([plan 0051](../../docs/exec-plans/active/0051-recipe-share-link.md)).
 
+Live since `v0.28.0`, deployed as `ansi-share` by `deploy-supabase` step 3b.
+`getansi.app` is registered with Cloudflare Registrar in the same account, and
+the Worker owns it as a custom domain (`wrangler.toml`), so the DNS record and
+certificate are Cloudflare's to manage; it also answers on its `workers.dev`
+address. Setting it up again, and turning it off:
+[`docs/cloud-setup.md` §3d](../../docs/cloud-setup.md).
+
 Supabase serves no HTML from a function on its shared `*.supabase.co` domain, so
 the page cannot be opened there. This Worker stands on the share host, forwards
 the two paths the function answers, and sets the page's headers itself. It knows

@@ -458,7 +458,9 @@ supabase secrets set SHARE_BASE_URL=https://getansi.app
 - **`SHARE_BASE_URL`** — the origin share links are minted under, for the
   page's canonical and preview URLs. Unset, the page names the origin it was
   requested from. It is the same value the app is built with
-  (`--dart-define=SHARE_BASE_URL`).
+  (`--dart-define=SHARE_BASE_URL`). `deploy-supabase` sets it from the
+  `SHARE_BASE_URL` repository variable on every run (§3d), so on cloud it is
+  not set by hand.
 
 On the bare `*.supabase.co` domain the platform serves no HTML from a
 function, so the page is reached through the share host's Worker, never
@@ -492,36 +494,56 @@ A recipe's share link (plan
 [0051](./exec-plans/active/0051-recipe-share-link.md)) is
 `https://getansi.app/r/<token>`. The page is rendered by the `share-recipe`
 function (§3b), but the platform serves no HTML from a function on the bare
-`*.supabase.co` domain, so a Cloudflare Worker (`cloudflare/share-worker`)
-stands on the share host in front of it and sets the page's headers itself.
-Free tier: 100k requests a day.
+`*.supabase.co` domain, so a Cloudflare Worker (`cloudflare/share-worker`,
+named `ansi-share`) stands on the share host in front of it and sets the
+page's headers itself. Free tier: 100k requests a day.
 
-Do these once, in this order. Nothing here is a secret except the token.
+**How it stands** (live since 2026-10-10 — the ledger's entry for that day):
 
-1. **Put the domain on Cloudflare.** Dashboard → *Add a domain* →
-   `getansi.app` (Free plan). If it was bought elsewhere, change its
-   nameservers at the registrar to the two Cloudflare names and wait for the
-   zone to read *Active*. `.app` is HTTPS-only (HSTS-preloaded); Cloudflare's
-   certificate covers it with nothing to configure.
-2. **Make an API token.** Dashboard → *My Profile → API Tokens → Create
-   Token* → the **Edit Cloudflare Workers** template, with *Account
-   Resources* limited to this account and *Zone Resources* to `getansi.app`.
-   If the first deploy refuses the custom domain on permissions, add *Zone →
-   DNS → Edit* to the same token.
-3. **Hand both to GitHub.**
+- **`getansi.app` is registered with Cloudflare Registrar**, in the same
+  Cloudflare account the Worker deploys to. Registering it there made the
+  zone, so there was no *Add a domain* step and no nameserver change; the
+  domain renews through Cloudflare Registrar, not anywhere else. `.app` is
+  HTTPS-only (HSTS-preloaded) and Cloudflare's certificate covers it with
+  nothing to configure.
+- **The Worker owns the bare host** as a Worker *custom domain* —
+  `routes = [{ pattern = "getansi.app", custom_domain = true }]` in
+  `cloudflare/share-worker/wrangler.toml`. Cloudflare made the DNS record and
+  the certificate when the Worker first deployed; neither is edited by hand.
+  Every path on the host reaches the Worker, which answers anything but
+  `/r/<token>` and `/r/share.js` with its own 404. The same Worker also
+  answers on its `workers.dev` address (`workers_dev = true`).
+- **GitHub holds** the `CLOUDFLARE_API_TOKEN` secret and the
+  `CLOUDFLARE_ACCOUNT_ID` and `SHARE_BASE_URL` (`https://getansi.app`)
+  variables. Every `deploy-supabase` run redeploys the Worker (step 3b) and
+  re-sets the function's `SHARE_BASE_URL` secret; every release builds the
+  app with the same value, which is what shows the ⋯ menu's *Share link*.
+
+**Setting it up again** — on a new account, or after revoking the token —
+in this order. Nothing here is a secret except the token.
+
+1. **The domain.** Already on this account. A domain bought elsewhere would
+   first need *Add a domain* (Free plan) and its nameservers pointed at
+   Cloudflare's, until the zone reads *Active*.
+2. **An API token.** *My Profile → API Tokens → Create Token* → the **Edit
+   Cloudflare Workers** template. *Account Resources*: this account. *Zone
+   Resources*: **Include → All zones from an account → this account** — the
+   *Specific zone* list did not offer `getansi.app` when this was first done,
+   and the account holds no other zone, so it grants the same. If a deploy
+   refuses the custom domain on permissions, add *Zone → DNS → Edit*.
+3. **Hand both to GitHub** (on a phone: *Settings → Secrets and variables →
+   Actions*):
 
    ```bash
    gh secret set CLOUDFLARE_API_TOKEN
-   gh variable set CLOUDFLARE_ACCOUNT_ID --body '<account id>'   # dashboard → Workers & Pages, right column
+   gh variable set CLOUDFLARE_ACCOUNT_ID --body '<account id>'   # the id in dash.cloudflare.com/<account id>/…
    ```
 
-4. **Run `deploy-supabase`.** Its step 3b deploys the Worker with the
-   function's URL (built from `SUPABASE_PROJECT_REF`, never committed) and
-   claims `getansi.app` as the Worker's custom domain — Cloudflare makes the
-   DNS record and the certificate. Without the token and the variable the
-   step says so and skips.
-5. **Check it from anywhere**, with a token `share_recipe()` minted (§3b's
-   function is deployed by the same run):
+4. **Run `deploy-supabase`.** Step 3b deploys the Worker with the function's
+   URL (built from `SUPABASE_PROJECT_REF`, never committed) and claims
+   `getansi.app`. Without the token and the variable the step says so and
+   skips.
+5. **Check it from anywhere**, with a token `share_recipe()` minted:
 
    ```bash
    curl -sI https://getansi.app/r/<token> | grep -iE '^HTTP|content-type|x-robots'
@@ -530,18 +552,28 @@ Do these once, in this order. Nothing here is a secret except the token.
    ```
 
    Then open the link on a phone, and paste it into WhatsApp or Messages to
-   see the preview unfurl.
-6. **Only then, turn the app's Share link on.** The item stays hidden until a
-   build carries the share host:
+   see the preview unfurl. A test link with no app to hand: in the SQL
+   editor, `insert into recipe_share (household_id, recipe_id, token) select
+   household_id, id, rtrim(translate(encode(extensions.gen_random_bytes(16),
+   'base64'), '+/', '-_'), '=') from recipe where title = '…' and deleted_at
+   is null limit 1 returning token;` — and `update recipe_share set
+   deleted_at = now() where token = '…';` to revoke it.
+6. **Only then, turn the app's Share link on**:
 
    ```bash
    gh variable set SHARE_BASE_URL --body 'https://getansi.app'
    ```
 
    The next release builds every platform with it, and the next
-   `deploy-supabase` sets the function's `SHARE_BASE_URL` secret to match. A
-   build cut before the variable is set offers no link — which is the point:
-   no link reaches anybody's chat before the page it names works.
+   `deploy-supabase` sets the function's secret to match. A build cut before
+   the variable is set offers no link — which is the point: no link reaches
+   anybody's chat before the page it names works.
+
+**Turning it off.** Delete the `SHARE_BASE_URL` variable and cut a release:
+new builds hide *Share link*. Links already sent keep working until each is
+revoked (*Stop sharing*, or the SQL above); to stop them all at once, remove
+the Worker's custom domain in the Cloudflare dashboard (*Workers & Pages →
+ansi-share → Settings → Domains*), and the host stops answering.
 
 Locally the chain runs without Cloudflare: `cloudflare/share-worker/README.md`.
 
@@ -631,6 +663,28 @@ what was left. Append an entry after every `cloud_verify.sh` run against cloud
 or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
+
+### 2026-10-10 — v0.28.0 on cloud: 0054, `share-recipe`, and the share host
+
+- **deploy-supabase 38029317915** (attempt 2, on `72228b4e`): green —
+  `db push` applied `0054_recipe_share.sql`; all four functions deployed,
+  `share-recipe` for the first time (`--no-verify-jwt`); step 3b deployed
+  the `ansi-share` Worker and claimed `getansi.app` as its custom domain; sync
+  streams deployed (unchanged: `recipe_share` is not synced). No reseed.
+- **deploy-supabase 38029878853** (on `72228b4e`): green, the same legs with
+  nothing new to apply, run once `SHARE_BASE_URL` was set so step 3b set the
+  function's `SHARE_BASE_URL` secret to `https://getansi.app`.
+- **The two runs before them failed at step 1, changing nothing.** 38027179171:
+  `Invalid access token` — `SUPABASE_ACCESS_TOKEN` no longer held a token
+  Supabase accepted (last good run 2026-09-23), and the deploy workflow's
+  step 1 had not changed. A new personal access token fixed it.
+  38028700798: `Your account does not have the necessary privileges` — the
+  first replacement was scoped too narrowly. The token now in GitHub has the
+  scope `release.md` §4.1 describes.
+- **Checked by the owner on a phone**: a test share link opened on
+  `getansi.app`, and the app's *Share link* from `v0.28.0` (release
+  38031359237) handed a working link to the share sheet. `cloud_verify.sh` was
+  not run for this entry; it does not yet know the share host.
 
 ### 2026-09-20 (night) — two function-only deploys after v0.24.1: receipt imports read again
 
