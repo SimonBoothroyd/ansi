@@ -351,11 +351,12 @@ jobs:
   # is the configuration a phone runs. Two things about it are worth knowing
   # before reading the steps:
   #
-  #   1. `--base-href` must match where Pages serves the app. This is a PROJECT
-  #      site (github.com/<owner>/<repo> → <owner>.github.io/<repo>/), so the
-  #      repo name is part of every asset URL; with the default "/" the page
-  #      loads and every asset 404s. It is derived from GITHUB_REPOSITORY
-  #      rather than typed, so a rename cannot leave it stale.
+  #   1. `--base-href` must match where Pages serves the app: `/` on the
+  #      custom domain (`app.getansi.app`), `/<repo>/` on the bare project
+  #      site (<owner>.github.io/<repo>/). A mismatch loads the page and 404s
+  #      every asset. It is read from Pages' own `html_url` rather than typed,
+  #      so adding or dropping the custom domain, or a rename, cannot leave it
+  #      stale; with Pages off it falls back to `/<repo>/`.
   #   2. The bundle is a PUBLIC copy of the three defines. `main.dart.js` has
   #      them compiled in and anyone can read them — the anon key is public by
   #      design (RLS is the protection, docs/SECURITY.md) but the Supabase and
@@ -399,10 +400,35 @@ jobs:
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Derive the Pages base href
-        id: href
+      # Is there a host, and where? `GET /repos/{owner}/{repo}/pages` answers
+      # 404 until somebody enables Pages with source "GitHub Actions"
+      # (docs/release.md §6), and names the custom domain once one is set.
+      # Advisory, never fatal: with no host the build is still an artifact.
+      - name: Pages configured? and its base href
+        id: pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           base="/${GITHUB_REPOSITORY#*/}/"
+          if url=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url 2>/dev/null); then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            # https://app.getansi.app/ → /   https://<owner>.github.io/ansi/ → /ansi/
+            path="${url#*://}"
+            path="${path#*/}"
+            [ "$path" = "${url#*://}" ] && path=""
+            base="/${path%/}/"
+            [ "$base" = "//" ] && base="/"
+            echo "✓ Pages is configured at $url — the build will be deployed"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Pages deploy SKIPPED — this repo has no GitHub Pages site."
+            echo "The web build is attached to this run as the 'web-release' artifact."
+            echo "To host it: Settings → Pages → Source: GitHub Actions (once), then"
+            echo "re-run this workflow. Read docs/release.md §6 FIRST — hosting the"
+            echo "build publishes the Supabase and PowerSync endpoints it is compiled"
+            echo "with, and the OAuth origins have to be added to Supabase or Google"
+            echo "sign-in dead-ends in the browser (docs/cloud-setup.md §1.6)."
+          fi
           echo "base=$base" >> "$GITHUB_OUTPUT"
           echo "base href: $base"
 
@@ -415,7 +441,7 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
           SHARE_BASE_URL: ${{ vars.SHARE_BASE_URL }}
-          BASE_HREF: ${{ steps.href.outputs.base }}
+          BASE_HREF: ${{ steps.pages.outputs.base }}
         run: |
           flutter build web --release \
             --base-href "$BASE_HREF" \
@@ -438,28 +464,6 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: app/build/web
-
-      # Is there a host? `GET /repos/{owner}/{repo}/pages` answers 404 until
-      # somebody enables Pages with source "GitHub Actions" (docs/release.md
-      # §6). Advisory, never fatal — the build above already proved itself.
-      - name: Pages configured? (advisory, never fatal)
-        id: pages
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh api "repos/$GITHUB_REPOSITORY/pages" >/dev/null 2>&1; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-            echo "✓ Pages is configured — the build will be deployed"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Pages deploy SKIPPED — this repo has no GitHub Pages site."
-            echo "The web build is attached to this run as the 'web-release' artifact."
-            echo "To host it: Settings → Pages → Source: GitHub Actions (once), then"
-            echo "re-run this workflow. Read docs/release.md §6 FIRST — hosting the"
-            echo "build publishes the Supabase and PowerSync endpoints it is compiled"
-            echo "with, and the OAuth origins have to be added to Supabase or Google"
-            echo "sign-in dead-ends in the browser (docs/cloud-setup.md §1.6)."
-          fi
 
   # ---------------------------------------------------------------------------
   # The hosted copy. Tag-only, like the Release: a workflow_dispatch rehearsal

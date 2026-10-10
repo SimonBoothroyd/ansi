@@ -80,7 +80,9 @@ the memory note referenced from the step-7 exec plan; this doc is cloud-only.
 
    | Listed | Why |
    |---|---|
-   | `https://simonboothroyd.github.io/ansi/` | the GitHub Pages site for `github.com/SimonBoothroyd/ansi`. It is a *project* site, so the `/ansi/` path is part of the URL — the bare origin will not match. |
+   | `https://app.getansi.app/` | the web app's address once the custom domain is set ([release.md §6.1](./release.md#61-the-host)) — served at the root, so the bare origin with its `/` is the redirect. |
+   | `https://app.getansi.app/**` | the wildcard sibling, so the return trip with Supabase's own `?code=` on it is accepted. |
+   | `https://simonboothroyd.github.io/ansi/` | the GitHub Pages site's own address. It is a *project* site, so the `/ansi/` path is part of the URL — the bare origin will not match. Once the custom domain is live this only redirects there, and the pair can come off. |
    | `https://simonboothroyd.github.io/ansi/**` | the wildcard sibling, so the return trip with Supabase's own `?code=` on it is accepted. |
    | `http://localhost:8080/` and `http://localhost:8080/**` | development — `make run-web`, or a `python3 -m http.server` on whichever port you use. Supabase treats every port as its own origin, so a port that is not listed has to be added before sign-in works there. |
 
@@ -513,6 +515,11 @@ page's headers itself. Free tier: 100k requests a day.
   Every path on the host reaches the Worker, which answers anything but
   `/r/<token>` and `/r/share.js` with its own 404. The same Worker also
   answers on its `workers.dev` address (`workers_dev = true`).
+- **`app.getansi.app` is the web app's**, not the Worker's: a `CNAME` to
+  `simonboothroyd.github.io`, DNS only (not proxied), made by hand once, and
+  GitHub Pages serves the browser build there
+  ([release.md §6.1](./release.md#61-the-host)). Owed until that section's
+  steps are walked.
 - **GitHub holds** the `CLOUDFLARE_API_TOKEN` secret and the
   `CLOUDFLARE_ACCOUNT_ID` and `SHARE_BASE_URL` (`https://getansi.app`)
   variables. Every `deploy-supabase` run redeploys the Worker (step 3b) and
@@ -607,7 +614,7 @@ project, not because anything in it is secret.
 | # | Setting (where) | Expected value |
 |---|-----------------|----------------|
 | 1 | Auth hook (Supabase → Authentication → Auth Hooks → Custom Access Token) | **Enabled**, function `public.add_household_claim`. Load-bearing: no hook ⇒ no `household_id` claim ⇒ nothing syncs. |
-| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Verified in use:** Google is the only enabled sign-in and the owner signs in with it on `io.ansi.app` builds daily, so the new entry works; the `io.mise.app` entry can be removed at any time. **The web origins are listed too** (§1.6): the Pages site, its wildcard sibling and the dev `localhost:8080` pair, so a browser's "Continue with Google" is accepted at the redirect. No browser sign-in has been walked end to end — the Pages URL serves nothing yet (release.md §6.1). |
+| 2 | Redirect URLs (Supabase → Authentication → URL Configuration) | **Cutover open (§1.6).** Both `io.ansi.app://login-callback` (the current scheme) and `io.mise.app://login-callback` (the pre-rename one) are listed — confirmed on the dashboard 2026-09-01. **Verified in use:** Google is the only enabled sign-in and the owner signs in with it on `io.ansi.app` builds daily, so the new entry works; the `io.mise.app` entry can be removed at any time. **The web origins are listed too** (§1.6): the Pages site, its wildcard sibling and the dev `localhost:8080` pair, so a browser's "Continue with Google" is accepted at the redirect. **Owed:** the `https://app.getansi.app/` pair, added with the custom domain (release.md §6.1). No browser sign-in has been walked end to end — the Pages URL serves nothing yet (release.md §6.1). |
 | 3 | Email confirmations (Supabase → Authentication → Sign In / Providers → Email) | OFF while testing email/password (free-tier rate limits); **turn back ON before anything real**. `cloud_verify.sh` warns while it's off. |
 | 4 | Google provider (same screen → Google) | Enabled, with the Web OAuth client id/secret (§1.5). `cloud_verify.sh` checks this one via `/auth/v1/settings`. |
 | 5 | PowerSync JWKS URI (PowerSync dashboard → instance → Client Auth) | "Use Supabase Auth" checked; JWKS URI = `<CLOUD_SUPABASE_URL>/auth/v1/.well-known/jwks.json` |

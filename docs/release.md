@@ -561,13 +561,46 @@ Pages is actually configured.
 
 Pages is **on**, with **Settings → Pages → Source: GitHub Actions** — not
 "Deploy from a branch", which ignores the workflow and serves the repo. The
-site's address is `https://simonboothroyd.github.io/ansi/`: a *project* site,
-which is why the build's `--base-href` is `/<repo>/` rather than `/` and why a
-bundle built for the root 404s every asset (§6.5). The browser origins a
+site's address is moving to **`https://app.getansi.app/`**, a custom domain on
+the project site, from `https://simonboothroyd.github.io/ansi/`, which then
+redirects to it (the steps below; until they are walked it is still the
+latter). The build's `--base-href` follows whichever is live: the `web` job
+reads the site's address from the Pages API (`html_url`) and builds for its
+path — `/` on the custom domain, `/<repo>/` on the bare project site — so
+nothing is typed and a bundle is never built for the wrong path (one built for
+the wrong path loads and 404s every asset, §6.5). The browser origins a
 sign-in needs are listed on the Supabase dashboard
 ([`cloud-setup.md` §1.6](./cloud-setup.md#1-supabase-cloud-project)). Switching
 the host on was the owner's call to accept §6.2's trade — read that section
 before changing anything here.
+
+**The custom domain, `app.getansi.app`.** Free: GitHub serves it and issues
+its certificate; Cloudflare holds `getansi.app`'s DNS (cloud-setup §3d) and
+needs one record. The bare `getansi.app` stays the share Worker's. In order —
+the site is broken between step 2 and step 4, because the bundle then live
+was built for `/ansi/`:
+
+1. **Cloudflare** → `getansi.app` → **DNS → Records → Add record**: type
+   `CNAME`, name `app`, target `simonboothroyd.github.io`, proxy status
+   **DNS only** (the grey cloud — proxied, GitHub cannot see the record or
+   issue the certificate).
+2. **GitHub** → the repo → **Settings → Pages → Custom domain**:
+   `app.getansi.app` → **Save**. Wait for the DNS check to pass, then tick
+   **Enforce HTTPS** (it can take a few minutes to become available while
+   the certificate is issued). No `CNAME` file is needed: an Actions-deployed
+   site keeps the domain in its settings.
+3. **Supabase** → **Authentication → URL Configuration → Redirect URLs**: add
+   `https://app.getansi.app/` and `https://app.getansi.app/**` (cloud-setup
+   §1.6). Google's own settings do not change: it returns to Supabase's
+   callback, not to the page.
+4. **Cut a release** (§4.4, or the Releases page). Its `web` job finds the
+   custom domain and builds for `/`. Check: `https://app.getansi.app/` loads,
+   *Continue with Google* comes back signed in, and the old
+   `simonboothroyd.github.io/ansi/` redirects there.
+5. Optional, once it works: **GitHub → your account → Settings → Pages →
+   Add a domain** verifies `getansi.app` with a TXT record in Cloudflare, so
+   no other GitHub account can ever claim a subdomain of it. The old
+   `/ansi/` redirect origins can then come off Supabase's list.
 
 The `github-pages` deployment environment admits the default branch **and
 `v*` tags** — every deploy here rides a tag, and an environment that admits
@@ -585,7 +618,8 @@ What a future operator re-checks, in this order:
    Environments → github-pages → Deployment branches and tags).
 3. The origins in cloud-setup §1.6 still list the site, or "Continue with
    Google" is refused at the redirect rather than on the page.
-4. `--base-href` still matches the path Pages serves the app from.
+4. The `web` job's log names the address Pages reports and the base href it
+   built for, and they agree with the site's settings.
 
 ### 6.2 The trade: hosting publishes the endpoints
 
@@ -646,7 +680,8 @@ flutter build web --release --base-href / \
 python3 -m http.server 8080 --directory build/web
 ```
 
-`--base-href /` matters: the CI build uses `/<repo>/` for the project site, and
-a bundle built for that path 404s every asset when served from the root.
+`--base-href /` matters: a bundle built for another path (the CI build's
+`/<repo>/` while the site has no custom domain) 404s every asset when served
+from the root.
 Whatever port you use has to be a listed Supabase redirect origin before Google
 sign-in works there (§6.1).
