@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -44,20 +44,19 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The week menu</b> · This week · Next week · Last week · Jump to today — the week on screen labelled in <i>this tab’s</i> derivation</p>
+        <p class="frame-name"><b>The week menu</b> · This week · Next week · Last week — the week on screen labelled in <i>this tab’s</i> derivation</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▴</span></span><span class="chev">›</span></div>
             <div class="wkmenu">
                 <div class="wkmi on"><span class="ic">●</span>This week<span class="k">2 cooks</span></div>
                 <div class="wkmi"><span class="ic">›</span>Next week</div>
                 <div class="wkmi"><span class="ic">‹</span>Last week</div>
-                <div class="wkmi sep"><span class="ic">⌖</span>Jump to today</div>
             </div>
             <div class="cook split" style="opacity:.45">
                 <div class="cook-title">Weeknight Chicken Curry</div>
                 <div class="cook-sub">4 portions across the week · keeps 4 d</div>
             </div>
-            <p class="conv-note">the chevrons step; the menu jumps — both move all three tabs at once, because there is one viewed week</p>
+            <p class="conv-note">the chevrons step; the menu jumps — both move all three tabs at once, because there is one viewed week. <b>This week</b> is the way back to today; on the Week tab alone a fourth row, <i>Copy last week into this one</i>, stands below a rule, because it is a write</p>
             <p class="conv-note">only the row for the week <b>on screen</b> carries a label: a tab can only speak in a derivation it already holds, and deriving two more plans to letter two more rows is work nobody asked for</p>
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni on"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>

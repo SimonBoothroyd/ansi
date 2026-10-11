@@ -135,7 +135,7 @@ void main() {
 
     expect(find.text('Share link'), findsNothing);
     expect(find.text('Stop sharing'), findsNothing);
-    expect(find.text('Edit'), findsOneWidget);
+    expect(find.text('Favorite'), findsOneWidget);
   });
 
   testWidgets('Share link asks the server and hands the URL to the sheet', (

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a> · share link: matches code 2026-10-09, live on getansi.app from v0.28.0 · <a href="../../exec-plans/active/0051-recipe-share-link.md">plan 0051</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a> · share link: matches code 2026-10-09, live on getansi.app from v0.28.0 · <a href="../../exec-plans/active/0051-recipe-share-link.md">plan 0051</a> · bar and menus: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a></p>
     <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, and a tap on a <b>timer</b> starts it: the count runs in the step, and in the dock at the foot of every screen.</p>
 </header>
 
@@ -24,7 +24,7 @@
         <div class="frame">
             <p class="frame-name"><b>Saved</b> · amount · ingredient · notes; repeat uses re-join on one row</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
                     <span class="r-book">Our Cookbook · Weeknight</span>
                     <h2 class="r-title">Harissa Chicken &amp; Butter Beans</h2>
@@ -53,7 +53,7 @@
         <div class="frame">
             <p class="frame-name"><b>Method</b> &middot; a step is a sentence and a chip is a word in it &mdash; no box around the word, the live amount in the pill, and a tap rules either off</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow struck"><span class="mn">1</span><span>Warm the <span class="mchip struck">olive oil<span class="mqn">2 tbsp</span></span> in a wide pan, then add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens.</span></div>
                 <div class="mrow"><span class="mn">2</span><span>Stir in the <span class="mchip struck">smoked paprika<span class="mqn">1 tsp</span></span>, the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and the <span class="mchip">butter beans<span class="mqn">2 can</span></span>. Simmer for <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>.</span></div>
@@ -71,7 +71,7 @@
         <div class="frame">
             <p class="frame-name"><b>A timer is tapped</b> &middot; the chip starts at the middle of its range and counts down where it stands; the dock at the foot holds every one that is running</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow struck"><span class="mn">1</span><span>Season the <span class="mchip struck">chicken thigh<span class="mqn">6</span></span> and brown it in a wide pan in two batches. Lift it out.</span></div>
                 <div class="mrow struck"><span class="mn">2</span><span>Turn the heat down, add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens, <span class="tchip run" style="--p:68%"><span class="tg">&#9201;</span>6:12</span>.</span></div>
@@ -88,7 +88,7 @@
         <div class="frame">
             <p class="frame-name"><b>A running timer is tapped</b> &middot; its sheet: the clock large, what it is the middle of, three verbs, and Cancel under them</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip run" style="--p:62%"><span class="tg">&#9201;</span>14:07</span>.</span></div>
                 <div class="tsheet">
@@ -110,7 +110,7 @@
         <div class="frame">
             <p class="frame-name"><b>A timer goes off</b> &middot; one red band under the bar, the chip and its dock row turn Gone red and count on past zero</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tband"><div class="tb-x"><div class="tb-t">Step 4 is done</div><div class="tb-s">Harissa Chicken &amp; Butter Beans</div></div><span class="tb-v">+0:42</span><div class="tb-acts"><span class="tb-b">+1 min</span><span class="tb-b solid">Stop</span></div></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip due"><span class="tg">&#9201;</span>+0:42</span>.</span></div>
@@ -125,15 +125,17 @@
         <div class="frame">
             <p class="frame-name"><b>Keep screen on</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu, and a sun in the bar for as long as it holds</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
                     <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
-                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
+                    <div class="rule"></div>
                     <div class="mi"><span class="ic">&#9728;</span><span class="lb">Let the screen sleep</span></div>
-                    <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit</span></div>
+                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="rule"></div>
                     <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
                 </div>
-                <p class="conv-note">it reads <b>Keep screen on</b> while off and <b>Let the screen sleep</b> once on &mdash; the shape <i>Show line figures</i> already has. The <b>sun</b> sits beside the <b>&ctdot;</b> while it holds, so a phone that never dims is never a mystery, and tapping the sun is the other way off</p>
+                <p class="conv-note">it reads <b>Keep screen on</b> while off and <b>Let the screen sleep</b> once on &mdash; the shape <i>Show line figures</i> already has. The <b>sun</b> sits ahead of the <b>&#9998;</b> and <b>&ctdot;</b> while it holds, so a phone that never dims is never a mystery, and tapping the sun is the other way off</p>
                 <p class="conv-note">it is a <b>posture</b>, held for the session and across recipes, like line figures: nothing is written or synced. It holds until it is turned off or the app is closed &mdash; not until the page is left, because the dock is the reason to leave it</p>
                 <p class="conv-note">it is <b>separate from the timers</b> on a phone: a sleeping phone still rings, through the notification the timer scheduled when it started. On the <b>web</b> it is not separate &mdash; a slept browser is a silent one, so starting a timer turns it on there (<a href="./navigation.html">navigation</a>)</p>
             </div></div>
@@ -142,16 +144,18 @@
         <div class="frame">
             <p class="frame-name"><b>Share link</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu hands the recipe to the phone&rsquo;s share sheet as a link</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
                     <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
-                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
-                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
                     <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
-                    <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit</span></div>
+                    <div class="rule"></div>
+                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
+                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="rule"></div>
                     <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
                 </div>
-                <p class="conv-note">a tap asks the server for the recipe&rsquo;s link &mdash; the same one every time while it stands &mdash; and opens the <b>share sheet</b> with <code>getansi.app/r/&hellip;</code> and the recipe&rsquo;s title. On the web, where there may be no sheet, the link is copied instead and a toast says so</p>
+                <p class="conv-note">the <b>&ctdot;</b> holds the page&rsquo;s less-used verbs in three groups: what the <b>household</b> holds (<i>Favorite</i>, <i>Share link</i>), how <b>this phone</b> reads the page (<i>Keep screen on</i>, <i>Show line figures</i> &mdash; written nowhere), and <b>Delete</b>, alone at the foot and in red. <b>Edit</b> is not in it: it is the <b>&#9998;</b> in the bar</p>
+                <p class="conv-note">a tap on <b>Share link</b> asks the server for the recipe&rsquo;s link &mdash; the same one every time while it stands &mdash; and opens the <b>share sheet</b> with <code>getansi.app/r/&hellip;</code> and the recipe&rsquo;s title. On the web, where there may be no sheet, the link is copied instead and a toast says so</p>
                 <p class="conv-note">the link shows the recipe <b>as it is now</b>: an edit after sharing reaches everyone holding it. It is read-only, needs no account, and an Ansi user can paste it into <b>Import</b></p>
                 <p class="conv-note">it needs a connection, like Import. Offline, the one toast surface says <b>Couldn&rsquo;t share this recipe.</b> &mdash; nothing is queued, because a link that does not work yet is worse than none</p>
             </div></div>
@@ -160,14 +164,15 @@
         <div class="frame">
             <p class="frame-name"><b>Stop sharing</b> &middot; once a link stands, the menu offers to take it back</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
                     <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
-                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
-                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
                     <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
                     <div class="mi"><span class="ic">&#8856;</span><span class="lb">Stop sharing</span></div>
-                    <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit</span></div>
+                    <div class="rule"></div>
+                    <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
+                    <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
+                    <div class="rule"></div>
                     <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
                 </div>
                 <div class="lib-dlg">
@@ -182,7 +187,7 @@
         <div class="frame">
             <p class="frame-name"><b>Component lines</b> · the same grammar, only the identity cell changes — a chip pushes the sub-recipe’s page</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
                     <span class="r-book">Our Cookbook · Small plates</span>
                     <h2 class="r-title">Sausage Sliders</h2>
@@ -206,7 +211,7 @@
         <div class="frame">
             <p class="frame-name"><b>A sub-recipe’s page</b> · the hero gains a <i>makes</i> pill, and <b>Used in · N</b> is a tab that renders only while the count is non-zero</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
                     <span class="r-book">Our Cookbook · Sauces</span>
                     <h2 class="r-title">Romesco Aioli</h2>
@@ -231,7 +236,7 @@
         <div class="frame">
             <p class="frame-name"><b>The macro panel</b> · the per-serving strip closing the Ingredients tab; scaling moves the lines and the servings together, so a serving is unchanged</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
                 <div class="grp">
@@ -248,7 +253,7 @@
     <div class="frame">
         <p class="frame-name"><b>A total, and what it left out</b> · imprecise lines are excluded <b>by rule</b>, and named in a labelled row of their own</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -268,7 +273,7 @@
     <div class="frame">
         <p class="frame-name"><b>An optional line</b> · the tag is the sub-recipe chip’s shape, after the note — and the panel names the lines in an <code>OPTIONAL</code> row of their own</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -295,9 +300,9 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Opened from a week that plans it</b> &middot; one band under the title, and a second door in the <b>⋯</b> menu &mdash; the page is otherwise unchanged</p>
+        <p class="frame-name"><b>Opened from a week that plans it</b> &middot; one band under the title, and the <b>&#9998;</b> asks which edit &mdash; the page is otherwise unchanged</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="r-hero">
                 <span class="r-book">Our Cookbook &middot; Slow Sundays</span>
                 <h2 class="r-title">Slow-Cooker Beef Rag&ugrave;</h2>
@@ -305,16 +310,13 @@
                 <div class="meta-row"><span class="pill keeps"><span class="mini-fresh"></span>keeps 4 d</span><span class="pill">serves 4</span></div>
             </div>
             <div class="lib-menu">
-                <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
-                <div class="mi"><span class="ic">&Sigma;</span><span class="lb">Show line figures</span></div>
                 <div class="mi"><span class="ic">&#9998;</span><span class="lb">Edit recipe</span></div>
                 <div class="mi"><span class="ic">&#9744;</span><span class="lb">Edit for this week &middot; Tue &amp; Sat only</span></div>
-                <div class="mi danger"><span class="ic">&times;</span><span class="lb">Delete</span></div>
             </div>
             <p class="conv-note">the <b>Week's dish row</b> and the <b>Cook card's title</b> both open the page with the week they belong to (<code>?week=&hellip;</code>). Before this the variant had exactly one door &mdash; a row at the foot of the meal editor sheet &mdash; and the two surfaces that actually hold a week dropped it on the way here</p>
             <p class="conv-note">the band is the <b>condition</b> of the second item, not decoration: it says which days a tap would change, so <i>Edit for this week</i> is legible before it is opened. It reads <b>Planned Tue &middot; Sat this week</b>, and gains <b>&middot; edited for this week</b> only once the week varies the recipe</p>
             <p class="conv-note">it is <b>one mono line with a calendar glyph and no fill</b>. A filled band here stacked a third shape between the title and the chips, and the hero is where the page has to look like reading matter rather than a dashboard — the <b>chip row is the only filled thing above the tabs</b></p>
-            <p class="conv-note">arriving from the <b>Library</b> the page is untouched &mdash; no band, and the menu is <b>Favorite &middot; Show line figures &middot; Edit &middot; Delete</b>. The rename to <b>Edit recipe</b> happens only where the two doors stand together, so they read as two: one changes the recipe everywhere, one changes what these days cook</p>
+            <p class="conv-note">arriving from the <b>Library</b> the page is untouched &mdash; no band, and the <b>&#9998;</b> opens the editor with no question asked. The two edits are offered only where both exist, and side by side, so they read as two: <b>Edit recipe</b> changes the recipe everywhere, <b>Edit for this week</b> changes what these days cook</p>
             <p class="conv-note">the week is <b>re-checked against the plan</b>, never trusted: a link left in a back stack after the meal was removed offers neither the band nor the door. Same for a week key that is not a date</p>
         </div></div>
     </div>
@@ -322,7 +324,7 @@
     <div class="frame">
         <p class="frame-name"><b>Optional is a switch</b> &middot; on that same page the tag answers the question instead of only asking it &mdash; one tap, and the week stores it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="r-hero">
                 <h2 class="r-title">Slow-Cooker Beef Rag&ugrave;</h2>
                 <div class="planned"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="calendar"><title>calendar</title><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg><span>Planned Tue &middot; Sat this week &middot; edited for this week</span></div>
@@ -354,11 +356,14 @@
     <div class="frame">
         <p class="frame-name"><b>Figures per line</b> · the toggle is one item in the page’s own <b>⋯</b> menu, offered from the tab it changes; default <b>off</b></p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="lib-menu">
                 <div class="mi"><span class="ic">☆</span><span class="lb">Favorite</span></div>
+                <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
+                <div class="rule"></div>
+                <div class="mi"><span class="ic">&#9728;</span><span class="lb">Keep screen on</span></div>
                 <div class="mi"><span class="ic">Σ</span><span class="lb">Show line figures</span></div>
-                <div class="mi"><span class="ic">✎</span><span class="lb">Edit</span></div>
+                <div class="rule"></div>
                 <div class="mi danger"><span class="ic">✕</span><span class="lb">Delete</span></div>
             </div>
             <p class="conv-note">no second control and no header glyph — the page already has one door for its less-used verbs. It reads <b>Hide line figures</b> once on, and it is absent from the tabs it does not change</p>
@@ -370,7 +375,7 @@
     <div class="frame">
         <p class="frame-name"><b>The fifth cell, and the line that stands in for it</b> &middot; fibre is optional per ingredient, so a total states it only when <i>every</i> line behind it did</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="grp">
                 <div class="l3 seam"><span class="l3-amt">200 ml</span><span class="l3-body"><span class="l3-id">Coconut milk</span><span class="l3-macro">386 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 4P 6C 40F</span></span></div>
@@ -389,7 +394,7 @@
     <div class="frame">
         <p class="frame-name"><b>On</b> · each line’s own macros under its name, in the panel’s order (<code>kcal · P C F · fibre</code>) — the line <i>as shown</i>, so unlike the per-serving strip these <b>do</b> move with the scaler</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">8 servings ·2×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -415,7 +420,7 @@
     <div class="frame">
         <p class="frame-name"><b>On, over a line the total is waiting on</b> · the amber marker already says why, so the slot under the name stays empty rather than saying it twice</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -431,7 +436,7 @@
     <div class="frame">
         <p class="frame-name"><b>The panel names the lines</b> · each named line is marked where it lives, and tapping it opens the thing that fixes it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -457,7 +462,7 @@
         <div class="frame">
             <p class="frame-name"><b>The other two refusals</b> · an empty recipe, and one whose every line is imprecise — each gets its own words rather than a bucket that names a defect</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
                 <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                 <div class="macro-inc">
@@ -476,7 +481,7 @@
     <div class="frame">
         <p class="frame-name"><b>The panel flips &middot; Cost</b> &middot; the strip that closes the Ingredients tab reads one of two things about the same lines &mdash; their nutrition or their cost &mdash; chosen by the chip pair the app uses for every small closed choice. No third tab, no second list</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">&ndash;</span><span class="val">4 servings &middot;1&times;</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -500,7 +505,7 @@
     <div class="frame">
         <p class="frame-name"><b>Line figures under Cost</b> &middot; the lines print the cost record while the panel is reading Cost &mdash; and an unpriced line takes the cells with it, leaving the floor the priced lines already reach</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">&ndash;</span><span class="val">8 servings &middot;2&times;</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -559,6 +564,7 @@
                             </div>
                             <div class="hr">
                                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                                <span class="wr-dots">&#9998;</span>
                                 <span class="wr-dots">⋯</span>
                             </div>
                         </div>
@@ -683,13 +689,11 @@
                             </div>
                             <div class="hr">
                                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                                <span class="wr-dots">&#9998;</span>
                                 <span class="wr-dots">⋯</span>
                                 <div class="lib-menu wr-menu">
-                                    <div class="mi"><span class="ic">☆</span><span class="lb">Favorite</span></div>
-                                    <div class="mi"><span class="ic">Σ</span><span class="lb">Show line figures</span></div>
                                     <div class="mi"><span class="ic">✎</span><span class="lb">Edit recipe</span></div>
                                     <div class="mi"><span class="ic">&#9744;</span><span class="lb">Edit for this week · Tue &amp; Sat only</span></div>
-                                    <div class="mi danger"><span class="ic">✕</span><span class="lb">Delete</span></div>
                                 </div>
                             </div>
                         </div>
@@ -725,7 +729,7 @@
         </div>
         <p class="conv-note" style="margin:10px 4px 0">the back control names the door you came through — one word, and nothing lit in the rail, because the bar being gone is the signal the phone already gives</p>
         <p class="conv-note" style="margin:4px 4px 0">the <b>band</b> sits where it sits on the phone: one mono line with a calendar glyph, between the title and the chip row, and no fill — the chips stay the only filled thing above the columns. It gains <b>· edited for this week</b> once the week varies the recipe</p>
-        <p class="conv-note" style="margin:4px 4px 0">the width gives the second door somewhere to hang: the <b>⋯</b> menu opens under itself in the hero, and it is the menu the phone shows from a week — <b>Edit recipe</b> beside <b>Edit for this week · Tue &amp; Sat only</b>, so the two read as two. From the Library the page is untouched: no band, no second item, and the tag is a tag</p>
+        <p class="conv-note" style="margin:4px 4px 0">the <b>✎</b> hangs in the hero beside the <b>⋯</b>, and from a week it opens the same two doors the phone's does — <b>Edit recipe</b> beside <b>Edit for this week · Tue &amp; Sat only</b>, so the two read as two. From the Library the page is untouched: no band, the pencil goes straight to the editor, and the tag is a tag</p>
         <p class="conv-note" style="margin:4px 4px 0">the tag is the <b>switch</b> in this column too — an empty ring to tick, filled herb with a check and the word <b>included</b> once ticked — and the rest of week mode is read-only beside it: the week's own amount, a line it leaves out <b>struck and muted</b>, and an added line after the last group</p>
         <p class="conv-note" style="margin:4px 4px 0">the panel under the lines is the <b>week's own re-summation</b>, with the <b>OPTIONAL</b> row, the <b>INCLUDED</b> row under it, and the caption last &mdash; which speaks for the exclusions only</p>
         <p class="differs-note">differs: the back control and the rail, as in the first frame.</p>
@@ -758,6 +762,7 @@
                             </div>
                             <div class="hr">
                                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                                <span class="wr-dots">&#9998;</span>
                                 <span class="wr-dots">⋯</span>
                             </div>
                         </div>

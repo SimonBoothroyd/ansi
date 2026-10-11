@@ -239,7 +239,9 @@ void main() {
 
     await tester.tap(find.byIcon(FLucideIcons.ellipsis));
     await tester.pumpAndSettle();
+    // The menu is open — its other reading posture is there — but the
+    // figures item is not.
+    expect(find.text('Keep screen on'), findsOneWidget);
     expect(find.text('Show line figures'), findsNothing);
-    expect(find.text('Edit'), findsOneWidget);
   });
 }

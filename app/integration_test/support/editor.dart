@@ -153,16 +153,14 @@ Future<void> addComponentLine(
   await pumpUntilFound(tester, find.byType(ComponentQuantityEditor));
 }
 
-/// Opens a saved recipe's editor from its page: the header's ⋯ ▸ Edit.
+/// Opens a saved recipe's editor from its page: the header's pencil.
 Future<void> editRecipeFromPage(WidgetTester tester) async {
   await tester.tap(
     find.descendant(
       of: find.byType(FHeaderAction),
-      matching: find.byIcon(FLucideIcons.ellipsis),
+      matching: find.byIcon(FLucideIcons.pencil),
     ),
   );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Edit'));
   await pumpUntilFound(tester, find.text('Edit recipe'));
 }
 

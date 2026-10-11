@@ -330,15 +330,7 @@ void main() {
     await scrollTo(tester, find.text('Romesco Aioli'));
     await tester.tap(find.text('Romesco Aioli'));
     await pumpUntilFound(tester, find.text('makes 1 cup'));
-    await tester.tap(
-      find.descendant(
-        of: find.byType(FHeaderAction),
-        matching: find.byIcon(FLucideIcons.ellipsis),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
-    await pumpUntilFound(tester, find.text('Edit recipe'));
+    await editRecipeFromPage(tester);
     await enterYieldAmount(tester, 'yield-1', '');
     await saveRecipe(tester);
 

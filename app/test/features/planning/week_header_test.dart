@@ -43,8 +43,9 @@ void main() {
     expect(find.text('This week'), findsOneWidget);
     expect(find.text('Next week'), findsOneWidget);
     expect(find.text('Last week'), findsOneWidget);
-    expect(find.text('Jump to today'), findsOneWidget);
     expect(find.text('Copy last week into this one'), findsNothing);
+    // The three jumps and nothing else: *This week* is the way back to today.
+    expect(find.byType(FItem), findsNWidgets(3));
   });
 
   testWidgets('the Week keeps "copy last week" when there is one to copy', (

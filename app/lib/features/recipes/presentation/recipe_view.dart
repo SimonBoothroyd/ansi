@@ -232,14 +232,18 @@ class _RecipeBody extends HookConsumerWidget {
           ? null
           : PlannedThisWeekBand(days: placement.days, edited: placement.edited),
     );
+    final edit = _EditDoor(
+      recipe: recipe,
+      plannedWeek: plannedWeek,
+      days: placement.days,
+      inHeader: !wide,
+    );
     final menu = _RecipeMenu(
       recipe: recipe,
       showLineFigures: lineFigures,
       // At expanded the ingredients are always on screen, so the toggle is
       // always about something visible.
       offerLineFigures: wide || index == 0,
-      plannedWeek: plannedWeek,
-      days: placement.days,
       inHeader: !wide,
     );
     final factor = scaleFactorFor(recipe, servings.value);
@@ -299,10 +303,10 @@ class _RecipeBody extends HookConsumerWidget {
                 ansiBack(context, home: weekKey == null ? '/' : '/week'),
           ),
         ],
-        // At expanded the same menu hangs in the hero beside the scaler, which
-        // is where the width gives it room. One door either way.
+        // At expanded the pencil and the menu hang in the hero beside the
+        // scaler, which is where the width gives them room.
         suffixes: [
-          if (!wide) ...[const _AwakeSun(inHeader: true), menu],
+          if (!wide) ...[const _AwakeSun(inHeader: true), edit, menu],
         ],
       ),
       child: ListView(
@@ -325,6 +329,7 @@ class _RecipeBody extends HookConsumerWidget {
                         SizedBox(width: _kScalerWidth, child: scaler),
                         const SizedBox(width: 12),
                         const _AwakeSun(inHeader: false),
+                        edit,
                         menu,
                       ],
                     ),
@@ -408,7 +413,7 @@ const double _kIngredientsColumn = 340;
 const double _kScalerWidth = 300;
 
 /// The page's top: book line, title, week band and chips. At expanded it also
-/// holds the scaler and the `⋯`.
+/// holds the scaler, the pencil and the `⋯`.
 class _Hero extends StatelessWidget {
   const _Hero({required this.recipe, this.band});
 
@@ -503,16 +508,98 @@ class _AwakeSun extends ConsumerWidget {
   }
 }
 
-/// The page's menu: favourite, per-line figures, Edit and, from a week, that
-/// week's editor. In the header on a phone, in the hero at
-/// [AnsiLayout.expanded].
+/// The page's pencil: the recipe's most-used verb, so it stands in the bar
+/// rather than behind the `⋯`.
+///
+/// From the Library it opens the editor. From a week that plans the recipe it
+/// asks which edit — the recipe everywhere, or what those days cook — so the
+/// two doors stand together and read as two.
+class _EditDoor extends ConsumerWidget {
+  const _EditDoor({
+    required this.recipe,
+    required this.plannedWeek,
+    required this.days,
+    required this.inHeader,
+  });
+
+  final Recipe recipe;
+
+  /// The week that plans this recipe, once checked against the week itself.
+  /// Null from the Library, and then there is one edit and no question.
+  final String? plannedWeek;
+
+  /// Which days of that week cook it, for the week door's own label.
+  final List<int> days;
+
+  /// See [_RecipeMenu.inHeader].
+  final bool inHeader;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plannedWeek = this.plannedWeek;
+    void editRecipe() => context.pushOnce('/recipes/${recipe.id}/edit');
+    Widget pencil(VoidCallback onPress) => inHeader
+        ? FHeaderAction(
+            icon: const Icon(FLucideIcons.pencil),
+            semanticsLabel: 'Edit recipe',
+            onPress: onPress,
+          )
+        : AnsiTap(
+            onTap: onPress,
+            semanticsLabel: 'Edit recipe',
+            color: AnsiColors.muted,
+            padding: const EdgeInsets.all(6),
+            child: const Icon(FLucideIcons.pencil, size: 18),
+          );
+    if (plannedWeek == null) return pencil(editRecipe);
+    return FPopoverMenu(
+      // `menuBuilder`, not `menu`: an item dismisses the menu before it
+      // navigates.
+      menuBuilder: (_, controller, _) => [
+        FItemGroup(
+          children: [
+            FItem(
+              prefix: const Icon(FLucideIcons.pencil),
+              title: const Text('Edit recipe'),
+              onPress: () {
+                unawaited(controller.hide());
+                editRecipe();
+              },
+            ),
+            // It names the days it covers, because those are what it changes.
+            FItem(
+              prefix: const Icon(FLucideIcons.calendarCog),
+              title: Text(
+                editForThisWeekItem(
+                  days,
+                  ref.watch(weekShapeProvider).shortLabels,
+                  weekKey: plannedWeek,
+                ),
+              ),
+              onPress: () {
+                unawaited(controller.hide());
+                context.pushOnce(
+                  '/recipes/${recipe.id}/edit?week=$plannedWeek',
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+      builder: (context, controller, _) => pencil(controller.toggle),
+    );
+  }
+}
+
+/// The page's `⋯`: the less-used verbs, grouped by what they touch — the
+/// household's recipe (favourite, share), how this phone reads it (screen,
+/// line figures), and Delete set apart. In the header on a phone, in the hero
+/// at [AnsiLayout.expanded].
 class _RecipeMenu extends ConsumerWidget {
   const _RecipeMenu({
     required this.recipe,
     required this.showLineFigures,
     required this.offerLineFigures,
-    required this.plannedWeek,
-    required this.days,
     required this.inHeader,
   });
 
@@ -530,13 +617,6 @@ class _RecipeMenu extends ConsumerWidget {
   /// on screen.
   final bool offerLineFigures;
 
-  /// The week that plans this recipe, once checked against the week itself.
-  /// Null from the Library, and then the second door does not exist.
-  final String? plannedWeek;
-
-  /// Which days of that week cook it, for the door's own label.
-  final List<int> days;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // The favorite flag lives on the list summary (the planner's Favorites
@@ -550,7 +630,6 @@ class _RecipeMenu extends ConsumerWidget {
             .firstOrNull
             ?.favorite ??
         false;
-    final plannedWeek = this.plannedWeek;
     final shareBase = ref.watch(shareBaseUrlProvider);
     final shared =
         shareBase.isNotEmpty &&
@@ -559,9 +638,9 @@ class _RecipeMenu extends ConsumerWidget {
       // `menuBuilder`, not `menu`: an item has to be able to dismiss the
       // menu it was picked from before it navigates or opens a dialog.
       menuBuilder: (_, controller, _) => [
+        // What the household holds: written, synced, seen by both.
         FItemGroup(
           children: [
-            // The favourite star, household-shared like the recipe itself.
             FItem(
               prefix: Icon(favorite ? FLucideIcons.starOff : FLucideIcons.star),
               title: Text(favorite ? 'Unfavorite' : 'Favorite'),
@@ -576,34 +655,6 @@ class _RecipeMenu extends ConsumerWidget {
                         .setFavorite(recipe.id, !favorite),
                   ),
                 );
-              },
-            ),
-            // One item for both readings: the lines print whichever figures the
-            // panel is reading.
-            if (offerLineFigures)
-              FItem(
-                prefix: const Icon(FLucideIcons.sigma),
-                title: Text(
-                  showLineFigures ? 'Hide line figures' : 'Show line figures',
-                ),
-                onPress: () {
-                  unawaited(controller.hide());
-                  ref.read(showLineFiguresProvider.notifier).toggle();
-                },
-              ),
-            // A posture held for the session, like line figures. Off, the
-            // phone sleeps as it would; a running timer still rings through
-            // its notification.
-            FItem(
-              prefix: const Icon(FLucideIcons.sun),
-              title: Text(
-                ref.watch(keepScreenOnProvider)
-                    ? 'Let the screen sleep'
-                    : 'Keep screen on',
-              ),
-              onPress: () {
-                unawaited(controller.hide());
-                ref.read(keepScreenOnProvider.notifier).toggle();
               },
             ),
             // A public, read-only link to the recipe as it is now. Offered
@@ -635,35 +686,46 @@ class _RecipeMenu extends ConsumerWidget {
                   unawaited(stopSharingRecipe(context, recipeId: recipe.id));
                 },
               ),
-            // Named "Edit recipe" only where the week door stands beside it.
+          ],
+        ),
+        // Reading postures: held for the session on this phone, written
+        // nowhere. The always-present one leads, so the group's top does not
+        // move between tabs.
+        FItemGroup(
+          children: [
+            // Off, the phone sleeps as it would; a running timer still rings
+            // through its notification.
             FItem(
-              prefix: const Icon(FLucideIcons.pencil),
-              title: Text(plannedWeek == null ? 'Edit' : 'Edit recipe'),
+              prefix: const Icon(FLucideIcons.sun),
+              title: Text(
+                ref.watch(keepScreenOnProvider)
+                    ? 'Let the screen sleep'
+                    : 'Keep screen on',
+              ),
               onPress: () {
                 unawaited(controller.hide());
-                context.pushOnce('/recipes/${recipe.id}/edit');
+                ref.read(keepScreenOnProvider.notifier).toggle();
               },
             ),
-            // The door into week mode from the page. It names the days it
-            // covers, because those are what it changes.
-            if (plannedWeek != null)
+            // One item for both readings: the lines print whichever figures the
+            // panel is reading.
+            if (offerLineFigures)
               FItem(
-                prefix: const Icon(FLucideIcons.calendarCog),
+                prefix: const Icon(FLucideIcons.sigma),
                 title: Text(
-                  editForThisWeekItem(
-                    days,
-                    ref.watch(weekShapeProvider).shortLabels,
-                    weekKey: plannedWeek,
-                  ),
+                  showLineFigures ? 'Hide line figures' : 'Show line figures',
                 ),
                 onPress: () {
                   unawaited(controller.hide());
-                  context.pushOnce(
-                    '/recipes/${recipe.id}/edit?week=$plannedWeek',
-                  );
+                  ref.read(showLineFiguresProvider.notifier).toggle();
                 },
               ),
+          ],
+        ),
+        FItemGroup(
+          children: [
             FItem(
+              variant: FItemVariant.destructive,
               prefix: const Icon(FLucideIcons.trash2),
               title: const Text('Delete'),
               onPress: () {
@@ -677,6 +739,7 @@ class _RecipeMenu extends ConsumerWidget {
       builder: (context, controller, _) => inHeader
           ? FHeaderAction(
               icon: const Icon(FLucideIcons.ellipsis),
+              semanticsLabel: 'More',
               onPress: controller.toggle,
             )
           // In the hero there is no header to be an action of, so the glyph

@@ -16,7 +16,9 @@ The detail is in the plan; the landing dates are in the
    Stop and +1 min, and the exact-alarm ask on Android 14+.
 2. Plan 0051's simulator smoke for the ⋯ menu's *Share link* and *Stop
    sharing* — the one check the share link shipped without.
-3. Step 11 (anti-waste), still stretch.
+3. Plan 0052's simulator run of the recipe page's pencil (`recipe_editor`,
+   `nested`), and the owner's look at the regrouped ⋯ on a phone.
+4. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.

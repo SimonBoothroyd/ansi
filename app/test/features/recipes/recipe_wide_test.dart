@@ -341,8 +341,8 @@ void main() {
       ),
     );
     expect(tofu.struck, isTrue);
-    // And the week's second door hangs off the hero's own ⋯.
-    await tester.tap(find.byIcon(FLucideIcons.ellipsis));
+    // And the week's second door hangs off the hero's own pencil.
+    await tester.tap(find.bySemanticsLabel('Edit recipe'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Edit for this week'), findsOneWidget);
     expect(find.text('Edit recipe'), findsOneWidget);

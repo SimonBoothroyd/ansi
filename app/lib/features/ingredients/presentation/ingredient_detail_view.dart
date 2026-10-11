@@ -1391,9 +1391,9 @@ class _DetailForm extends ConsumerWidget {
               // `menuBuilder`, not `menu`: an item has to dismiss the menu it
               // was picked from before it navigates (the recipe view's rule).
               menuBuilder: (_, controller, _) => [
-                FItemGroup(
-                  children: [
-                    if (!stub)
+                if (!stub)
+                  FItemGroup(
+                    children: [
                       FItem(
                         prefix: const Icon(FLucideIcons.rotateCcw),
                         title: const Text('Return it to a stub'),
@@ -1402,7 +1402,12 @@ class _DetailForm extends ConsumerWidget {
                           unawaited(unconfirmRow());
                         },
                       ),
+                    ],
+                  ),
+                FItemGroup(
+                  children: [
                     FItem(
+                      variant: FItemVariant.destructive,
                       prefix: const Icon(FLucideIcons.trash2),
                       title: const Text('Delete ingredient'),
                       onPress: () {

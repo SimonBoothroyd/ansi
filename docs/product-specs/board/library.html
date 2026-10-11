@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Library</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · wide: differs 2026-09-20: the ledger is built as drawn, fully open — the one departure is the search field, which is the app's own bordered field at 300 px rather than the underline drawn here</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/books</code> · <a href="../../exec-plans/completed/0028-library-v3.md">plan 0028</a> · <a href="../../exec-plans/completed/0033-library-v2-decisions.md">plan 0033</a> · <a href="../../exec-plans/completed/0037-library-rows.md">plan 0037</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · menus: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · wide: differs 2026-09-20: the ledger is built as drawn, fully open — the one departure is the search field, which is the app's own bordered field at 300 px rather than the underline drawn here</p>
     <p class="view-blurb">The app’s home shelf — books, sections, rows; the field is the header, and every control hangs off a row that already existed.</p>
 </header>
 
@@ -140,7 +140,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>A book’s ⋯</b> · rename, section, order — and two deletes: a refusal with a door, and a plain confirm on an empty shelf</p>
+        <p class="frame-name"><b>A book’s ⋯</b> · rename, section, order — and Delete book set apart, with two answers: a refusal with a door, and a plain confirm on an empty shelf</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar lib-abar3">
                 <div class="lib-hfield"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes</span></div>
@@ -157,11 +157,11 @@
             <div class="lib-menu">
                 <div class="mi"><span class="ic">✎</span><span class="lb">Rename</span></div>
                 <div class="mi"><span class="ic">＋</span><span class="lb">New section</span></div>
-                <div class="mi"><span class="ic">↑</span><span class="lb">Move up</span></div>
                 <div class="mi"><span class="ic">↓</span><span class="lb">Move down</span></div>
                 <div class="rule"></div>
                 <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete book</span></div>
             </div>
+            <p class="conv-note" style="margin-top:10px">the first book offers no <b>Move up</b> and the last no <b>Move down</b> &mdash; a move the order cannot take is not drawn, and a lone book offers neither. A section&rsquo;s <b>⋯</b> is the same shape: <i>Rename</i> and the moves it can take, then <b>Delete section</b> alone at the foot, in red</p>
             <p class="lib-mcap">then, on a book that holds recipes</p>
             <div class="lib-dlg">
                 <div class="dh">Can’t delete “Our Cookbook” yet</div>

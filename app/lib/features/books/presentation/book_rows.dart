@@ -98,6 +98,8 @@ class BookMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
+    // A move the order cannot take is not offered.
+    final at = books.indexWhere((b) => b.id == book.id);
     return FPopoverMenu(
       menuBuilder: (_, controller, _) => [
         FItemGroup(
@@ -138,27 +140,30 @@ class BookMenu extends ConsumerWidget {
                 unawaited(promptForNewSection(context, ref, book.id));
               },
             ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowUp),
-              title: const Text('Move up'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, -1));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowDown),
-              title: const Text('Move down'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, 1));
-              },
-            ),
+            if (at > 0)
+              FItem(
+                prefix: const Icon(FLucideIcons.arrowUp),
+                title: const Text('Move up'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(_move(context, ref, -1));
+                },
+              ),
+            if (at < books.length - 1)
+              FItem(
+                prefix: const Icon(FLucideIcons.arrowDown),
+                title: const Text('Move down'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(_move(context, ref, 1));
+                },
+              ),
           ],
         ),
         FItemGroup(
           children: [
             FItem(
+              variant: FItemVariant.destructive,
               prefix: const Icon(FLucideIcons.trash2),
               title: const Text('Delete book'),
               onPress: () {
@@ -560,6 +565,8 @@ class SectionMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
+    // As for a book: a move the order cannot take is not offered.
+    final at = book.sections.indexWhere((s) => s.id == section.id);
     return FPopoverMenu(
       menuBuilder: (_, controller, _) => [
         FItemGroup(
@@ -591,25 +598,32 @@ class SectionMenu extends ConsumerWidget {
                 );
               },
             ),
+            if (at > 0)
+              FItem(
+                prefix: const Icon(FLucideIcons.arrowUp),
+                title: const Text('Move up'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(_move(context, ref, -1));
+                },
+              ),
+            if (at < book.sections.length - 1)
+              FItem(
+                prefix: const Icon(FLucideIcons.arrowDown),
+                title: const Text('Move down'),
+                onPress: () {
+                  unawaited(controller.hide());
+                  unawaited(_move(context, ref, 1));
+                },
+              ),
+          ],
+        ),
+        FItemGroup(
+          children: [
             FItem(
-              prefix: const Icon(FLucideIcons.arrowUp),
-              title: const Text('Move up'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, -1));
-              },
-            ),
-            FItem(
-              prefix: const Icon(FLucideIcons.arrowDown),
-              title: const Text('Move down'),
-              onPress: () {
-                unawaited(controller.hide());
-                unawaited(_move(context, ref, 1));
-              },
-            ),
-            FItem(
+              variant: FItemVariant.destructive,
               prefix: const Icon(FLucideIcons.trash2),
-              title: const Text('Delete'),
+              title: const Text('Delete section'),
               onPress: () {
                 unawaited(controller.hide());
                 unawaited(

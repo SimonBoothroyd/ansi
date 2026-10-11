@@ -216,6 +216,17 @@ Future<void> _openMenu(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// The bar's pencil: straight to the editor, or the choice of two edits.
+Future<void> _tapPencil(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(FHeaderAction),
+      matching: find.byIcon(FLucideIcons.pencil),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   test('structural: the recipe route reads ?week= exactly as the editor '
       'route does', () {
@@ -283,21 +294,25 @@ void main() {
       );
     });
 
-    testWidgets('its ⋯ menu holds two doors, named so they read as two', (
-      tester,
-    ) async {
+    testWidgets('its pencil asks which edit — two doors, named so they read '
+        'as two', (tester) async {
       await _pumpPage(tester, week: _weekKey);
-      await _openMenu(tester);
+      await _tapPencil(tester);
       expect(find.text('Edit recipe'), findsOneWidget);
       expect(find.text('Edit for this week · Tue & Sat only'), findsOneWidget);
-      expect(find.text('Edit'), findsNothing);
     });
 
-    testWidgets('and the week door opens week mode for that week', (
-      tester,
-    ) async {
-      final router = await _pumpPage(tester, week: _weekKey);
+    testWidgets('and neither door is in the ⋯', (tester) async {
+      await _pumpPage(tester, week: _weekKey);
       await _openMenu(tester);
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('Edit recipe'), findsNothing);
+      expect(find.textContaining('Edit for this week'), findsNothing);
+    });
+
+    testWidgets('the week door opens week mode for that week', (tester) async {
+      final router = await _pumpPage(tester, week: _weekKey);
+      await _tapPencil(tester);
       await tester.tap(find.text('Edit for this week · Tue & Sat only'));
       await tester.pumpAndSettle();
       expect(
@@ -305,6 +320,16 @@ void main() {
         '/recipes/r1/edit?week=$_weekKey',
         reason: 'the shipped week mode, on the week the link named',
       );
+    });
+
+    testWidgets('and Edit recipe opens the recipe’s own editor', (
+      tester,
+    ) async {
+      final router = await _pumpPage(tester, week: _weekKey);
+      await _tapPencil(tester);
+      await tester.tap(find.text('Edit recipe'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/recipes/r1/edit');
     });
   });
 
@@ -493,13 +518,55 @@ void main() {
   });
 
   group('every other arrival is the page it has always been', () {
-    testWidgets('from the Library: no band, and one Edit', (tester) async {
-      await _pumpPage(tester);
+    testWidgets('from the Library: no band, and the pencil opens the editor '
+        'with no question to answer', (tester) async {
+      final router = await _pumpPage(tester);
       expect(find.byType(PlannedThisWeekBand), findsNothing);
-      await _openMenu(tester);
-      expect(find.text('Edit'), findsOneWidget);
-      expect(find.text('Edit recipe'), findsNothing);
+      await _tapPencil(tester);
       expect(find.textContaining('Edit for this week'), findsNothing);
+      expect(router.state.uri.toString(), '/recipes/r1/edit');
+    });
+
+    testWidgets('the ⋯ holds the less-used verbs in three groups — the '
+        'household’s, this phone’s, and Delete last, in red', (tester) async {
+      await _pumpPage(tester);
+      await _openMenu(tester);
+      // The items of the group nearest [title] — the menu's own outer group
+      // holds them all.
+      List<String> groupOf(String title) => tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find
+                  .ancestor(
+                    of: find.text(title),
+                    matching: find.byType(FItemGroup),
+                  )
+                  .first,
+              matching: find.byType(Text),
+            ),
+          )
+          .map((text) => text.data ?? '')
+          .toList();
+      expect(groupOf('Favorite'), ['Favorite']);
+      expect(groupOf('Keep screen on'), [
+        'Keep screen on',
+        'Show line figures',
+      ]);
+      expect(groupOf('Delete'), ['Delete']);
+      double top(String title) => tester.getTopLeft(find.text(title)).dy;
+      expect(top('Favorite'), lessThan(top('Keep screen on')));
+      expect(top('Show line figures'), lessThan(top('Delete')));
+      expect(
+        tester
+            .widget<FItem>(
+              find.ancestor(
+                of: find.text('Delete'),
+                matching: find.byType(FItem),
+              ),
+            )
+            .variant,
+        FItemVariant.destructive,
+      );
     });
 
     testWidgets('from the Library the tag stays a tag: nothing to tap, and '
@@ -524,20 +591,21 @@ void main() {
 
     testWidgets('a week that no longer plans it offers neither — a stale link '
         'must not offer a week the person left', (tester) async {
-      await _pumpPage(tester, week: _weekKey, plansIt: false);
+      final router = await _pumpPage(tester, week: _weekKey, plansIt: false);
       expect(find.byType(PlannedThisWeekBand), findsNothing);
-      await _openMenu(tester);
-      expect(find.text('Edit'), findsOneWidget);
+      await _tapPencil(tester);
       expect(find.textContaining('Edit for this week'), findsNothing);
+      expect(router.state.uri.toString(), '/recipes/r1/edit');
     });
 
     testWidgets('and a week key that is not a date is simply not a week', (
       tester,
     ) async {
-      await _pumpPage(tester, week: 'last-tuesday-ish');
+      final router = await _pumpPage(tester, week: 'last-tuesday-ish');
       expect(find.byType(PlannedThisWeekBand), findsNothing);
-      await _openMenu(tester);
+      await _tapPencil(tester);
       expect(find.textContaining('Edit for this week'), findsNothing);
+      expect(router.state.uri.toString(), '/recipes/r1/edit');
     });
   });
 

@@ -657,6 +657,48 @@ void main() {
 
       expect(repo.reordered, ['b2', 'b1']);
     });
+
+    testWidgets('offers only the moves the order can take', (tester) async {
+      await tester.pumpWidget(
+        _host(_repo(const [..._library, Book(id: 'b2', name: 'Baking')])),
+      );
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      // The first book can only go down.
+      expect(find.text('Move up'), findsNothing);
+      expect(find.text('Move down'), findsOneWidget);
+    });
+
+    testWidgets('a lone book has nowhere to move, and Delete book stands '
+        'apart in red', (tester) async {
+      await tester.pumpWidget(_host(_repo(_library)));
+      await tester.pumpAndSettle();
+
+      await openBookMenu(tester);
+      expect(find.text('Move up'), findsNothing);
+      expect(find.text('Move down'), findsNothing);
+      expect(_item(tester, 'Delete book').variant, FItemVariant.destructive);
+      expect(_itemsBeside(tester, 'Delete book'), ['Delete book']);
+    });
+  });
+
+  group('the section ⋯', () {
+    testWidgets('a lone section has nowhere to move, and Delete section '
+        'stands apart in red', (tester) async {
+      await tester.pumpWidget(_host(_repo(_library)));
+      await tester.pumpAndSettle();
+
+      filterForuiSemanticsAssertions();
+      // `⋯` #0 is the first book's, #1 its section's.
+      await tester.tap(find.byIcon(FLucideIcons.ellipsis).at(1));
+      await tester.pumpAndSettle();
+      expect(find.text('Rename'), findsOneWidget);
+      expect(find.text('Move up'), findsNothing);
+      expect(find.text('Move down'), findsNothing);
+      expect(_item(tester, 'Delete section').variant, FItemVariant.destructive);
+      expect(_itemsBeside(tester, 'Delete section'), ['Delete section']);
+    });
   });
 
   testWidgets('an expanded card carries no dashed furniture', (tester) async {
@@ -1209,7 +1251,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await openSectionMenu(tester);
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Delete section'));
       await tester.pumpAndSettle();
 
       expect(repo.calls, ['deleteSection']);
@@ -1280,7 +1322,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await openSectionMenu(tester);
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text('Delete section'));
       await tester.pumpAndSettle();
 
       expect(repo.calls, ['deleteSection']);
@@ -1310,3 +1352,22 @@ void main() {
     expect(find.text('Import a recipe'), findsNothing);
   });
 }
+
+/// The menu item whose title reads [title].
+FItem _item(WidgetTester tester, String title) => tester.widget<FItem>(
+  find.ancestor(of: find.text(title), matching: find.byType(FItem)),
+);
+
+/// The titles in the item group nearest [title] — the menu's own outer group
+/// holds every item.
+List<String> _itemsBeside(WidgetTester tester, String title) => tester
+    .widgetList<Text>(
+      find.descendant(
+        of: find
+            .ancestor(of: find.text(title), matching: find.byType(FItemGroup))
+            .first,
+        matching: find.byType(Text),
+      ),
+    )
+    .map((text) => text.data ?? '')
+    .toList();

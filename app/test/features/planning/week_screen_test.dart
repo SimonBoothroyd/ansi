@@ -464,7 +464,7 @@ void main() {
 
       await tester.tap(find.text(titleFor(-1)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Jump to today'));
+      await tester.tap(find.text('This week'));
       await tester.pumpAndSettle();
       expect(find.text(titleFor(0)), findsOneWidget);
     });

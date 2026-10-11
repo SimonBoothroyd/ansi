@@ -2012,6 +2012,9 @@
 
     /* the bar's sun: Keep screen on, held */
     .abar .awake{color:var(--herb);font-size:15px;margin-left:auto;margin-right:14px;}
+    /* the recipe page's pencil, ahead of its ⋯ */
+    .abar .edit{color:var(--muted);font-size:15px;margin-left:auto;margin-right:16px;}
+    .abar .awake + .edit{margin-left:0;}
 
     /* the locked phone: the OS's own surfaces, drawn plainly */
     .lockscr{background:linear-gradient(180deg,#24302A,#18211C);color:#fff;padding:18px 14px 26px;min-height:520px;}

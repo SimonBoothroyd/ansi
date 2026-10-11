@@ -151,9 +151,11 @@ class _WeekMenu extends ConsumerWidget {
             ),
           ],
         ),
-        FItemGroup(
-          children: [
-            if (hasLastWeek)
+        // A write, so it stands apart from the three jumps — and only on the
+        // Week.
+        if (hasLastWeek)
+          FItemGroup(
+            children: [
               FItem(
                 prefix: const Icon(FLucideIcons.copy),
                 title: const Text('Copy last week into this one'),
@@ -162,16 +164,8 @@ class _WeekMenu extends ConsumerWidget {
                   unawaited(copyLastWeekInto(context, ref, weekStart: viewed));
                 },
               ),
-            FItem(
-              prefix: const Icon(FLucideIcons.crosshair),
-              title: const Text('Jump to today'),
-              onPress: () {
-                unawaited(controller.hide());
-                notifier.today();
-              },
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
       builder: (context, controller, _) => GestureDetector(
         behavior: HitTestBehavior.opaque,
