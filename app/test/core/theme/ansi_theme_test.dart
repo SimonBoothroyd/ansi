@@ -67,6 +67,22 @@ void main() {
     expect(restText.color, AnsiColors.muted);
   });
 
+  test('destructive is Ansi’s own red — the alarm ink, gone — on every '
+      'surface that draws it', () {
+    final theme = ansiThemeData();
+    expect(theme.colors.destructive, AnsiColors.gone);
+    // A menu's Delete: its title, its glyph.
+    final item = theme.itemStyles.destructive.contentStyle;
+    expect(item.titleTextStyle.resolve(const {}).color, AnsiColors.gone);
+    expect(item.prefixIconStyle.resolve(const {}).color, AnsiColors.gone);
+  });
+
+  test('gone on surface is 4.71:1 — a red item’s title is AA', () {
+    final red = _contrast(AnsiColors.gone, AnsiColors.surface);
+    expect(red, closeTo(4.71, 0.01));
+    expect(red, greaterThanOrEqualTo(4.5));
+  });
+
   test('the toast is anchored bottom-centre and capped at the measure, on '
       'every variant', () {
     final toaster = ansiThemeData().toasterStyle;

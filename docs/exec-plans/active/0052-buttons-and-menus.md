@@ -36,7 +36,10 @@ recipe page's lighter, and make the rest follow the same few rules.
    link*, *Stop sharing*), how this phone reads the page (*Keep screen on*,
    *Show line figures* — written nowhere), and Delete.
 3. **Delete is last, alone in its group, and red** (`FItemVariant.destructive`)
-   — in every menu that has one.
+   — in every menu that has one. The red is Ansi's own, `AnsiColors.gone`
+   (4.71:1 on white): the theme's `destructive`, so the item, the confirm
+   button behind it and a failed write's toast are one red, the one a
+   refusal is written in.
 4. **A menu does not offer what would do nothing** — no Move up on the first
    row, no Move down on the last.
 5. **No item twice.** One door per destination within a menu.
@@ -63,6 +66,9 @@ recipe page's lighter, and make the rest follow the same few rules.
       can take them; *Delete section* in its own group; both deletes red.
 - [x] `ingredient_detail_view.dart`: *Delete ingredient* in its own group,
       red; the first group absent on a stub.
+- [x] `ansi_theme.dart`: `destructive` is `AnsiColors.gone` rather than
+      Forui's `#E7000B`, pinned with its contrast in `ansi_theme_test`. The
+      app draws no Forui form-error state, so `error` is left as it is.
 - [x] Widget tests: the pencil's two doors and the Library's straight path
       (`recipe_week_arrival_test`, `recipe_wide_test`), the recipe `⋯`'s
       groups and red Delete, the book and section moves and deletes

@@ -25,6 +25,9 @@ FThemeData ansiThemeData() {
     mutedForeground: AnsiColors.muted,
     border: AnsiColors.line,
     card: AnsiColors.surface,
+    // A destructive menu item, the confirm behind it and a failed write's
+    // toast speak in the same red a refusal does.
+    destructive: AnsiColors.gone,
   );
   final typography = FTypography.inherit(
     colors: colors,
