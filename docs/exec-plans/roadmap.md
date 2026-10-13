@@ -29,6 +29,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| The recipe page's Edit is a pencil in the bar — from a week it offers both edits side by side; every ⋯ groups its items, with Delete last, alone and in Ansi's own red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone | [0052](./active/0052-buttons-and-menus.md) |
 
 ## Shipped
 

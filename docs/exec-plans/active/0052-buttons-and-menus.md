@@ -1,6 +1,6 @@
 # Exec plan: A pass over buttons and menus
 
-- **Status:** built on `ccr-d2ad9000-tfiwl1` — widget tests, analyze and docs-check pass; the two simulator files that open the editor from the recipe page (`recipe_editor`, `nested`) are updated but not run
+- **Status:** on `main`, not yet tagged — widget tests, analyze and docs-check pass; the two simulator files that open the editor from the recipe page (`recipe_editor`, `nested`) are updated but not run
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 3 — a design pass, off the owner's ask
 - **Created:** 2026-10-11
