@@ -28,7 +28,7 @@ class AnsiApp extends ConsumerWidget {
       // One scrollbar for every list (`shared/ansi_scroll.dart`); the wide
       // panes' right gutter is measured against its thickness.
       scrollBehavior: const AnsiScrollBehavior(),
-      // One [FToaster] for the whole app: `showFToast` walks up for it.
+      // One [FToaster] for the whole app: `showRawFToast` walks up for it.
       builder: (context, child) => FTheme(
         data: theme,
         child: FToaster(

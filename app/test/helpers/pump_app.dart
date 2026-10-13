@@ -26,10 +26,10 @@ extension PumpApp on WidgetTester {
   /// [FTheme], and — the reason this helper exists — one [FToaster].
   ///
   /// Any screen that calls `ref.write` (`lib/shared/write.dart`) raises its
-  /// failure toast through `showFToast`, which throws a [FlutterError] when it
-  /// cannot find an `FToasterState` ancestor. A test that pumps such a screen
-  /// under a bare `FTheme` fails on the *toaster*, not on the behaviour it was
-  /// written to check.
+  /// failure toast through `showRawFToast`, which throws a [FlutterError] when
+  /// it cannot find an `FToasterState` ancestor. A test that pumps such a
+  /// screen under a bare `FTheme` fails on the *toaster*, not on the behaviour
+  /// it was written to check.
   Future<void> pumpAnsiApp(
     Widget child, {
     List<Override> overrides = const [],

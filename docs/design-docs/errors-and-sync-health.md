@@ -36,6 +36,10 @@ when a *specific* failure was designed for. What was missing was the
 | an unhandled exception | **toast**, quiet, primary, with Copy details |
 | offline | **nothing.** See "What we don't say". |
 
+Every toast sits bottom-centre, stays six seconds, and swipes away left, right
+or down (`app/lib/shared/ansi_toast.dart`) — Forui alone lets a bottom-centre
+toast go only downward.
+
 ---
 
 ## One door for every write

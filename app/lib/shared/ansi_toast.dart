@@ -1,7 +1,8 @@
 /// The app's toasts. A toast reports an act that did not happen; a state that
 /// stays wrong is the sync banner's.
 ///
-/// Position and width are set once on the theme's toaster style. A toast needs
+/// Position and width are set once on the theme's toaster style. Every toast
+/// swipes away sideways as well as down ([_showAnsiToast]). A toast needs
 /// the `FToaster` ancestor `app.dart` installs, so a widget test must use
 /// `pumpAnsiApp`. See `docs/design-docs/errors-and-sync-health.md`.
 library;
@@ -18,6 +19,40 @@ const _toastDuration = Duration(seconds: 6);
 /// tree (the zone handler). Null until the first frame.
 final ansiToastAnchor = GlobalKey(debugLabel: 'ansi toast anchor');
 
+/// Shows an [FToast] that swipes away left, right or down.
+///
+/// Forui lets a bottom-centre toast swipe only down, and a toast gets one
+/// horizontal direction at most — but a thumb flicks a toast sideways. Forui
+/// keeps the downward swipe; a [Dismissible] adds both horizontal ones, then
+/// hands the toast back to Forui to remove. No resize: the toast is already
+/// off-screen, and a resizing [Dismissible] asserts if it is still in the tree.
+void _showAnsiToast(
+  BuildContext context, {
+  required Widget icon,
+  required Widget title,
+  FToastVariant variant = FToastVariant.primary,
+  Widget? description,
+  Widget Function(BuildContext context, FToasterEntry entry)? suffixBuilder,
+}) {
+  showRawFToast(
+    context: context,
+    variant: variant,
+    duration: _toastDuration,
+    builder: (context, entry) => Dismissible(
+      key: ObjectKey(entry),
+      resizeDuration: null,
+      onDismissed: (_) => entry.dismiss(),
+      child: FToast(
+        variant: variant,
+        icon: icon,
+        title: title,
+        description: description,
+        suffix: suffixBuilder?.call(context, entry),
+      ),
+    ),
+  );
+}
+
 /// Reports that one thing the user asked for did not happen.
 ///
 /// [what] is a lowercase verb phrase completing "Couldn't ___." in the user's
@@ -28,10 +63,9 @@ void showAnsiFailureToast(
   required String what,
   VoidCallback? onRetry,
 }) {
-  showFToast(
-    context: context,
+  _showAnsiToast(
+    context,
     variant: FToastVariant.destructive,
-    duration: _toastDuration,
     icon: const Icon(FLucideIcons.circleAlert),
     title: Text('Couldn’t $what.'),
     suffixBuilder: onRetry == null
@@ -55,9 +89,8 @@ void showAnsiProblemToast(
   BuildContext context, {
   required VoidCallback onCopyDetails,
 }) {
-  showFToast(
-    context: context,
-    duration: _toastDuration,
+  _showAnsiToast(
+    context,
     icon: const Icon(FLucideIcons.info),
     title: const Text('Something went wrong.'),
     description: Text('Ansi kept going.', style: ansiMonoInherit(size: 11)),
@@ -79,9 +112,8 @@ void showAnsiProblemToast(
 /// nothing on screen, so without a word the tap would read as dead. [what]
 /// names the thing copied, in the user's own nouns. Primary, not destructive.
 void showAnsiCopiedToast(BuildContext context, {required String what}) {
-  showFToast(
-    context: context,
-    duration: _toastDuration,
+  _showAnsiToast(
+    context,
     icon: const Icon(FLucideIcons.link),
     title: Text('$what copied.'),
   );
@@ -99,9 +131,8 @@ void showAnsiUndoToast(
   required VoidCallback onUndo,
   String? detail,
 }) {
-  showFToast(
-    context: context,
-    duration: _toastDuration,
+  _showAnsiToast(
+    context,
     icon: const Icon(FLucideIcons.minus),
     title: Text(what),
     description: detail == null
