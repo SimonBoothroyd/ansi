@@ -29,7 +29,6 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
-| The recipe page's Edit is a pencil in the bar — from a week it offers both edits side by side; every ⋯ groups its items, with Delete last, alone and in Ansi's own red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone | [0052](./active/0052-buttons-and-menus.md) |
 
 ## Shipped
 
@@ -105,6 +104,8 @@ rows below, in that order.)
 | — | A receipt's time moves as well as its day — the Bought sheet holds a 24-hour clock under the calendar, and a moment later than now is refused. No migrations | `v0.26.1` | [0049](./completed/0049-food-cost-receipts-and-meals-out.md) |
 | — | Timers on the recipe page — a timer chip starts at the middle of its range and counts in the step; a dock on every screen with the recipe's whole title and +N, the list in the wide sidebar; a due band that rings a minute; scheduled notifications with the phone asleep; Keep screen on in the page's menu. Also the receipts ledger reading the app's day | `v0.27.0` | [0050](./active/0050-recipe-timers.md) |
 | — | A recipe's share link — *Share link* and *Stop sharing* in the recipe page's ⋯ menu; a public, read-only page on `getansi.app` rendered by the app's own Dart compiled to JS (the `share-recipe` function behind the `ansi-share` Cloudflare Worker), with nested sub-recipes, macros, a servings stepper, timers and JSON-LD for Import. Also a line said in a recipe's own word scaling with servings. Migration `0054`, on cloud | `v0.28.0` | [0051](./active/0051-recipe-share-link.md) |
+| — | The web build reads the Pages site's address and builds for its path, so the app can be served on `app.getansi.app` with no workflow edit. No migrations | `v0.28.1` | — |
+| — | A pass over buttons and menus — the recipe page's Edit is a pencil in the bar (from a week it offers both edits side by side); every ⋯ groups its items, with Delete last, alone and in Ansi's own red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone. Also toasts swipe away sideways as well as down. No migrations | `v0.29.0` | [0052](./active/0052-buttons-and-menus.md) |
 
 ## Stretch
 

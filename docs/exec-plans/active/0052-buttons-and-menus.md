@@ -1,6 +1,6 @@
 # Exec plan: A pass over buttons and menus
 
-- **Status:** on `main`, not yet tagged — widget tests, analyze and docs-check pass; the two simulator files that open the editor from the recipe page (`recipe_editor`, `nested`) are updated but not run
+- **Status:** shipped in `v0.29.0` — widget tests, analyze and docs-check pass; the two simulator files that open the editor from the recipe page (`recipe_editor`, `nested`) are updated but not run
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 3 — a design pass, off the owner's ask
 - **Created:** 2026-10-11
