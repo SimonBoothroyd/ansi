@@ -1,8 +1,8 @@
 # Exec plan: Ask Ansi — a chat and voice assistant
 
-- **Status:** draft — a spec of the conversations, to be ruled on before any code
+- **Status:** draft — the conversations are ruled (see Rulings); slice 1 is next to plan in detail
 - **Owner:** Simon (rulings), agents in lanes
-- **Roadmap step:** none yet — a candidate for Next once the open questions are ruled
+- **Roadmap step:** none yet — slice 1 is a candidate for Next
 - **Created:** 2026-10-18
 
 ## Goal
@@ -56,7 +56,7 @@ tapping the chip's ✕ drops it, so a question can be asked "from nowhere".
 | Route | What the screen context carries |
 |---|---|
 | `/recipes/:id` | recipe id and title, the **servings the stepper shows now**, `?week=` when opened from a week that plans it, the focused method step, struck lines and steps |
-| `/recipes/:id/edit` | recipe id; nothing in the unsaved draft (see open question 6) |
+| `/recipes/:id/edit` | recipe id only; answers come from the **saved** recipe and say so (*"from the saved version"*), never from the unsaved draft |
 | `/week` | the viewed week, the open day (wide layout) |
 | `/cook` | the viewed week |
 | `/shop` | the viewed week |
@@ -78,8 +78,8 @@ A thread lives on the device in memory, so a follow-up works:
 > · *Make it 8 servings* → the stepper moves · *Garlic now?* → **8 cloves**
 
 - The thread is **not synced and not stored**. Closing the sheet keeps it for
-  that session; it is cleared when the app restarts, or after 30 minutes idle
-  (to be ruled).
+  that session; it is cleared when the app restarts, or after 30 minutes with
+  no message.
 - **The screen wins over the thread.** If the member navigates to another
   recipe, the next message carries the new screen, and *"how much salt?"*
   means the new recipe.
@@ -93,53 +93,59 @@ returns the few rows it was asked for. See **Tools** below.
 
 ## The conversations
 
-Grouped by area. **v1** is the proposed first slice; **later** is spec'd so
-the tool shapes allow it, but not built first. Each row is the canonical
+Grouped by area. **Slice 1** is recipe questions and device-only actions —
+nothing a member says can change shared data. **Slice 2** adds the week and
+the shopping list, every write behind a proposal card. **Later** is spec'd so
+the tool shapes allow it, but not scheduled. Each row is the canonical
 example; the evals hold the variants.
 
 ### A. On a recipe (read-only, plus device-only actions)
 
 | Say | Ansi does | Slice |
 |---|---|---|
-| *How much tamari do I need?* | The line's amount **at the stepper's servings**, its unit as written, and the line named: *"3 tbsp tamari — Ragù, serves 6."* Two lines with the same ingredient are listed with their group (*"2 tbsp in the sauce, 1 tbsp in the glaze"*). | v1 |
-| *How much tamari for this week?* | With `?week=` (or the recipe planned that week), the amount for the week's planned portions, read through `effectiveLines` so this week's variant counts. | v1 |
-| *How much tamari in grams?* | Converted by the unit system when the ingredient's density allows; otherwise says it can't and why (a stub, no density). Never a guessed conversion. | v1 |
-| *What's in the sauce?* | The lines of that group, scaled. | v1 |
-| *What's step 3? / What's next?* | Reads the step; *next* is the step after the focused one. | v1 |
-| *Start the simmer timer* / *Set a timer for 10 minutes* | The first starts the step's own timer chip. The second starts a free timer, if free timers are allowed (open question 4). Device-only: done at once and shown in the timer dock, no Confirm. | v1 |
-| *Make it 8 servings* | Moves the stepper. Device-only, no Confirm. | v1 |
+| *How much tamari do I need?* | The line's amount **at the stepper's servings**, its unit as written, and the line named: *"3 tbsp tamari — Ragù, serves 6."* Two lines with the same ingredient are listed with their group (*"2 tbsp in the sauce, 1 tbsp in the glaze"*). | 1 |
+| *How much tamari for this week?* | With `?week=` (or the recipe planned that week), the amount for the week's planned portions, read through `effectiveLines` so this week's variant counts. | 1 |
+| *How much tamari in grams?* | Converted by the unit system when the ingredient's density allows; otherwise says it can't and why (a stub, no density). Never a guessed conversion. | 1 |
+| *What's in the sauce?* | The lines of that group, scaled. | 1 |
+| *What's step 3? / What's next?* | Reads the step; *next* is the step after the focused one. | 1 |
+| *Start the simmer timer* | Starts the step's own timer chip. Device-only: done at once and shown in the timer dock, no Confirm. | 1 |
+| *Set a timer for 10 minutes* | **Refused:** a timer belongs to a step. *"I can start a step's timer — which step?"*; with no step to name, the phone's clock app is the answer. | — |
+| *Make it 8 servings* | Moves the stepper. Device-only, no Confirm. | 1 |
 | *What can I use instead of tamari?* | General cooking knowledge, not household data. Allowed, and **labelled as general advice**. It never changes the recipe and never states an amount as if it were on the page. | later |
-| *Add a note: use less salt* | A recipe edit. Out of scope for v1 — the editor is the one place a recipe changes. | later |
+| *Add a note: use less salt* | A recipe edit. Out of scope — the editor is the one place a recipe changes. | later |
 
 ### B. The week (writes, via a proposal card)
 
 | Say | Proposal card | Slice |
 |---|---|---|
-| *Set all dinners next week to Hamburger Helper* | Seven rows, Mon–Sun: *Dinner · Hamburger Helper · replaces Ragù*, or *· new*. Eaters default to the household. Confirm writes all seven or none. | v1 |
-| *What's for dinner tonight?* | Read-only: today's Dinner entries with their eaters. | v1 |
-| *Move Tuesday's curry to Thursday* | One row: *Tue Dinner → Thu Dinner*. | v1 |
-| *Add yoghurt to breakfast every weekday* | Five ingredient entries, one portion each, unit from the ingredient's default. | v1 |
-| *I'm eating out Friday* | Takes the speaker off Friday's eaters (the signed-in member); if that leaves a meal with no eaters, the card says it will be removed. | v1 |
-| *Copy last week* | The existing copy-last-week, behind the same card, with its existing note about variants it did not carry. | v1 |
-| *Clear the snacks* | Removes Snack entries for the viewed week, listed. | v1 |
+| *Set all dinners next week to Hamburger Helper* | Seven rows, Mon–Sun: *Dinner · Hamburger Helper · replaces Ragù*, or *· new*. Eaters default to the household. Confirm writes all seven or none. | 2 |
+| *What's for dinner tonight?* | Read-only: today's Dinner entries with their eaters. | 2 |
+| *Move Tuesday's curry to Thursday* | One row: *Tue Dinner → Thu Dinner*. | 2 |
+| *Add yoghurt to breakfast every weekday* | Five ingredient entries, one portion each, unit from the ingredient's default. | 2 |
+| *I'm eating out Friday* | Takes the speaker off Friday's eaters (the signed-in member); if that leaves a meal with no eaters, the card says it will be removed. | 2 |
+| *Copy last week* | The existing copy-last-week, behind the same card, with its existing note about variants it did not carry. | 2 |
+| *Clear the snacks* | Removes Snack entries for the viewed week, listed. | 2 |
 | *Plan something with chicken on Wednesday* | Suggests 2–3 of the household's own recipes; the member picks one, then the card. Never invents a recipe. | later |
 
-**When the name isn't a recipe.** *"Hamburger Helper"* may match nothing in
-the library. Ansi does not invent a recipe. The card offers the three things a
-plan entry can already be ([planning README](../../../app/lib/features/planning/README.md)):
-a recipe it found under a near name (the phone's own `searchRank`, offered as
-*"did you mean"*), a **bare ingredient** if one matches, or a **meal out**
-with the words as its label. A meal-out entry is the honest default for a
-boxed meal the household doesn't keep as a recipe.
+**What a named meal becomes.** A plan entry is one of three things
+([planning README](../../../app/lib/features/planning/README.md)), and a name
+resolves in this order:
+
+1. **An exact recipe** (title, case-insensitive) → that recipe, no question.
+2. **Otherwise an exact ingredient** (name or alias) → a bare-ingredient
+   entry, no question.
+3. **Otherwise Ansi asks**, on the card: the near-named recipes and
+   ingredients `searchRank` offers as *"did you mean"*, or a **meal out**
+   with the words as its label. Ansi never invents a recipe.
 
 ### C. Cook and shop
 
 | Say | Ansi does | Slice |
 |---|---|---|
-| *What am I cooking on Sunday?* | Read-only: the cook plan's sessions that day, portions per recipe, from the derived plan. | v1 |
-| *Add milk to the list* | A manual top-up, proposed and confirmed. One item — the card is a single row with Confirm. | v1 |
-| *Do we need tamari?* | Whether tamari is on this week's list, how much, and **which meals ask for it** (the list's provenance). | v1 |
-| *What's left to buy?* | The unchecked rows, grouped by aisle, read out briefly. | v1 |
+| *What am I cooking on Sunday?* | Read-only: the cook plan's sessions that day, portions per recipe, from the derived plan. | 2 |
+| *Add milk to the list* | A manual top-up, proposed and confirmed. One item — the card is a single row with Confirm. | 2 |
+| *Do we need tamari?* | Whether tamari is on this week's list, how much, and **which meals ask for it** (the list's provenance). | 2 |
+| *What's left to buy?* | The unchecked rows, grouped by aisle, read out briefly. | 2 |
 | *Tick off the milk* | Check state is a list overlay; proposed and confirmed like a top-up. | later |
 
 ### D. Numbers about the week
@@ -154,7 +160,7 @@ boxed meal the household doesn't keep as a recipe.
 
 | Say | Ansi does | Slice |
 |---|---|---|
-| *Open the aioli* | Navigates. Device-only, no Confirm. | v1 |
+| *Open the aioli* | Navigates. Device-only, no Confirm. | 1 |
 | *Find the chicken one with lime* | Searches the library by title. Searching by *ingredients* is the backlog's "Recipes with almonds" row and waits on its ruling. | later |
 
 ### F. What Ansi refuses, and how
@@ -192,18 +198,28 @@ redo, rather than overwriting.
 - **Recipes and ingredients** resolve through the household's own rows. Ansi
   asks when two match equally (*"Ragù or Ragù bianco?"*), and offers *did you
   mean* when none match exactly, as the search boxes do.
-- **"I" is the signed-in member; "we" is the household.**
+- **"I" is the signed-in member; "we" is the household.** A sentence that
+  names a member (*"Emma's eating out"*) wins over the account.
+- **A spoken message may be misheard.** Voice is sent on a pause, so the
+  prompt treats a transcript as possibly wrong: a word that names nothing is
+  matched against the household's own recipe and ingredient names by sound
+  and spelling (*"tomorrow"* on a recipe with tamari is tamari). An answer
+  names what it resolved to, so a mishearing is visible; when two readings
+  are both plausible, Ansi asks. A misheard *change* is caught by the card,
+  which lists every row before Confirm.
 
 ## Voice
 
 - **In:** a mic button in the input uses Android's built-in speech recogniser
   (`speech_to_text`; on-device where the phone supports it). Keyboard
-  dictation works with no extra code. The transcript is shown and is editable
-  before sending, or sent automatically on a pause (open question 3).
-- **Out:** an optional *read answers aloud* toggle through Android's
-  text-to-speech engine (`flutter_tts`). Answers are written to be heard:
-  short, amount first. Proposal cards are always shown on screen, never only
-  spoken.
+  dictation works with no extra code. A spoken message is **sent on a pause**,
+  hands-free; the transcript stays in the thread, so a mishearing shows (see
+  *How words resolve*).
+- **Out:** through Android's text-to-speech engine (`flutter_tts`). **An
+  answer is spoken when the question was spoken**, and text only when it was
+  typed; a speaker toggle in the sheet overrides that. Answers are written to
+  be heard: short, amount first. Proposal cards are always shown on screen,
+  never only spoken.
 - **No wake word.** The sheet is opened by a tap (or later a launcher
   shortcut). "Hey Google" integration through Android AppFunctions is behind
   Google's private preview. The on-device tools below are deliberately the
@@ -235,7 +251,8 @@ costs a round trip per tool step, but it reuses the existing Dart rules,
 reads exactly what the member sees (including unsynced edits), and needs no
 second implementation in TypeScript.
 
-Proposed tool set for v1 (names are placeholders):
+Proposed tool set (names are placeholders). Slice 1 needs the read tools and
+the device-only actions; the `propose_*` tools arrive with slice 2:
 
 | Tool | Returns / does |
 |---|---|
@@ -279,45 +296,49 @@ answer present in a tool result. An LLM judge is only for the tone of
 refusals and clarifying questions. Run before choosing the model and again
 on every prompt change.
 
-## Open questions (for the owner)
+## Rulings
 
-1. **v1's edge.** Is the v1 column above the right first slice? The smallest
-   useful cut is A (recipe questions + timers) alone, with no writes at all.
-2. **"Hamburger Helper" with no recipe.** Default to a meal-out entry, an
-   ingredient entry, or always ask?
-3. **Voice send.** Send on a pause (hands-free) or always show the transcript
-   for a tap (safer)?
-4. **Free timers.** Do *"set a timer for 10 minutes"* timers belong in the
-   dock beside step timers, or only step timers?
-5. **Thread lifetime.** Cleared on restart only, or also after idle?
-6. **The editor's draft.** Should Ansi see an unsaved recipe draft (*"how much
-   salt did I put?"*), or only saved rows?
-7. **Who's asking.** "I" means the signed-in member. Good enough, given both
-   of you share some devices?
-8. **Read-aloud default.** On when the question was spoken, off when typed?
+Taken with the owner, 2026-10-18.
 
-## Approach (sketch, reshaped by the rulings)
+1. **Slice 1 is recipe questions only** (section A, plus *open* from E):
+   amounts, steps, servings, step timers. Nothing said can change shared
+   data. The week and the list are slice 2, once slice 1 shows it is used.
+2. **A named meal resolves exact recipe → exact ingredient → ask.** No
+   default to a meal out; a near match is only ever offered.
+3. **Voice sends on a pause**, and the prompt allows for misspeaking and
+   mishearing: it resolves a word against the household's own names and asks
+   when two readings are plausible.
+4. **Step timers only.** No free *"set a timer for 10 minutes"*.
+5. **The thread clears on restart or after 30 minutes with no message.**
+6. **Saved rows only.** In the editor, answers say they come from the saved
+   recipe.
+7. **"I" is the signed-in member**; a named member in the sentence wins.
+8. **Read aloud matches how you asked**: spoken in, spoken out; typed in,
+   text out; a toggle in the sheet overrides.
 
-1. **Spec ruled.** The open questions above, answered into the decision log.
-2. **Evals first.** `evals/ask/` with the fixture household and ~50
-   utterances drawn from the tables above, so model and prompt are chosen by
-   measurement.
-3. **The relay.** `supabase/functions/ask/`: auth, allowlist, rate limit,
+## Approach (sketch)
+
+1. **Evals first.** `evals/ask/` with a fixture household and ~50 slice-1
+   utterances, including misheard variants (*"how much tomorrow"*), so the
+   model and prompt are chosen by measurement.
+2. **The relay.** `supabase/functions/ask/`: auth, allowlist, rate limit,
    prompt, forward. Tested like the other functions with a mock adapter.
-4. **Screen context.** A pure-Dart `AskContext` per route; lift the recipe
+3. **Screen context.** A pure-Dart `AskContext` per route; lift the recipe
    page's servings into a provider.
-5. **Read-only tools + the sheet** (slice A, then the read rows of B and C).
-6. **Proposal cards + write tools** (the rest of B and C).
-7. **Voice in and out.** The mic, the permission, the `<queries>` entry, the
-   read-aloud toggle.
-8. **The board.** The sheet and the card drawn `proposed`, then replaced as
-   they ship.
+4. **Slice 1's tools and the sheet**: `find_recipe`, `recipe_lines`,
+   `method_step`, `start_timer`, `set_servings`, `open`.
+5. **Voice in and out.** The mic, the permission, the `<queries>` entry,
+   send-on-pause, read-aloud matching the question.
+6. **The board.** The sheet drawn `proposed`, then replaced as it ships.
+7. **Slice 2**, its own pass: the week and shop tools, the proposal card,
+   the resolution order in ruling 2.
 
 ## Decision log
 
 - 2026-10-18 — Drafted from a conversation with the owner: in-app chat with
   voice now; "Hey Google" waits on AppFunctions leaving Google's private
   preview. The tools run on the phone so the Dart derivations are not ported.
+- 2026-10-18 — The eight open questions ruled (see Rulings).
 
 ## Step-done checklist
 
