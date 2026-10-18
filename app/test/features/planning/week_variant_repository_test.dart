@@ -12,6 +12,8 @@ import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/planning/domain/week_variant_repository.dart';
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
+import 'package:ansi/features/recipes/domain/recipe_cost.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
@@ -491,6 +493,42 @@ void main() {
         expect(await repo.watchVariantRecipeMacros(_nextWeek).first, isEmpty);
       },
     );
+
+    test('a row swapped in for this week alone is known, not "not in your '
+        'ingredients yet"', () async {
+      // In no recipe's lines: only the override names it.
+      await _insertIngredient(
+        db,
+        'i-beyond',
+        'Beyond Beef',
+        macros: '{"kcal":230,"protein":20,"carb":5,"fat":14}',
+      );
+      await repo.saveOverrides(
+        _thisWeek,
+        'r1',
+        overrides: const [
+          LineOverride(
+            action: LineOverrideAction.replace,
+            recipeLineItemId: 'l2',
+            ingredientId: 'i-beyond',
+            quantity: 340,
+            unit: g,
+          ),
+        ],
+      );
+      final varied = await repo.watchVariantRecipeMacros(_thisWeek).first;
+      expect(
+        varied['r1']!.notes.map((n) => n.reason),
+        isNot(contains(MacroLineReason.unknownIngredient)),
+      );
+      expect(varied['r1']!.perServing, isNotNull);
+
+      final costs = await repo.watchVariantRecipeCosts(_thisWeek).first;
+      expect(
+        costs['r1']!.unpriced.map((n) => n.reason),
+        isNot(contains(CostLineReason.noPathToBasis)),
+      );
+    });
   });
 
   /// This week's amount for a component line, said in the target's own word.

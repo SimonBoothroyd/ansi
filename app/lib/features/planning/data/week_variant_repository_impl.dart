@@ -23,6 +23,7 @@ import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
+import '../../recipes/domain/recipe_rows.dart' show ingredientNutrition;
 import '../domain/week_variant_repository.dart';
 import 'planning_repository_impl.dart' show getOrCreateWeekPlan;
 
@@ -114,7 +115,8 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
   ) async {
     final byRecipe = await _loadByRecipe(weekKey);
     if (byRecipe.isEmpty) return const {};
-    final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
+    final (nodes, libraryNutrition) = await loadRecipeMacroNodes(_db);
+    final nutrition = await _withOverrideNutrition(libraryNutrition, byRecipe);
     final pricingOf = pricingResolver(nutrition, await loadCostPrices(_db));
     return {
       for (final entry in nodes.entries)
@@ -135,13 +137,47 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
   Future<Map<String, List<LineOverride>>> _loadByRecipe(String weekKey) =>
       loadWeekOverrides(_db, weekKey);
 
+  /// [nutrition] plus the rows the week's overrides name. The Library's map
+  /// only holds rows some recipe line uses, so a row swapped or added in for
+  /// this week alone would otherwise read as unknown.
+  Future<Map<String, IngredientNutrition>> _withOverrideNutrition(
+    Map<String, IngredientNutrition> nutrition,
+    Map<String, List<LineOverride>> byRecipe,
+  ) async {
+    final missing = {
+      for (final overrides in byRecipe.values)
+        for (final o in overrides)
+          if (o.ingredientId case final id? when !nutrition.containsKey(id)) id,
+    };
+    if (missing.isEmpty) return nutrition;
+    final rows = await _db.getAll(
+      'SELECT id, status, macros, macros_basis, density_g_per_ml, '
+      'piece_basis_amount FROM ingredient '
+      'WHERE deleted_at IS NULL AND id IN '
+      '(${List.filled(missing.length, '?').join(', ')})',
+      missing.toList(),
+    );
+    return {
+      ...nutrition,
+      for (final r in rows)
+        r['id'] as String: ingredientNutrition(
+          status: r['status'],
+          macros: r['macros'],
+          basis: r['macros_basis'],
+          density: r['density_g_per_ml'],
+          pieceWeight: r['piece_basis_amount'],
+        ),
+    };
+  }
+
   Future<Map<String, RecipeMacroSummary>> _loadVariantRecipeMacros(
     String weekKey,
   ) async {
     final byRecipe = await _loadByRecipe(weekKey);
     // Most weeks have no variant; skip the whole-library summation.
     if (byRecipe.isEmpty) return const {};
-    final (nodes, nutrition) = await loadRecipeMacroNodes(_db);
+    final (nodes, libraryNutrition) = await loadRecipeMacroNodes(_db);
+    final nutrition = await _withOverrideNutrition(libraryNutrition, byRecipe);
     return {
       for (final entry in nodes.entries)
         if (byRecipe.containsKey(entry.key))
