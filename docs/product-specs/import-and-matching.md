@@ -1147,14 +1147,19 @@ keys with two answers. The section is not an alias list: the words stay on the
 receipt, and the match cascade never sees them.
 
 The **pack** carries over under the same key. A matched line with no printed
-weight opens on the pack **these printed words** were last bought in, matched
-to this same row; words not bought under before fall back to the pack the row
-was last bought in anywhere. Both are one batched read per receipt
-(`packsByPrintedName`), latest by the receipt's date and then by the line's own
-edit. The stored basis figure is carried and never re-derived, so a measure
-re-weighed since does not re-price a past shop. The precedence lives in
-`landPack`, with the printed weight ahead of both; a line whose words were last
-bought as another row carries nothing.
+weight opens on the size **its printed name states** (`Soymilk, 64 fl oz`,
+`Brick, 12 Ounce` — `sizeInPrintedName`; a nutrition claim like `12g Protein`
+is not a size, and a multipack like `Pack of 6` states none), else on the pack
+**these printed words** were last bought in, matched to this same row. Words
+not bought under before **ask**: the row's last pack anywhere was another
+product's (six Persian cucumbers are not one `Organic Cucumber`), so only a
+line with no printed name at all — one added by hand — opens on it. The packs
+are one batched read per receipt (`packsByPrintedName`), latest by the
+receipt's date and then by the line's own edit. The stored basis figure is
+carried and never re-derived, so a measure re-weighed since does not re-price a
+past shop. The precedence lives in `landPack`, with the printed weight ahead of
+all of them; a line whose words were last bought as another row carries
+nothing.
 
 ### 12.5 The contract
 

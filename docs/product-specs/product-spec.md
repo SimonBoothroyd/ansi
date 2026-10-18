@@ -1434,8 +1434,9 @@ and a printed weight or rate where there was one.
 - **A line is a price only when it says what the cents bought.** A matched
   food line with no pack is counted in the receipt and is simply not a price
   — the card asks for the pack. A line sold by weight prices itself from the
-  printed rate; one with no printed weight opens on the pack its own printed
-  words were last bought in. *Keep as a measure* mints a measure the household
+  printed rate; one with no printed weight opens on the size its printed name
+  states (`64 fl oz`), else the pack its own printed words were last bought
+  in, else asks. *Keep as a measure* mints a measure the household
   can also say on a recipe line — the pack carries over either way.
 - **How many is the paper's, and is a door.** A count printed on the sub-row
   under an item rides on that line — `$23.92 · Tofu · 8 × block (16 oz) ·

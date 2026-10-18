@@ -342,20 +342,21 @@ void main() {
 
       test('words last bought as another row carry nothing', () {
         // Re-pointed since: the size of somebody else's pack says nothing
-        // about this one, so the row's own latest price answers.
+        // about this one, and nor does the row's pack under other words.
         final draft = landed(
           sameName: (ingredientId: 'vocab-oil', pack: bought(454)),
           last: lastAnywhere,
         );
-        expect(draft.packBasisAmount, 340);
+        expect(draft.packBasisAmount, isNull);
+        expect(receiptLineIssues(draft), [ReceiptLineIssue.packMissing]);
       });
 
-      test('words that state no pack carry nothing, and swallow nothing', () {
+      test('words that state no pack carry nothing', () {
         final draft = landed(
           sameName: (ingredientId: 'vocab-banana', pack: bought(0)),
           last: lastAnywhere,
         );
-        expect(draft.packBasisAmount, 340);
+        expect(draft.packBasisAmount, isNull);
       });
 
       test('a line the server printed no words for skips its own step', () {
@@ -365,8 +366,52 @@ void main() {
         expect(draft.packBasisAmount, 340);
       });
 
-      test('words nobody has bought under fall through to the row', () {
-        expect(landed(last: lastAnywhere).packBasisAmount, 340);
+      test('words nobody has bought under ask, rather than borrow the '
+          'row’s pack', () {
+        // The owner's own case: `Organic Cucumber` opened on the six Persian
+        // cucumbers the row was last bought as.
+        final draft = landed(last: lastAnywhere);
+        expect(draft.packBasisAmount, isNull);
+        expect(receiptLineIssues(draft), [ReceiptLineIssue.packMissing]);
+      });
+
+      test('the size the name prints beats every carried pack', () {
+        // The owner's soy milk: `64 fl oz` on the paper, not whatever the row
+        // or these words were last bought in.
+        final draft = landPack(
+          item(
+            ingredientId: 'vocab-oil',
+            namePrinted: 'Organic Unsweetened Soymilk, 64 fl oz',
+          ),
+          ingredient: oil,
+          sameName: (
+            ingredientId: 'vocab-oil',
+            pack: bought(1000, amount: 1, unit: l),
+          ),
+          last: bought(500, amount: 500, unit: ml),
+        );
+        expect(draft.packAmount, 64);
+        expect(draft.packUnit, flOz);
+        expect(draft.packBasisAmount, closeTo(1892.7, 0.1));
+        expect(packWords(draft, basis: MacrosBasis.perMl), '64 fl oz');
+      });
+
+      test('a printed size the row cannot carry falls to the words', () {
+        // Pounds on a per-ml row with no density cross nothing.
+        final draft = landPack(
+          item(ingredientId: 'vocab-oil', namePrinted: 'Olive Oil, 2 lb'),
+          ingredient: oil,
+          sameName: (ingredientId: 'vocab-oil', pack: bought(500)),
+        );
+        expect(draft.packBasisAmount, 500);
+      });
+
+      test('the paper’s printed weight beats the size in the name', () {
+        final draft = landed(
+          name: 'Quinoa, 12 oz',
+          weight: const ReceiptWeight(amount: 1, unit: lb, rateCents: 449),
+        );
+        expect(draft.packUnit, lb);
       });
 
       test('neither answers and the line asks, as it always did', () {
@@ -389,7 +434,12 @@ void main() {
       });
 
       test('a measure deleted since carries the figure, not the word', () {
-        final draft = landed(last: bought(200, amount: 1, measureId: 'm-gone'));
+        final draft = landed(
+          sameName: (
+            ingredientId: 'vocab-banana',
+            pack: bought(200, amount: 1, measureId: 'm-gone'),
+          ),
+        );
         expect(draft.packBasisAmount, 200);
         expect(draft.packAmount, 200);
         expect(draft.packUnit, g);
@@ -398,7 +448,9 @@ void main() {
       });
 
       test('a price that never said its unit carries the basis figure', () {
-        final draft = landed(last: bought(340));
+        final draft = landed(
+          sameName: (ingredientId: 'vocab-banana', pack: bought(340)),
+        );
         expect(draft.packAmount, 340);
         expect(draft.packUnit, g, reason: 'a null unit reads as a count');
       });

@@ -20,6 +20,7 @@ import '../../../core/units/units.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/domain/price.dart';
+import 'printed_size.dart';
 import 'receipt_payload.dart';
 
 /// Why one line still needs the person.
@@ -278,8 +279,13 @@ ReceiptLineDraft handAddedLine(
 /// [draft] with the pack it can state without asking, from the first of:
 ///
 /// 1. The paper's own weight (`1.32 lb @ $1.99/lb`), through [packInBasis].
-/// 2. The pack these printed words were last bought in ([sameName]).
-/// 3. The pack this row was last bought in ([last]).
+/// 2. The size its printed name states (`Soymilk, 64 fl oz`), through
+///    [sizeInPrintedName] and [packInBasis].
+/// 3. The pack these printed words were last bought in ([sameName]).
+/// 4. Only for a line with no printed name (added by hand, or from a server
+///    that sent none): the pack this row was last bought in ([last]). Under
+///    other words that pack is another product's (six Persian cucumbers are
+///    not one cucumber), so a named line the first three cannot answer asks.
 ///
 /// A carried pack takes its basis figure from the stored observation, never
 /// re-derived, so a measure re-weighed since cannot re-price this shop. If its
@@ -309,7 +315,10 @@ ReceiptLineDraft landPack(
     }
     return draft;
   }
-  final carried = _underTheseWords(draft, ingredient, sameName) ?? last;
+  if (_statedPack(draft, ingredient) case final stated?) return stated;
+  final named = printedNameKey(draft.namePrinted) != null;
+  final carried =
+      _underTheseWords(draft, ingredient, sameName) ?? (named ? null : last);
   if (carried == null || !(carried.packBasisAmount > 0)) return draft;
   final measureId = carried.measureId;
   final label = measureId == null ? null : _labelOf(measureId, measures);
@@ -336,13 +345,31 @@ ReceiptLineDraft landPack(
   );
 }
 
+/// [draft] packed in the size its printed name states, or null when the name
+/// states none or the row cannot carry it.
+ReceiptLineDraft? _statedPack(ReceiptLineDraft draft, Ingredient ingredient) {
+  final size = sizeInPrintedName(draft.namePrinted);
+  if (size == null) return null;
+  return switch (packInBasis(
+    ingredient,
+    amount: size.amount,
+    choice: UnitOption(size.unit),
+  )) {
+    Ok(:final value) => draft.copyWith(
+      packBasisAmount: value,
+      packAmount: size.amount,
+      packUnit: size.unit,
+    ),
+    Err() => null,
+  };
+}
+
 /// [sameName]'s pack where it really is the pack these words bought this row,
-/// else null so the row's latest price answers. Three refusals:
+/// else null. Three refusals:
 ///
 /// - A line with no printed words is filed under nothing.
 /// - Words last bought as another row: that pack is not a fact about this one.
-/// - A zero pack (`observationFrom` should already gate it) must not swallow
-///   the row's own latest price.
+/// - A zero pack (`observationFrom` should already gate it) states nothing.
 PriceObservation? _underTheseWords(
   ReceiptLineDraft draft,
   Ingredient ingredient,
