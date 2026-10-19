@@ -423,6 +423,7 @@ live: the step-8 sim suite against a local stack that predated migration 0013 �
 supabase functions deploy import-recipe          # each door, by name
 supabase functions deploy import-receipt
 supabase functions deploy read-label
+supabase functions deploy ask
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-…  # PLACEHOLDER — paste the real key
 supabase secrets set IMPORT_ALLOWED_HOUSEHOLDS=<household uuid>
 ```
@@ -431,8 +432,9 @@ Never commit either value, and never paste a real key into this file or a
 transcript — `supabase secrets set` is the only place they belong. `supabase
 secrets list` shows the names (and a digest), not the values.
 
-- **`ANTHROPIC_API_KEY`** — the extraction provider (Claude Haiku 4.5). Missing
-  ⇒ the function returns a clear 500 rather than silently degrading.
+- **`ANTHROPIC_API_KEY`** — the extraction provider (Claude Haiku 4.5), and
+  Ansi's (`ask`, Claude Haiku 5.5). Missing ⇒ the function returns a clear 500
+  rather than silently degrading.
 - **`IMPORT_ALLOWED_HOUSEHOLDS`** — a comma-separated allowlist of household
   UUIDs permitted to spend model tokens. This is the cost fence on a personal
   project with a public sign-in surface: a caller with a valid JWT but a

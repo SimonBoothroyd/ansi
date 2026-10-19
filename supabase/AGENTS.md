@@ -16,7 +16,10 @@ Overrides/extends the root `AGENTS.md` for `supabase/`.
   pin and the failure shapes and nothing else: one photo of a nutrition panel,
   one model call, a plain JSON answer, and **no SQL at all** — it matches
   nothing, because the person had already named the row (`no_write.test.ts`).
-  All three are deployed BY NAME in `deploy-supabase.yml`.
+  A fourth, `ask/`, is Ansi's relay: the same gate and allowlist, its own
+  model pin, the conversation in and the assistant's blocks out, and no SQL
+  either — the app runs every tool ([README](./functions/ask/README.md)).
+  All four are deployed BY NAME in `deploy-supabase.yml`.
 - `functions/share-recipe/` — a recipe's **public** share page (plan 0051),
   the one function deployed with no JWT check. It answers GET and HEAD on
   `r/<token>` and `r/share.js`, reads one share's rows by token as service

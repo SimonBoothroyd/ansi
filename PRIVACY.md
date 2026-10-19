@@ -24,6 +24,12 @@ can read your household's data.
   request and are not stored by Ansi. Under Anthropic's commercial terms, API
   inputs are not used to train their models. Import is only switched on for
   invited households.
+- **Anthropic (Claude), when you ask Ansi a question:** the words of your
+  question, what is on your screen (the recipe and the servings shown), the
+  conversation so far, and the recipe lines or steps Ansi looks up to answer
+  are sent to Anthropic's API. Ansi's server stores none of it, and the
+  conversation itself stays on your device until it is cleared. Like import,
+  it is only switched on for invited households.
 - **Open Food Facts:** when you scan a barcode, the barcode number (and
   nothing else about you) is looked up in the public Open Food Facts
   database.
@@ -34,6 +40,14 @@ can read your household's data.
 
 The camera is used only when you choose to scan a barcode, photograph a
 recipe or scan a receipt.
+
+## Microphone
+
+The microphone is used only when you tap the mic in Ask Ansi. Your phone's own
+speech recogniser turns what you say into text — on the device where the phone
+supports it, otherwise through the recognition service your phone uses (Google's,
+on most Android phones). Ansi receives only the text, never the audio. Answers
+read aloud use your phone's own text-to-speech.
 
 ## Notifications and kitchen timers
 

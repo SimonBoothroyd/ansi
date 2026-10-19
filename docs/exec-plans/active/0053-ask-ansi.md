@@ -1,8 +1,8 @@
 # Exec plan: Ask Ansi — a chat and voice assistant
 
-- **Status:** draft — the conversations are ruled (see Rulings); slice 1 is next to plan in detail
+- **Status:** active — slice 1 is built on `ccr-32c63935-a7w2mt` (see *Slice 1 — what was built*); its paid eval, a phone run and the board frames are open
 - **Owner:** Simon (rulings), agents in lanes
-- **Roadmap step:** none yet — slice 1 is a candidate for Next
+- **Roadmap step:** none yet — slice 1 lands as one roadmap row when it reaches main
 - **Created:** 2026-10-18
 
 ## Goal
@@ -251,7 +251,7 @@ costs a round trip per tool step, but it reuses the existing Dart rules,
 reads exactly what the member sees (including unsynced edits), and needs no
 second implementation in TypeScript.
 
-Proposed tool set (names are placeholders). Slice 1 needs the read tools and
+The tool set. Slice 1 has the read tools and
 the device-only actions; the `propose_*` tools arrive with slice 2:
 
 | Tool | Returns / does |
@@ -265,7 +265,7 @@ the device-only actions; the `propose_*` tools arrive with slice 2:
 | `find_ingredient(query)` | up to 5 `{id, name}` |
 | `propose_plan_changes(changes[])` | validates, then renders the card; returns `confirmed` / `cancelled` |
 | `propose_top_up(ingredient_id \| label, amount?)` | same, for the list |
-| `start_timer(recipe_id, step, timer)`, `set_servings(n)`, `open(route)` | device-only actions |
+| `start_step_timer(recipe_id, step, timer)`, `set_servings(servings)`, `open_recipe(recipe_id)` | device-only actions |
 
 Every number that reaches the member comes out of a tool, never out of the
 model's own text. The prompt says this, and the evals check that each amount
@@ -316,22 +316,38 @@ Taken with the owner, 2026-10-18.
 8. **Read aloud matches how you asked**: spoken in, spoken out; typed in,
    text out; a toggle in the sheet overrides.
 
-## Approach (sketch)
+## Slice 1 — what was built
 
-1. **Evals first.** `evals/ask/` with a fixture household and ~50 slice-1
-   utterances, including misheard variants (*"how much tomorrow"*), so the
-   model and prompt are chosen by measurement.
-2. **The relay.** `supabase/functions/ask/`: auth, allowlist, rate limit,
-   prompt, forward. Tested like the other functions with a mock adapter.
-3. **Screen context.** A pure-Dart `AskContext` per route; lift the recipe
-   page's servings into a provider.
-4. **Slice 1's tools and the sheet**: `find_recipe`, `recipe_lines`,
-   `method_step`, `start_timer`, `set_servings`, `open`.
-5. **Voice in and out.** The mic, the permission, the `<queries>` entry,
-   send-on-pause, read-aloud matching the question.
-6. **The board.** The sheet drawn `proposed`, then replaced as it ships.
-7. **Slice 2**, its own pass: the week and shop tools, the proposal card,
-   the resolution order in ruling 2.
+| Step | What exists | Where |
+|---|---|---|
+| The relay | `ask` edge function: shared gate + allowlist, a parsed and capped conversation (120 turns, 256 KB), one Claude Haiku 5.5 call with the six tools, blocks back verbatim; no SQL (`no_write.test.ts`) | `supabase/functions/ask/`, `_shared/adapters/claude_ask.ts`, `_shared/prompts/ask.ts` |
+| Screen context | `AskRecipeScreen` / `AskNoScreen`, sent as a `<screen>` block with each question; the recipe page's servings now live in `recipeServingsProvider` | `features/ask/domain/ask_screen.dart`, `recipes/presentation/recipe_view_models.dart` |
+| The thread | the API's own turns kept append-only; 30-minute idle clear; trim past 20 questions strips thinking blocks; a failed or refused question comes off the tail | `features/ask/domain/ask_thread.dart`, `presentation/ask_controller.dart` |
+| The tools | `find_recipe`, `recipe_lines` (with `for_week`), `method_step`, `start_step_timer`, `set_servings`, `open_recipe`, run on the phone with every amount written by the page's own Dart | `features/ask/domain/ask_tools.dart`, `ask_tool_runner.dart`, `presentation/ask_wiring.dart` |
+| The sheet and the door | the speech-bubble icon in the recipe page's bar; the chip, the conversation, the field, the mic and the speaker | `features/ask/presentation/ask_sheet.dart`, `_AskDoor` in `recipe_view.dart` |
+| Voice | `speech_to_text` (sent on a 2 s pause) and `flutter_tts` (read when asked aloud); `RECORD_AUDIO`, the two `<queries>` intents, the two iOS usage strings | `features/ask/data/ask_voice.dart` |
+| Evals | 28 hand-written cases; scorers for the first move and for invented numbers, self-tested keyless; a paid live runner | `evals/datasets/ask/`, `evals/runner/score_ask.ts`, `run_ask_live.ts` |
+
+Tests: 20 Deno tests for the function and adapter (and one more rung in
+`_shared/timeouts.test.ts`); 43 Flutter tests in `test/features/ask/`,
+including six end to end on the real recipe page; 7 keyless eval tests.
+
+**Still open for slice 1:**
+
+- [ ] **The paid eval has not been run** — no API key in the build session.
+  Run `deno run --allow-read --allow-env --allow-net runner/run_ask_live.ts`
+  from `evals/` and record the result here before the pin is trusted.
+- [ ] **A phone run**: the mic permission prompt, a spoken question sent on
+  the pause, an answer read aloud, a step timer started by voice.
+- [ ] **The board**: the bar's Ask door and the sheet drawn on
+  `recipe-page.html` (its status row says `differs` until then).
+- [ ] **Deploy**: `ask` ships with the next `deploy-supabase` run; the
+  existing `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS` cover it.
+
+## Next: slice 2
+
+The week and shop tools, the proposal card, the resolution order in ruling 2,
+and the Ask door moving from the recipe page to every screen.
 
 ## Decision log
 
@@ -339,6 +355,29 @@ Taken with the owner, 2026-10-18.
   voice now; "Hey Google" waits on AppFunctions leaving Google's private
   preview. The tools run on the phone so the Dart derivations are not ported.
 - 2026-10-18 — The eight open questions ruled (see Rulings).
+- 2026-10-19 — Slice 1 built. Decisions taken while building it:
+  - **The door is on the recipe page only.** Every slice-1 conversation is
+    about a recipe, and *open the aioli* works from there too; the door on
+    every screen comes with slice 2, which needs it for the week.
+  - **Adaptive thinking at `effort: low`, kept append-only**, not thinking
+    disabled. Claude Haiku 5.5 binds a thinking block to the history before
+    it, so the app stores blocks verbatim and only ever removes at the tail;
+    a trim past 20 questions strips every thinking block it keeps.
+  - **No stream.** The import doors' stream assembler folds text only, and a
+    turn here is a sentence or a tool call; `postJson` with a 30 s deadline
+    under the app's 60 s wait (`timeouts.test.ts` caught a first draft's
+    45 s wait sitting exactly on the server's worst case).
+  - **Amounts as the recipe writes them.** *How much tamari in grams?* is
+    answered in the recipe's own unit with a sentence; a converted amount
+    needs the ingredient's density, which the line does not carry. Revisit
+    with slice 2.
+  - **No per-household rate limit in the function.** Edge isolates hold no
+    state between calls, so an in-memory limit would limit nothing; the
+    allowlist and a monthly spend cap in the Anthropic console are the
+    fence.
+  - **Offline is a failed question with a sentence**, not a disabled button:
+    the app has no connectivity signal to read, and the failure says what to
+    do.
 
 ## Step-done checklist
 

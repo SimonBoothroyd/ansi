@@ -1481,6 +1481,28 @@ it has zero entries), to Cook and to Shop.
 
 ---
 
+**Ask Ansi (slice 1 of [plan 0053](../exec-plans/active/0053-ask-ansi.md)):**
+the recipe page's speech-bubble icon opens a sheet for questions about the
+recipe on screen, typed or spoken — *how much tamari?*, *what's step 3?*,
+*start the simmer timer*, *make it 8 servings*, *open the aioli*.
+- **Ansi sees what you see, and says so.** A chip above the field names the
+  recipe at the servings the stepper shows (**On: Ragù · serves 6**); its ✕
+  asks from nowhere. An answer names what it read (*3 tbsp tamari — Ragù,
+  serves 6*), so a misheard word or a wrong recipe is visible.
+- **Every number is the app's.** The model only chooses which recipe, line or
+  step a sentence means; the amount is scaled and printed by the same Dart the
+  page uses. A line with no number is said as written, and a unit the recipe
+  does not use is refused rather than converted.
+- **It acts only on this phone:** a step's own timer, the stepper of the
+  recipe on screen, or opening another recipe. It changes no shared data — it
+  does not plan meals, edit recipes or touch the shopping list, and says so.
+  A plain timer no step prints is refused.
+- **Voice is the phone's own.** A spoken question is sent when you pause; the
+  answer to a spoken question is read aloud, a typed one is not, and the
+  speaker icon cycles that. No audio leaves for Ansi's servers.
+- **The conversation stays on the device**, clears after 30 idle minutes or a
+  restart, and needs a connection: offline, a question fails with a sentence.
+
 ## 6. Data sources
 
 | Need | Source | License |
