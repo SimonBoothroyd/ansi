@@ -221,6 +221,138 @@ final class RecipeUsedInFamily extends $Family
   String toString() => r'recipeUsedInProvider';
 }
 
+/// The servings a recipe page's stepper shows, or null until it moves (the
+/// page reads null as the recipe's own). A provider rather than page state so
+/// Ansi reads the servings on screen and its `set_servings` moves the
+/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// recipe's own servings, as it always has.
+
+@ProviderFor(RecipeServings)
+const recipeServingsProvider = RecipeServingsFamily._();
+
+/// The servings a recipe page's stepper shows, or null until it moves (the
+/// page reads null as the recipe's own). A provider rather than page state so
+/// Ansi reads the servings on screen and its `set_servings` moves the
+/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// recipe's own servings, as it always has.
+final class RecipeServingsProvider
+    extends $NotifierProvider<RecipeServings, double?> {
+  /// The servings a recipe page's stepper shows, or null until it moves (the
+  /// page reads null as the recipe's own). A provider rather than page state so
+  /// Ansi reads the servings on screen and its `set_servings` moves the
+  /// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+  /// recipe's own servings, as it always has.
+  const RecipeServingsProvider._({
+    required RecipeServingsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'recipeServingsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeServingsHash();
+
+  @override
+  String toString() {
+    return r'recipeServingsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  RecipeServings create() => RecipeServings();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(double? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<double?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RecipeServingsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$recipeServingsHash() => r'df59a294df07529247c98350911b58e5c4f01372';
+
+/// The servings a recipe page's stepper shows, or null until it moves (the
+/// page reads null as the recipe's own). A provider rather than page state so
+/// Ansi reads the servings on screen and its `set_servings` moves the
+/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// recipe's own servings, as it always has.
+
+final class RecipeServingsFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          RecipeServings,
+          double?,
+          double?,
+          double?,
+          String
+        > {
+  const RecipeServingsFamily._()
+    : super(
+        retry: null,
+        name: r'recipeServingsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The servings a recipe page's stepper shows, or null until it moves (the
+  /// page reads null as the recipe's own). A provider rather than page state so
+  /// Ansi reads the servings on screen and its `set_servings` moves the
+  /// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+  /// recipe's own servings, as it always has.
+
+  RecipeServingsProvider call(String recipeId) =>
+      RecipeServingsProvider._(argument: recipeId, from: this);
+
+  @override
+  String toString() => r'recipeServingsProvider';
+}
+
+/// The servings a recipe page's stepper shows, or null until it moves (the
+/// page reads null as the recipe's own). A provider rather than page state so
+/// Ansi reads the servings on screen and its `set_servings` moves the
+/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// recipe's own servings, as it always has.
+
+abstract class _$RecipeServings extends $Notifier<double?> {
+  late final _$args = ref.$arg as String;
+  String get recipeId => _$args;
+
+  double? build(String recipeId);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build(_$args);
+    final ref = this.ref as $Ref<double?, double?>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<double?, double?>,
+              double?,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 /// Every recipe's cost, keyed by recipe id (ADR-0017). A separate stream from
 /// [recipeList]: a cost moves when a receipt lands, and money stays apart from
 /// macros.

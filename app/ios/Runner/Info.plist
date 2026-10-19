@@ -91,6 +91,10 @@
 	     widened, not duplicated; mobile_scanner needs no other iOS key or
 	     entitlement, and on iOS it is AVFoundation + Apple Vision, so no ML
 	     Kit binary rides along). -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ansi uses the microphone when you tap the mic to ask it a question.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Ansi turns your spoken question into text so it can answer it.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Ansi needs camera access so you can photograph a recipe to import it, and scan grocery barcodes.</string>
 </dict>

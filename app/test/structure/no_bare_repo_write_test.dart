@@ -49,6 +49,9 @@ const _readVerbs = {
 /// Keyed by method rather than by line so an edit above it does not silently
 /// move the exemption onto a different call.
 const _allowed = <String, String>{
+  'lib/features/ask/presentation/ask_controller.dart:turn':
+      'not a write — the ask relay reads and writes nothing. The controller '
+      'catches every AskException and shows the reason under the question.',
   'lib/features/recipes/presentation/recipe_view_models.dart:saveRecipe':
       'held by the editor notifier; its only caller — the editor Save button '
       '— wraps `notifier.save` in ref.write, so the guard is one frame out.',

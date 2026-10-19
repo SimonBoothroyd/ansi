@@ -61,7 +61,8 @@ export interface SavedCase {
   model: string;
   stage: string;
   path: string;
-  op: "transcribe" | "sanitize";
+  /** The adapter call's own op; extraction runs only ever hold the first two. */
+  op: ProviderCall["op"];
   captured_at: string;
   latency_ms: number;
   usage: TokenUsage | null;

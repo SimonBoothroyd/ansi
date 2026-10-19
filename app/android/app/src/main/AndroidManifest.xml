@@ -6,6 +6,9 @@
          (without it Android may hold the ring back). -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <!-- Ask Ansi's mic (plan 0053): the phone's own speech recogniser hears the
+         question. Asked for the first time the mic is tapped, never before. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- enableOnBackInvokedCallback: Flutter's PredictiveBackPageTransitionsBuilder
          needs this opt-in (it is absent from Flutter's own app template), and
          without it every back falls through to the FadeForwards fallback. With
@@ -81,6 +84,15 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Ask Ansi (plan 0053): from Android 11 an app must name the speech
+             recogniser and the text-to-speech engine it talks to, or it
+             cannot see them. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
     </queries>
 </manifest>

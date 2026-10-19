@@ -33,6 +33,8 @@ import '../../../shared/incomplete_macros.dart';
 import '../../../shared/method_step_text.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../ask/domain/ask_screen.dart';
+import '../../ask/presentation/ask_sheet.dart';
 import '../../ingredients/domain/price.dart';
 import '../../ingredients/presentation/ingredient_detail_view.dart'
     show ingredientDetailRoute;
@@ -122,7 +124,12 @@ class _RecipeBody extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final servings = useState(recipe.servingsBase);
+    // Held in a provider rather than the page so Ansi can read the servings
+    // on screen and move them; null until the stepper moves.
+    final servings =
+        ref.watch(recipeServingsProvider(recipe.id)) ?? recipe.servingsBase;
+    void setServings(double v) =>
+        ref.read(recipeServingsProvider(recipe.id).notifier).set(v);
     // Opened at a timer's step, the page opens on the method.
     final tab = useState(step == null ? 0 : 1);
     // What the cook has ticked off in the method. Page-local and unsynced, and
@@ -238,6 +245,14 @@ class _RecipeBody extends HookConsumerWidget {
       days: placement.days,
       inHeader: !wide,
     );
+    // Ansi sees this page: the recipe, the stepper's servings, the week it
+    // was opened from and the steps struck off, read afresh per question.
+    final ask = _AskDoor(
+      recipe: recipe,
+      plannedWeek: plannedWeek,
+      struck: () => struck.value,
+      inHeader: !wide,
+    );
     final menu = _RecipeMenu(
       recipe: recipe,
       showLineFigures: lineFigures,
@@ -246,16 +261,16 @@ class _RecipeBody extends HookConsumerWidget {
       offerLineFigures: wide || index == 0,
       inHeader: !wide,
     );
-    final factor = scaleFactorFor(recipe, servings.value);
+    final factor = scaleFactorFor(recipe, servings);
     final scaler = _ScaleControl(
-      servings: servings.value,
+      servings: servings,
       factor: factor,
-      onChanged: (v) => servings.value = v,
+      onChanged: setServings,
     );
     final ingredients = _IngredientsTab(
       recipe: recipe,
-      servings: servings.value,
-      onServings: (v) => servings.value = v,
+      servings: servings,
+      onServings: setServings,
       showLineFigures: lineFigures,
       costReading: costReading,
       cost: cost,
@@ -271,7 +286,7 @@ class _RecipeBody extends HookConsumerWidget {
     );
     final method = _MethodTab(
       recipe: recipe,
-      servings: servings.value,
+      servings: servings,
       struck: struck.value,
       onToggle: toggleStruck,
       stepKey: (i) => stepKeys.putIfAbsent(i, GlobalKey.new),
@@ -306,7 +321,7 @@ class _RecipeBody extends HookConsumerWidget {
         // At expanded the pencil and the menu hang in the hero beside the
         // scaler, which is where the width gives them room.
         suffixes: [
-          if (!wide) ...[const _AwakeSun(inHeader: true), edit, menu],
+          if (!wide) ...[const _AwakeSun(inHeader: true), ask, edit, menu],
         ],
       ),
       child: ListView(
@@ -329,6 +344,7 @@ class _RecipeBody extends HookConsumerWidget {
                         SizedBox(width: _kScalerWidth, child: scaler),
                         const SizedBox(width: 12),
                         const _AwakeSun(inHeader: false),
+                        ask,
                         edit,
                         menu,
                       ],
@@ -385,7 +401,7 @@ class _RecipeBody extends HookConsumerWidget {
                   trailing: index != 1
                       ? null
                       : Text(
-                          'for ${formatQuantity(servings.value)} servings · '
+                          'for ${formatQuantity(servings)} servings · '
                           '${formatQuantity(factor)}×',
                           style: ansiMono(size: 11, color: AnsiColors.muted),
                           maxLines: 1,
@@ -506,6 +522,63 @@ class _AwakeSun extends ConsumerWidget {
             ),
           );
   }
+}
+
+/// Ask Ansi about this recipe: the sheet opens seeing the recipe at
+/// the servings the stepper shows.
+class _AskDoor extends StatelessWidget {
+  const _AskDoor({
+    required this.recipe,
+    required this.plannedWeek,
+    required this.struck,
+    required this.inHeader,
+  });
+
+  final Recipe recipe;
+  final String? plannedWeek;
+
+  /// The struck method keys (`s2`, `s2:c0`), read when a question is asked.
+  final Set<String> Function() struck;
+
+  /// Whether it is an [FHeaderAction], as the `⋯` is on a phone.
+  final bool inHeader;
+
+  void _open(BuildContext context) {
+    final container = ProviderScope.containerOf(context, listen: false);
+    unawaited(
+      showAskSheet(
+        context,
+        screen: () => AskRecipeScreen(
+          recipeId: recipe.id,
+          title: recipe.title,
+          servings:
+              container.read(recipeServingsProvider(recipe.id)) ??
+              recipe.servingsBase,
+          servingsBase: recipe.servingsBase,
+          weekKey: plannedWeek,
+          struckSteps: [
+            for (final key in struck())
+              if (RegExp(r'^s(\d+)$').firstMatch(key) case final m?)
+                int.parse(m.group(1)!) + 1,
+          ]..sort(),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => inHeader
+      ? FHeaderAction(
+          icon: const Icon(FLucideIcons.messageCircleQuestion),
+          semanticsLabel: 'Ask Ansi about this recipe',
+          onPress: () => _open(context),
+        )
+      : AnsiTap(
+          onTap: () => _open(context),
+          semanticsLabel: 'Ask Ansi about this recipe',
+          padding: const EdgeInsets.all(6),
+          child: const Icon(FLucideIcons.messageCircleQuestion, size: 18),
+        );
 }
 
 /// The page's pencil: the recipe's most-used verb, so it stands in the bar

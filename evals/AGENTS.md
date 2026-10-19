@@ -14,8 +14,12 @@ it runs on demand and nightly (`.github/workflows/evals.yml`), not on every PR.
   household vocabulary; used to set the ≥0.85 / 0.55–0.85 / <0.55 bands.
 - **Extraction** — page/photo fixtures → structured lines, against the blessed
   gold, with a never-invent ledger as the disqualifying dimension.
+- **Ask Ansi** — a screen and a question → the model's first tool call, and
+  the answer to a canned tool result, where a number found in nothing the
+  model was given fails the case. Paid (`runner/run_ask_live.ts`); the
+  scorers and the dataset's validity are checked keyless.
 
-All three are scored by `runner/run.sh`, keyless. The paid provider compares are
+The first three are scored by `runner/run.sh`, keyless. The paid provider compares are
 separate, on-demand runners.
 
 ## Structure
@@ -28,6 +32,7 @@ datasets/extraction/gold/*.json     the blessed structured gold (the oracle)
 datasets/extraction/gold/_SCHEMA.md the gold contract + every owner ruling
 datasets/extraction/gold/_INDEX.md  per-file confidence, rulings, what is open
 datasets/extraction/images/         the 12 source photos (GITIGNORED)
+datasets/ask/cases.jsonl            Ask Ansi: screen + question → first tool, answer (HAND-written)
 reports/                            capture_d2_report.ts output (GITIGNORED — derived)
 runs/                               persisted PAID runs (LOCAL ONLY — see runs/README.md)
 runner/run.sh                       runs every keyless scorer (make evals)
@@ -42,6 +47,9 @@ runner/score_extraction.test.ts     the scorers' own self-tests (run in run.sh)
 runner/cost_rescore.test.ts         pricing + persist→rescore self-tests (run in run.sh)
 runner/run_extraction_live.ts       live provider compare (needs keys); persists runs
 runner/capture_d2_report.ts         per-line Claude-vs-GPT HTML report (needs keys)
+runner/score_ask.ts                 Ask Ansi scorers: first move, no invented number
+runner/score_ask.test.ts            their self-tests + the dataset's validity (run in run.sh)
+runner/run_ask_live.ts              the ask door through the real model (needs a key)
 runner/EXTRACTION.md                the extraction rubric, stages, paths, ledger, cost
 ```
 

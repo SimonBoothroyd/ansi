@@ -54,6 +54,10 @@ dependencies:
   audioplayers: ^6.8.1    # the in-app chime: the web, or notifications refused
   web: ^1.1.1             # the web's own Notification and tab title
   share_plus: ^13.3.1     # a recipe's share link, to the phone's share sheet
+
+  # Ask Ansi's voice (plan 0053): the phone's own recogniser and speech engine.
+  speech_to_text: ^7.5.0  # the mic: Android's SpeechRecognizer, on-device where it can
+  flutter_tts: ^4.2.5     # answers read aloud when the question was spoken
   # fl_chart: ^0.69.0   # stretch: macro charts (spec §7 step 9)
 
 dev_dependencies:

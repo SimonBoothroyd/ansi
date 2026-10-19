@@ -49,6 +49,19 @@ export interface PriceRow {
  * archived run can still be re-priced at the rates it actually paid.
  */
 export const PRICING: Record<string, PriceRow> = {
+  "claude-haiku-5-5": {
+    model: "claude-haiku-5-5",
+    label: "Claude Haiku 5.5",
+    usd_per_mtok_input: 0.1,
+    usd_per_mtok_output: 0.5,
+    usd_per_mtok_cache_read: 0.01,
+    usd_per_mtok_cache_write: 0.125,
+    source: "https://platform.claude.com/docs/en/about-claude/pricing",
+    retrieved: "2026-10-19",
+    note:
+      "the ask door's pin (plan 0053). The rates are the up-to-100K-token " +
+      "card; an ask prompt is a few thousand tokens, far below it.",
+  },
   "claude-haiku-4-5": {
     model: "claude-haiku-4-5",
     label: "Claude Haiku 4.5",

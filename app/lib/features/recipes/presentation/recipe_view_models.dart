@@ -50,6 +50,21 @@ Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
   return ref.watch(recipeRepositoryProvider).usedIn(id);
 }
 
+/// The servings a recipe page's stepper shows, or null until it moves (the
+/// page reads null as the recipe's own). A provider rather than page state so
+/// Ansi reads the servings on screen and its `set_servings` moves the
+/// stepper. Auto-disposed: a page opened fresh starts at the
+/// recipe's own servings, as it always has.
+@riverpod
+class RecipeServings extends _$RecipeServings {
+  @override
+  double? build(String recipeId) => null;
+
+  // A setter would read as a field write; this is the stepper's verb.
+  // ignore: use_setters_to_change_properties
+  void set(double servings) => state = servings;
+}
+
 /// Every recipe's cost, keyed by recipe id (ADR-0017). A separate stream from
 /// [recipeList]: a cost moves when a receipt lands, and money stays apart from
 /// macros.
