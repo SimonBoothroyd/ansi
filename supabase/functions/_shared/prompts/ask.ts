@@ -154,7 +154,7 @@ export const ASK_TOOLS: AskTool[] = [
     description:
       "Starts the timer printed in a method step. `timer` picks among a " +
       "step's timers, from 1; null means the step's first. When the member " +
-      "names a timer by what it times (\"the resting timer\") rather than " +
+      'names a timer by what it times ("the resting timer") rather than ' +
       "by its step alone, read the step with method_step first and pick " +
       "the timer from its result; never guess a position.",
     input_schema: {
