@@ -48,8 +48,12 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
 ## Voice
 
 `data/ask_voice.dart`: the phone's own recogniser (`speech_to_text`) and speech
-engine (`flutter_tts`). A spoken question is sent when the member pauses for
-two seconds; the answer to a spoken question is read aloud, a typed one is not,
+engine (`flutter_tts`). A spoken question is sent when the member has been
+quiet for two and a half seconds, a pause the app keeps itself
+(`domain/ask_spoken_question.dart`): Android ends a listening session on its
+own silence of about a second whatever it is asked for, so a session that
+ends early is restarted and its words kept. The mic waits six seconds for a
+first word and thirty for the whole question; the answer to a spoken question is read aloud, a typed one is not,
 and the speaker in the sheet cycles *match the question* · *always* · *never*.
 No audio reaches Ansi's servers.
 
@@ -63,6 +67,7 @@ ask/
     ask_tools.dart        what each tool answers, written by the app's own Dart
     ask_tool_runner.dart  which recipe, which servings, which week — data injected
     ask_read_aloud.dart   when an answer is read aloud
+    ask_spoken_question.dart  when a spoken question is over, across recogniser sessions
     ask_repository.dart   the relay's contract
   data/
     remote_ask_repository.dart  the `ask` edge function; waits 60 s

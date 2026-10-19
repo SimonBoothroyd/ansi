@@ -370,7 +370,7 @@ Taken with the owner, 2026-10-18.
 | The thread | the API's own turns kept append-only; 30-minute idle clear; trim past 20 questions strips thinking blocks; a failed or refused question comes off the tail | `features/ask/domain/ask_thread.dart`, `presentation/ask_controller.dart` |
 | The tools | `find_recipe`, `recipe_lines` (with `for_week`), `method_step`, `start_step_timer`, `set_servings`, `open_recipe`, run on the phone with every amount written by the page's own Dart | `features/ask/domain/ask_tools.dart`, `ask_tool_runner.dart`, `presentation/ask_wiring.dart` |
 | The sheet and the door | the speech-bubble icon in the recipe page's bar; the chip, the conversation, the field, the mic and the speaker | `features/ask/presentation/ask_sheet.dart`, `_AskDoor` in `recipe_view.dart` |
-| Voice | `speech_to_text` (sent on a 2 s pause) and `flutter_tts` (read when asked aloud); `RECORD_AUDIO`, the two `<queries>` intents, the two iOS usage strings | `features/ask/data/ask_voice.dart` |
+| Voice | `speech_to_text` (sent on a 2.5 s pause the app keeps itself, restarting a session Android ends early) and `flutter_tts` (read when asked aloud); `RECORD_AUDIO`, the two `<queries>` intents, the two iOS usage strings | `features/ask/data/ask_voice.dart`, `domain/ask_spoken_question.dart` |
 | Evals | 28 hand-written cases; scorers for the first move and for invented numbers, self-tested keyless; a paid live runner | `evals/datasets/ask/`, `evals/runner/score_ask.ts`, `run_ask_live.ts` |
 
 Tests: 20 Deno tests for the function and adapter (and one more rung in
