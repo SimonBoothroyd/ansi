@@ -38,7 +38,7 @@ export interface ToolCall {
   input: Record<string, unknown>;
 }
 
-/** The slice-1 tool names, as the function declares them. */
+/** The tool names, as the function declares them. */
 export const ASK_TOOL_NAMES = [
   "find_recipe",
   "recipe_lines",
@@ -46,6 +46,13 @@ export const ASK_TOOL_NAMES = [
   "start_step_timer",
   "set_servings",
   "open_recipe",
+  "week",
+  "cook_sessions",
+  "shopping",
+  "find_ingredient",
+  "propose_plan_changes",
+  "propose_copy_last_week",
+  "propose_top_up",
 ];
 
 /**

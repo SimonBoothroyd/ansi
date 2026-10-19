@@ -26,10 +26,12 @@ import '../../../shared/ansi_toast.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../data/ask_voice.dart';
+import '../domain/ask_proposal.dart';
 import '../domain/ask_read_aloud.dart';
 import '../domain/ask_screen.dart';
 import '../domain/ask_spoken_question.dart';
 import '../domain/ask_thread.dart';
+import 'ask_card.dart';
 import 'ask_controller.dart';
 import 'ask_wiring.dart';
 
@@ -81,12 +83,15 @@ class AskSheet extends HookConsumerWidget {
     final chipOff = useState(false);
     final voice = ref.read(askVoiceProvider);
 
-    // A thread idle past its half hour is gone when the sheet opens.
+    // A thread idle past its half hour is gone when the sheet opens. A card
+    // still waiting when the sheet closes is a Cancel.
+    final notifier = ref.read(askControllerProvider.notifier);
     useEffect(() {
-      Future.microtask(
-        () => ref.read(askControllerProvider.notifier).forgetIfStale(),
-      );
-      return voice.stopSpeaking;
+      Future.microtask(notifier.forgetIfStale);
+      return () {
+        unawaited(voice.stopSpeaking());
+        Future.microtask(() => notifier.decide(AskDecision.cancelled));
+      };
     }, const []);
 
     AskScreen current() => chipOff.value ? const AskNoScreen() : screen();
@@ -218,19 +223,21 @@ class AskSheet extends HookConsumerWidget {
               ? Align(
                   alignment: Alignment.topLeft,
                   child: Text(
-                    label == null
-                        ? 'Open a recipe and ask about it — or name one: '
-                              '“open the aioli”.'
-                        : '“How much tamari?” · “What’s step 3?” · '
-                              '“Start the simmer timer” · “Make it 8 servings”',
+                    _examples(current()),
                     style: ansiMono(size: 11.5, color: AnsiColors.muted),
                   ),
                 )
               : ListView(
                   reverse: true,
                   children: [
-                    for (final e in exchanges.reversed)
-                      _ExchangeView(exchange: e),
+                    // The card waits under the question it answers.
+                    if (state.card case final card?) AskCard(proposal: card),
+                    for (final (i, e) in exchanges.reversed.indexed)
+                      _ExchangeView(
+                        exchange: e,
+                        // The card stands where the spinner would.
+                        waiting: i == 0 && state.card == null,
+                      ),
                   ],
                 ),
         ),
@@ -240,7 +247,7 @@ class AskSheet extends HookConsumerWidget {
           children: [
             Expanded(
               child: FTextField(
-                hint: listening.value ? 'Listening…' : 'Ask about this recipe',
+                hint: listening.value ? 'Listening…' : 'Ask a question',
                 textInputAction: TextInputAction.send,
                 enabled: !state.busy,
                 maxLines: 3,
@@ -276,6 +283,23 @@ class AskSheet extends HookConsumerWidget {
     );
   }
 }
+
+/// What can be said from [screen], as the empty sheet suggests it.
+String _examples(AskScreen screen) => switch (screen) {
+  AskRecipeScreen() =>
+    '“How much tamari?” · “What’s step 3?” · “Start the simmer timer” · '
+        '“Make it 8 servings”',
+  AskWeekScreen(tab: AskWeekTab.shop) =>
+    '“Do we need tamari?” · “What’s left to buy?” · “Add milk to the list”',
+  AskWeekScreen(tab: AskWeekTab.cook) =>
+    '“What am I cooking on Sunday?” · “What’s for dinner tonight?”',
+  AskWeekScreen() =>
+    '“What’s for dinner tonight?” · “Move Tuesday’s curry to Thursday” · '
+        '“I’m eating out Friday” · “Copy last week”',
+  AskNoScreen() =>
+    '“What’s for dinner tonight?” · “Open the aioli” · '
+        '“Set all dinners next week to Ragù”',
+};
 
 /// What the mic says when the phone cannot listen: no recogniser, or the
 /// microphone refused.
@@ -319,9 +343,12 @@ class _SeesChip extends StatelessWidget {
 }
 
 class _ExchangeView extends StatelessWidget {
-  const _ExchangeView({required this.exchange});
+  const _ExchangeView({required this.exchange, this.waiting = true});
 
   final AskExchange exchange;
+
+  /// Whether an unanswered exchange shows the spinner.
+  final bool waiting;
 
   @override
   Widget build(BuildContext context) {
@@ -337,12 +364,12 @@ class _ExchangeView extends StatelessWidget {
             style: ansiMono(size: 12, color: AnsiColors.muted),
           ),
           const SizedBox(height: 6),
-          if (answer == null)
+          if (answer == null && waiting)
             const Align(
               alignment: Alignment.centerLeft,
               child: FCircularProgress(),
             )
-          else
+          else if (answer != null)
             Text(
               answer,
               style: ansiSans(

@@ -2,10 +2,13 @@
 
 **Plan:** [0053 — Ask Ansi](../../../../docs/exec-plans/active/0053-ask-ansi.md).
 
-Ask Ansi about the recipe on screen, typed or spoken: *how much tamari?*,
-*what's step 3?*, *start the simmer timer*, *make it 8 servings*, *open the
-aioli*. This first slice answers questions and acts on the phone; it changes
-no shared data. Planning and the shopping list are the next slice.
+Ask Ansi, typed or spoken, from the recipe page or the Library, Week, Cook
+and Shop tabs: *how much tamari?*, *what's step 3?*, *start the simmer
+timer*, *make it 8 servings*, *open the aioli*, *what's for dinner tonight?*,
+*do we need tamari?*, *set all dinners next week to Hamburger Helper*, *I'm
+eating out Friday*, *add milk to the list*. Questions and on-phone actions
+happen at once; a change to the plan or the list is a card the member
+confirms.
 
 ## How a question runs
 
@@ -23,8 +26,26 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
   (`domain/ask_tools.dart`). The model never multiplies.
 - **The screen is sent with every question** (`domain/ask_screen.dart`): the
   recipe, the servings the stepper shows, the week the page was opened from,
-  the steps struck off. It is the chip above the field; the chip's ✕ asks from
-  nowhere. The newest screen wins over the thread.
+  the steps struck off — or the tab and the week it shows — and always today,
+  this week and next by their first days (`AskToday`). It is the chip above
+  the field; the chip's ✕ asks from nowhere. The newest screen wins over the
+  thread.
+- **Dates are the app's.** A tool takes `week_of` (any date in the week) and
+  answers with every day dated through the household's `WeekShape`, so the
+  model copies *Thu 29 Oct* rather than counting to it.
+- **A proposal is a card, and only Confirm writes** (`domain/ask_proposal.dart`,
+  `presentation/ask_card.dart`). A `propose_*` call is checked against the
+  household's rows — the meals by id in the weeks read, the recipe, the
+  ingredient and its allowed units, the members — and drawn as rows (*Mon 26
+  Oct · Dinner · Hamburger Helper · replaces Ragù*). The runner waits on the
+  controller (`awaitDecision`) until the member taps Confirm or Cancel, or
+  closes the sheet (a Cancel), and the model reads the outcome. Confirm is one
+  `ref.write`: a plan card goes through `PlanningRepository.applyPlanChanges`,
+  one transaction that re-reads every meal it touches and refuses the whole
+  set when one changed (`PlanChangedError`, told to the model as `changed`).
+- **"I" is the member signed in**, matched by the account's own name or email
+  as onboarding named the member (`askMe`); when no one or two match, the week
+  marks no one "you" and Ansi asks.
 - **The thread is the API's own turns, verbatim** (`domain/ask_thread.dart`),
   held in a kept-alive controller on this device only — never stored or
   synced. It is append-only, because a thinking block the model returned is
@@ -44,6 +65,13 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
 | `start_step_timer` | starts a step's own timer chip — never a free timer |
 | `set_servings` | moves the stepper of the recipe on screen, and only that one |
 | `open_recipe` | closes the sheet and opens the recipe once the answer is in |
+| `week` | a week's meals by day, each day dated, each meal with its id, kind, eaters and portions; the members, the speaker marked |
+| `cook_sessions` | the derived batches by cook day, portions and the meals they feed |
+| `shopping` | one ingredient's rows with the meals that ask for it, or what is left to buy by aisle; totals as the Shop prints them |
+| `find_ingredient` | the vocabulary's best matches, each with the unit ids an amount may use |
+| `propose_plan_changes` | add, remove, move, set eaters — checked, drawn as a card, written on Confirm |
+| `propose_copy_last_week` | the Week's own copy, as a card |
+| `propose_top_up` | an ingredient with an amount, or a free-text item, onto the week's list, as a card |
 
 ## Voice
 
@@ -71,6 +99,8 @@ ask/
     ask_thread.dart       the wire turns, the exchanges shown, idle, trim, tail removal
     ask_tools.dart        what each tool answers, written by the app's own Dart
     ask_tool_runner.dart  which recipe, which servings, which week — data injected
+    ask_week_tools.dart   what the week, cook and shop tools answer; who "I" is
+    ask_proposal.dart     a propose_* call checked and drawn as card rows
     ask_read_aloud.dart   when an answer is read aloud
     ask_spoken_question.dart  when a spoken question is over, across recogniser sessions
     ask_repository.dart   the relay's contract
@@ -79,11 +109,15 @@ ask/
     ask_providers.dart          the relay, or a refusal when unconfigured
     ask_voice.dart              mic and speaker, and the read-aloud setting
   presentation/
-    ask_controller.dart   the loop: question → model → tools → … → answer
+    ask_controller.dart   the loop: question → model → tools → … → answer;
+                          the card waiting on Confirm
+    ask_card.dart         the card, and the one write Confirm makes
+    ask_door.dart         the bar's door on the Library, Week, Cook and Shop
     ask_wiring.dart       the runner over a captured container's repositories
     ask_sheet.dart        the chip, the conversation, the field and the mic
 ```
 
-The door is the recipe page's speech-bubble icon (`_AskDoor` in
-`recipes/presentation/recipe_view.dart`). The page's servings live in
+The doors are the recipe page's speech-bubble icon (`_AskDoor` in
+`recipes/presentation/recipe_view.dart`) and `AskDoor` in the four tabs'
+bars. The page's servings live in
 `recipeServingsProvider` so Ansi can read and move them.

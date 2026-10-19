@@ -72,7 +72,7 @@ Deno.test("the request — what Claude Haiku 5.5 accepts: no sampling, no prefil
   assertEquals(system[0].cache_control, { type: "ephemeral" });
 });
 
-Deno.test("the tools — the six slice-1 names the app executes, every one strict", () => {
+Deno.test("the tools — the names the app executes, every one strict", () => {
   assertEquals(ASK_TOOLS.map((t) => t.name), [
     "find_recipe",
     "recipe_lines",
@@ -80,18 +80,53 @@ Deno.test("the tools — the six slice-1 names the app executes, every one stric
     "start_step_timer",
     "set_servings",
     "open_recipe",
+    "week",
+    "cook_sessions",
+    "shopping",
+    "find_ingredient",
+    "propose_plan_changes",
+    "propose_copy_last_week",
+    "propose_top_up",
   ]);
   for (const tool of ASK_TOOLS) {
     assertEquals(tool.strict, true);
-    const schema = tool.input_schema;
-    assertEquals(schema.additionalProperties, false, tool.name);
-    // Strict tools have no optional fields: every property is required.
-    assertEquals(
-      [...(schema.required as string[])].sort(),
-      Object.keys(schema.properties as Record<string, unknown>).sort(),
-      tool.name,
-    );
+    assertEquals(tool.input_schema.additionalProperties, false, tool.name);
   }
+});
+
+/** Every object schema under [schema], itself included. */
+function objectsIn(schema: Record<string, unknown>): Record<string, unknown>[] {
+  const found: Record<string, unknown>[] = [];
+  const walk = (s: unknown) => {
+    if (!s || typeof s !== "object") return;
+    const o = s as Record<string, unknown>;
+    if (o.type === "object") found.push(o);
+    for (const v of Object.values(o.properties ?? {})) walk(v);
+    walk(o.items);
+  };
+  walk(schema);
+  return found;
+}
+
+Deno.test("the tools — inside the API's limits for strict schemas", () => {
+  // Per request, across every strict schema: 20 strict tools, 24 optional
+  // parameters, 16 parameters with a union type (anyOf or a type array).
+  let optional = 0;
+  let unions = 0;
+  for (const tool of ASK_TOOLS) {
+    for (const o of objectsIn(tool.input_schema)) {
+      assertEquals(o.additionalProperties, false, tool.name);
+      const props = o.properties as Record<string, Record<string, unknown>>;
+      const required = new Set((o.required as string[] | undefined) ?? []);
+      for (const [name, p] of Object.entries(props)) {
+        if (!required.has(name)) optional++;
+        if (p.anyOf || Array.isArray(p.type)) unions++;
+      }
+    }
+  }
+  assert(ASK_TOOLS.length <= 20, `${ASK_TOOLS.length} strict tools`);
+  assert(optional <= 24, `${optional} optional parameters`);
+  assert(unions <= 16, `${unions} union parameters`);
 });
 
 Deno.test("decode — a tool call keeps its thinking block verbatim", () => {

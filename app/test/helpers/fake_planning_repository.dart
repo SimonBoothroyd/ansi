@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/planning/domain/plan_change.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
 
@@ -154,4 +155,12 @@ class FakePlanningRepository implements PlanningRepository {
   @override
   Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart) async =>
       (meals: 0, variantsLeftBehind: const <VariantLeftBehind>[]);
+
+  /// Every change set handed to [applyPlanChanges], in order.
+  final changeSets = <List<PlanChange>>[];
+
+  @override
+  Future<void> applyPlanChanges(List<PlanChange> changes) async {
+    changeSets.add(changes);
+  }
 }

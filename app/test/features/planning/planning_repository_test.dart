@@ -6,6 +6,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/planning/domain/plan_change.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
@@ -834,4 +835,104 @@ void main() {
       },
     );
   });
+
+  group('a change set (an Ask card’s Confirm)', () {
+    Future<PlanEntry> planned(String recipeId, int day) async {
+      await repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: day,
+        mealSlot: 'Dinner',
+        recipeId: recipeId,
+        eaterIds: ['m1', 'm2'],
+        portions: 3,
+      );
+      final week = (await repo.watchWeek(_thisWeek).first)!;
+      return week.entries.lastWhere((e) => e.dayOfWeek == day);
+    }
+
+    test('replaces, adds, moves and changes eaters in one write', () async {
+      await _insertRecipe(db, 'r1', 'Ragù');
+      await _insertRecipe(db, 'r2', 'Hamburger Helper');
+      await _insertIngredient(db, 'i1', 'Yoghurt');
+      final ragu = await planned('r1', 0);
+      final curry = await planned('r1', 1);
+      final out = await planned('r1', 4);
+
+      await repo.applyPlanChanges([
+        PlanRemove(ragu),
+        PlanAdd(
+          weekStart: _thisWeek,
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+          target: const PlanRecipeTarget('r2'),
+          eaterIds: const ['m1', 'm2'],
+        ),
+        PlanAdd(
+          weekStart: _nextWeekOf(_thisWeek),
+          dayOfWeek: 2,
+          mealSlot: 'Breakfast',
+          target: const PlanIngredientTarget('i1'),
+          eaterIds: const ['m1'],
+        ),
+        PlanMove(curry, weekStart: _thisWeek, dayOfWeek: 3, mealSlot: 'Lunch'),
+        PlanSetEaters(out, const ['m2']),
+      ]);
+
+      final week = (await repo.watchWeek(_thisWeek).first)!;
+      final byDay = {for (final e in week.entries) e.dayOfWeek: e};
+      expect(byDay[0]!.recipeTitle, 'Hamburger Helper');
+      expect(byDay.containsKey(1), isFalse);
+      // The moved meal keeps its eaters and its portions.
+      expect(byDay[3]!.mealSlot, 'Lunch');
+      expect(byDay[3]!.eaterIds, ['m1', 'm2']);
+      expect(byDay[3]!.portions, 3);
+      expect(byDay[4]!.eaterIds, ['m2']);
+      // An ingredient meal with no amount states none.
+      final next = (await repo.watchWeek(_nextWeekOf(_thisWeek)).first)!;
+      expect(next.entries.single.ingredientName, 'Yoghurt');
+      expect(next.entries.single.quantity, isNull);
+    });
+
+    test(
+      'a meal changed after the card was drawn refuses the whole set',
+      () async {
+        await _insertRecipe(db, 'r1', 'Ragù');
+        final ragu = await planned('r1', 0);
+        // Someone else's edit lands first.
+        await repo.setEaters(ragu.id, ['m1']);
+
+        await expectLater(
+          repo.applyPlanChanges([
+            PlanAdd(
+              weekStart: _thisWeek,
+              dayOfWeek: 5,
+              mealSlot: 'Dinner',
+              target: const PlanOutTarget('Pizza night'),
+              eaterIds: const ['m1'],
+            ),
+            PlanRemove(ragu),
+          ]),
+          throwsA(isA<PlanChangedError>()),
+        );
+        // Not even the add before it was written.
+        final week = (await repo.watchWeek(_thisWeek).first)!;
+        expect(week.entries.single.id, ragu.id);
+      },
+    );
+
+    test('a meal removed meanwhile refuses too', () async {
+      await _insertRecipe(db, 'r1', 'Ragù');
+      final ragu = await planned('r1', 0);
+      await repo.removeEntry(ragu.id);
+      await expectLater(
+        repo.applyPlanChanges([
+          PlanSetEaters(ragu, const ['m1']),
+        ]),
+        throwsA(isA<PlanChangedError>()),
+      );
+    });
+  });
 }
+
+DateTime _nextWeekOf(DateTime weekStart) =>
+    weekStart.add(const Duration(days: 7));

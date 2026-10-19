@@ -25,9 +25,11 @@ can read your household's data.
   inputs are not used to train their models. Import is only switched on for
   invited households.
 - **Anthropic (Claude), when you ask Ansi a question:** the words of your
-  question, what is on your screen (the recipe and the servings shown), the
-  conversation so far, and the recipe lines or steps Ansi looks up to answer
-  are sent to Anthropic's API. Ansi's server stores none of it, and the
+  question, what is on your screen (the recipe and the servings shown, or the
+  week on the Week, Cook or Shop tab, and today's date), the conversation so
+  far, and what Ansi looks up to answer — recipe lines or steps, the week's
+  meals with the names of who eats them, the cook plan, shopping-list rows,
+  ingredient names — are sent to Anthropic's API. Ansi's server stores none of it, and the
   conversation itself stays on your device until it is cleared. Like import,
   it is only switched on for invited households.
 - **Open Food Facts:** when you scan a barcode, the barcode number (and

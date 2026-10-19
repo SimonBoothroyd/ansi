@@ -2074,4 +2074,15 @@
     .asheet .as-btn{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:8px;}
     .asheet .as-btn.on{background:var(--herb);border-color:var(--herb);}
     .asheet .as-btn.on svg{stroke:#fff;}
+    .wkhdr .wk-ask{display:inline-flex;margin-left:6px;}
+    .wkhdr .wk-ask svg{width:15px;height:15px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .asheet .as-card{border:1px solid var(--line);border-radius:12px;padding:10px 12px 12px;margin:6px 0 4px;background:var(--paper);}
+    .asheet .as-ct{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink);margin:0 0 6px;}
+    .asheet .as-row{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink);margin-bottom:6px;}
+    .asheet .as-row.as-more{color:var(--muted);}
+    .asheet .as-when{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);}
+    .asheet .as-note{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);}
+    .asheet .as-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;}
+    .asheet .as-cancel,.asheet .as-ok{font-family:'Inter',sans-serif;font-size:12px;border-radius:8px;padding:5px 12px;border:1px solid var(--line);color:var(--ink);}
+    .asheet .as-ok{background:var(--herb);border-color:var(--herb);color:#fff;}
     .asheet .ts-x{color:var(--muted);font-family:'Inter',sans-serif;font-size:18px;margin-right:10px;}

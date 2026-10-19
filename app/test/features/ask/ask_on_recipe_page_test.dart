@@ -9,6 +9,10 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ask/data/ask_providers.dart';
 import 'package:ansi/features/ask/data/ask_voice.dart';
+import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/planning/data/planning_providers.dart';
+import 'package:ansi/features/planning/domain/plan_change.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -21,6 +25,8 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_ask.dart';
+import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/fake_timer_platform.dart';
 import '../../helpers/forui_semantics.dart';
@@ -57,12 +63,17 @@ const _ragu = Recipe(
 void main() {
   late ProviderContainer container;
   late FakeAskVoice voice;
+  late FakePlanningRepository planning;
 
   Future<void> openAsk(WidgetTester tester, List<AskScript> script) async {
     // Opening a Forui sheet with semantics live trips a framework assertion
     // that is not this code's (see the helper).
     filterForuiSemanticsAssertions();
     voice = FakeAskVoice();
+    planning = FakePlanningRepository(const [
+      Member(id: 'm1', displayName: 'Simon'),
+      Member(id: 'm2', displayName: 'Emma'),
+    ]);
     container = ProviderContainer(
       overrides: [
         recipeRepositoryProvider.overrideWithValue(
@@ -70,6 +81,10 @@ void main() {
         ),
         askRepositoryProvider.overrideWithValue(ScriptedAskRepository(script)),
         askVoiceProvider.overrideWithValue(voice),
+        planningRepositoryProvider.overrideWithValue(planning),
+        ingredientRepositoryProvider.overrideWithValue(
+          const ReadOnlyIngredientRepo(),
+        ),
         ...timerOverrides(
           platform: FakeTimerPlatform(),
           clock: () => tester.binding.clock.now(),
@@ -222,5 +237,65 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Speak'));
     await tester.pumpAndSettle();
     expect(find.textContaining('allow the microphone'), findsOneWidget);
+  });
+
+  /// "Plan the ragù for Friday dinner", as Ansi proposes it.
+  AskScript proposeFriday() =>
+      (_) => askToolCall('propose_plan_changes', {
+        'changes': [
+          {
+            'op': 'add',
+            'entry_id': null,
+            'date': '2026-10-23',
+            'slot': 'dinner',
+            'recipe_id': 'r1',
+            'ingredient_id': null,
+            'out_label': null,
+            'eaters': null,
+            'quantity': null,
+            'unit': null,
+          },
+        ],
+      });
+
+  testWidgets('a proposed change is a card, and only Confirm writes it', (
+    tester,
+  ) async {
+    await openAsk(tester, [
+      proposeFriday(),
+      (sent) {
+        expect(lastToolResult(sent), contains('"outcome":"confirmed"'));
+        return askSays('Ragù is on Friday’s dinner.');
+      },
+    ]);
+    await type(tester, 'plan this for friday dinner');
+    // The card, and nothing written yet.
+    expect(find.text('Plan 1 change'), findsOneWidget);
+    expect(find.text('Fri 23 Oct · Dinner'), findsOneWidget);
+    expect(planning.changeSets, isEmpty);
+
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+    final add = planning.changeSets.single.single as PlanAdd;
+    expect(add.mealSlot, 'Dinner');
+    expect(add.eaterIds, ['m1', 'm2']);
+    expect(find.text('Plan 1 change'), findsNothing);
+    expect(find.text('Ragù is on Friday’s dinner.'), findsOneWidget);
+    expect(find.text('✓ Plan 1 change'), findsOneWidget);
+  });
+
+  testWidgets('Cancel writes nothing, and Ansi is told', (tester) async {
+    await openAsk(tester, [
+      proposeFriday(),
+      (sent) {
+        expect(lastToolResult(sent), contains('"outcome":"cancelled"'));
+        return askSays('Left as it was.');
+      },
+    ]);
+    await type(tester, 'plan this for friday dinner');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(planning.changeSets, isEmpty);
+    expect(find.text('Left as it was.'), findsOneWidget);
   });
 }

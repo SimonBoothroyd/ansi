@@ -1,6 +1,6 @@
 # Exec plan: Ask Ansi — a chat and voice assistant
 
-- **Status:** active — slice 1 shipped in `v0.30.0` and waits only on its phone run (see *Handover*); slice 2 is not started
+- **Status:** active — slice 1 shipped in `v0.30.0` and waits only on its phone run; slice 2 is built on a branch and waits on its deploy, its paid eval and its phone run (see *Handover*)
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** none — slice 1 is the `v0.30.0` row of the roadmap's Shipped table
 - **Created:** 2026-10-18
@@ -11,8 +11,14 @@
 spoken, with three on-phone actions — is on `main`, drawn on the board,
 deployed (`ask`, deploy 39187852214) and released in `v0.30.0` (release
 39188275832). Its paid eval passed 28/28 first moves and 17/17 answers (see
-*Decision log*). What is left is the phone checklist below. Slice 2 (the week
-and the shopping list) is specified below and not started.
+*Decision log*). What is left is the phone checklist below.
+
+Slice 2 — the week, the cook plan and the list, and every change behind a
+card — is built (*Slice 2 — what was built*) and needs no migration. Before it
+is tagged: redeploy the `ask` function (its prompt and tool list changed; an
+app with the new tools against the old function gets no week tools, and the
+old app against the new function is unaffected), run the paid eval
+(`run_ask_live.ts`, now 36 cases), then the phone checklist's slice-2 rows.
 
 **Read first, in this order:**
 
@@ -29,7 +35,8 @@ and the shopping list) is specified below and not started.
 
 ```
 make analyze                                  # flutter analyze + custom_lint
-cd app && flutter test test/features/ask      # the 53 ask tests
+cd app && flutter test test/features/ask      # the 79 ask tests
+cd app && flutter test test/features/planning/planning_repository_test.dart
 make test-fns                                 # the function, adapter, timeout ladder
 cd evals && ./runner/run.sh                   # the keyless scorers + the dataset's validity
 ```
@@ -48,6 +55,22 @@ is none — it is the fence the function does not hold itself.
 - [ ] *make it 8 servings* moves the stepper behind the sheet.
 - [ ] *open the aioli* closes the sheet and opens the recipe.
 - [ ] Airplane mode: a question fails with a sentence, and works again after.
+
+Slice 2:
+
+- [ ] The speech bubble is in the Library, Week, Cook and Shop bars, and the
+      chip names the tab and its week.
+- [ ] *what's for dinner tonight?* on the Week names today's dinner.
+- [ ] *set all dinners next week to …* shows one card with every day dated;
+      Cancel writes nothing; Confirm writes all of it and the Week shows it.
+- [ ] *I'm eating out Friday* takes the speaker (and only them) off Friday's
+      meals — the check that "I" is read from the account's name.
+- [ ] A card confirmed after the other phone edited one of its meals is
+      refused, and Ansi re-reads the week.
+- [ ] *add milk to the list* asks how much; *add paper towels* lands as an
+      item on the Shop tab.
+- [ ] *copy last week* on an empty week copies it and the Week names the
+      variants left behind.
 
 iOS: the two new plugins need `pod install` on a Mac at the next Xcode build;
 the usage strings are already in `Info.plist`.
@@ -386,12 +409,51 @@ in two frames; the view's status row reads *ask: matches code*.
 **Still open for slice 1:** the merge, the deploy, the paid eval and the phone
 checklist — all in *Handover* above.
 
-## Next: slice 2
+## Slice 2 — what was built
 
-The week and shop tools, the proposal card, the resolution order in ruling 2,
-and the Ask door moving from the recipe page to every screen.
+| Step | What exists | Where |
+|---|---|---|
+| The doors | the speech bubble in the Library, Week, Cook and Shop bars beside the recipe page's; the chip names the tab and its week | `features/ask/presentation/ask_door.dart`, the four tab views |
+| Today, on every screen | `today`, `today_is`, `this_week`, `next_week`, `weeks_start_on` in each `<screen>` block, from the household's `WeekShape` | `AskToday` in `domain/ask_screen.dart` |
+| The read tools | `week` (days dated, meals by id with eaters and portions, the members with the speaker marked), `cook_sessions`, `shopping` (one ingredient's rows with their meals, or what is left by aisle), `find_ingredient` (with the units an amount may use) | `domain/ask_week_tools.dart` |
+| Who "I" is | the member whose name is the account's own name or email local part, as onboarding named them; none or two → Ansi asks | `askMe` |
+| The proposals | `propose_plan_changes` (add, remove, move, set eaters), `propose_copy_last_week`, `propose_top_up`, each checked against the rows and drawn as card rows; ruling 2's order is the prompt's, and the check refuses a recipe, ingredient, unit or member that is not the household's | `domain/ask_proposal.dart`, the runner |
+| The card | Confirm and Cancel in the sheet under the question; the runner waits on `AskController.awaitDecision`; closing the sheet is a Cancel; Confirm is one `ref.write` | `presentation/ask_card.dart`, `ask_controller.dart` |
+| One transaction | `PlanningRepository.applyPlanChanges`: every change in one write, each touched meal re-read and compared with the card's, `PlanChangedError` refusing the whole set | `planning/domain/plan_change.dart`, `planning_repository_impl.dart` |
+| The function | the prompt's `<dates>`, `<people>` and `<changes>`; seven new strict tools, inside the API's per-request limits (counted by `claude_ask.test.ts`) | `_shared/prompts/ask.ts` |
+| Evals | two refusal cases turned into slice-2 first moves, eight new cases | `evals/datasets/ask/cases.jsonl` |
+
+Tests: 79 Flutter tests in `test/features/ask/` (26 new, two of them end to
+end on the recipe page: a card confirmed, a card cancelled), three repository
+tests for the change set on a real database, and the function's 401.
+
+**Not built, and why:**
+
+- **The board does not draw slice 2.** The tab bars' new door and the card
+  are not on `week.html` / `shop.html` yet; the recipe page's frames still
+  hold. Owed with the phone run, when the card's look is settled.
+- **Ticking the list off, week numbers (protein, cost), suggestions** stay
+  *later*, as section C and D say.
+- **No server-side "me".** The phone reads the account's name; a member
+  renamed on the server would stop matching, and Ansi would ask.
 
 ## Decision log
+
+- 2026-10-19 — Slice 2 built. Decisions taken while building it:
+  - **The card waits inside the tool call.** A `propose_*` result is the
+    member's decision, so the model's next turn knows whether the change
+    happened; it is never told "done" before Confirm.
+  - **"I" from the account's name, not a migration.** `auth_user_id` stays off
+    the wire; the onboarding rule that named the member is applied again on
+    the phone. It costs nothing to ship and fails safe (Ansi asks).
+  - **An ingredient meal with no amount states none.** The card says *no
+    amount — set it on the Week*; an invented portion would be a number nobody
+    said. A top-up has no such state on the list, so it asks for one.
+  - **Optional fields in the new tools.** Every slice-1 nullable field is a
+    union type; the API allows 16 per request, so slice 2's tools leave fields
+    out instead of sending null (21 optional of 24 allowed).
+  - **The door is a header action on the four tabs**, not a floating button
+    over the shell — the recipe page's door already set the place.
 
 - 2026-10-18 — Drafted from a conversation with the owner: in-app chat with
   voice now; "Hey Google" waits on AppFunctions leaving Google's private

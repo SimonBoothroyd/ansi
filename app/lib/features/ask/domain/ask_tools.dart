@@ -30,6 +30,13 @@ abstract final class AskTools {
   static const startStepTimer = 'start_step_timer';
   static const setServings = 'set_servings';
   static const openRecipe = 'open_recipe';
+  static const week = 'week';
+  static const cookSessions = 'cook_sessions';
+  static const shopping = 'shopping';
+  static const findIngredient = 'find_ingredient';
+  static const proposePlanChanges = 'propose_plan_changes';
+  static const proposeCopyLastWeek = 'propose_copy_last_week';
+  static const proposeTopUp = 'propose_top_up';
 }
 
 /// A tool call the app refuses, in words the model can repeat.

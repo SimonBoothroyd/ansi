@@ -28,6 +28,7 @@ import '../../../shared/dotted_leader.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../account/presentation/account_view.dart';
+import '../../ask/presentation/ask_door.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/presentation/ingredient_list_view.dart'
     show kIngredientsRoute;
@@ -98,6 +99,7 @@ class LibraryView extends HookConsumerWidget {
           : FHeader.nested(
               title: AnsiSearchField(hint: 'Search recipes', controller: field),
               suffixes: [
+                const AskDoor(),
                 if (!AnsiShell.of(context).beside)
                   FHeaderAction(
                     icon: const Icon(FLucideIcons.users),

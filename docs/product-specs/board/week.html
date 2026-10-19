@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble</p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -336,6 +336,31 @@
                 <div class="dm-none">no meals yet — nothing to add up</div>
             </div>
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Ask Ansi &middot; a change is a card</b> &middot; the speech bubble in the bar, here as on every tab; a change to the plan is drawn row by row and written only on Confirm</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">&lsaquo;</span><span class="wt"><span class="now"></span>This week<span class="dt">19 Oct</span><span class="caret">&#9662;</span></span><span class="chev">&rsaquo;</span><span class="wk-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></div>
+            <div class="asheet">
+                <div class="grab"></div>
+                <p class="as-h"><span class="ts-x">&times;</span>Ask Ansi</p>
+                <div class="as-top"><span class="as-chip">On: Week &middot; week of 19 Oct<span class="as-cx">&times;</span></span><span class="as-ic"><svg viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5Z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/></svg></span></div>
+                <div class="as-q">set all dinners next week to hamburger helper</div>
+                <div class="as-card">
+                    <p class="as-ct">Plan 8 changes</p>
+                    <div class="as-row"><span class="as-when">Mon 26 Oct &middot; Dinner</span>Hamburger Helper<span class="as-note"> &middot; replaces Ragù</span></div>
+                    <div class="as-row"><span class="as-when">Tue 27 Oct &middot; Dinner</span>Hamburger Helper<span class="as-note"> &middot; new</span></div>
+                    <div class="as-row"><span class="as-when">Wed 28 Oct &middot; Dinner</span>Hamburger Helper<span class="as-note"> &middot; new</span></div>
+                    <div class="as-row as-more"><span class="as-when">Thu 29 Oct &hellip; Sun 1 Nov &middot; Dinner</span>&hellip; one row a day, every one drawn</div>
+                    <div class="as-acts"><span class="as-cancel">Cancel</span><span class="as-ok">Confirm</span></div>
+                </div>
+                <div class="as-field"><span class="as-in">Ask a question</span><span class="as-btn"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg></span></div>
+            </div>
+            <p class="conv-note">the <b>card stands where the spinner would</b>, under the question it answers. Every row it would write is on it &mdash; the date, the slot, the meal, and what happens to what was there &mdash; so a misheard word or a wrong week is caught before anything is written. The frame elides four rows to fit; the card never does</p>
+            <p class="conv-note"><b>Confirm</b> writes the whole card in one transaction or none of it; a meal the other phone edited after the card was drawn refuses it, and Ansi reads the week again. <b>Cancel</b>, or closing the sheet, writes nothing and Ansi says so. The same card carries <i>move Tuesday&rsquo;s curry to Thursday</i>, <i>I&rsquo;m eating out Friday</i>, <i>copy last week</i>, and on the Shop tab <i>add paper towels to the list</i></p>
+            <p class="conv-note">the chip names the <b>tab and its week</b>; on Cook and Shop it reads <i>Cook &middot;</i> and <i>Shop &middot;</i>. Questions &mdash; <i>what&rsquo;s for dinner tonight?</i>, <i>what am I cooking on Sunday?</i>, <i>do we need tamari?</i> &mdash; are answered as on the recipe page, with no card</p>
         </div></div>
     </div>
 

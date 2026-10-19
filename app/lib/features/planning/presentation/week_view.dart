@@ -24,6 +24,8 @@ import '../../../shared/ansi_layout.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../ask/domain/ask_screen.dart';
+import '../../ask/presentation/ask_door.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -184,6 +186,7 @@ class WeekView extends HookConsumerWidget {
                 ? null
                 : formatMealCount(week.asData!.value?.entries.length ?? 0),
           ),
+          suffixes: const [AskDoor(tab: AskWeekTab.week)],
         ),
         child: week.when(
           loading: () => const Center(child: FCircularProgress()),

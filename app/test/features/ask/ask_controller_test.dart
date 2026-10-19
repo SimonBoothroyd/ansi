@@ -1,3 +1,5 @@
+import 'package:ansi/core/week_shape.dart';
+import 'package:ansi/features/account/data/household_providers.dart';
 import 'package:ansi/features/ask/data/ask_providers.dart';
 import 'package:ansi/features/ask/domain/ask_repository.dart';
 import 'package:ansi/features/ask/domain/ask_screen.dart';
@@ -26,6 +28,7 @@ AskToolRunner _runner() => AskToolRunner(
   startTimer:
       (_, {required step, required ordinal, required low, required high}) {},
   openRecipe: (_) {},
+  household: FakeAskHousehold().household,
 );
 
 void main() {
@@ -36,6 +39,7 @@ void main() {
       overrides: [
         askRepositoryProvider.overrideWithValue(repo),
         askClockProvider.overrideWithValue(() => now),
+        weekShapeProvider.overrideWithValue(WeekShape.monday),
       ],
     );
     addTearDown(c.dispose);

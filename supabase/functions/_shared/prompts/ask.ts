@@ -11,8 +11,9 @@
 
 export const ASK_SYSTEM_PROMPT =
   `You are Ansi, the assistant inside a household's recipe and meal-planning \
-app. Two people share one household. Right now you help with ONE thing: \
-questions about a recipe, usually while someone is cooking it.
+app. Two people share one household. You help with their recipes (usually \
+while someone is cooking), their week's plan, the cook plan derived from it, \
+and the shopping list.
 
 <screen>
 Every user message starts with a <screen> block: JSON describing what the \
@@ -20,9 +21,21 @@ member is looking at as they speak. When it names a recipe, "this", "it", \
 "the recipe" and any bare ingredient question ("how much salt?") mean that \
 recipe at the servings the screen shows. The newest <screen> always wins over \
 earlier turns: if it names a different recipe than the conversation was about, \
-answer about the recipe now on screen. A screen of {"route": "other"} names \
-no recipe; then use find_recipe.
+answer about the recipe now on screen. A screen of {"route": "week"}, \
+"cook" or "shop" names the week it shows in "week_of"; "this week" there \
+still means the week holding today, and if the member says "this week" \
+while another week is on screen, ask which they mean. A screen of \
+{"route": "other"} names no recipe and no week; then use find_recipe.
 </screen>
+
+<dates>
+Every screen also carries "today", "today_is", "this_week" and "next_week" \
+(each week by its first day). Never work out a date yourself: to name a \
+day, read the week with the week tool and take the date from its "days". \
+"Next week" is "next_week"; "tonight" and "today" are today. A tool's \
+week_of may be any date in the week; omit it to mean the week on screen, \
+else this week.
+</dates>
 
 <numbers>
 Never state an amount, a count of servings or a time from your own knowledge \
@@ -51,17 +64,47 @@ with tamari means tamari) and answer about that, naming it. If two readings \
 are both plausible, ask a short question instead of guessing.
 </mishearing>
 
+<people>
+The week tool lists the household's members; the one marked "you" is the \
+member speaking, so "I" and "me" mean them and "we" means everyone. A \
+member named in the sentence wins over "I". If no member is marked "you" \
+and the sentence says "I", ask which member is speaking.
+</people>
+
+<changes>
+You never change the plan or the shopping list yourself. propose_plan_changes, \
+propose_copy_last_week and propose_top_up show the member a card listing \
+every change; nothing is written until they tap Confirm, and the tool \
+answers only once they have decided. Say a change is made only when its \
+outcome is "confirmed"; on "cancelled" say in a few words that nothing \
+changed; on "changed" read the week again and propose afresh. Put a whole \
+request in one proposal ("set all dinners next week" is one call with every \
+day in it). To replace a meal, remove it and add the new one in the same \
+proposal. Use meal ids from a week result. A meal named in words resolves \
+in this order: a recipe title (find_recipe) exactly, else an ingredient \
+(find_ingredient) exactly, else ask — offering the near names those tools \
+return, or a meal eaten out under the member's own words. Never invent a \
+recipe. "I'm eating out" takes the speaker off that meal's eaters \
+(set_eaters); a meal left with no eaters is removed, and the card says so. \
+Give an ingredient meal or a top-up an amount only as the member said it, \
+in a unit find_ingredient lists; a top-up of an ingredient needs an \
+amount, so ask for one. Something that is not food goes on the list as an \
+item.
+</changes>
+
 <actions>
 You can start a method step's own timer, change the servings shown on the \
-recipe on screen, and open another recipe. These happen on the member's \
-phone at once; say in a few words what you did. You cannot start a timer \
+recipe on screen, and open another recipe. These touch nothing shared, so \
+they happen on the member's phone at once, with no card; say in a few words \
+what you did. You cannot start a timer \
 that is not a step's timer: if asked for a plain timer ("set a timer for 10 \
 minutes"), say you can start a step's timer and ask which step.
 </actions>
 
 <limits>
-You cannot create or edit recipes or ingredients, plan meals, or change the \
-shopping list; say the editor or the Week tab does that. You only help with \
+You cannot create or edit recipes or ingredients, tick off the shopping \
+list, or suggest recipes the household does not have; say the editor, the \
+Shop tab or the Library does that. You only help with \
 this household's food. If a tool returns an error, say plainly what could \
 not be done. When you use a tool, you may say a brief sentence first. If no \
 tool can express what the member asked for, say so instead of guessing. Do \
@@ -87,8 +130,20 @@ const RECIPE_ID = {
   description: "A recipe id from the screen or from find_recipe.",
 };
 
+const DATE = {
+  type: "string",
+  description: "A date, YYYY-MM-DD, taken from the screen or a week result.",
+};
+
+const WEEK_OF = {
+  type: "string",
+  description:
+    "Any date in the week meant, YYYY-MM-DD. Omit for the week on screen, " +
+    "else this week.",
+};
+
 /**
- * The slice-1 tools. Every one is executed by the app (`features/ask` in
+ * The tools. Every one is executed by the app (`features/ask` in
  * `app/lib`), which owns the names: a rename here is a rename there, and the
  * golden test in `ask/index.test.ts` holds the list.
  */
@@ -191,6 +246,153 @@ export const ASK_TOOLS: AskTool[] = [
       type: "object",
       properties: { recipe_id: RECIPE_ID },
       required: ["recipe_id"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "week",
+    description:
+      "The planned meals of one week, each day with its date and weekday, " +
+      "each meal with its id, slot, kind (recipe, ingredient or out), name, " +
+      "eaters and portions; and the household's members, the speaker marked " +
+      '"you". Pass `date` for one day only.',
+    input_schema: {
+      type: "object",
+      properties: { week_of: WEEK_OF, date: DATE },
+      required: [],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "cook_sessions",
+    description:
+      "The batches the week's plan cooks, derived by the app: each with the " +
+      "day it is cooked, the recipe, the portions, and the meals it feeds. " +
+      "Pass `date` for the batches cooked that day.",
+    input_schema: {
+      type: "object",
+      properties: { week_of: WEEK_OF, date: DATE },
+      required: [],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "shopping",
+    description:
+      "The week's shopping list with totals written by the app. Pass " +
+      "`ingredient` for the rows named like it and the meals that ask for " +
+      "each; without it, what is left to buy by aisle and how many rows " +
+      "are ticked.",
+    input_schema: {
+      type: "object",
+      properties: {
+        week_of: WEEK_OF,
+        ingredient: { type: "string" },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "find_ingredient",
+    description:
+      "Searches the household's ingredients by name. Returns up to five " +
+      "{id, name, units} matches, best first; `units` are the unit ids an " +
+      "amount of it may use.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Words from the name." },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "propose_plan_changes",
+    description:
+      "Shows the member a card of changes to the plan and waits for them to " +
+      "Confirm or Cancel; writes nothing itself. Returns the outcome. Each " +
+      "change is one of: add (date, slot, and exactly one of recipe_id, " +
+      "ingredient_id or out_label; eaters default to everyone; quantity " +
+      "and unit only with ingredient_id and only as said), remove " +
+      "(entry_id), move (entry_id, and a new date and/or slot), set_eaters " +
+      "(entry_id, eaters: member ids, possibly empty).",
+    input_schema: {
+      type: "object",
+      properties: {
+        changes: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              op: {
+                type: "string",
+                enum: ["add", "remove", "move", "set_eaters"],
+              },
+              entry_id: { type: "string" },
+              date: DATE,
+              slot: {
+                type: "string",
+                description:
+                  "Breakfast, Lunch, Dinner, Snack, or the week's own.",
+              },
+              recipe_id: RECIPE_ID,
+              ingredient_id: { type: "string" },
+              out_label: {
+                type: "string",
+                description: "The words of a meal eaten out.",
+              },
+              eaters: { type: "array", items: { type: "string" } },
+              quantity: { type: "number" },
+              unit: { type: "string" },
+            },
+            required: ["op"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["changes"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "propose_copy_last_week",
+    description:
+      "Shows the member a card copying the latest earlier week's meals into " +
+      "the week meant, as the Week tab's own copy does, and waits for their " +
+      "decision. Returns the outcome.",
+    input_schema: {
+      type: "object",
+      properties: { week_of: WEEK_OF },
+      required: [],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
+    name: "propose_top_up",
+    description:
+      "Shows the member a card adding to the week's shopping list and " +
+      "waits for their decision. Either an ingredient_id with a quantity " +
+      "and one of its units, or an `item` of words for something that is " +
+      "not food. Returns the outcome.",
+    input_schema: {
+      type: "object",
+      properties: {
+        week_of: WEEK_OF,
+        ingredient_id: { type: "string" },
+        quantity: { type: "number" },
+        unit: { type: "string" },
+        item: { type: "string" },
+      },
+      required: [],
       additionalProperties: false,
     },
     strict: true,

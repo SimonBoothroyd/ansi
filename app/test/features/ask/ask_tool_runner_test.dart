@@ -9,6 +9,8 @@ import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../helpers/fake_ask.dart';
+
 const _ragu = Recipe(
   id: 'r1',
   title: 'Ragù',
@@ -44,23 +46,25 @@ void main() {
   late AskScreen screen;
   late List<String> log;
 
-  AskToolRunner runner({AskWeekOfRecipe? week}) => AskToolRunner(
-    screen: () => screen,
-    loadRecipe: (id) async => id == 'r1' ? _ragu : null,
-    listRecipes: () async => [(id: 'r1', title: 'Ragù')],
-    weekOf: (recipeId, weekKey) async =>
-        week ?? (overrides: const <LineOverride>[], portions: null),
-    setServings: (id, servings) => log.add('servings $id $servings'),
-    startTimer:
-        (
-          recipe, {
-          required step,
-          required ordinal,
-          required low,
-          required high,
-        }) => log.add('timer ${recipe.id} $step $ordinal $low-$high'),
-    openRecipe: (id) => log.add('open $id'),
-  );
+  AskToolRunner runner({AskWeekOfRecipe? week, FakeAskHousehold? household}) =>
+      AskToolRunner(
+        screen: () => screen,
+        loadRecipe: (id) async => id == 'r1' ? _ragu : null,
+        listRecipes: () async => [(id: 'r1', title: 'Ragù')],
+        weekOf: (recipeId, weekKey) async =>
+            week ?? (overrides: const <LineOverride>[], portions: null),
+        setServings: (id, servings) => log.add('servings $id $servings'),
+        startTimer:
+            (
+              recipe, {
+              required step,
+              required ordinal,
+              required low,
+              required high,
+            }) => log.add('timer ${recipe.id} $step $ordinal $low-$high'),
+        openRecipe: (id) => log.add('open $id'),
+        household: (household ?? FakeAskHousehold()).household,
+      );
 
   setUp(() {
     log = [];

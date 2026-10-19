@@ -15,6 +15,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
+import '../domain/plan_change.dart';
 import '../domain/planning.dart';
 import '../domain/planning_repository.dart';
 
@@ -293,47 +294,81 @@ class SqlitePlanningRepository implements PlanningRepository {
       label == null || label.isNotEmpty,
       'a blank label names nothing (the server refuses it)',
     );
-    final key = _weekKey(weekStart);
     final id = _uuid.v4();
-    final now = _now();
-    // The local table holds jsonb as TEXT; the connector decodes it on upload
-    // (`jsonbColumnsByTable`).
-    final statedMacros = macros == null ? null : jsonEncode(macros.toJson());
-    await _db.writeTransaction((tx) async {
-      final weekId = await _getOrCreateWeek(tx, key);
-      final orderRow = await tx.get(
-        'SELECT COALESCE(MAX(sort_order), -1) AS m FROM plan_entry '
-        'WHERE week_plan_id = ? AND day_of_week = ?',
-        [weekId, dayOfWeek],
-      );
-      final order = (orderRow['m'] as int) + 1;
-      await tx.execute(
-        'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
-        'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
-        'measure_id, eaters, portions, sort_order, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          id,
-          _householdId,
-          weekId,
-          dayOfWeek,
-          mealSlot.trim(),
-          recipeId,
-          ingredientId,
-          label,
-          statedMacros,
-          quantity,
-          unit,
-          measureId,
-          jsonEncode(eaterIds),
-          portions,
-          order,
-          now,
-          now,
-        ],
-      );
-    });
+    await _db.writeTransaction(
+      (tx) => _insertIn(
+        tx,
+        id: id,
+        weekKey: _weekKey(weekStart),
+        dayOfWeek: dayOfWeek,
+        mealSlot: mealSlot,
+        eaters: jsonEncode(eaterIds),
+        recipeId: recipeId,
+        ingredientId: ingredientId,
+        label: label,
+        // The local table holds jsonb as TEXT; the connector decodes it on
+        // upload (`jsonbColumnsByTable`).
+        macros: macros == null ? null : jsonEncode(macros.toJson()),
+        quantity: quantity,
+        unit: unit,
+        measureId: measureId,
+        portions: portions,
+      ),
+    );
     return id;
+  }
+
+  /// The INSERT inside a transaction: the week is created if absent, and the
+  /// meal goes last on its day.
+  Future<void> _insertIn(
+    SqliteWriteContext tx, {
+    required String id,
+    required String weekKey,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String eaters,
+    String? recipeId,
+    String? ingredientId,
+    String? label,
+    String? macros,
+    double? quantity,
+    String? unit,
+    String? measureId,
+    int? portions,
+  }) async {
+    final now = _now();
+    final weekId = await _getOrCreateWeek(tx, weekKey);
+    final orderRow = await tx.get(
+      'SELECT COALESCE(MAX(sort_order), -1) AS m FROM plan_entry '
+      'WHERE week_plan_id = ? AND day_of_week = ?',
+      [weekId, dayOfWeek],
+    );
+    final order = (orderRow['m'] as int) + 1;
+    await tx.execute(
+      'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
+      'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
+      'measure_id, eaters, portions, sort_order, created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        _householdId,
+        weekId,
+        dayOfWeek,
+        mealSlot.trim(),
+        recipeId,
+        ingredientId,
+        label,
+        macros,
+        quantity,
+        unit,
+        measureId,
+        eaters,
+        portions,
+        order,
+        now,
+        now,
+      ],
+    );
   }
 
   @override
@@ -418,6 +453,99 @@ class SqlitePlanningRepository implements PlanningRepository {
       variantsLeftBehind: await _variantsLeftBehind(source.id),
     );
   }
+
+  @override
+  Future<void> applyPlanChanges(
+    List<PlanChange> changes,
+  ) => _db.writeTransaction((tx) async {
+    final now = _now();
+    for (final change in changes) {
+      final row = await _currentRow(tx, change.expected);
+      switch (change) {
+        case PlanAdd(:final target):
+          final label = target is PlanOutTarget ? target.label.trim() : null;
+          if (label != null && label.isEmpty) {
+            throw ArgumentError('a meal out needs words');
+          }
+          await _insertIn(
+            tx,
+            id: _uuid.v4(),
+            weekKey: _weekKey(change.weekStart),
+            dayOfWeek: change.dayOfWeek,
+            mealSlot: change.mealSlot,
+            eaters: jsonEncode(change.eaterIds),
+            recipeId: target is PlanRecipeTarget ? target.recipeId : null,
+            ingredientId: target is PlanIngredientTarget
+                ? target.ingredientId
+                : null,
+            label: label,
+            quantity: target is PlanIngredientTarget ? target.quantity : null,
+            unit: target is PlanIngredientTarget ? target.unit?.id : null,
+          );
+        case PlanRemove(:final expected):
+          await _softDelete(tx, expected.id, now);
+        case PlanMove(:final expected):
+          await _softDelete(tx, expected.id, now);
+          // The same meal, whole, at its new place.
+          await _insertIn(
+            tx,
+            id: _uuid.v4(),
+            weekKey: _weekKey(change.weekStart),
+            dayOfWeek: change.dayOfWeek,
+            mealSlot: change.mealSlot,
+            eaters: row!['eaters'] as String? ?? '[]',
+            recipeId: row['recipe_id'] as String?,
+            ingredientId: row['ingredient_id'] as String?,
+            label: row['label'] as String?,
+            macros: row['macros'] as String?,
+            quantity: (row['quantity'] as num?)?.toDouble(),
+            unit: row['unit'] as String?,
+            measureId: row['measure_id'] as String?,
+            portions: row['portions'] as int?,
+          );
+        case PlanSetEaters(:final expected, :final eaterIds):
+          await tx.execute(
+            'UPDATE plan_entry SET eaters = ?, updated_at = ? WHERE id = ?',
+            [jsonEncode(eaterIds), now, expected.id],
+          );
+      }
+    }
+  });
+
+  /// The live row behind [expected], refused with [PlanChangedError] when it
+  /// is gone or no longer the meal the change was drawn from. Null for an add.
+  Future<Row?> _currentRow(SqliteWriteContext tx, PlanEntry? expected) async {
+    if (expected == null) return null;
+    final row = await tx.getOptional(
+      'SELECT day_of_week, meal_slot, recipe_id, ingredient_id, label, '
+      'macros, quantity, unit, measure_id, eaters, portions '
+      'FROM plan_entry WHERE id = ? AND deleted_at IS NULL',
+      [expected.id],
+    );
+    final eaters = row == null
+        ? null
+        : (jsonDecode(row['eaters'] as String? ?? '[]') as List).cast<String>();
+    final same =
+        row != null &&
+        row['day_of_week'] == expected.dayOfWeek &&
+        row['meal_slot'] == expected.mealSlot &&
+        row['recipe_id'] == expected.recipeId &&
+        row['ingredient_id'] == expected.ingredientId &&
+        row['label'] == expected.label &&
+        row['portions'] == expected.portions &&
+        _sameIds(eaters!, expected.eaterIds);
+    if (!same) throw PlanChangedError(expected.id);
+    return row;
+  }
+
+  static bool _sameIds(List<String> a, List<String> b) =>
+      a.length == b.length && a.toSet().containsAll(b);
+
+  Future<void> _softDelete(SqliteWriteContext tx, String entryId, String now) =>
+      tx.execute(
+        'UPDATE plan_entry SET deleted_at = ?, updated_at = ? WHERE id = ?',
+        [now, now, entryId],
+      );
 
   /// One row per recipe the source week varied, named and counted. Nothing is
   /// written for them.

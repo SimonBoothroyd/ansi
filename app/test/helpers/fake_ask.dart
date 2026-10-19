@@ -1,5 +1,12 @@
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/ask/data/ask_voice.dart';
+import 'package:ansi/features/ask/domain/ask_proposal.dart';
 import 'package:ansi/features/ask/domain/ask_repository.dart';
+import 'package:ansi/features/ask/domain/ask_tool_runner.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/shopping/domain/shopping.dart';
 
 /// One scripted model turn: it reads what was sent and answers.
 typedef AskScript = AskReplyData Function(List<Map<String, Object?>> sent);
@@ -81,4 +88,59 @@ class FakeAskVoice implements AskVoice {
 
   @override
   Future<void> stopSpeaking() async {}
+}
+
+/// A household for the runner: [weeks] by first day, [members], the
+/// [ingredients] vocabulary, and a card answered by [decide] (Cancel by
+/// default), each card recorded in [cards].
+class FakeAskHousehold {
+  FakeAskHousehold({
+    this.weeks = const {},
+    this.members = const [],
+    this.ingredients = const [],
+    this.me,
+    this.cookPlan = const CookPlan(),
+    this.shoppingList = const ShoppingList(),
+    this.previous,
+    DateTime? today,
+    this.decide,
+  }) : today = today ?? DateTime.utc(2026, 10, 21);
+
+  final Map<DateTime, WeekPlan> weeks;
+  final List<Member> members;
+  final List<Ingredient> ingredients;
+  final String? me;
+  final CookPlan cookPlan;
+  final ShoppingList shoppingList;
+  final WeekPlan? previous;
+  final DateTime today;
+  final AskDecision Function(AskProposal proposal)? decide;
+  final List<AskProposal> cards = [];
+
+  AskHousehold get household => AskHousehold(
+    today: () => today,
+    shape: () => WeekShape.monday,
+    loadWeek: (weekStart) async => weeks[weekStart],
+    previousWeek: (_) async => previous,
+    members: () async => members,
+    me: (_) => me,
+    cookPlan: (_) async => cookPlan,
+    shoppingList: (_) async => shoppingList,
+    shopTotal: (item) => item.totals.isEmpty ? '—' : 'some',
+    searchIngredients: (query) async => (
+      rows: [
+        for (final i in ingredients)
+          if (i.canonicalName.toLowerCase().contains(query.toLowerCase())) i,
+      ],
+      guessed: false,
+    ),
+    ingredientsById: (ids) async => {
+      for (final i in ingredients)
+        if (ids.contains(i.id)) i.id: i,
+    },
+    propose: (proposal) async {
+      cards.add(proposal);
+      return decide?.call(proposal) ?? AskDecision.cancelled;
+    },
+  );
 }

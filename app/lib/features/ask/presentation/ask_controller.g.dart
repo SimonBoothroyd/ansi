@@ -92,7 +92,7 @@ final class AskControllerProvider
   }
 }
 
-String _$askControllerHash() => r'5678dcdb0c453175ee9007d5da86769c008813aa';
+String _$askControllerHash() => r'5bc1fa57932f5aaa64e99ba401c932fc9ef8bab3';
 
 abstract class _$AskController extends $Notifier<AskState> {
   AskState build();

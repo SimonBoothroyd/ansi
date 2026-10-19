@@ -7,6 +7,7 @@ library;
 
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import 'plan_change.dart';
 import 'planning.dart';
 
 abstract interface class PlanningRepository {
@@ -88,4 +89,9 @@ abstract interface class PlanningRepository {
   /// [weekStart]. This-week recipe variants are not copied; the result names
   /// each one left behind.
   Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart);
+
+  /// Writes [changes] in one transaction, in order, or none of them. Each
+  /// change that names an existing meal is checked against the meal as it now
+  /// stands; any difference throws [PlanChangedError] and nothing is written.
+  Future<void> applyPlanChanges(List<PlanChange> changes);
 }

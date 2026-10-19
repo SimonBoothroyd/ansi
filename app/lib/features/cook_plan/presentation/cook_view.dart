@@ -19,6 +19,8 @@ import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_scroll.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
+import '../../ask/domain/ask_screen.dart';
+import '../../ask/presentation/ask_door.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
@@ -69,6 +71,7 @@ class CookView extends ConsumerWidget {
               );
             },
           ),
+          suffixes: const [AskDoor(tab: AskWeekTab.cook)],
         ),
         child: plan.when(
           loading: () => const Center(child: FCircularProgress()),

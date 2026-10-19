@@ -20,6 +20,16 @@ AskRepository askRepository(Ref ref) {
   );
 }
 
+/// The signed-in account's own name and email, which tell "I" apart in the
+/// household (`askMe`). Empty when there is no session, or no cloud.
+@Riverpod(keepAlive: true)
+({String? fullName, String? email}) askAccount(Ref ref) {
+  if (!Env.isConfigured) return (fullName: null, email: null);
+  final user = ref.watch(supabaseClientProvider).auth.currentUser;
+  final name = user?.userMetadata?['full_name'];
+  return (fullName: name is String ? name : null, email: user?.email);
+}
+
 class _UnconfiguredAsk implements AskRepository {
   const _UnconfiguredAsk();
 

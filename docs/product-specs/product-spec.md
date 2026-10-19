@@ -1481,22 +1481,41 @@ it has zero entries), to Cook and to Shop.
 
 ---
 
-**Ask Ansi (slice 1 of [plan 0053](../exec-plans/active/0053-ask-ansi.md)):**
-the recipe page's speech-bubble icon opens a sheet for questions about the
-recipe on screen, typed or spoken — *how much tamari?*, *what's step 3?*,
-*start the simmer timer*, *make it 8 servings*, *open the aioli*.
+**Ask Ansi ([plan 0053](../exec-plans/active/0053-ask-ansi.md)):** a
+speech-bubble icon in the bar of the recipe page, the Library, the Week, Cook
+and Shop opens a sheet for questions, typed or spoken — *how much tamari?*,
+*what's step 3?*, *start the simmer timer*, *make it 8 servings*, *open the
+aioli*, *what's for dinner tonight?*, *what am I cooking on Sunday?*, *do we
+need tamari?*, *what's left to buy?* — and for changes to the plan and the
+list — *set all dinners next week to Hamburger Helper*, *move Tuesday's
+curry to Thursday*, *I'm eating out Friday*, *copy last week*, *add milk to
+the list*.
 - **Ansi sees what you see, and says so.** A chip above the field names the
-  recipe at the servings the stepper shows (**On: Ragù · serves 6**); its ✕
-  asks from nowhere. An answer names what it read (*3 tbsp tamari — Ragù,
+  recipe at the servings the stepper shows (**On: Ragù · serves 6**), or the
+  tab and its week (**On: Week · week of 26 Oct**); its ✕ asks from nowhere.
+  Dates are the app's: *next Thursday* is read off the household's own week,
+  never worked out by the model. An answer names what it read (*3 tbsp tamari — Ragù,
   serves 6*), so a misheard word or a wrong recipe is visible.
 - **Every number is the app's.** The model only chooses which recipe, line or
   step a sentence means; the amount is scaled and printed by the same Dart the
   page uses. A line with no number is said as written, and a unit the recipe
   does not use is refused rather than converted.
-- **It acts only on this phone:** a step's own timer, the stepper of the
-  recipe on screen, or opening another recipe. It changes no shared data — it
-  does not plan meals, edit recipes or touch the shopping list, and says so.
-  A plain timer no step prints is refused.
+- **On this phone, at once:** a step's own timer, the stepper of the recipe
+  on screen, or opening another recipe. A plain timer no step prints is
+  refused.
+- **Shared data, only on Confirm.** A change to the plan or the list is a card
+  in the sheet listing every row it touches — *Mon 26 Oct · Dinner ·
+  Hamburger Helper · replaces Ragù* — with **Confirm** and **Cancel**. Nothing
+  is written before Confirm; Confirm writes the whole card or none of it, and
+  a meal someone edited after the card was drawn refuses it, so Ansi reads
+  the week again. A named meal is a recipe of that exact title, else an
+  ingredient of that exact name, else Ansi asks — offering near names or a
+  meal eaten out — and never invents a recipe. *I* is the member signed in on
+  the phone; *I'm eating out* takes them off that meal's eaters, and a meal
+  left with no one eating it is removed, as the card says. An ingredient meal
+  or a top-up carries an amount only as it was said; a top-up with none is
+  asked for. Ansi does not edit recipes or ingredients or tick off the list,
+  and says so.
 - **Voice is the phone's own.** A spoken question is sent when you pause; the
   answer to a spoken question is read aloud, a typed one is not, and the
   speaker icon cycles that. When Ansi answers a spoken question with one of

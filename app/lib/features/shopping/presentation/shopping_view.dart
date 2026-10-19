@@ -25,6 +25,8 @@ import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../ask/domain/ask_screen.dart';
+import '../../ask/presentation/ask_door.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../planning/data/planning_providers.dart';
@@ -82,7 +84,10 @@ class ShoppingView extends ConsumerWidget {
               );
             },
           ),
-          suffixes: const [_ReceiptsDoor()],
+          suffixes: const [
+            _ReceiptsDoor(),
+            AskDoor(tab: AskWeekTab.shop),
+          ],
         ),
         // The status line sits outside the scroll and keeps its height whether
         // or not it says anything, so a tick never shifts the rows.

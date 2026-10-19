@@ -260,11 +260,12 @@ void main() {
     expect(find.byType(AnsiSearchField), findsOneWidget);
     expect(find.byIcon(FLucideIcons.users), findsOneWidget);
 
-    // Nothing in this header opens a menu: one action, and it is the link.
-    // `FHeaderAction` only ever appears in a header, so counting it says the
-    // header's whole contract without reaching into the body, which still has
-    // a `⋯` per book and a `＋` per section.
-    expect(find.byType(FHeaderAction), findsOneWidget);
+    // Nothing in this header opens a menu: two actions, Ask Ansi and the
+    // link. `FHeaderAction` only ever appears in a header, so counting it
+    // says the header's whole contract without reaching into the body, which
+    // still has a `⋯` per book and a `＋` per section.
+    expect(find.byType(FHeaderAction), findsNWidgets(2));
+    expect(find.bySemanticsLabel('Ask Ansi'), findsOneWidget);
   });
 
   testWidgets('on wide the header draws no household door — the sidebar is '

@@ -19,6 +19,8 @@ planning/
     week_macros.dart              sumPlannedMacros, ingredientPortionMacros
     week_cost.dart                the week's cost to cook, ingredientPortionCost
     planning_repository.dart      read/write contract
+    plan_change.dart              a change set written whole or not at all
+                                  (Ask Ansi's card), PlanChangedError
     week_variant_repository.dart  this week's variant, WordlessOverrideError
   data/           SqlitePlanningRepository, SqliteWeekVariantRepository, providers
   presentation/
@@ -58,6 +60,15 @@ planning/
   - copy last week carries every kind whole.
 - `test/structure/plan_entry_kind_seam_test.dart` holds this: no wildcard, no
   null-column kind test, and both SQL derivations state their kind in `WHERE`.
+
+## A change set
+
+`applyPlanChanges` writes adds, removes, moves and eater changes in one
+transaction — what an Ask Ansi card writes on Confirm. Every change to an
+existing meal carries the meal as the card drew it, and the transaction
+re-reads each one; a meal edited, moved or removed meanwhile throws
+`PlanChangedError` and nothing is written. A move is a remove and an add of
+the same row, as on the Week.
 
 ## This week's variant
 

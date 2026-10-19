@@ -10,15 +10,22 @@ library;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/data/cook_plan_providers.dart';
+import '../../ingredients/data/ingredient_providers.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/domain/planning.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
+import '../../shopping/data/shopping_providers.dart';
+import '../../shopping/presentation/shopping_format.dart';
 import '../../timers/data/timer_providers.dart';
+import '../data/ask_providers.dart';
 import '../domain/ask_screen.dart';
 import '../domain/ask_tool_runner.dart';
+import '../domain/ask_week_tools.dart';
+import 'ask_controller.dart';
 
 /// Builds a runner whose `open_recipe` hands the recipe id to [open].
 typedef AskToolRunnerFactory =
@@ -84,5 +91,40 @@ AskToolRunner askToolRunner(
               highSeconds: high,
             ),
     openRecipe: open,
+    household: AskHousehold(
+      today: () {
+        final now = container.read(askClockProvider)();
+        return DateTime.utc(now.year, now.month, now.day);
+      },
+      shape: () => container.read(weekShapeProvider),
+      loadWeek: (weekStart) =>
+          container.read(planningRepositoryProvider).watchWeek(weekStart).first,
+      previousWeek: (weekStart) => container
+          .read(planningRepositoryProvider)
+          .mostRecentWeekBefore(weekStart),
+      members: () =>
+          container.read(planningRepositoryProvider).watchMembers().first,
+      me: (members) {
+        final account = container.read(askAccountProvider);
+        return askMe(members, fullName: account.fullName, email: account.email);
+      },
+      cookPlan: (weekStart) => container
+          .read(cookPlanRepositoryProvider)
+          .watchCookPlan(weekStart)
+          .first,
+      shoppingList: (weekStart) => container
+          .read(shoppingRepositoryProvider)
+          .watchShoppingList(weekStart)
+          .first,
+      shopTotal: itemTotal,
+      searchIngredients: (query) =>
+          container.read(ingredientRepositoryProvider).search(query, limit: 5),
+      ingredientsById: (ids) =>
+          container.read(ingredientRepositoryProvider).byIds(ids),
+      // The card is drawn by the sheet, which writes on Confirm.
+      propose: (proposal) => container
+          .read(askControllerProvider.notifier)
+          .awaitDecision(proposal),
+    ),
   );
 }

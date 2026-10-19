@@ -6,10 +6,14 @@
 /// and never stored or synced.
 library;
 
+import 'dart:async';
+
 import 'package:meta/meta.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../account/data/household_providers.dart';
 import '../data/ask_providers.dart';
+import '../domain/ask_proposal.dart';
 import '../domain/ask_repository.dart';
 import '../domain/ask_screen.dart';
 import '../domain/ask_thread.dart';
@@ -30,15 +34,25 @@ DateTime Function() askClock(Ref ref) => DateTime.now;
 
 @immutable
 class AskState {
-  const AskState({this.thread = const AskThread(), this.busy = false});
+  const AskState({
+    this.thread = const AskThread(),
+    this.busy = false,
+    this.card,
+  });
 
   final AskThread thread;
 
   /// Whether a question is in flight.
   final bool busy;
 
-  AskState copyWith({AskThread? thread, bool? busy}) =>
-      AskState(thread: thread ?? this.thread, busy: busy ?? this.busy);
+  /// The change Ansi proposes, waiting for the member's Confirm or Cancel.
+  final AskProposal? card;
+
+  AskState copyWith({AskThread? thread, bool? busy}) => AskState(
+    thread: thread ?? this.thread,
+    busy: busy ?? this.busy,
+    card: card,
+  );
 }
 
 @Riverpod(keepAlive: true)
@@ -47,6 +61,26 @@ class AskController extends _$AskController {
   AskState build() => const AskState();
 
   DateTime _now() => ref.read(askClockProvider)();
+
+  Completer<AskDecision>? _deciding;
+
+  /// Draws [proposal] as the card and waits for [decide]. A card already
+  /// waiting is cancelled first.
+  Future<AskDecision> awaitDecision(AskProposal proposal) {
+    decide(AskDecision.cancelled);
+    final deciding = _deciding = Completer<AskDecision>();
+    state = AskState(thread: state.thread, busy: state.busy, card: proposal);
+    return deciding.future;
+  }
+
+  /// The member's answer to the card; nothing when no card waits.
+  void decide(AskDecision decision) {
+    final deciding = _deciding;
+    _deciding = null;
+    if (deciding == null || deciding.isCompleted || !ref.mounted) return;
+    state = AskState(thread: state.thread, busy: state.busy);
+    deciding.complete(decision);
+  }
 
   /// Clears the thread now (the sheet's "New").
   void clear() => state = const AskState();
@@ -71,7 +105,7 @@ class AskController extends _$AskController {
 
     final start = state.thread.trimmed();
     var thread = start
-        .plus(AskTurn.question(screen.block, question), _now())
+        .plus(AskTurn.question(screen.blockOn(_today()), question), _now())
         .copyWith(
           exchanges: [
             ...start.exchanges,
@@ -137,6 +171,14 @@ class AskController extends _$AskController {
     } on AskException catch (e) {
       return _settle(start, question, spoken, e.message, done, failed: true);
     }
+  }
+
+  AskToday _today() {
+    final now = _now();
+    return AskToday(
+      date: DateTime.utc(now.year, now.month, now.day),
+      shape: ref.read(weekShapeProvider),
+    );
   }
 
   /// Puts the thread back as it was before the question, keeping the

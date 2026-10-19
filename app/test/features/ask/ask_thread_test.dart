@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/ask/domain/ask_screen.dart';
 import 'package:ansi/features/ask/domain/ask_thread.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,11 +41,14 @@ void main() {
         struckSteps: [1, 2],
       );
       expect(screen.chipLabel, 'Ragù · serves 6');
+      final block = screen.blockOn(
+        AskToday(date: DateTime.utc(2026, 10, 21), shape: WeekShape.monday),
+      );
       final json =
           jsonDecode(
-                screen.block.substring(
+                block.substring(
                   '<screen>'.length,
-                  screen.block.length - '</screen>'.length,
+                  block.length - '</screen>'.length,
                 ),
               )
               as Map<String, Object?>;

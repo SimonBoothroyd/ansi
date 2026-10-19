@@ -9,6 +9,8 @@ library;
 import 'dart:convert';
 
 import '../../../core/units/number_format.dart';
+import '../../../core/week_shape.dart';
+import '../../../core/words.dart';
 
 sealed class AskScreen {
   const AskScreen();
@@ -20,12 +22,34 @@ sealed class AskScreen {
   /// What the chip says, or null when there is no chip.
   String? get chipLabel;
 
-  /// The `<screen>` block a question starts with.
-  String get block => '<screen>${jsonEncode(toJson())}</screen>';
+  /// The `<screen>` block a question starts with, dated by [today] so a
+  /// relative day ("next Thursday") resolves against the phone's calendar.
+  String blockOn(AskToday today) =>
+      '<screen>${jsonEncode({...toJson(), ...today.toJson()})}</screen>';
+}
+
+/// Today, in the household's week: sent with every screen.
+class AskToday {
+  const AskToday({required this.date, required this.shape});
+
+  /// Today as a UTC date.
+  final DateTime date;
+  final WeekShape shape;
+
+  Map<String, Object?> toJson() {
+    final thisWeek = shape.weekStartOf(date);
+    return {
+      'today': isoDateOf(date),
+      'today_is': shape.labelFull(shape.offsetOf(date)),
+      'this_week': isoDateOf(thisWeek),
+      'next_week': isoDateOf(thisWeek.add(const Duration(days: 7))),
+      'weeks_start_on': shape.startsOnName,
+    };
+  }
 }
 
 /// Nothing in particular: the chip was dismissed, or the screen names no
-/// recipe.
+/// recipe and no week.
 class AskNoScreen extends AskScreen {
   const AskNoScreen();
 
@@ -34,6 +58,39 @@ class AskNoScreen extends AskScreen {
 
   @override
   String? get chipLabel => null;
+}
+
+/// Which of the three week tabs is on screen.
+enum AskWeekTab { week, cook, shop }
+
+/// The Week, Cook or Shop tab, at the week it shows.
+class AskWeekScreen extends AskScreen {
+  const AskWeekScreen({required this.tab, required this.weekStart, this.day});
+
+  final AskWeekTab tab;
+
+  /// The first day of the week on screen.
+  final DateTime weekStart;
+
+  /// The day the wide Week has open, if any.
+  final DateTime? day;
+
+  @override
+  Map<String, Object?> toJson() => {
+    'route': tab.name,
+    'week_of': isoDateOf(weekStart),
+    if (day != null) 'open_day': isoDateOf(day!),
+  };
+
+  @override
+  String get chipLabel {
+    final week = 'week of ${formatDayMonth(weekStart)}';
+    return switch (tab) {
+      AskWeekTab.week => 'Week · $week',
+      AskWeekTab.cook => 'Cook · $week',
+      AskWeekTab.shop => 'Shop · $week',
+    };
+  }
 }
 
 /// A recipe page, at the servings its stepper shows.

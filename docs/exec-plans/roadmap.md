@@ -19,7 +19,8 @@ The detail is in the plan; the landing dates are in the
 3. Plan 0052's simulator run of the recipe page's pencil (`recipe_editor`,
    `nested`), and the owner's look at the regrouped ⋯ on a phone.
 4. Plan 0053's phone checklist for Ask Ansi (in its *Handover*), on both
-   phones on `v0.30.0`.
+   phones — slice 1 on `v0.30.0`, slice 2 once the `ask` function is
+   redeployed and the next tag is cut, with its paid eval run first.
 5. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
@@ -31,6 +32,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| Ask Ansi, slice 2 — the door on the Library, Week, Cook and Shop tabs too; questions about the week, the cook plan and the list (*what's for dinner tonight?*, *what am I cooking on Sunday?*, *do we need tamari?*); and changes to the plan or the list — set a week's dinners, move a meal, *I'm eating out Friday*, copy last week, add to the list — each a card the member confirms, written in one transaction that refuses a meal edited meanwhile. Needs the `ask` function redeployed before the tag. No migrations | [0053](./active/0053-ask-ansi.md) |
 
 ## Shipped
 
