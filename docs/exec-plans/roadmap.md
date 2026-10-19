@@ -18,7 +18,10 @@ The detail is in the plan; the landing dates are in the
    sharing* — the one check the share link shipped without.
 3. Plan 0052's simulator run of the recipe page's pencil (`recipe_editor`,
    `nested`), and the owner's look at the regrouped ⋯ on a phone.
-4. Step 11 (anti-waste), still stretch.
+4. Plan 0053 slice 1 (Ask Ansi, on branch `ccr-32c63935-a7w2mt`): merge,
+   deploy `ask`, run its paid eval, tag, and walk the phone checklist in the
+   plan's *Handover*.
+5. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.

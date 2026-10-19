@@ -2051,3 +2051,27 @@
     .tsheet .ts-ghost{text-align:center;font-size:13px;font-weight:500;color:var(--herb-deep);padding:12px 0 2px;}
     .tsheet .ts-h + .ts-k{display:block;color:var(--muted);text-transform:none;letter-spacing:0;margin:2px 0 0 28px;}
     .tlist .tl-h .t{font-family:'Spectral',serif;font-size:19px;font-weight:500;color:var(--ink);}
+
+    /* Ask Ansi: the bar's speech bubble, the wide hero's twin, and the sheet */
+    .abar .ask{display:inline-flex;margin-left:auto;margin-right:14px;}
+    .abar .ask svg,.wr-ask svg,.as-ic svg,.as-btn svg{width:15px;height:15px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .abar .awake + .ask{margin-left:0;}
+    .abar .ask + .edit{margin-left:0;}
+    .wr-ask{display:inline-flex;}
+    .asheet{border-top:1px solid var(--line);margin-top:12px;padding:0 20px 14px;background:var(--paper);border-radius:20px 20px 0 0;box-shadow:0 -8px 24px rgba(24,33,28,.06);}
+    .asheet .as-h{font-family:'Spectral',serif;font-size:18px;font-weight:500;margin:4px 0 10px;}
+    .asheet .as-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+    .asheet .as-chip{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb-deep);background:var(--herb-soft);border-radius:999px;padding:5px 8px 5px 10px;}
+    .asheet .as-cx{color:var(--herb);margin-left:8px;}
+    .asheet .as-ic{display:inline-flex;}
+    .asheet .as-hint{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);margin:0 0 40px;}
+    .asheet .as-q{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;margin:10px 0 4px;}
+    .asheet .as-a{font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);line-height:1.4;}
+    .asheet .as-done{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb);margin-top:4px;}
+    .asheet .as-field{display:flex;align-items:center;gap:8px;margin-top:14px;}
+    .asheet .as-in{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:12px;color:var(--muted);background:var(--frame);}
+    .asheet .as-field.listening .as-in{color:var(--ink);}
+    .asheet .as-btn{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:8px;}
+    .asheet .as-btn.on{background:var(--herb);border-color:var(--herb);}
+    .asheet .as-btn.on svg{stroke:#fff;}
+    .asheet .ts-x{color:var(--muted);font-family:'Inter',sans-serif;font-size:18px;margin-right:10px;}

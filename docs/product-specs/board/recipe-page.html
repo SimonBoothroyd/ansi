@@ -15,8 +15,8 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe page</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a> · share link: matches code 2026-10-09, live on getansi.app from v0.28.0 · <a href="../../exec-plans/active/0051-recipe-share-link.md">plan 0051</a> · bar and menus: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a></p>
-    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, and a tap on a <b>timer</b> starts it: the count runs in the step, and in the dock at the foot of every screen.</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../exec-plans/completed/0021-nested-recipes.md">plan 0021</a> · <a href="../../exec-plans/completed/0024-seam-decisions.md">plan 0024</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-09-20 · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · timers: matches code 2026-10-08 · <a href="../../exec-plans/active/0050-recipe-timers.md">plan 0050</a> · share link: matches code 2026-10-09, live on getansi.app from v0.28.0 · <a href="../../exec-plans/active/0051-recipe-share-link.md">plan 0051</a> · bar and menus: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: matches code 2026-10-19 · <code>features/ask</code> · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · wide: same, the sheet as a dialog from 640</p>
+    <p class="view-blurb">Two tabs, a scaler, and one per-serving panel closing the ingredients tab — read as <b>Macros</b> or as <b>Cost</b>, with a total, or with the reason there isn’t one. The <b>⋯</b> menu can also print each line’s own figures under its name. The page is set as reading matter: serif title, sans lines, mono figures, kitchen fractions as glyphs (<b>1½</b>), and one filled shape — the chip row — above the tabs. Opened <b>from a week</b> it draws that week’s lines, and the <code>optional</code> tag is the switch that ticks a line in for it; from the Library the tag is a tag. In the method, a tap on a chip — or on a whole step — <b>rules it off</b> while you cook, and a tap on a <b>timer</b> starts it: the count runs in the step, and in the dock at the foot of every screen. The bar&rsquo;s <b>speech bubble</b> asks Ansi about the page &mdash; typed or spoken &mdash; and its answers use the page&rsquo;s own numbers.</p>
 </header>
 
 <div class="board">
@@ -24,7 +24,7 @@
         <div class="frame">
             <p class="frame-name"><b>Saved</b> · amount · ingredient · notes; repeat uses re-join on one row</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
                     <span class="r-book">Our Cookbook · Weeknight</span>
                     <h2 class="r-title">Harissa Chicken &amp; Butter Beans</h2>
@@ -53,7 +53,7 @@
         <div class="frame">
             <p class="frame-name"><b>Method</b> &middot; a step is a sentence and a chip is a word in it &mdash; no box around the word, the live amount in the pill, and a tap rules either off</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow struck"><span class="mn">1</span><span>Warm the <span class="mchip struck">olive oil<span class="mqn">2 tbsp</span></span> in a wide pan, then add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens.</span></div>
                 <div class="mrow"><span class="mn">2</span><span>Stir in the <span class="mchip struck">smoked paprika<span class="mqn">1 tsp</span></span>, the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and the <span class="mchip">butter beans<span class="mqn">2 can</span></span>. Simmer for <span class="tchip"><span class="tg">&#9654;</span>20&ndash;25 min</span>.</span></div>
@@ -71,7 +71,7 @@
         <div class="frame">
             <p class="frame-name"><b>A timer is tapped</b> &middot; the chip starts at the middle of its range and counts down where it stands; the dock at the foot holds every one that is running</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow struck"><span class="mn">1</span><span>Season the <span class="mchip struck">chicken thigh<span class="mqn">6</span></span> and brown it in a wide pan in two batches. Lift it out.</span></div>
                 <div class="mrow struck"><span class="mn">2</span><span>Turn the heat down, add the <span class="mchip struck">red onion<span class="mqn">2 onion, medium</span></span> and cook until it softens, <span class="tchip run" style="--p:68%"><span class="tg">&#9201;</span>6:12</span>.</span></div>
@@ -88,7 +88,7 @@
         <div class="frame">
             <p class="frame-name"><b>A running timer is tapped</b> &middot; its sheet: the clock large, what it is the middle of, three verbs, and Cancel under them</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip run" style="--p:62%"><span class="tg">&#9201;</span>14:07</span>.</span></div>
                 <div class="tsheet">
@@ -110,7 +110,7 @@
         <div class="frame">
             <p class="frame-name"><b>A timer goes off</b> &middot; one red band under the bar, the chip and its dock row turn Gone red and count on past zero</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="tband"><div class="tb-x"><div class="tb-t">Step 4 is done</div><div class="tb-s">Harissa Chicken &amp; Butter Beans</div></div><span class="tb-v">+0:42</span><div class="tb-acts"><span class="tb-b">+1 min</span><span class="tb-b solid">Stop</span></div></div>
                 <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 4 servings &middot; 1&times;</span></div>
                 <div class="mrow"><span class="mn">4</span><span>Return the <span class="mchip">chicken thigh</span>, tip in the <span class="mchip">chopped tomatoes<span class="mqn">400 g</span></span> and simmer uncovered for <span class="tchip due"><span class="tg">&#9201;</span>+0:42</span>.</span></div>
@@ -124,9 +124,8 @@
 
         <div class="frame">
             <p class="frame-name"><b>Keep screen on</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu, and a sun in the bar for as long as it holds</p>
-            <p class="differs-note">differs: the built bar also carries a speech-bubble <b>Ask</b> door between the sun and the pencil, opening the Ask Ansi sheet; neither is drawn here yet (<a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>)</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="awake">&#9728;</span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
                     <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
                     <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
@@ -143,9 +142,50 @@
         </div>
 
         <div class="frame">
+            <p class="frame-name"><b>Ask Ansi</b> &middot; the speech bubble in the bar opens a sheet that says what it can see &mdash; this recipe, at the servings the stepper shows</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
+                <div class="asheet">
+                    <div class="grab"></div>
+                    <p class="as-h"><span class="ts-x">&times;</span>Ask Ansi</p>
+                    <div class="as-top"><span class="as-chip">On: Harissa Chicken &amp; Butter Beans &middot; serves 4<span class="as-cx">&times;</span></span><span class="as-ic"><svg viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5Z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/></svg></span></div>
+                    <p class="as-hint">&ldquo;How much tamari?&rdquo; &middot; &ldquo;What&rsquo;s step 3?&rdquo; &middot; &ldquo;Start the simmer timer&rdquo; &middot; &ldquo;Make it 8 servings&rdquo;</p>
+                    <div class="as-field"><span class="as-in">Ask about this recipe</span><span class="as-btn"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg></span></div>
+                </div>
+                <p class="conv-note">the <b>chip</b> is what Ansi sees, said out loud: the recipe and the servings the stepper shows now, so <i>how much salt?</i> means this page. Its <b>&times;</b> asks from nowhere instead &mdash; the chip gives way to <i>Asking about nothing on screen</i></p>
+                <p class="conv-note">the <b>speaker</b> beside it cycles when answers are read aloud: to a <b>spoken</b> question only (the default, muted), <b>every</b> answer (herb), or <b>none</b> (a crossed speaker)</p>
+                <p class="conv-note">the field&rsquo;s button is the <b>mic</b> until something is typed, then the <b>send arrow</b>. Answers need a connection, like Import; offline a question fails with a sentence under it</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
+            <p class="frame-name"><b>An answer, and an action</b> &middot; Ansi names what it read; what it did on the phone is listed under the answer</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="tabbar"><span class="tabx">Ingredients</span><span class="tabx on">Method</span><span class="tab-scale">for 8 servings &middot; 2&times;</span></div>
+                <div class="asheet">
+                    <div class="grab"></div>
+                    <p class="as-h"><span class="ts-x">&times;</span>Ask Ansi</p>
+                    <div class="as-top"><span class="as-chip">On: Harissa Chicken &amp; Butter Beans &middot; serves 8<span class="as-cx">&times;</span></span><span class="as-ic"><svg viewBox="0 0 24 24"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5Z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.4 18.4a9 9 0 0 0 0-12.8"/></svg></span><span class="as-ic"><svg viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2.1 2.1 0 1 1 3 3L12 15l-4 1 1-4Z"/></svg></span></div>
+                    <div class="as-q">how much red onion?</div>
+                    <div class="as-a">2 onion, medium &mdash; Harissa Chicken &amp; Butter Beans, serves 4.</div>
+                    <div class="as-q">make it 8 and start the simmer timer</div>
+                    <div class="as-a">Done &mdash; it serves 8 now, and step 4&rsquo;s 20&ndash;25 minute simmer is running.</div>
+                    <div class="as-done">&#10003; Harissa Chicken &amp; Butter Beans now serves 8</div>
+                    <div class="as-done">&#10003; Started step 4&rsquo;s timer &middot; 20&ndash;25 min</div>
+                    <div class="as-field listening"><span class="as-in">make it 8 and start the sim&hellip;</span><span class="as-btn on"><svg viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M18.89 13.23A7 7 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><path d="M12 19v3"/></svg></span></div>
+                </div>
+                <p class="conv-note">every <b>amount</b> in an answer is the page&rsquo;s own: Ansi only chooses which line a sentence means, and the app scales and prints it exactly as the Ingredients tab does. The answer names the recipe and servings it read, so a misheard word &mdash; <i>tomorrow</i> for <i>tamari</i> &mdash; shows</p>
+                <p class="conv-note">an <b>action</b> lands on the page at once &mdash; the stepper moves (the tab bar and the chip now say 8), a step&rsquo;s own timer starts in the dock &mdash; and a <b>&#10003;</b> line says so. Ansi starts only a timer a step prints; <i>set a timer for 10 minutes</i> is answered with a question about which step</p>
+                <p class="conv-note"><b>listening</b>, the mic is filled and the words arrive in the field as they are heard; a two-second pause sends them. The answer to a spoken question is read aloud. The <b>pencil-square</b> starts a new conversation; otherwise it clears after half an hour idle</p>
+            </div></div>
+        </div>
+
+        <div class="frame">
             <p class="frame-name"><b>Share link</b> &middot; one item in the page&rsquo;s <b>&ctdot;</b> menu hands the recipe to the phone&rsquo;s share sheet as a link</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
                     <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
                     <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
@@ -165,7 +205,7 @@
         <div class="frame">
             <p class="frame-name"><b>Stop sharing</b> &middot; once a link stands, the menu offers to take it back</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+                <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
                 <div class="lib-menu">
                     <div class="mi"><span class="ic">&#9734;</span><span class="lb">Favorite</span></div>
                     <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
@@ -188,7 +228,7 @@
         <div class="frame">
             <p class="frame-name"><b>Component lines</b> · the same grammar, only the identity cell changes — a chip pushes the sub-recipe’s page</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
                     <span class="r-book">Our Cookbook · Small plates</span>
                     <h2 class="r-title">Sausage Sliders</h2>
@@ -212,7 +252,7 @@
         <div class="frame">
             <p class="frame-name"><b>A sub-recipe’s page</b> · the hero gains a <i>makes</i> pill, and <b>Used in · N</b> is a tab that renders only while the count is non-zero</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="r-hero">
                     <span class="r-book">Our Cookbook · Sauces</span>
                     <h2 class="r-title">Romesco Aioli</h2>
@@ -237,7 +277,7 @@
         <div class="frame">
             <p class="frame-name"><b>The macro panel</b> · the per-serving strip closing the Ingredients tab; scaling moves the lines and the servings together, so a serving is unchanged</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
                 <div class="grp">
@@ -254,7 +294,7 @@
     <div class="frame">
         <p class="frame-name"><b>A total, and what it left out</b> · imprecise lines are excluded <b>by rule</b>, and named in a labelled row of their own</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -274,7 +314,7 @@
     <div class="frame">
         <p class="frame-name"><b>An optional line</b> · the tag is the sub-recipe chip’s shape, after the note — and the panel names the lines in an <code>OPTIONAL</code> row of their own</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -303,7 +343,7 @@
     <div class="frame">
         <p class="frame-name"><b>Opened from a week that plans it</b> &middot; one band under the title, and the <b>&#9998;</b> asks which edit &mdash; the page is otherwise unchanged</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="r-hero">
                 <span class="r-book">Our Cookbook &middot; Slow Sundays</span>
                 <h2 class="r-title">Slow-Cooker Beef Rag&ugrave;</h2>
@@ -325,7 +365,7 @@
     <div class="frame">
         <p class="frame-name"><b>Optional is a switch</b> &middot; on that same page the tag answers the question instead of only asking it &mdash; one tap, and the week stores it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="r-hero">
                 <h2 class="r-title">Slow-Cooker Beef Rag&ugrave;</h2>
                 <div class="planned"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="calendar"><title>calendar</title><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg><span>Planned Tue &middot; Sat this week &middot; edited for this week</span></div>
@@ -357,7 +397,7 @@
     <div class="frame">
         <p class="frame-name"><b>Figures per line</b> · the toggle is one item in the page’s own <b>⋯</b> menu, offered from the tab it changes; default <b>off</b></p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="lib-menu">
                 <div class="mi"><span class="ic">☆</span><span class="lb">Favorite</span></div>
                 <div class="mi"><span class="ic">&#128279;</span><span class="lb">Share link</span></div>
@@ -376,7 +416,7 @@
     <div class="frame">
         <p class="frame-name"><b>The fifth cell, and the line that stands in for it</b> &middot; fibre is optional per ingredient, so a total states it only when <i>every</i> line behind it did</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="grp">
                 <div class="l3 seam"><span class="l3-amt">200 ml</span><span class="l3-body"><span class="l3-id">Coconut milk</span><span class="l3-macro">386 <svg class="gly" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 4P 6C 40F</span></span></div>
@@ -395,7 +435,7 @@
     <div class="frame">
         <p class="frame-name"><b>On</b> · each line’s own macros under its name, in the panel’s order (<code>kcal · P C F · fibre</code>) — the line <i>as shown</i>, so unlike the per-serving strip these <b>do</b> move with the scaler</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">8 servings ·2×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -421,7 +461,7 @@
     <div class="frame">
         <p class="frame-name"><b>On, over a line the total is waiting on</b> · the amber marker already says why, so the slot under the name stays empty rather than saying it twice</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -437,7 +477,7 @@
     <div class="frame">
         <p class="frame-name"><b>The panel names the lines</b> · each named line is marked where it lives, and tapping it opens the thing that fixes it</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+            <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -463,7 +503,7 @@
         <div class="frame">
             <p class="frame-name"><b>The other two refusals</b> · an empty recipe, and one whose every line is imprecise — each gets its own words rather than a bucket that names a defect</p>
             <div class="phone"><div class="notch"></div><div class="screen">
-                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
+                <div class="abar"><span class="back">‹</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">⋯</span></div>
                 <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
                 <div class="frow" style="margin:16px 20px 8px;display:flex;align-items:center;gap:10px"><div class="seg"><span class="segopt on">Macros</span><span class="segopt">Cost</span></div><span class="macro-lab" style="margin:0;padding:0;text-transform:none">per serving</span></div>
                 <div class="macro-inc">
@@ -482,7 +522,7 @@
     <div class="frame">
         <p class="frame-name"><b>The panel flips &middot; Cost</b> &middot; the strip that closes the Ingredients tab reads one of two things about the same lines &mdash; their nutrition or their cost &mdash; chosen by the chip pair the app uses for every small closed choice. No third tab, no second list</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">&ndash;</span><span class="val">4 servings &middot;1&times;</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -506,7 +546,7 @@
     <div class="frame">
         <p class="frame-name"><b>Line figures under Cost</b> &middot; the lines print the cost record while the panel is reading Cost &mdash; and an unpriced line takes the cells with it, leaving the floor the priced lines already reach</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl"></span><span class="ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="edit">&#9998;</span><span class="dots">&ctdot;</span></div>
             <div class="tabbar"><span class="tabx on">Ingredients</span><span class="tabx">Method</span></div>
             <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">&ndash;</span><span class="val">8 servings &middot;2&times;</span><span class="step">+</span></div></div>
             <div class="grp">
@@ -565,6 +605,7 @@
                             </div>
                             <div class="hr">
                                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                                <span class="wr-dots wr-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
                                 <span class="wr-dots">&#9998;</span>
                                 <span class="wr-dots">⋯</span>
                             </div>
@@ -690,6 +731,7 @@
                             </div>
                             <div class="hr">
                                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                                <span class="wr-dots wr-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
                                 <span class="wr-dots">&#9998;</span>
                                 <span class="wr-dots">⋯</span>
                                 <div class="lib-menu wr-menu">
@@ -763,6 +805,7 @@
                             </div>
                             <div class="hr">
                                 <div class="scaler"><span class="lab">Scale to</span><div class="ctrl"><span class="step">–</span><span class="val">4 servings ·1×</span><span class="step">+</span></div></div>
+                                <span class="wr-dots wr-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span>
                                 <span class="wr-dots">&#9998;</span>
                                 <span class="wr-dots">⋯</span>
                             </div>

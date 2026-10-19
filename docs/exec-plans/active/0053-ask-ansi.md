@@ -1,9 +1,66 @@
 # Exec plan: Ask Ansi — a chat and voice assistant
 
-- **Status:** active — slice 1 is built on `ccr-32c63935-a7w2mt` (see *Slice 1 — what was built*); its paid eval, a phone run and the board frames are open
+- **Status:** active — slice 1 is built and drawn on `ccr-32c63935-a7w2mt`; it waits on a merge to `main`, a deploy, its paid eval and a phone run (see *Handover*)
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** none yet — slice 1 lands as one roadmap row when it reaches main
 - **Created:** 2026-10-18
+
+## Handover
+
+**Where it stands.** Slice 1 — questions about the recipe on screen, typed or
+spoken, with three on-phone actions — is built, tested and drawn on the
+board, on branch `ccr-32c63935-a7w2mt`, a fast-forward of `main`. Nothing of it
+is on `main`, deployed, or on a phone yet. Slice 2 (the week and the shopping
+list) is specified below and not started.
+
+**Read first, in this order:**
+
+1. This plan's *Rulings* and *Slice 1 — what was built* (below).
+2. [`app/lib/features/ask/README.md`](../../../app/lib/features/ask/README.md)
+   — the loop, the tools, the voice, every file.
+3. [`supabase/functions/ask/README.md`](../../../supabase/functions/ask/README.md)
+   — the relay's contract and its pin.
+4. [`evals/AGENTS.md`](../../../evals/AGENTS.md) — the *Ask Ansi* dimension.
+5. The board: [`recipe-page.html`](../../product-specs/board/recipe-page.html),
+   frames *Ask Ansi* and *An answer, and an action*.
+
+**Check it locally:**
+
+```
+make analyze                                  # flutter analyze + custom_lint
+cd app && flutter test test/features/ask      # the 43 ask tests
+make test-fns                                 # the function, adapter, timeout ladder
+cd evals && ./runner/run.sh                   # the keyless scorers + the dataset's validity
+```
+
+**Ship it** — the steps in [release.md §5](../../release.md#5-full-ship-checklist),
+with these specifics:
+
+1. Merge the branch into `main` (it fast-forwards).
+2. Actions → **deploy-supabase** → Run workflow. It deploys `ask` by name
+   beside the other doors. No migration, no new secret: the existing
+   `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS` cover it.
+3. Run the paid eval once, from `evals/` with the key exported:
+   `deno run --allow-read --allow-env --allow-net runner/run_ask_live.ts`.
+   Record the score and the cost under *Decision log*. A case failing on an
+   invented number is a prompt fix before it is a release.
+4. Tag (`vX.Y.Z`, the next minor after the last row of release.md §3d), install
+   the APK, and walk the phone checklist below.
+5. Set a monthly spend cap in the Anthropic console if there is none; it is
+   the fence the function does not hold itself.
+
+**The phone checklist (not yet done):**
+
+- [ ] The first mic tap asks for the microphone; refusing it shows the toast.
+- [ ] *how much …?* on a recipe answers at the stepper's servings and names it.
+- [ ] A spoken question sends on a pause, and its answer is read aloud.
+- [ ] *start the simmer timer* starts the step's chip and its dock row.
+- [ ] *make it 8 servings* moves the stepper behind the sheet.
+- [ ] *open the aioli* closes the sheet and opens the recipe.
+- [ ] Airplane mode: a question fails with a sentence, and works again after.
+
+iOS: the two new plugins need `pod install` on a Mac at the next Xcode build;
+the usage strings are already in `Info.plist`.
 
 ## Goal
 
@@ -332,17 +389,11 @@ Tests: 20 Deno tests for the function and adapter (and one more rung in
 `_shared/timeouts.test.ts`); 43 Flutter tests in `test/features/ask/`,
 including six end to end on the real recipe page; 7 keyless eval tests.
 
-**Still open for slice 1:**
+The board draws the bar's Ask door on every recipe-page frame and the sheet
+in two frames; the view's status row reads *ask: matches code*.
 
-- [ ] **The paid eval has not been run** — no API key in the build session.
-  Run `deno run --allow-read --allow-env --allow-net runner/run_ask_live.ts`
-  from `evals/` and record the result here before the pin is trusted.
-- [ ] **A phone run**: the mic permission prompt, a spoken question sent on
-  the pause, an answer read aloud, a step timer started by voice.
-- [ ] **The board**: the bar's Ask door and the sheet drawn on
-  `recipe-page.html` (its status row says `differs` until then).
-- [ ] **Deploy**: `ask` ships with the next `deploy-supabase` run; the
-  existing `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS` cover it.
+**Still open for slice 1:** the merge, the deploy, the paid eval and the phone
+checklist — all in *Handover* above.
 
 ## Next: slice 2
 
