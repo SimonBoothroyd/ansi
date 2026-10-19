@@ -3,7 +3,8 @@
 ///
 /// The chip above the field says what Ansi can see — **Ragù · serves 6** —
 /// and its ✕ asks from nowhere instead. A spoken question is sent when the
-/// member pauses and its answer is read aloud. An
+/// member pauses and its answer is read aloud; when Ansi asks something
+/// back, the mic opens for the reply. An
 /// action Ansi takes — a step's timer, the stepper, opening a recipe — lands
 /// on the phone at once and is listed under the answer.
 library;
@@ -27,6 +28,7 @@ import '../../../shared/write.dart';
 import '../data/ask_voice.dart';
 import '../domain/ask_read_aloud.dart';
 import '../domain/ask_screen.dart';
+import '../domain/ask_spoken_question.dart';
 import '../domain/ask_thread.dart';
 import 'ask_controller.dart';
 import 'ask_wiring.dart';
@@ -89,6 +91,10 @@ class AskSheet extends HookConsumerWidget {
 
     AskScreen current() => chipOff.value ? const AskNoScreen() : screen();
 
+    // The mic sends what it heard, and a question Ansi asks back opens the
+    // mic, so one is declared ahead of the other.
+    late final Future<void> Function() mic;
+
     Future<void> send(String words, {required bool spoken}) async {
       final question = words.trim();
       if (question.isEmpty) return;
@@ -102,12 +108,31 @@ class AskSheet extends HookConsumerWidget {
         runner: runnerFor((id) => toOpen = id),
         spoken: spoken,
       );
-      if (answer != null && reads) unawaited(voice.speak(answer));
+      if (answer == null) return;
+      final reading = reads ? voice.speak(answer) : Future<void>.value();
       final id = toOpen;
-      if (id != null && context.mounted) open(id);
+      if (id != null) {
+        unawaited(reading);
+        if (context.mounted) open(id);
+        return;
+      }
+      if (!spoken || !asksBack(answer)) {
+        unawaited(reading);
+        return;
+      }
+      // Ansi asked back: the mic opens for the reply once the question has
+      // been read — unless the member has moved on (tapped the mic, typed,
+      // started anew, closed the sheet).
+      await reading;
+      if (!context.mounted || listening.value || text.text.isNotEmpty) return;
+      final now = ref.read(askControllerProvider);
+      if (now.busy || now.thread.exchanges.lastOrNull?.answer != answer) {
+        return;
+      }
+      await mic();
     }
 
-    Future<void> mic() async {
+    mic = () async {
       if (listening.value) {
         await voice.stopListening();
         return;
@@ -128,7 +153,7 @@ class AskSheet extends HookConsumerWidget {
         text.text = '';
         showAskMicRefused(context);
       }
-    }
+    };
 
     final label = chipOff.value ? null : screen().chipLabel;
     final exchanges = state.thread.exchanges;

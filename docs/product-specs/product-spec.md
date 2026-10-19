@@ -1499,7 +1499,8 @@ recipe on screen, typed or spoken — *how much tamari?*, *what's step 3?*,
   A plain timer no step prints is refused.
 - **Voice is the phone's own.** A spoken question is sent when you pause; the
   answer to a spoken question is read aloud, a typed one is not, and the
-  speaker icon cycles that. No audio leaves for Ansi's servers.
+  speaker icon cycles that. When Ansi answers a spoken question with one of
+  its own, the mic opens for your reply once it has asked — no second tap. No audio leaves for Ansi's servers.
 - **The conversation stays on the device**, clears after 30 idle minutes or a
   restart, and needs a connection: offline, a question fails with a sentence.
 

@@ -26,7 +26,8 @@ abstract interface class AskVoice {
   /// Stops listening; the words so far arrive as done.
   Future<void> stopListening();
 
-  /// Reads [text] aloud, interrupting anything still being read.
+  /// Reads [text] aloud, interrupting anything still being read. Completes
+  /// once the reading has finished or been stopped.
   Future<void> speak(String text);
 
   /// Stops reading aloud.
@@ -42,6 +43,7 @@ class DeviceAskVoice implements AskVoice {
   final SpeechToText _ears = SpeechToText();
   final FlutterTts _mouth = FlutterTts();
   bool? _ready;
+  bool _mouthReady = false;
   AskSpokenQuestion? _question;
   bool _restarting = false;
 
@@ -103,6 +105,12 @@ class DeviceAskVoice implements AskVoice {
 
   @override
   Future<void> speak(String text) async {
+    if (!_mouthReady) {
+      // So the mic that answers Ansi's question opens after it is asked,
+      // not over it.
+      await _mouth.awaitSpeakCompletion(true);
+      _mouthReady = true;
+    }
     await _mouth.stop();
     await _mouth.speak(text);
   }

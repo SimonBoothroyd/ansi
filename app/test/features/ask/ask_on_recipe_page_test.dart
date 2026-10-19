@@ -1,7 +1,8 @@
 /// Ask Ansi from the recipe page (plan 0053, slice 1): the sheet sees the
 /// recipe at the stepper's servings, the tools run against the page's own
 /// rows, and an action lands on the page — the stepper moves, a step's timer
-/// starts. A spoken question is sent on the pause and its answer read aloud.
+/// starts. A spoken question is sent on the pause and its answer read aloud;
+/// a question Ansi asks back opens the mic.
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
@@ -178,11 +179,41 @@ void main() {
     tester,
   ) async {
     await openAsk(tester, [(_) => askSays('2 tbsp tamari — Ragù, serves 4.')]);
-    voice.heard = 'how much tamari';
+    voice.heard.add('how much tamari');
     await tester.tap(find.bySemanticsLabel('Speak'));
     await tester.pumpAndSettle();
     expect(find.text('how much tamari'), findsOneWidget);
     expect(voice.spoken, ['2 tbsp tamari — Ragù, serves 4.']);
+    // An answer, not a question: the mic stays shut.
+    expect(voice.listens, 1);
+  });
+
+  testWidgets('a question Ansi asks back opens the mic for the reply', (
+    tester,
+  ) async {
+    await openAsk(tester, [
+      (_) => askSays('Which timer — the simmer in step 1?'),
+      (_) => askSays('Step 1’s simmer is 20–25 min — Ragù.'),
+    ]);
+    voice.heard.addAll(['how long is the timer', 'yes the simmer']);
+    await tester.tap(find.bySemanticsLabel('Speak'));
+    await tester.pumpAndSettle();
+    // Read first, then heard: no second tap.
+    expect(voice.spoken, [
+      'Which timer — the simmer in step 1?',
+      'Step 1’s simmer is 20–25 min — Ragù.',
+    ]);
+    expect(find.text('yes the simmer'), findsOneWidget);
+    expect(voice.listens, 2);
+  });
+
+  testWidgets('a typed question asked back waits for the keyboard', (
+    tester,
+  ) async {
+    await openAsk(tester, [(_) => askSays('Which timer — the simmer?')]);
+    await type(tester, 'how long is the timer');
+    expect(find.text('Which timer — the simmer?'), findsOneWidget);
+    expect(voice.listens, 0);
   });
 
   testWidgets('a refused mic says how to fix it', (tester) async {

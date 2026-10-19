@@ -114,4 +114,12 @@ void main() {
       expect(r.sent, hasLength(1));
     });
   });
+
+  test('an answer that ends on a question asks back', () {
+    expect(asksBack('Tamari in the sauce or the glaze?'), isTrue);
+    expect(asksBack('Did you mean “step 3?”  '), isTrue);
+    expect(asksBack('2 tbsp tamari — Ragù, serves 4.'), isFalse);
+    expect(asksBack('Is it done? Taste it first.'), isFalse);
+    expect(asksBack(''), isFalse);
+  });
 }

@@ -102,3 +102,11 @@ class AskSpokenQuestion {
     _session = '';
   }
 }
+
+/// Whether Ansi's [answer] asks the member something back ("Tamari in the
+/// sauce or the glaze?"). After a spoken question such an answer opens the mic
+/// for the reply, so a cook with full hands need not tap it.
+bool asksBack(String answer) {
+  final end = answer.trimRight().replaceFirst(RegExp(r'''["'”’)\]]+$'''), '');
+  return end.endsWith('?');
+}

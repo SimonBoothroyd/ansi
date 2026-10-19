@@ -55,6 +55,11 @@ own silence of about a second whatever it is asked for, so a session that
 ends early is restarted and its words kept. The mic waits six seconds for a
 first word and thirty for the whole question; the answer to a spoken question is read aloud, a typed one is not,
 and the speaker in the sheet cycles *match the question* · *always* · *never*.
+When the answer to a spoken question ends on a question of Ansi's own
+(`asksBack`: *Tamari in the sauce or the glaze?*), the mic opens for the
+reply once it has been read — `speak` completes only when the reading ends,
+so the mic never hears Ansi. It stays shut if the member has already tapped
+the mic, typed, started anew or closed the sheet.
 No audio reaches Ansi's servers.
 
 ## Files

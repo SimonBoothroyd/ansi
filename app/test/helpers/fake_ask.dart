@@ -50,13 +50,15 @@ String lastToolResult(List<Map<String, Object?>> sent) {
   return result['content']! as String;
 }
 
-/// The mic and speaker: [listen] hands back [heard] as a finished question
-/// (or refuses when [available] is false), and [speak] records what was read.
+/// The mic and speaker: each [listen] hands back the next of [heard] as a
+/// finished question, or silence once they are spent (or refuses when
+/// [available] is false), and [speak] records what was read.
 class FakeAskVoice implements AskVoice {
-  FakeAskVoice({this.heard = '', this.available = true});
+  FakeAskVoice({this.available = true});
 
-  String heard;
+  final List<String> heard = [];
   bool available;
+  int listens = 0;
   final List<String> spoken = [];
 
   @override
@@ -64,8 +66,10 @@ class FakeAskVoice implements AskVoice {
     required void Function(String words, {required bool done}) onWords,
   }) async {
     if (!available) return false;
-    onWords(heard, done: false);
-    onWords(heard, done: true);
+    listens++;
+    final words = heard.isEmpty ? '' : heard.removeAt(0);
+    onWords(words, done: false);
+    onWords(words, done: true);
     return true;
   }
 

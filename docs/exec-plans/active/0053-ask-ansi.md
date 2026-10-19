@@ -29,7 +29,7 @@ and the shopping list) is specified below and not started.
 
 ```
 make analyze                                  # flutter analyze + custom_lint
-cd app && flutter test test/features/ask      # the 43 ask tests
+cd app && flutter test test/features/ask      # the 53 ask tests
 make test-fns                                 # the function, adapter, timeout ladder
 cd evals && ./runner/run.sh                   # the keyless scorers + the dataset's validity
 ```
@@ -42,6 +42,8 @@ is none — it is the fence the function does not hold itself.
 - [ ] The first mic tap asks for the microphone; refusing it shows the toast.
 - [ ] *how much …?* on a recipe answers at the stepper's servings and names it.
 - [ ] A spoken question sends on a pause, and its answer is read aloud.
+- [ ] A spoken question Ansi asks back about (*set a timer for 10 minutes*)
+      opens the mic once the question is read; the reply sends on a pause.
 - [ ] *start the simmer timer* starts the step's chip and its dock row.
 - [ ] *make it 8 servings* moves the stepper behind the sheet.
 - [ ] *open the aioli* closes the sheet and opens the recipe.
@@ -259,7 +261,8 @@ redo, rather than overwriting.
   (`speech_to_text`; on-device where the phone supports it). Keyboard
   dictation works with no extra code. A spoken message is **sent on a pause**,
   hands-free; the transcript stays in the thread, so a mishearing shows (see
-  *How words resolve*).
+  *How words resolve*). When Ansi answers a spoken question with a question
+  of its own, the mic opens for the reply once it has been read.
 - **Out:** through Android's text-to-speech engine (`flutter_tts`). **An
   answer is spoken when the question was spoken**, and text only when it was
   typed; a speaker toggle in the sheet overrides that. Answers are written to
