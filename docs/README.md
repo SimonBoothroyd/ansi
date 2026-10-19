@@ -60,8 +60,8 @@ docs/
    only what someone still owes. Two carve-outs, deliberately append-only
    because the dates *are* the record: [`cloud-setup.md`](./cloud-setup.md)'s
    ledger and [`release.md`](./release.md)'s tag list.
-2. **Docs change with code.** If a PR changes behaviour, it updates the relevant
-   doc in the same PR. A stale doc is a bug, not a nicety.
+2. **Docs change with code.** If a change alters behaviour, it updates the relevant
+   doc in the same commit. A stale doc is a bug, not a nicety.
 3. **Decisions are immutable.** An ADR is never edited to say something new; a
    reversal is a new ADR that supersedes the old one.
 4. **Plans are checked in.** Non-trivial work gets an exec plan in `active/` with

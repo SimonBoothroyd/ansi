@@ -18,9 +18,8 @@ The detail is in the plan; the landing dates are in the
    sharing* — the one check the share link shipped without.
 3. Plan 0052's simulator run of the recipe page's pencil (`recipe_editor`,
    `nested`), and the owner's look at the regrouped ⋯ on a phone.
-4. Plan 0053 slice 1 (Ask Ansi, on branch `ccr-32c63935-a7w2mt`): merge,
-   deploy `ask`, run its paid eval, tag, and walk the phone checklist in the
-   plan's *Handover*.
+4. Plan 0053's phone checklist for Ask Ansi (in its *Handover*), on both
+   phones on `v0.30.0`.
 5. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
@@ -109,6 +108,7 @@ rows below, in that order.)
 | — | A recipe's share link — *Share link* and *Stop sharing* in the recipe page's ⋯ menu; a public, read-only page on `getansi.app` rendered by the app's own Dart compiled to JS (the `share-recipe` function behind the `ansi-share` Cloudflare Worker), with nested sub-recipes, macros, a servings stepper, timers and JSON-LD for Import. Also a line said in a recipe's own word scaling with servings. Migration `0054`, on cloud | `v0.28.0` | [0051](./active/0051-recipe-share-link.md) |
 | — | The web build reads the Pages site's address and builds for its path, so the app can be served on `app.getansi.app` with no workflow edit. No migrations | `v0.28.1` | — |
 | — | A pass over buttons and menus — the recipe page's Edit is a pencil in the bar (from a week it offers both edits side by side); every ⋯ groups its items, with Delete last, alone and in Ansi's own red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone. Also toasts swipe away sideways as well as down. No migrations | `v0.29.0` | [0052](./active/0052-buttons-and-menus.md) |
+| — | Ask Ansi, slice 1 — a question about the recipe on screen, typed or spoken, answered from the app's own scaled lines and steps through the `ask` function, every number out of a tool result; a step's timer, the servings stepper and opening another recipe as on-phone actions; answers read aloud. Also a week-only row's nutrition and a receipt line's pack size. No migrations | `v0.30.0` | [0053](./active/0053-ask-ansi.md) |
 
 ## Stretch
 

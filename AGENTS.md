@@ -73,7 +73,7 @@ Full rules: [`board/README.md`](./docs/product-specs/board/README.md).
 ## Golden rules
 
 - **Docs are part of the code.** A change that alters behaviour updates the
-  relevant doc in the same PR. Stale docs are bugs. (`make docs-check` enforces
+  relevant doc in the same commit. Stale docs are bugs. (`make docs-check` enforces
   link integrity; see `docs/README.md` on doc-gardening.)
 - **Every change lands with a test.** No new logic in `core/` or a `domain/`
   without a mirrored test. CI blocks on analyze + test.
@@ -82,6 +82,9 @@ Full rules: [`board/README.md`](./docs/product-specs/board/README.md).
 - **Boring, legible dependencies.** Favour what an agent can fully reason about
   in-repo. Secrets via `--dart-define`/env, never committed.
 - **Conventional Commits** (`feat:`, `fix:`, `docs:`, `chore:`…).
+- **No pull requests: work lands by pushing to `main`.** Commit on a branch in
+  a worktree, then `git push origin <branch>:main`; fetch first, since local
+  `main` lags `origin/main`.
 
 ## Verify before you claim done
 

@@ -414,6 +414,7 @@ went first when the tag needed one.
 | `v0.28.0` | 2026-10-10 | A recipe's share link (plan 0051) — *Share link* in the recipe page's ⋯ menu hands `https://getansi.app/r/<token>` to the share sheet (`share_plus`; the web copies it), *Stop sharing* revokes it; the public page is the app's own Dart compiled to JS, rendered by the new `share-recipe` function behind the `ansi-share` Cloudflare Worker on `getansi.app` — nested sub-recipes, a recipe's own word with its amount, macros by the app's rule, a servings stepper, timers, schema.org JSON-LD that Import reads. Also: a line said in a recipe's own word scales with servings. Migration `0054`; deploy 38029317915 went first, 38029878853 set `SHARE_BASE_URL`; the first build to carry `SHARE_BASE_URL` and the first to compile `share_plus` for Android and iOS. Tagged from GitHub's Releases page | release 38031359237 |
 | `v0.28.1` | 2026-10-10 | The web build reads the Pages site's address and builds for its path — `/` on a custom domain, `/<repo>/` on the project site — so serving the app on `app.getansi.app` needs no workflow edit (§6.1); no migrations, no deploy | release 38052670325 |
 | `v0.29.0` | 2026-10-15 | A pass over buttons and menus (plan 0052) — the recipe page's Edit is a pencil in the bar, and from a week it offers *Edit recipe* and *Edit for this week* side by side; every ⋯ groups its items, with Delete last, alone and in red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone; the theme's destructive is Ansi's own red (`gone`), on a menu's Delete, the confirm behind it and a failed write's toast. Also: toasts swipe away sideways as well as down. No migrations, no deploy. Tagged from GitHub's Releases page | release 38730992318 |
+| `v0.30.0` | 2026-10-19 | Ask Ansi, slice 1 (plan 0053) — a question about the recipe on screen, typed or spoken, answered from the app's own scaled lines and steps by the new `ask` function relaying to the model, every number out of a tool result; three on-phone actions (a step's own timer, the servings stepper, opening another recipe); answers read aloud and a spoken question sent on a pause; a timer named by what it times read from its step first. Paid eval 28/28 first moves, 17/17 answers, $0.0044. Also: a row swapped in for the week alone has its nutrition, and a receipt line opens on the size its own name prints. No migrations. Deploy 39187852214 went first (attempt 2) | release 39188275832 |
 
 ## 4. Deploy Supabase
 
@@ -422,11 +423,10 @@ went first when the tag needed one.
 ```bash
 # Personal access token — supabase.com/dashboard/account/tokens (starts sbp_).
 # Not a project API key (sb_publishable_… / sb_secret_…): those are the
-# app's and the functions' keys, and the CLI refuses them. If the token page
-# offers scopes, give this project database, edge-function and secrets read +
-# write. A step-1 "Invalid access token" means the stored token is no longer
-# valid (revoked, or expired); "necessary privileges" means it is scoped too
-# narrowly. Either way: a new token, then update this secret.
+# app's and the functions' keys, and the CLI refuses them. Fine-grained, with
+# exactly the scopes listed under this block. A step-1 "Invalid access token"
+# means the stored token is no longer valid (revoked, or expired); "necessary
+# privileges" means it is scoped too narrowly.
 gh secret set SUPABASE_ACCESS_TOKEN
 
 # The project's database password (Supabase → Project Settings → Database)
@@ -451,6 +451,31 @@ gh variable set CLOUDFLARE_ACCOUNT_ID --body '<account id>'
 # share-recipe function's SHARE_BASE_URL to match. Set it last (§3d step 6).
 gh variable set SHARE_BASE_URL --body 'https://getansi.app'
 ```
+
+**The access token's scopes.** Projects: only Ansi. Preset *No access*, then
+exactly these; everything else stays None, including every scope under
+*Infrastructure and delivery* and *Account and organization*:
+
+| Group | Scope | Level | Which step needs it |
+|---|---|---|---|
+| Project | Project Settings | Read | `link` reads the project |
+| Database | Database | Read-write | the opt-in reseed's `db query --linked` |
+| Database | Database Config | Read | `link` |
+| Database | Connection Pooling | Read | `link` and `db push` find the host |
+| Database | Migrations | Read | `db push` applies over the DB password, not the token |
+| Application services | API Keys | Read | `link` |
+| Application services | API Key Secrets | Read | `link` reads the keys' values; without it step 1 fails on `GET …/api-keys` |
+| Application services | Auth Config | Read | `link` |
+| Application services | Data API Config | Read | `link` |
+| Application services | Storage Config | Read | `link` |
+| Application services | Edge Functions | Read-write | functions deploy |
+| Application services | Edge Function Secrets | Read-write | step 3b's `secrets set SHARE_BASE_URL` |
+
+A 403 from the CLI does not name the scope it lacks. To find it, run `supabase
+link --project-ref <ref> --debug` locally with the token in
+`SUPABASE_ACCESS_TOKEN`: the last `HTTP GET` before the refusal is the
+endpoint. Add that scope by editing the token (the secret stays valid), then
+re-run.
 
 ### 4.2 Run it
 

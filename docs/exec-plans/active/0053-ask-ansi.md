@@ -1,17 +1,18 @@
 # Exec plan: Ask Ansi — a chat and voice assistant
 
-- **Status:** active — slice 1 is built and drawn on `ccr-32c63935-a7w2mt`; it waits on a merge to `main`, a deploy, its paid eval and a phone run (see *Handover*)
+- **Status:** active — slice 1 shipped in `v0.30.0` and waits only on its phone run (see *Handover*); slice 2 is not started
 - **Owner:** Simon (rulings), agents in lanes
-- **Roadmap step:** none yet — slice 1 lands as one roadmap row when it reaches main
+- **Roadmap step:** none — slice 1 is the `v0.30.0` row of the roadmap's Shipped table
 - **Created:** 2026-10-18
 
 ## Handover
 
 **Where it stands.** Slice 1 — questions about the recipe on screen, typed or
-spoken, with three on-phone actions — is built, tested and drawn on the
-board, on branch `ccr-32c63935-a7w2mt`, a fast-forward of `main`. Nothing of it
-is on `main`, deployed, or on a phone yet. Slice 2 (the week and the shopping
-list) is specified below and not started.
+spoken, with three on-phone actions — is on `main`, drawn on the board,
+deployed (`ask`, deploy 39187852214) and released in `v0.30.0` (release
+39188275832). Its paid eval passed 28/28 first moves and 17/17 answers (see
+*Decision log*). What is left is the phone checklist below. Slice 2 (the week
+and the shopping list) is specified below and not started.
 
 **Read first, in this order:**
 
@@ -33,21 +34,8 @@ make test-fns                                 # the function, adapter, timeout l
 cd evals && ./runner/run.sh                   # the keyless scorers + the dataset's validity
 ```
 
-**Ship it** — the steps in [release.md §5](../../release.md#5-full-ship-checklist),
-with these specifics:
-
-1. Merge the branch into `main` (it fast-forwards).
-2. Actions → **deploy-supabase** → Run workflow. It deploys `ask` by name
-   beside the other doors. No migration, no new secret: the existing
-   `ANTHROPIC_API_KEY` and `IMPORT_ALLOWED_HOUSEHOLDS` cover it.
-3. Run the paid eval once, from `evals/` with the key exported:
-   `deno run --allow-read --allow-env --allow-net runner/run_ask_live.ts`.
-   Record the score and the cost under *Decision log*. A case failing on an
-   invented number is a prompt fix before it is a release.
-4. Tag (`vX.Y.Z`, the next minor after the last row of release.md §3d), install
-   the APK, and walk the phone checklist below.
-5. Set a monthly spend cap in the Anthropic console if there is none; it is
-   the fence the function does not hold itself.
+**Owed by the owner:** a monthly spend cap in the Anthropic console, if there
+is none — it is the fence the function does not hold itself.
 
 **The phone checklist (not yet done):**
 
@@ -429,6 +417,16 @@ and the Ask door moving from the recipe page to every screen.
   - **Offline is a failed question with a sentence**, not a disabled button:
     the app has no connectivity signal to read, and the failure says what to
     do.
+- 2026-10-19 — The paid eval on `claude-haiku-5-5`: **first moves 28/28,
+  answers 17/17, 42 calls, $0.0044**, nothing invented. The first run scored
+  27/28 and 16/17; its two misses were fixed before the tag:
+  - **A timer named by what it times is read before it is started.** The
+    screen carries no timer list, so *the resting timer in step 2* cannot be
+    picked by position; `start_step_timer`'s description says to read the
+    step with `method_step` first, and the `rest-timer` case expects that
+    read.
+  - **A search that finds nothing says the words it searched**, so a
+    misheard title is obvious when read back.
 
 ## Step-done checklist
 

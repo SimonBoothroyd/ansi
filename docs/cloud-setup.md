@@ -673,6 +673,24 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-10-19 — v0.30.0 on cloud: the `ask` function
+
+- **deploy-supabase 39186114961** (attempt 3, on `cb23eb15`): green — `db push`
+  with nothing to apply, all five functions deployed, `ask` for the first time;
+  the Worker and the sync streams (unchanged) deployed. No reseed.
+- **deploy-supabase 39187852214** (attempt 2, on `6f9e96e1`): green, the same
+  legs, shipping the `ask` prompt the paid eval passed (28/28, 17/17).
+- **What failed on the way, changing nothing.** 39182762819 and the first
+  attempt of 39186114961 stopped at step 1: the old token, then a
+  fine-grained replacement lacking *API Key Secrets: Read* (`link` reads the
+  keys' values). The token now in GitHub has exactly the scopes in
+  `release.md` §4.1. The sync-stream leg then failed twice with the
+  instance's own `Deploy failed` (attempt 2 of 39186114961, attempt 1 of
+  39187852214) and passed on re-run, the file unchanged — the failure the
+  2026-09-19 entry records, now recurring.
+- `cloud_verify.sh` was not run for this entry. The phone checklist in plan
+  0053's *Handover* is the check `ask` is owed.
+
 ### 2026-10-10 — v0.28.0 on cloud: 0054, `share-recipe`, and the share host
 
 - **deploy-supabase 38029317915** (attempt 2, on `72228b4e`): green —
