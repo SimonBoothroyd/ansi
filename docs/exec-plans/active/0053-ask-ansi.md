@@ -1,6 +1,6 @@
 # Exec plan: Ask Ansi — a chat and voice assistant
 
-- **Status:** active — slice 1 shipped in `v0.30.0` and waits only on its phone run; slice 2 is built on a branch and waits on its deploy, its paid eval and its phone run (see *Handover*)
+- **Status:** active — slice 1 shipped in `v0.30.0` and waits only on its phone run; slice 2 is on `main` with the `ask` function deployed (39270405613), and waits on its tag (`v0.31.0`), its paid eval and its phone run (see *Handover*)
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** none — slice 1 is the `v0.30.0` row of the roadmap's Shipped table
 - **Created:** 2026-10-18
@@ -14,11 +14,11 @@ deployed (`ask`, deploy 39187852214) and released in `v0.30.0` (release
 *Decision log*). What is left is the phone checklist below.
 
 Slice 2 — the week, the cook plan and the list, and every change behind a
-card — is built (*Slice 2 — what was built*) and needs no migration. Before it
-is tagged: redeploy the `ask` function (its prompt and tool list changed; an
-app with the new tools against the old function gets no week tools, and the
-old app against the new function is unaffected), run the paid eval
-(`run_ask_live.ts`, now 40 cases), then the phone checklist's slice-2 rows.
+card — is built (*Slice 2 — what was built*), needs no migration, is on
+`main`, and its `ask` function is deployed (39270405613). Owed: the tag
+(`v0.31.0`, from GitHub's Releases page — an agent session cannot push one),
+the paid eval (`run_ask_live.ts`, now 40 cases; it was not run before the
+deploy), then the phone checklist's slice-2 rows.
 
 **Read first, in this order:**
 

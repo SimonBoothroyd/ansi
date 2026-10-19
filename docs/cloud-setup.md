@@ -673,6 +673,16 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-10-19 — Ask Ansi slice 2 on cloud: the `ask` function redeployed
+
+- **deploy-supabase 39270405613** (attempt 1, on `179241bb`): green —
+  `db push` with nothing to apply, all five functions deployed (`ask` with
+  slice 2's prompt and thirteen tools), the Worker and the sync streams
+  (unchanged) deployed, the sync-stream leg passing first time. No reseed.
+- The paid eval (`run_ask_live.ts`, 40 cases) was **not** run before this
+  deploy: the session that shipped it had no API key. `cloud_verify.sh` was
+  not run. The phone checklist in plan 0053's *Handover* is the check owed.
+
 ### 2026-10-19 — v0.30.0 on cloud: the `ask` function
 
 - **deploy-supabase 39186114961** (attempt 3, on `cb23eb15`): green — `db push`
