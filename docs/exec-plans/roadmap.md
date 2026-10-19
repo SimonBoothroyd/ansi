@@ -19,8 +19,8 @@ The detail is in the plan; the landing dates are in the
 3. Plan 0052's simulator run of the recipe page's pencil (`recipe_editor`,
    `nested`), and the owner's look at the regrouped ⋯ on a phone.
 4. Plan 0053's phone checklist for Ask Ansi (in its *Handover*), on both
-   phones — slice 1 on `v0.30.0`, slice 2 once the `ask` function is
-   redeployed and the next tag is cut, with its paid eval run first.
+   phones on `v0.31.0`, with slice 2's paid eval (`run_ask_live.ts`, 40 cases)
+   run first — it was not run before the deploy.
 5. Step 11 (anti-waste), still stretch.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
@@ -32,7 +32,6 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
-| Ask Ansi, slice 2 — the door on the Library, Week, Cook and Shop tabs too; questions about the week, the cook plan and the list (*what's for dinner tonight?*, *what am I cooking on Sunday?*, *do we need tamari?*); and changes to the plan or the list — set a week's dinners, move a meal, *I'm eating out Friday*, copy last week, add to the list — each a card the member confirms, written in one transaction that refuses a meal edited meanwhile. Needs the `ask` function redeployed before the tag. No migrations | [0053](./active/0053-ask-ansi.md) |
 
 ## Shipped
 
@@ -111,6 +110,7 @@ rows below, in that order.)
 | — | The web build reads the Pages site's address and builds for its path, so the app can be served on `app.getansi.app` with no workflow edit. No migrations | `v0.28.1` | — |
 | — | A pass over buttons and menus — the recipe page's Edit is a pencil in the bar (from a week it offers both edits side by side); every ⋯ groups its items, with Delete last, alone and in Ansi's own red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone. Also toasts swipe away sideways as well as down. No migrations | `v0.29.0` | [0052](./active/0052-buttons-and-menus.md) |
 | — | Ask Ansi, slice 1 — a question about the recipe on screen, typed or spoken, answered from the app's own scaled lines and steps through the `ask` function, every number out of a tool result; a step's timer, the servings stepper and opening another recipe as on-phone actions; answers read aloud. Also a week-only row's nutrition and a receipt line's pack size. No migrations | `v0.30.0` | [0053](./active/0053-ask-ansi.md) |
+| — | Ask Ansi, slice 2 — the door on the Library, Week, Cook and Shop tabs too; questions about the week, the cook plan and the list (*what's for dinner tonight?*, *what am I cooking on Sunday?*, *do we need tamari?*); and changes to the plan or the list — set a week's dinners, move a meal, *I'm eating out Friday*, copy last week, add to the list — each a card the member confirms, written in one transaction that refuses a meal edited meanwhile. The `ask` function redeployed first. No migrations | `v0.31.0` | [0053](./active/0053-ask-ansi.md) |
 
 ## Stretch
 
