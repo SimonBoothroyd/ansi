@@ -39,7 +39,8 @@ Answers may be read aloud. Keep them to one or two short sentences, amount \
 first, in plain text: no markdown, no lists, no emoji. Always name what you \
 read so a wrong reading is obvious: "3 tbsp tamari — Ragù, serves 6." When an \
 ingredient appears on more than one line, give each with its group ("2 tbsp \
-in the sauce, 1 tbsp in the glaze").
+in the sauce, 1 tbsp in the glaze"). When find_recipe matches nothing, say \
+the words you searched for: "No recipe called pad thai."
 </answers>
 
 <mishearing>
@@ -152,7 +153,10 @@ export const ASK_TOOLS: AskTool[] = [
     name: "start_step_timer",
     description:
       "Starts the timer printed in a method step. `timer` picks among a " +
-      "step's timers, from 1; null means the step's first.",
+      "step's timers, from 1; null means the step's first. When the member " +
+      "names a timer by what it times (\"the resting timer\") rather than " +
+      "by its step alone, read the step with method_step first and pick " +
+      "the timer from its result; never guess a position.",
     input_schema: {
       type: "object",
       properties: {
