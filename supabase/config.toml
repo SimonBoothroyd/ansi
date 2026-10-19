@@ -58,6 +58,13 @@ schemas = ["public"]
 enabled = true
 verify_jwt = true
 
+# The assistant's relay (plan 0053): the same JWT gate and allowlist as the
+# model doors; it relays a conversation to the model and touches no table
+# (supabase/functions/ask).
+[functions.ask]
+enabled = true
+verify_jwt = true
+
 # A recipe's share page (plan 0051) is read by people with no account, so the
 # gateway checks no JWT and the function is the whole boundary: GET and HEAD,
 # one share's rows by token, nothing else (supabase/functions/share-recipe).

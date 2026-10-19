@@ -160,7 +160,8 @@ export interface TokenUsage {
 export interface ProviderCall {
   provider: string; // adapter name, e.g. "gpt-5-mini"
   model: string; // the PINNED model id actually sent
-  op: "transcribe" | "sanitize";
+  /** `ask` is the ask door's one call per turn (`adapters/claude_ask.ts`). */
+  op: "transcribe" | "sanitize" | "ask";
   usage: TokenUsage | null;
   latency_ms: number;
   /** The provider's response body exactly as parsed from the wire. */

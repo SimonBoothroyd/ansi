@@ -116,6 +116,7 @@ jobs:
           supabase functions deploy import-recipe
           supabase functions deploy import-receipt
           supabase functions deploy read-label
+          supabase functions deploy ask
           # Public, no JWT (config.toml says so too): a recipe's share page.
           supabase functions deploy share-recipe --no-verify-jwt
 
@@ -192,7 +193,7 @@ jobs:
             echo "### deploy-supabase finished"
             echo
             echo "Applied to \`$PROJECT_REF\`: **migrations** (\`db push\`), the"
-            echo "**import-recipe**, **import-receipt**, **read-label** and **share-recipe** functions, and the **PowerSync sync streams**"
+            echo "**import-recipe**, **import-receipt**, **read-label**, **ask** and **share-recipe** functions, and the **PowerSync sync streams**"
             echo "(\`docker/powersync-cloud.streams.yaml\` → instance \`$POWERSYNC_INSTANCE_ID\`)."
             echo
             echo "**Not applied — do these by hand if this deploy included"

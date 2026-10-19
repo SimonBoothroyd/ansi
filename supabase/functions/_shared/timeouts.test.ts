@@ -23,6 +23,7 @@ import {
   TRANSCRIBE_DEADLINE_MS,
 } from "./adapters/claude.ts";
 import { LABEL_DEADLINE_MS } from "./adapters/claude_label.ts";
+import { ASK_DEADLINE_MS } from "./adapters/claude_ask.ts";
 import { HEARTBEAT_INTERVAL_MS } from "../import-recipe/index.ts";
 import {
   FETCH_TIMEOUT_MS,
@@ -167,6 +168,19 @@ Deno.test("the label door buys no heartbeat, so its one call fits the idle timeo
     `reading a label worst case ${labelWorstCaseMs}ms does not fit inside ` +
       `the platform's ${PLATFORM_IDLE_TIMEOUT_MS}ms idle timeout — that door ` +
       `sends no heartbeat, so it has to`,
+  );
+});
+
+Deno.test("the ask door's one call fits the idle timeout and the app's wait", () => {
+  // `ask` is a plain JSON answer like `read-label`. The app waits
+  // `askTurnTimeout` (60 s, `app/lib/features/ask/data/remote_ask_repository
+  // .dart`), and the server must give up first, with a sentence.
+  const askWorstCaseMs = ASK_DEADLINE_MS + OVERHEAD_MS;
+  const appWaitMs = 60_000;
+  assert(askWorstCaseMs < PLATFORM_IDLE_TIMEOUT_MS);
+  assert(
+    askWorstCaseMs < appWaitMs,
+    `an ask's worst case ${askWorstCaseMs}ms outlasts the app's ${appWaitMs}ms`,
   );
 });
 
