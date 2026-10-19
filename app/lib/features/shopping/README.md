@@ -73,6 +73,10 @@ hands them with the overlay to `buildShoppingList` (pure).
 - **Lifecycle.** An item shows only while it has a live contribution or is
   free text. A deleted recipe's contribution vanishes; the entry row stays
   inert, and its check-off returns if the ingredient is re-planned.
+- **A top-up opens on its usual amount**: the last top-up of that
+  ingredient in any week, else one of its word for one, else one piece
+  (`defaultAmountFor`), read by `lastTopUp`. A tub with no history opens
+  empty.
 - **Removing.** A user-added line (`isUserAdded`) is swiped or long-pressed
   away through `removeEntry`. A cook-derived line is changed on the Week; its
   top-up is edited or removed by `contributionId` in the edit sheet.

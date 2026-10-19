@@ -1,3 +1,4 @@
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/ask/data/ask_voice.dart';
 import 'package:ansi/features/ask/domain/ask_proposal.dart';
@@ -134,9 +135,10 @@ class FakeAskHousehold {
       ],
       guessed: false,
     ),
-    ingredientsById: (ids) async => {
+    ingredientFacts: (ids, {required forMeal}) async => {
       for (final i in ingredients)
-        if (ids.contains(i.id)) i.id: i,
+        if (ids.contains(i.id))
+          i.id: (ingredient: i, measures: const <Measure>[], usual: null),
     },
     propose: (proposal) async {
       cards.add(proposal);

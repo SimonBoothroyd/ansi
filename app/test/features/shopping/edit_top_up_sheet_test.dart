@@ -2,6 +2,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/ingredients/domain/measure_repository.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
@@ -66,6 +67,9 @@ class _RecordingShoppingRepo implements ShoppingRepository {
 
   @override
   Future<void> removeEntry({required String entryId}) async {}
+
+  @override
+  Future<LastAmount?> lastTopUp(String ingredientId) async => null;
 }
 
 /// The sheet watches the ingredient's measures; with no override that stream

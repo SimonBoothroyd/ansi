@@ -21,6 +21,7 @@ import '../../../core/week_shape.dart';
 import '../../cook_plan/data/cook_plan_repository_impl.dart'
     show loadComponentGraph;
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../ingredients/domain/default_amount.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
 import '../../planning/data/week_variant_repository_impl.dart'
     show loadWeekOverrides;
@@ -773,6 +774,26 @@ class SqliteShoppingRepository implements ShoppingRepository {
       '(id, household_id, free_text, category, checked, week_start_date, '
       'created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?)',
       [_uuid.v4(), _householdId, text, category, _weekKey(weekStart), now, now],
+    );
+  }
+
+  @override
+  Future<LastAmount?> lastTopUp(String ingredientId) async {
+    final row = await _db.getOptional(
+      'SELECT sc.quantity, sc.unit, sc.measure_id '
+      'FROM shopping_list_contribution sc '
+      'JOIN shopping_list_entry se ON se.id = sc.entry_id '
+      "WHERE se.ingredient_id = ? AND sc.source_type = 'manual' "
+      'AND sc.deleted_at IS NULL AND sc.quantity IS NOT NULL '
+      'ORDER BY sc.created_at DESC LIMIT 1',
+      [ingredientId],
+    );
+    if (row == null) return null;
+    final unitId = row['unit'] as String?;
+    return (
+      quantity: (row['quantity']! as num).toDouble(),
+      unit: unitId == null ? null : unitById(unitId),
+      measureId: row['measure_id'] as String?,
     );
   }
 

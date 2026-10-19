@@ -63,6 +63,7 @@ class AskCard extends HookConsumerWidget {
               :final ingredientId?,
               :final quantity?,
               :final unit?,
+              :final measureId,
             ):
               await container
                   .read(shoppingRepositoryProvider)
@@ -70,6 +71,7 @@ class AskCard extends HookConsumerWidget {
                     ingredientId: ingredientId,
                     quantity: quantity,
                     unit: unit,
+                    measureId: measureId,
                     weekStart: weekStart,
                   );
             case AskTopUpProposal(:final weekStart, :final item):

@@ -7,6 +7,7 @@ library;
 
 import '../../../core/units/macros.dart';
 import '../../../core/units/units.dart';
+import '../../ingredients/domain/default_amount.dart';
 import 'plan_change.dart';
 import 'planning.dart';
 
@@ -94,4 +95,8 @@ abstract interface class PlanningRepository {
   /// change that names an existing meal is checked against the meal as it now
   /// stands; any difference throws [PlanChangedError] and nothing is written.
   Future<void> applyPlanChanges(List<PlanChange> changes);
+
+  /// The amount of the latest planned meal of [ingredientId] that stated one,
+  /// or null. A sheet and Ask Ansi offer it again (`defaultAmountFor`).
+  Future<LastAmount?> lastIngredientAmount(String ingredientId);
 }

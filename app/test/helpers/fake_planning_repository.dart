@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/planning/domain/plan_change.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/planning_repository.dart';
@@ -163,4 +164,11 @@ class FakePlanningRepository implements PlanningRepository {
   Future<void> applyPlanChanges(List<PlanChange> changes) async {
     changeSets.add(changes);
   }
+
+  /// What [lastIngredientAmount] answers, by ingredient id.
+  final lastAmounts = <String, LastAmount>{};
+
+  @override
+  Future<LastAmount?> lastIngredientAmount(String ingredientId) async =>
+      lastAmounts[ingredientId];
 }

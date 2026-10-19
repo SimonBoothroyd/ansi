@@ -1,7 +1,10 @@
+import 'package:ansi/core/units/measure.dart';
+import 'package:ansi/core/units/unit_choice.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/ask/domain/ask_proposal.dart';
 import 'package:ansi/features/ask/domain/ask_tools.dart';
+import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/planning/domain/plan_change.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
@@ -33,14 +36,28 @@ const _yoghurt = Ingredient(
   allowedUnits: [g, cup],
 );
 
-AskPlanContext _context({Map<DateTime, WeekPlan?> weeks = const {}}) =>
-    AskPlanContext(
-      shape: WeekShape.monday,
-      weeks: weeks,
-      members: const [_simon, _emma],
-      recipeTitles: const {'r-hh': 'Hamburger Helper', 'r-curry': 'Curry'},
-      ingredients: const {'i1': _yoghurt},
-    );
+const _pot = Measure(id: 'pot', label: 'pot', amount: 150);
+
+/// Yoghurt with a pot, offered at one pot ([DefaultAmountSource.wholeMeasure])
+/// unless [usual] says otherwise; `usual: null` is a row with no default.
+AskIngredientFacts _yoghurtFacts({
+  DefaultAmount? usual = (
+    quantity: 1,
+    choice: const MeasureOption(_pot),
+    source: DefaultAmountSource.wholeMeasure,
+  ),
+}) => (ingredient: _yoghurt, measures: const [_pot], usual: usual);
+
+AskPlanContext _context({
+  Map<DateTime, WeekPlan?> weeks = const {},
+  AskIngredientFacts? yoghurt,
+}) => AskPlanContext(
+  shape: WeekShape.monday,
+  weeks: weeks,
+  members: const [_simon, _emma],
+  recipeTitles: const {'r-hh': 'Hamburger Helper', 'r-curry': 'Curry'},
+  ingredients: {'i1': yoghurt ?? _yoghurtFacts()},
+);
 
 AskRawChange _change({
   required String op,
@@ -140,7 +157,7 @@ void main() {
     expect(proposal.changes[1], isA<PlanRemove>());
   });
 
-  test('yoghurt for breakfast states its amount, or says it has none', () {
+  test('yoghurt for breakfast: the amount said, else its usual one', () {
     final proposal = buildPlanProposal([
       _change(
         op: 'add',
@@ -159,10 +176,65 @@ void main() {
       ),
     ], _context());
     expect(proposal.rows.first.note, 'new · 170 g each · for Simon');
-    expect(proposal.rows.last.note, 'new · no amount — set it on the Week');
+    expect(proposal.rows.last.note, 'new · 1 pot (150 g) each · one each');
     final target =
         (proposal.changes.last as PlanAdd).target as PlanIngredientTarget;
-    expect(target.quantity, isNull);
+    // A count of the measure, stored as the Week stores one.
+    expect(target.quantity, 1);
+    expect(target.unit, pieces);
+    expect(target.measureId, 'pot');
+  });
+
+  test('a measure is said by its name, and last time says so', () {
+    final proposal = buildPlanProposal(
+      [
+        _change(
+          op: 'add',
+          date: '2026-10-19',
+          slot: 'Snack',
+          ingredientId: 'i1',
+          quantity: 2,
+          unit: 'Pot',
+        ),
+        _change(
+          op: 'add',
+          date: '2026-10-20',
+          slot: 'Snack',
+          ingredientId: 'i1',
+        ),
+      ],
+      _context(
+        yoghurt: _yoghurtFacts(
+          usual: (
+            quantity: 170,
+            choice: const UnitOption(g),
+            source: DefaultAmountSource.lastTime,
+          ),
+        ),
+      ),
+    );
+    expect(proposal.rows.first.note, 'new · 2 pot (150 g) each');
+    expect(proposal.rows.last.note, 'new · 170 g each · as last time');
+  });
+
+  test('no amount said and no usual one: Ansi is told to ask', () {
+    expect(
+      () => buildPlanProposal([
+        _change(
+          op: 'add',
+          date: '2026-10-19',
+          slot: 'Snack',
+          ingredientId: 'i1',
+        ),
+      ], _context(yoghurt: _yoghurtFacts(usual: null))),
+      throwsA(
+        isA<AskToolError>().having(
+          (e) => e.message,
+          'message',
+          contains('ask how much Yoghurt each time'),
+        ),
+      ),
+    );
   });
 
   test('a meal eaten out is its words', () {
@@ -213,7 +285,7 @@ void main() {
           quantity: 2,
           unit: 'tbsp',
         ),
-      ], 'measured in g, cup');
+      ], 'measured in g, cup, pot');
     });
     test('a date that is not one', () {
       refuses([
@@ -233,19 +305,26 @@ void main() {
     });
   });
 
-  test('a top-up needs an amount; a free-text item does not', () {
+  test('a top-up: the amount said, else its usual one, else Ansi asks', () {
     expect(
       () => buildTopUpProposal(
         weekStart: _thisWeek,
         shape: WeekShape.monday,
-        ingredient: _yoghurt,
+        ingredient: _yoghurtFacts(usual: null),
       ),
       throwsA(isA<AskToolError>()),
     );
+    final usual = buildTopUpProposal(
+      weekStart: _thisWeek,
+      shape: WeekShape.monday,
+      ingredient: _yoghurtFacts(),
+    );
+    expect(usual.rows.single.note, '+ 1 pot (150 g) · one each');
+    expect(usual.measureId, 'pot');
     final topUp = buildTopUpProposal(
       weekStart: _thisWeek,
       shape: WeekShape.monday,
-      ingredient: _yoghurt,
+      ingredient: _yoghurtFacts(),
       quantity: 2,
       unit: 'cup',
     );

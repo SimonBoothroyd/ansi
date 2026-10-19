@@ -97,3 +97,14 @@ Deno.test("the dataset parses and names only real tools", async () => {
     parseCases(JSON.stringify({ ...CASE, expect_tool: "plan_week" }))
   );
 });
+
+Deno.test("answer — what the screen shows is not said again", () => {
+  const c: AskCase = {
+    ...CASE,
+    answer_includes: ["3 tbsp"],
+    answer_excludes: ["Ragù"],
+  };
+  const given = ['{"lines":[{"name":"Tamari","amount":"3 tbsp"}]}'];
+  assert(scoreAnswer(c, "3 tbsp tamari.", given).pass);
+  assert(!scoreAnswer(c, "3 tbsp tamari — Ragù, serves 6.", given).pass);
+});

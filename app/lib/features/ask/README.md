@@ -43,6 +43,11 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
   `ref.write`: a plan card goes through `PlanningRepository.applyPlanChanges`,
   one transaction that re-reads every meal it touches and refuses the whole
   set when one changed (`PlanChangedError`, told to the model as `changed`).
+- **An amount not said is the usual one.** An ingredient meal or a top-up
+  takes the amount said ("2 pots" names a measure), else the one its sheet
+  would open on (`defaultAmountFor`: last time at that door, else one of its
+  word for one, else one piece), and the card says which. With neither, the
+  call is refused with a sentence telling the model to ask how much.
 - **"I" is the member signed in**, matched by the account's own name or email
   as onboarding named the member (`askMe`); when no one or two match, the week
   marks no one "you" and Ansi asks.
@@ -65,10 +70,10 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
 | `start_step_timer` | starts a step's own timer chip — never a free timer |
 | `set_servings` | moves the stepper of the recipe on screen, and only that one |
 | `open_recipe` | closes the sheet and opens the recipe once the answer is in |
-| `week` | a week's meals by day, each day dated, each meal with its id, kind, eaters and portions; the members, the speaker marked |
+| `week` | a week's meals by day, each day dated, each meal with its id, kind, eaters and portions; the members, the speaker marked; with `recipe_id`, one recipe's meals and how many, counted here |
 | `cook_sessions` | the derived batches by cook day, portions and the meals they feed |
 | `shopping` | one ingredient's rows with the meals that ask for it, or what is left to buy by aisle; totals as the Shop prints them |
-| `find_ingredient` | the vocabulary's best matches, each with the unit ids an amount may use |
+| `find_ingredient` | the vocabulary's best matches, each with the unit ids and measure names an amount may use and its usual amount |
 | `propose_plan_changes` | add, remove, move, set eaters — checked, drawn as a card, written on Confirm |
 | `propose_copy_last_week` | the Week's own copy, as a card |
 | `propose_top_up` | an ingredient with an amount, or a free-text item, onto the week's list, as a card |

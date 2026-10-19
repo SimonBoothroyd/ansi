@@ -48,12 +48,15 @@ writes them.
 </numbers>
 
 <answers>
-Answers may be read aloud. Keep them to one or two short sentences, amount \
-first, in plain text: no markdown, no lists, no emoji. Always name what you \
-read so a wrong reading is obvious: "3 tbsp tamari — Ragù, serves 6." When an \
-ingredient appears on more than one line, give each with its group ("2 tbsp \
-in the sauce, 1 tbsp in the glaze"). When find_recipe matches nothing, say \
-the words you searched for: "No recipe called pad thai."
+Answers may be read aloud. Make them as short as they can be, amount first, \
+in plain text: no markdown, no lists, no emoji. Name the line you read \
+("3 tbsp tamari"), so a misheard word is obvious, but not the recipe or the \
+servings the screen already shows — the member can see them. Name a recipe \
+or servings only when they are not the screen's: another recipe, another \
+serving count, or no recipe on screen ("3 tbsp tamari — Ragù, serves 8"). \
+When an ingredient appears on more than one line, give each with its group \
+("2 tbsp in the sauce, 1 tbsp in the glaze"). When find_recipe matches \
+nothing, say the words you searched for: "No recipe called pad thai."
 </answers>
 
 <mishearing>
@@ -86,10 +89,14 @@ in this order: a recipe title (find_recipe) exactly, else an ingredient \
 return, or a meal eaten out under the member's own words. Never invent a \
 recipe. "I'm eating out" takes the speaker off that meal's eaters \
 (set_eaters); a meal left with no eaters is removed, and the card says so. \
-Give an ingredient meal or a top-up an amount only as the member said it, \
-in a unit find_ingredient lists; a top-up of an ingredient needs an \
-amount, so ask for one. Something that is not food goes on the list as an \
-item.
+Give an ingredient meal or a top-up an amount only when the member said \
+one, in a unit or measure find_ingredient lists ("2 pots"); otherwise send \
+none, and the app uses that ingredient's usual amount, which the card \
+shows. If the tool answers that it has no usual amount, ask how much. \
+Something that is not food goes on the list as an item. "Every day" with no \
+week named means from today to the end of this week; with a week named, \
+every day of it. When a meal is added and no slot is said, ask which meal \
+(breakfast, lunch, dinner or a snack) rather than choosing one.
 </changes>
 
 <actions>
@@ -256,10 +263,12 @@ export const ASK_TOOLS: AskTool[] = [
       "The planned meals of one week, each day with its date and weekday, " +
       "each meal with its id, slot, kind (recipe, ingredient or out), name, " +
       "eaters and portions; and the household's members, the speaker marked " +
-      '"you". Pass `date` for one day only.',
+      '"you". Pass `date` for one day only. Pass `recipe_id` for one ' +
+      "recipe's meals only, with how many times it is planned and when, " +
+      "counted by the app.",
     input_schema: {
       type: "object",
-      properties: { week_of: WEEK_OF, date: DATE },
+      properties: { week_of: WEEK_OF, date: DATE, recipe_id: RECIPE_ID },
       required: [],
       additionalProperties: false,
     },
@@ -301,8 +310,9 @@ export const ASK_TOOLS: AskTool[] = [
     name: "find_ingredient",
     description:
       "Searches the household's ingredients by name. Returns up to five " +
-      "{id, name, units} matches, best first; `units` are the unit ids an " +
-      "amount of it may use.",
+      "{id, name, units, measures, usual} matches, best first: the unit ids " +
+      "and measure names an amount of it may use, and the amount the app " +
+      "uses when none is said.",
     input_schema: {
       type: "object",
       properties: {
@@ -350,7 +360,10 @@ export const ASK_TOOLS: AskTool[] = [
               },
               eaters: { type: "array", items: { type: "string" } },
               quantity: { type: "number" },
-              unit: { type: "string" },
+              unit: {
+                type: "string",
+                description: "A unit id or measure name from find_ingredient.",
+              },
             },
             required: ["op"],
             additionalProperties: false,
@@ -380,16 +393,19 @@ export const ASK_TOOLS: AskTool[] = [
     name: "propose_top_up",
     description:
       "Shows the member a card adding to the week's shopping list and " +
-      "waits for their decision. Either an ingredient_id with a quantity " +
-      "and one of its units, or an `item` of words for something that is " +
-      "not food. Returns the outcome.",
+      "waits for their decision. Either an ingredient_id — with a quantity " +
+      "and unit only as said, else its usual amount — or an `item` of words " +
+      "for something that is not food. Returns the outcome.",
     input_schema: {
       type: "object",
       properties: {
         week_of: WEEK_OF,
         ingredient_id: { type: "string" },
         quantity: { type: "number" },
-        unit: { type: "string" },
+        unit: {
+          type: "string",
+          description: "A unit id or measure name from find_ingredient.",
+        },
         item: { type: "string" },
       },
       required: [],

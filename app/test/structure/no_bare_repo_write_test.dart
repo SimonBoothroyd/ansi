@@ -42,6 +42,8 @@ const _readVerbs = {
   'mostRecentWeekBefore',
   'componentLinkWouldCycle',
   'isShared',
+  'lastIngredientAmount',
+  'lastTopUp',
 };
 
 /// Deliberate exceptions, keyed `<path>:<method>`, each with its reason.

@@ -30,6 +30,9 @@ export interface AskCase {
   result?: string;
   /** Strings the final answer must contain (case-insensitive). */
   answer_includes?: string[];
+  /** Strings the final answer must not contain (case-insensitive): what the
+   *  screen already shows, which a concise answer leaves out. */
+  answer_excludes?: string[];
 }
 
 /** A tool call as the API returns it. */
@@ -139,6 +142,12 @@ export function scoreAnswer(
   );
   if (missing.length > 0) {
     return { pass: false, why: `missing ${missing.join(", ")}` };
+  }
+  const repeated = (c.answer_excludes ?? []).filter((w) =>
+    lower.includes(w.toLowerCase())
+  );
+  if (repeated.length > 0) {
+    return { pass: false, why: `repeats ${repeated.join(", ")}` };
   }
   return { pass: true, why: "ok" };
 }

@@ -18,7 +18,7 @@ card — is built (*Slice 2 — what was built*) and needs no migration. Before 
 is tagged: redeploy the `ask` function (its prompt and tool list changed; an
 app with the new tools against the old function gets no week tools, and the
 old app against the new function is unaffected), run the paid eval
-(`run_ask_live.ts`, now 36 cases), then the phone checklist's slice-2 rows.
+(`run_ask_live.ts`, now 40 cases), then the phone checklist's slice-2 rows.
 
 **Read first, in this order:**
 
@@ -35,7 +35,7 @@ old app against the new function is unaffected), run the paid eval
 
 ```
 make analyze                                  # flutter analyze + custom_lint
-cd app && flutter test test/features/ask      # the 79 ask tests
+cd app && flutter test test/features/ask      # the 82 ask tests
 cd app && flutter test test/features/planning/planning_repository_test.dart
 make test-fns                                 # the function, adapter, timeout ladder
 cd evals && ./runner/run.sh                   # the keyless scorers + the dataset's validity
@@ -67,8 +67,18 @@ Slice 2:
       meals — the check that "I" is read from the account's name.
 - [ ] A card confirmed after the other phone edited one of its meals is
       refused, and Ansi re-reads the week.
-- [ ] *add milk to the list* asks how much; *add paper towels* lands as an
-      item on the Shop tab.
+- [ ] *we'll have skyr as a snack every day* is one card from today to the
+      week's end, each row at the usual amount and saying where it came from
+      (*as last time* / *one each*); for an ingredient never planned and with
+      no word for one, Ansi asks how much.
+- [ ] *we'll have yoghurt every day this week* asks which meal.
+- [ ] *how many times are we having this this week?* on a recipe answers with
+      the count and the days.
+- [ ] Answers on a recipe page do not repeat the recipe's name or servings.
+- [ ] The Week's snack sheet and the Shop's top-up sheet open filled in with
+      the usual amount.
+- [ ] *add milk to the list* lands at its usual amount; *add paper towels*
+      lands as an item on the Shop tab.
 - [ ] *copy last week* on an empty week copies it and the Week names the
       variants left behind.
 
@@ -427,6 +437,19 @@ Tests: 79 Flutter tests in `test/features/ask/` (26 new, two of them end to
 end on the recipe page: a card confirmed, a card cancelled), three repository
 tests for the change set on a real database, and the function's 401.
 
+**The usual amount (2026-10-20).** An amount nobody said is the
+ingredient's usual one, by one rule for every door
+(`ingredients/domain/default_amount.dart`): the last amount used at that
+door (`lastIngredientAmount` for a meal, `lastTopUp` for a top-up), else one
+of its word for one (ADR-0016's whole measure), else one piece. The Week's
+snack sheet and the Shop's top-up sheet open on it, and Ask's cards write
+it and say which (*as last time*, *one each*); with none, the sheet opens
+empty and Ansi asks. A spoken measure is named ("2 pots"). Also: `week`
+takes a `recipe_id` and counts that recipe's meals itself; the prompt keeps
+answers short and stops repeating what the chip shows; "every day" means
+today to the week's end; a meal with no slot named is asked about. No
+migrations.
+
 **Not built, and why:**
 
 - **The board does not draw slice 2.** The tab bars' new door and the card
@@ -438,6 +461,24 @@ tests for the change set on a real database, and the function's 401.
   renamed on the server would stop matching, and Ansi would ask.
 
 ## Decision log
+
+- 2026-10-20 — From the owner's first slice-2 sentences ("we'll have skyr as
+  a snack every day", "how many times are we having this this week?") and a
+  phone screenshot:
+  - **No amount is not an answer.** *"I don't want to have to go manually
+    set these."* An unsaid amount is the usual one — last time, else one of
+    its word for one, else one piece — shown on the card with where it came
+    from; a remembered unit or measure the row no longer offers is passed
+    over. A serving column on the ingredient was weighed and left: history
+    and the whole measure cover pots and bars without a field to fill in.
+    The same rule fills the Week's snack sheet and the Shop's top-up sheet
+    (*"use same defaults for top-ups"*).
+  - **Answers stop naming what the chip shows.** *"I prefer concise
+    answers."* The slice-1 rule to always name the recipe and servings was
+    for a reading nobody could see; the chip shows it, so it is named only
+    when the answer is about something else. Evals gained `answer_excludes`.
+  - **The app counts a recipe's meals** (`week` with `recipe_id`), rather
+    than the model counting rows.
 
 - 2026-10-19 — Slice 2 built. Decisions taken while building it:
   - **The card waits inside the tool call.** A `propose_*` result is the

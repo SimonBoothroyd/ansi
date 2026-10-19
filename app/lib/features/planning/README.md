@@ -96,8 +96,10 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 1. **`showRecipePickerSheet`** — one door for all three kinds. Typed words
    search recipes and the household vocabulary; when they hit nothing, the
    footer offers `＋ note it` for a meal eaten out. Returns a `PickedMeal`.
-2. **The quantity sheet**, for an ingredient only, opened on the row's default
-   unit.
+2. **The quantity sheet**, for an ingredient only, opened filled in with its
+   usual amount (`ingredients/domain/default_amount.dart`): the last meal of
+   it that stated one, else one of its word for one (`1 pot`), else one
+   piece; with none of those, empty on the row's first chip.
 3. **`showConfirmMealSheet`** — slot, eaters, portions (`plan_entry.portions`,
    null = track the eaters). A meal out gets an optional per-portion macros
    fold; left empty or half-filled, the meal is placed and named as uncounted.

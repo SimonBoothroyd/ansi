@@ -8,6 +8,7 @@ import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
@@ -122,6 +123,9 @@ class _FakeShoppingRepo implements ShoppingRepository {
 
   @override
   Future<void> removeEntry({required String entryId}) async {}
+
+  @override
+  Future<LastAmount?> lastTopUp(String ingredientId) async => null;
 }
 
 Widget _host(List<Override> overrides, {bool disableAnimations = false}) =>

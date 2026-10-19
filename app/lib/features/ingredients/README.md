@@ -39,6 +39,9 @@ ingredients/
     ingredient_repository.dart  the interface, IngredientFormEdit, DeleteOutcome
     allowed_units.dart          unit admission — the Dart mirror of the SQL
                                 functions; allowedUnitChoicesFor
+    default_amount.dart         the amount a sheet or Ask Ansi offers when
+                                none is said: last time, else one of its word
+                                for one, else one piece
     name_namespace.dart         names and aliases as one namespace
     normalize.dart              the phrase normalizer — twin of normalize.ts
     suggest_name.dart           the form's tidied-name suggestion

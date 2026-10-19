@@ -22,6 +22,7 @@ import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../ingredients/presentation/usual_amount.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/shopping_providers.dart';
 
@@ -141,9 +142,16 @@ class _TopUpBody extends HookConsumerWidget {
       // the await or bail on `context.mounted`, which would drop the top-up.
       final container = ProviderScope.containerOf(context, listen: false);
       final host = hostContextOf(context);
+      // Opens filled in: the last top-up of it, else one of its word for
+      // one (`defaultAmountFor`).
+      final usual = await usualAmountOf(container, ing, forMeal: false);
       final result = await showQuantityUnitSheet(
-        context,
+        // The host outlives the row — see [hostContextOf].
+        // ignore: use_build_context_synchronously
+        host.context,
         ingredient: ing,
+        initialQuantity: usual?.quantity,
+        initialChoice: usual?.choice,
         requireQuantity: true,
         confirmLabel: 'Add top-up',
       );

@@ -30,6 +30,7 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../ingredients/presentation/usual_amount.dart';
 import '../../receipts/data/receipt_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
@@ -56,6 +57,7 @@ Future<void> _addMealFlow(
   // the confirm sheet opens from a context that outlives it and the slot is
   // settled before any await.
   final host = hostContextOf(context);
+  final container = ProviderScope.containerOf(context, listen: false);
   final week = ref.read(viewedWeekProvider).asData?.value;
   final slot = defaultMealSlot(week?.entriesForDay(dayOfWeek) ?? const []);
   final picked = await showRecipePickerSheet(
@@ -70,13 +72,17 @@ Future<void> _addMealFlow(
     case PickedRecipe(:final recipe):
       target = RecipeMeal(recipe);
     case PickedIngredientMeal(:final ingredient):
-      // Opens on the row's first chip: its own word for one, else `piece`
-      // (ADR-0015).
+      // Opens filled in: the amount of the last meal of it, else one of its
+      // word for one, else one piece (`defaultAmountFor`); else empty, on the
+      // row's first chip (ADR-0015).
+      final usual = await usualAmountOf(container, ingredient, forMeal: true);
       final result = await showQuantityUnitSheet(
         // The host outlives the row — see [hostContextOf].
         // ignore: use_build_context_synchronously
         host.context,
         ingredient: ingredient,
+        initialQuantity: usual?.quantity,
+        initialChoice: usual?.choice,
         requireQuantity: true,
         confirmLabel: 'Next',
       );

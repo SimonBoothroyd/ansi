@@ -932,6 +932,35 @@ void main() {
       );
     });
   });
+
+  test(
+    'lastIngredientAmount is the latest meal of it that states one',
+    () async {
+      await _insertIngredient(db, 'i1', 'Skyr');
+      expect(await repo.lastIngredientAmount('i1'), isNull);
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 0,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: ['m1'],
+        quantity: 170,
+        unit: g,
+      );
+      // A later meal with no amount says nothing about the usual one.
+      await repo.addIngredientEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 1,
+        mealSlot: 'Snack',
+        ingredientId: 'i1',
+        eaterIds: ['m1'],
+      );
+      final last = (await repo.lastIngredientAmount('i1'))!;
+      expect(last.quantity, 170);
+      expect(last.unit, g);
+      expect(last.measureId, isNull);
+    },
+  );
 }
 
 DateTime _nextWeekOf(DateTime weekStart) =>

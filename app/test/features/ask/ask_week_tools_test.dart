@@ -91,6 +91,26 @@ void main() {
     ]);
   });
 
+  test('`week` for one recipe counts its meals and names them', () {
+    final json = _json(
+      weekResult(
+        _week,
+        weekStart: _thisWeek,
+        shape: WeekShape.monday,
+        members: const [_simon, _emma],
+        me: null,
+        onlyRecipe: 'r1',
+      ),
+    );
+    expect(json['times_planned'], 1);
+    expect(json['planned_on'], ['Wed 21 Oct Dinner']);
+    final meals = [
+      for (final d in json['days']! as List) ...(d as Map)['meals']! as List,
+    ];
+    // The meal out the same day is not this recipe's.
+    expect(meals, hasLength(1));
+  });
+
   test('`week` on a Sunday household starts on Sunday', () {
     final json = _json(
       weekResult(

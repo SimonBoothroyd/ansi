@@ -42,7 +42,7 @@ class AskHousehold {
     required this.shoppingList,
     required this.shopTotal,
     required this.searchIngredients,
-    required this.ingredientsById,
+    required this.ingredientFacts,
     required this.propose,
   });
 
@@ -64,8 +64,14 @@ class AskHousehold {
   final String Function(ShoppingItem item) shopTotal;
   final Future<({List<Ingredient> rows, bool guessed})> Function(String query)
   searchIngredients;
-  final Future<Map<String, Ingredient>> Function(Set<String> ids)
-  ingredientsById;
+
+  /// Each named ingredient with its measures and the amount its sheets open
+  /// on — the last meal of it for a meal, else its last top-up.
+  final Future<Map<String, AskIngredientFacts>> Function(
+    Set<String> ids, {
+    required bool forMeal,
+  })
+  ingredientFacts;
 
   /// Draws the proposal as a card and resolves once the member has decided.
   final Future<AskDecision> Function(AskProposal proposal) propose;
@@ -252,6 +258,7 @@ class AskToolRunner {
             me: h.me(members),
             day: day,
             slot: input['slot'] as String?,
+            onlyRecipe: input['recipe_id'] as String?,
           ),
         );
 
@@ -280,9 +287,11 @@ class AskToolRunner {
 
       case AskTools.findIngredient:
         final query = _string(input, 'query');
-        return _answer(
-          findIngredientResult(await household.searchIngredients(query), query),
-        );
+        final found = await household.searchIngredients(query);
+        final facts = await household.ingredientFacts({
+          for (final i in found.rows.take(kAskFindLimit)) i.id,
+        }, forMeal: true);
+        return _answer(findIngredientResult(found, query, facts: facts));
 
       case AskTools.proposePlanChanges:
         final raw = input['changes'];
@@ -313,10 +322,10 @@ class AskToolRunner {
                 if (c['recipe_id'] case final String id)
                   if (await loadRecipe(id) case final recipe?) id: recipe.title,
             },
-            ingredients: await household.ingredientsById({
+            ingredients: await household.ingredientFacts({
               for (final c in changes)
                 if (c['ingredient_id'] case final String id) id,
-            }),
+            }, forMeal: true),
           ),
         );
         return _decided(proposal);
@@ -334,9 +343,11 @@ class AskToolRunner {
       case AskTools.proposeTopUp:
         final weekStart = _weekOf(input['week_of']);
         final id = input['ingredient_id'];
-        Ingredient? ingredient;
+        AskIngredientFacts? ingredient;
         if (id is String) {
-          ingredient = (await household.ingredientsById({id}))[id];
+          ingredient = (await household.ingredientFacts({
+            id,
+          }, forMeal: false))[id];
           if (ingredient == null) {
             throw AskToolError('there is no ingredient with the id `$id`');
           }

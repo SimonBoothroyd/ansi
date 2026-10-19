@@ -15,6 +15,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
+import '../../ingredients/domain/default_amount.dart';
 import '../domain/plan_change.dart';
 import '../domain/planning.dart';
 import '../domain/planning_repository.dart';
@@ -481,6 +482,7 @@ class SqlitePlanningRepository implements PlanningRepository {
             label: label,
             quantity: target is PlanIngredientTarget ? target.quantity : null,
             unit: target is PlanIngredientTarget ? target.unit?.id : null,
+            measureId: target is PlanIngredientTarget ? target.measureId : null,
           );
         case PlanRemove(:final expected):
           await _softDelete(tx, expected.id, now);
@@ -547,6 +549,17 @@ class SqlitePlanningRepository implements PlanningRepository {
         [now, now, entryId],
       );
 
+  @override
+  Future<LastAmount?> lastIngredientAmount(String ingredientId) async {
+    final row = await _db.getOptional(
+      'SELECT quantity, unit, measure_id FROM plan_entry '
+      'WHERE ingredient_id = ? AND deleted_at IS NULL AND quantity IS NOT NULL '
+      'ORDER BY created_at DESC LIMIT 1',
+      [ingredientId],
+    );
+    return row == null ? null : _lastAmountOf(row);
+  }
+
   /// One row per recipe the source week varied, named and counted. Nothing is
   /// written for them.
   Future<List<VariantLeftBehind>> _variantsLeftBehind(String weekPlanId) async {
@@ -606,3 +619,16 @@ List<Member> _membersFrom(List<Row> rows) => [
       portionFactor: (r['portion_factor'] as num?)?.toDouble() ?? 1,
     ),
 ];
+
+/// A stored amount row (`quantity`, `unit`, `measure_id`) as a [LastAmount].
+/// An unknown unit id reads as none, and the amount is then passed over.
+LastAmount? _lastAmountOf(Row row) {
+  final quantity = (row['quantity'] as num?)?.toDouble();
+  if (quantity == null) return null;
+  final unitId = row['unit'] as String?;
+  return (
+    quantity: quantity,
+    unit: unitId == null ? null : unitById(unitId),
+    measureId: row['measure_id'] as String?,
+  );
+}

@@ -12,6 +12,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/data/cook_plan_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
+import '../../ingredients/domain/ingredient.dart';
+import '../../ingredients/presentation/usual_amount.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/domain/planning.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -22,6 +24,7 @@ import '../../shopping/data/shopping_providers.dart';
 import '../../shopping/presentation/shopping_format.dart';
 import '../../timers/data/timer_providers.dart';
 import '../data/ask_providers.dart';
+import '../domain/ask_proposal.dart';
 import '../domain/ask_screen.dart';
 import '../domain/ask_tool_runner.dart';
 import '../domain/ask_week_tools.dart';
@@ -119,8 +122,16 @@ AskToolRunner askToolRunner(
       shopTotal: itemTotal,
       searchIngredients: (query) =>
           container.read(ingredientRepositoryProvider).search(query, limit: 5),
-      ingredientsById: (ids) =>
-          container.read(ingredientRepositoryProvider).byIds(ids),
+      ingredientFacts: (ids, {required forMeal}) async {
+        if (ids.isEmpty) return const {};
+        final rows = await container
+            .read(ingredientRepositoryProvider)
+            .byIds(ids);
+        return {
+          for (final i in rows.values)
+            i.id: await _factsOf(container, i, forMeal: forMeal),
+        };
+      },
       // The card is drawn by the sheet, which writes on Confirm.
       propose: (proposal) => container
           .read(askControllerProvider.notifier)
@@ -128,3 +139,18 @@ AskToolRunner askToolRunner(
     ),
   );
 }
+
+/// [ingredient] with its live measures and the amount its sheets would open
+/// on.
+Future<AskIngredientFacts> _factsOf(
+  ProviderContainer container,
+  Ingredient ingredient, {
+  required bool forMeal,
+}) async => (
+  ingredient: ingredient,
+  measures: await container
+      .read(measureRepositoryProvider)
+      .watchMeasures(ingredient.id)
+      .first,
+  usual: await usualAmountOf(container, ingredient, forMeal: forMeal),
+);

@@ -1803,4 +1803,29 @@ void main() {
       },
     );
   });
+
+  test(
+    'lastTopUp is the latest live top-up of the ingredient, any week',
+    () async {
+      expect(await repo.lastTopUp('flour'), isNull);
+      await repo.addTopUp(
+        ingredientId: 'flour',
+        quantity: 50,
+        unit: g,
+        weekStart: _week,
+      );
+      await repo.addTopUp(
+        ingredientId: 'flour',
+        quantity: 2,
+        unit: pieces,
+        measureId: 'bag',
+        weekStart: _week.add(const Duration(days: 7)),
+      );
+      final last = (await repo.lastTopUp('flour'))!;
+      expect(last.quantity, 2);
+      expect(last.measureId, 'bag');
+      // Another ingredient's top-up is not this one's.
+      expect(await repo.lastTopUp('onion'), isNull);
+    },
+  );
 }

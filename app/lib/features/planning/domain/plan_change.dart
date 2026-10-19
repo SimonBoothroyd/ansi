@@ -24,17 +24,24 @@ final class PlanRecipeTarget extends PlanTarget {
   final String recipeId;
 }
 
-/// A bare ingredient. With no [quantity] the meal states no amount and buys
-/// nothing until one is set on the Week — never an invented portion.
+/// A bare ingredient and one portion of it. With no [quantity] the meal
+/// states no amount and buys nothing until one is set on the Week. With
+/// [measureId] the amount is a count of that measure and [unit] is the count
+/// fallback, as the Week stores it.
 final class PlanIngredientTarget extends PlanTarget {
-  const PlanIngredientTarget(this.ingredientId, {this.quantity, this.unit})
-    : assert(
-        (quantity == null) == (unit == null),
-        'an amount is a number and a unit together',
-      );
+  const PlanIngredientTarget(
+    this.ingredientId, {
+    this.quantity,
+    this.unit,
+    this.measureId,
+  }) : assert(
+         (quantity == null) == (unit == null),
+         'an amount is a number and a unit together',
+       );
   final String ingredientId;
   final double? quantity;
   final Unit? unit;
+  final String? measureId;
 }
 
 final class PlanOutTarget extends PlanTarget {

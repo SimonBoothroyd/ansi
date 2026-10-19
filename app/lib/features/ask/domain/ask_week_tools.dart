@@ -45,7 +45,8 @@ List<Map<String, Object?>> askMembers(List<Member> members, String? me) => [
 ];
 
 /// `week`: the meals of the week beginning [weekStart], each day dated.
-/// [day] narrows to one date in it, [slot] to one slot.
+/// [day] narrows to one date in it, [slot] to one slot, [onlyRecipe] to one
+/// recipe's meals — then with how many there are and when, counted here.
 String weekResult(
   WeekPlan? plan, {
   required DateTime weekStart,
@@ -54,6 +55,7 @@ String weekResult(
   required String? me,
   DateTime? day,
   String? slot,
+  String? onlyRecipe,
 }) {
   final byId = {for (final m in members) m.id: m};
   final wanted = slot?.trim().toLowerCase();
@@ -65,9 +67,10 @@ String weekResult(
           'day': shape.labelFull(offset),
           'meals': [
             for (final e in plan?.entriesForDay(offset) ?? const <PlanEntry>[])
-              if (wanted == null ||
-                  wanted.isEmpty ||
-                  e.mealSlot.toLowerCase() == wanted)
+              if ((wanted == null ||
+                      wanted.isEmpty ||
+                      e.mealSlot.toLowerCase() == wanted) &&
+                  (onlyRecipe == null || e.recipeId == onlyRecipe))
                 {
                   'id': e.id,
                   'slot': e.mealSlot,
@@ -84,8 +87,22 @@ String weekResult(
           ],
         },
   ];
+  final times = [
+    if (onlyRecipe != null)
+      for (var offset = 0; offset < 7; offset++)
+        for (final e in plan?.entriesForDay(offset) ?? const <PlanEntry>[])
+          if (e.recipeId == onlyRecipe)
+            [
+              askDayLabel(shape, shape.dateFor(weekStart, offset)),
+              e.mealSlot,
+            ].join(' '),
+  ];
   return jsonEncode({
     'week_of': isoDateOf(weekStart),
+    if (onlyRecipe != null) ...{
+      'times_planned': times.length,
+      'planned_on': times,
+    },
     'days': days,
     'members': askMembers(members, me),
   });
@@ -184,11 +201,13 @@ String shoppingResult(
 }
 
 /// `find_ingredient`: up to [kAskFindLimit] of the household's ingredients
-/// for [query], best first, each with the units an amount may use.
+/// for [query], best first, each with the units and measures an amount may
+/// use and its usual amount, when it has one.
 String findIngredientResult(
   ({List<Ingredient> rows, bool guessed}) found,
-  String query,
-) => jsonEncode({
+  String query, {
+  Map<String, AskIngredientFacts> facts = const {},
+}) => jsonEncode({
   'query': query,
   'matches': [
     for (final i in found.rows.take(kAskFindLimit))
@@ -196,6 +215,10 @@ String findIngredientResult(
         'id': i.id,
         'name': i.canonicalName,
         'units': [for (final u in allowedUnitsFor(i)) u.id],
+        if (facts[i.id]?.measures case final measures? when measures.isNotEmpty)
+          'measures': [for (final m in measures) m.label],
+        if (facts[i.id] case final f?)
+          if (amountOrNull(f) case final usual?) 'usual': amountSaid(usual),
       },
   ],
   if (found.guessed) 'note': 'no exact spelling; these are guesses',

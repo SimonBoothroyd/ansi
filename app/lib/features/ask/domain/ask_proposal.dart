@@ -10,11 +10,13 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../../../core/units/measure.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
 import '../../ingredients/domain/allowed_units.dart';
+import '../../ingredients/domain/default_amount.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../planning/domain/plan_change.dart';
 import '../../planning/domain/planning.dart';
@@ -83,13 +85,17 @@ class AskTopUpProposal extends AskProposal {
     this.ingredientId,
     this.quantity,
     this.unit,
+    this.measureId,
     this.item,
   });
 
   final DateTime weekStart;
   final String? ingredientId;
   final double? quantity;
+
+  /// A catalog unit, or `piece` beside [measureId] for a count of a measure.
   final Unit? unit;
+  final String? measureId;
 
   /// The words of a free-text item ("paper towels").
   final String? item;
@@ -136,7 +142,68 @@ class AskPlanContext {
 
   final List<Member> members;
   final Map<String, String> recipeTitles;
-  final Map<String, Ingredient> ingredients;
+
+  /// Every ingredient a change names, with its measures and the amount its
+  /// last meal used ([AskIngredientFacts]).
+  final Map<String, AskIngredientFacts> ingredients;
+}
+
+/// An ingredient as an amount is checked against: the row, its live
+/// measures, and the default the sheets would open on (`defaultAmountFor`).
+typedef AskIngredientFacts = ({
+  Ingredient ingredient,
+  List<Measure> measures,
+  DefaultAmount? usual,
+});
+
+/// An amount the card writes: a number with a catalog unit, or a count of a
+/// measure (its unit then the count fallback, `piece`).
+typedef AskAmount = ({double quantity, Unit unit, Measure? measure});
+
+/// `170 g`, `1 pot (150 g)`.
+String amountSaid(AskAmount a) {
+  final measure = a.measure;
+  return measure == null
+      ? formatQuantityOf(a.quantity, a.unit)
+      : '${formatAmount(a.quantity)} ${MeasureOption(measure).label}';
+}
+
+/// The usual amount of [facts] as the card would write it, or null.
+AskAmount? amountOrNull(AskIngredientFacts facts) {
+  final usual = facts.usual;
+  return switch (usual?.choice) {
+    MeasureOption(:final measure) => (
+      quantity: usual!.quantity,
+      unit: pieces,
+      measure: measure,
+    ),
+    UnitOption(:final unit) => (
+      quantity: usual!.quantity,
+      unit: unit,
+      measure: null,
+    ),
+    _ => null,
+  };
+}
+
+/// The amount said, else the usual one with a word on where it came from.
+/// Throws [AskToolError] asking for one when there is neither.
+({AskAmount amount, String? from}) amountOrUsual(
+  AskIngredientFacts facts,
+  Object? quantity,
+  Object? unit, {
+  required String asked,
+}) {
+  final said = askAmount(facts, quantity, unit);
+  if (said != null) return (amount: said, from: null);
+  final amount = amountOrNull(facts);
+  if (amount == null) {
+    throw AskToolError(
+      '${facts.ingredient.canonicalName} has no usual amount yet; ask $asked, '
+      'then propose again with it',
+    );
+  }
+  return (amount: amount, from: facts.usual!.source.said);
 }
 
 /// One change as the model sent it, every key present (strict tools).
@@ -363,22 +430,27 @@ AskPlanProposal buildPlanProposal(
       target = PlanRecipeTarget(recipeId);
       what = title;
     } else if (saidIngredient case final ingredientId?) {
-      final ingredient = context.ingredients[ingredientId];
-      if (ingredient == null) {
+      final facts = context.ingredients[ingredientId];
+      if (facts == null) {
         throw AskToolError(
           'there is no ingredient with the id `$ingredientId`',
         );
       }
-      final q = askAmount(ingredient, c['quantity'], c['unit']);
-      target = PlanIngredientTarget(
-        ingredient.id,
-        quantity: q?.quantity,
-        unit: q?.unit,
+      final name = facts.ingredient.canonicalName;
+      final q = amountOrUsual(
+        facts,
+        c['quantity'],
+        c['unit'],
+        asked: 'how much $name each time',
       );
-      what = ingredient.canonicalName;
-      amount = q == null
-          ? 'no amount — set it on the Week'
-          : '${formatQuantityOf(q.quantity, q.unit)} each';
+      target = PlanIngredientTarget(
+        facts.ingredient.id,
+        quantity: q.amount.quantity,
+        unit: q.amount.unit,
+        measureId: q.amount.measure?.id,
+      );
+      what = name;
+      amount = ['${amountSaid(q.amount)} each', ?q.from].join(' · ');
     } else {
       final words = saidLabel!.trim();
       if (words.isEmpty) throw const AskToolError('`out_label` is empty');
@@ -440,28 +512,35 @@ AskPlanProposal buildPlanProposal(
   );
 }
 
-/// An amount said for [ingredient]: a number and a unit it allows, both or
-/// neither. Throws [AskToolError] naming the units it does allow.
-({double quantity, Unit unit})? askAmount(
-  Ingredient ingredient,
-  Object? quantity,
-  Object? unit,
-) {
+/// An amount said for an ingredient: a number with a unit it allows or one
+/// of its measures by name, both or neither. Throws [AskToolError] naming
+/// what it is measured in.
+AskAmount? askAmount(AskIngredientFacts facts, Object? quantity, Object? unit) {
   if (quantity == null && unit == null) return null;
+  final ingredient = facts.ingredient;
   final allowed = allowedUnitsFor(ingredient);
-  final ids = allowed.map((u) => u.id).join(', ');
+  final words = [
+    ...allowed.map((u) => u.id),
+    for (final m in facts.measures) m.label,
+  ].join(', ');
   if (quantity is! num || !quantity.isFinite || quantity <= 0) {
     throw AskToolError(
-      '`quantity` must be a positive number with a unit ($ids)',
+      '`quantity` must be a positive number with a unit ($words)',
     );
   }
-  final u = unit is String ? unitById(unit.trim()) : null;
-  if (u == null || !allowed.contains(u)) {
-    throw AskToolError(
-      '${ingredient.canonicalName} is measured in $ids; `$unit` is not one',
-    );
+  final said = unit is String ? unit.trim() : '';
+  final u = unitById(said);
+  if (u != null && allowed.contains(u)) {
+    return (quantity: quantity.toDouble(), unit: u, measure: null);
   }
-  return (quantity: quantity.toDouble(), unit: u);
+  for (final m in facts.measures) {
+    if (m.label.toLowerCase() == said.toLowerCase()) {
+      return (quantity: quantity.toDouble(), unit: pieces, measure: m);
+    }
+  }
+  throw AskToolError(
+    '${ingredient.canonicalName} is measured in $words; `$unit` is not one',
+  );
 }
 
 /// `170 g`, `2 tbsp` — an amount as the app prints it.
@@ -503,36 +582,39 @@ AskCopyWeekProposal buildCopyWeekProposal({
   );
 }
 
-/// The top-up card: [ingredient] with an amount, or a free-text [item].
+/// The top-up card: an ingredient with an amount — said, else its usual
+/// top-up — or a free-text [item].
 AskTopUpProposal buildTopUpProposal({
   required DateTime weekStart,
   required WeekShape shape,
-  Ingredient? ingredient,
+  AskIngredientFacts? ingredient,
   Object? quantity,
   Object? unit,
   String? item,
 }) {
   final week = 'the list for the week of ${askDayLabel(shape, weekStart)}';
   if (ingredient != null) {
-    final q = askAmount(ingredient, quantity, unit);
-    if (q == null) {
-      throw AskToolError(
-        'a top-up needs an amount; ask how much ${ingredient.canonicalName}',
-      );
-    }
+    final name = ingredient.ingredient.canonicalName;
+    final q = amountOrUsual(
+      ingredient,
+      quantity,
+      unit,
+      asked: 'how much $name to buy',
+    );
     return AskTopUpProposal(
       title: 'Add to $week',
       rows: [
         AskProposalRow(
           when: '',
-          what: ingredient.canonicalName,
-          note: '+ ${formatQuantityOf(q.quantity, q.unit)}',
+          what: name,
+          note: ['+ ${amountSaid(q.amount)}', ?q.from].join(' · '),
         ),
       ],
       weekStart: weekStart,
-      ingredientId: ingredient.id,
-      quantity: q.quantity,
-      unit: q.unit,
+      ingredientId: ingredient.ingredient.id,
+      quantity: q.amount.quantity,
+      unit: q.amount.unit,
+      measureId: q.amount.measure?.id,
     );
   }
   final words = item?.trim() ?? '';

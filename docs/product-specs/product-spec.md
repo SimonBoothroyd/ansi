@@ -691,7 +691,9 @@ go. There is no re-chip — tokenization happens only inside the import call.
     - An **ingredient** entry states the amount of ONE portion
       (`quantity` + `unit`, or a `measure_id` — "1 bar" — with `unit` holding
       the honest count fallback), set with the same quantity sheet every other
-      amount in the app uses, opened on the row's own default unit. The
+      amount in the app uses, opened filled in with the ingredient's usual
+      amount — the last meal of it, else one of its word for one (`1 pot`),
+      else one piece — and empty only when there is none of those. The
       amount columns are refused on a recipe entry, whose amount is its
       `portions`; `quantity`/`unit` are both-or-neither, and an entry that
       states no amount is a real state the surfaces name (`no amount`) rather
@@ -1496,6 +1498,9 @@ the list*.
   Dates are the app's: *next Thursday* is read off the household's own week,
   never worked out by the model. An answer names what it read (*3 tbsp tamari — Ragù,
   serves 6*), so a misheard word or a wrong recipe is visible.
+- **Short answers.** Amount first, as few words as will do. The recipe and
+  servings the chip already shows are not said again; they are named only
+  when the answer is about another recipe or another serving count.
 - **Every number is the app's.** The model only chooses which recipe, line or
   step a sentence means; the amount is scaled and printed by the same Dart the
   page uses. A line with no number is said as written, and a unit the recipe
@@ -1513,8 +1518,9 @@ the list*.
   meal eaten out — and never invents a recipe. *I* is the member signed in on
   the phone; *I'm eating out* takes them off that meal's eaters, and a meal
   left with no one eating it is removed, as the card says. An ingredient meal
-  or a top-up carries an amount only as it was said; a top-up with none is
-  asked for. Ansi does not edit recipes or ingredients or tick off the list,
+  or a top-up carries the amount said, else the ingredient's usual one — the
+  same the Week's and the Shop's sheets open on — and the card says which
+  (*1 pot (150 g) each · as last time*); with neither, Ansi asks how much. Ansi does not edit recipes or ingredients or tick off the list,
   and says so.
 - **Voice is the phone's own.** A spoken question is sent when you pause; the
   answer to a spoken question is read aloud, a typed one is not, and the

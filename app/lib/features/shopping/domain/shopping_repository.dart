@@ -7,6 +7,7 @@
 library;
 
 import '../../../core/units/units.dart';
+import '../../ingredients/domain/default_amount.dart';
 import 'shopping.dart';
 
 abstract interface class ShoppingRepository {
@@ -64,4 +65,9 @@ abstract interface class ShoppingRepository {
   /// Soft-deletes an entry and its manual contributions (remove a free-text
   /// item, or undo a top-up on an otherwise-underived ingredient).
   Future<void> removeEntry({required String entryId});
+
+  /// The amount of the latest manual top-up of [ingredientId], in any week,
+  /// or null. The top-up sheet and Ask Ansi offer it again
+  /// (`defaultAmountFor`).
+  Future<LastAmount?> lastTopUp(String ingredientId);
 }
