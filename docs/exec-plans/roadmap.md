@@ -32,7 +32,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
-| Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. Needs the `ask` function redeployed before the tag. No migrations | [0053](./active/0053-ask-ansi.md) |
+| Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. The `ask` function deployed first (39425831242). No migrations | [0053](./active/0053-ask-ansi.md) |
 
 ## Shipped
 

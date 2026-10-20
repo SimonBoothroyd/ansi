@@ -673,6 +673,14 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-10-20 — Ask's figures: the `ask` function ahead of `v0.32.0`
+
+- **deploy-supabase 39425831242** (on `3a5d4cca`): green — the `nutrition`,
+  `cost` and `prices` tools and the prompt's `<figures>`. No migration, no
+  reseed. Until the phones run `v0.32.0`, a call to the three new tools gets
+  "there is no tool called …" back from the app and Ansi says it cannot
+  answer. The paid eval was not run; `cloud_verify.sh` was not run.
+
 ### 2026-10-20 — three `ask` changes on `v0.31.0`, function only
 
 - **deploy-supabase 39366363245** (on `12a45c86`): green — slice 2's seven
