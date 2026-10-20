@@ -460,6 +460,14 @@ migrations.
 
 ## Decision log
 
+- 2026-10-20 — **Answers say what was asked, first, and stop.** The first
+  phone session read correctly but awkwardly: "how many days did you have
+  it?" led with the household's seven; a refusal ran to four sentences and
+  called the assistant "Ansi"; full titles and full dates repeated. The
+  prompt now answers in the question's own terms, speaks as "I", shortens a
+  title once named, says a weekday without its date unless that is
+  ambiguous, and refuses in one sentence. Two eval cases hold it.
+
 - 2026-10-20 — **Slice 2's tools are not strict.** The first question on
   `v0.31.0` (*what's for dinner this week*) timed out: one model call ran past
   the 20 s attempt and the 30 s budget. A strict tool's schema is compiled
