@@ -67,7 +67,14 @@ const _costWalks = [
   'sumPlannedCost(',
   'IngredientPricing>',
 ];
-const _resolved = ['loadCostPrices(', 'costPriceMapProvider'];
+// `watchCostPrices(` is the stream `costPriceMapProvider` wraps, read
+// directly where a provider would be read once and lost (Ask's figures,
+// `no_future_on_autodispose_test.dart`).
+const _resolved = [
+  'loadCostPrices(',
+  'watchCostPrices(',
+  'costPriceMapProvider',
+];
 
 void main() {
   final files = [

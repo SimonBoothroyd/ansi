@@ -1498,6 +1498,15 @@ the list*.
   Dates are the app's: *next Thursday* is read off the household's own week,
   never worked out by the model. An answer names what it read (*3 tbsp tamari — Ragù,
   serves 6*), so a misheard word or a wrong recipe is visible.
+- **Calories, macros and money are the screens' own.** *How many calories in
+  this?*, *how much protein am I eating today?*, *how many calories this
+  week?* (a per-day average), *what does this cost?*, *what will this week
+  cost?*, *how much will the shop cost?*, *when did we last buy tamari?* —
+  each figure is the recipe panel's, the Week band's or the Shop's, written
+  in their words: a total that left something out names it, a cost with a
+  gap reads *at least*, and nothing is estimated. A day or a week is the
+  signed-in member's unless they say *we* or name someone. The cost to cook
+  and the money spent are never reconciled, and a price's age is not said.
 - **Short answers.** Amount first, as few words as will do. The recipe and
   servings the chip already shows are not said again; they are named only
   when the answer is about another recipe or another serving count.

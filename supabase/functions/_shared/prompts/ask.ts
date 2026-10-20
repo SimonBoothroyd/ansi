@@ -67,7 +67,7 @@ the glaze"). When find_recipe matches nothing, say the words you searched \
 for: "No recipe called pad thai."
 
 When you cannot answer, say so in one short sentence and stop: "I can't \
-give calories yet." No apology, no account of how you work, no suggestions \
+tick off the list." No apology, no account of how you work, no suggestions \
 for elsewhere.
 </answers>
 
@@ -120,6 +120,20 @@ that is not a step's timer: if asked for a plain timer ("set a timer for 10 \
 minutes"), say you can start a step's timer and ask which step.
 </actions>
 
+<figures>
+Calories, macros and money come only from the nutrition, cost and prices \
+tools, and you repeat their figures exactly as written. Never estimate, \
+convert or add one up yourself. When a result has no figure, say why in its \
+words; when it left meals or lines out, say the total leaves them out and \
+name them; when it reads "at least", so does your answer. Never put \
+nutrition and money in one answer unless both were asked for. The cost to \
+cook and the money spent are two different figures: give the one asked for, \
+never one as a check on the other. A day or a week is for the member \
+speaking unless the member says "we" (member_id "everyone") or names \
+someone; asked about a week, give its per-day average and say it is one. \
+Do not mention how old a price is.
+</figures>
+
 <limits>
 You cannot create or edit recipes or ingredients, tick off the shopping \
 list, or suggest recipes the household does not have; say the editor, the \
@@ -164,11 +178,11 @@ const WEEK_OF = {
 
 /**
  * The tools. Slice 1's six are strict: flat, small, and validated by the
- * API's grammar. Slice 2's seven are not. Their schemas are almost all
+ * API's grammar. The rest are not. Their schemas are almost all
  * optional fields and a nested list of changes, and a strict schema is
  * compiled into a grammar on first use and cached for a day; that compile
  * cost the first questions after the slice-2 deploy their whole 30 s budget.
- * The app checks every input these seven send (dates, ids, units, members)
+ * The app checks every input the rest send (dates, ids, units, members)
  * and answers a bad one with a sentence the model can act on, so the grammar
  * was a second guard, not the only one.
  *
@@ -341,6 +355,68 @@ export const ASK_TOOLS: AskTool[] = [
         query: { type: "string", description: "Words from the name." },
       },
       required: ["query"],
+      additionalProperties: false,
+    },
+    strict: false,
+  },
+  {
+    name: "nutrition",
+    description:
+      "Calories and macros written by the app, as the recipe page and the " +
+      "Week band show them. Either `recipe_id` (per serving, and at " +
+      "`servings`, default the servings on screen for that recipe), or a " +
+      "day (`date`) or week (`week_of`) of the plan, for `member_id` — a " +
+      "member id, `everyone` for the household, or omitted for the member " +
+      "speaking. A week comes with its per-day average. A result may have " +
+      "no figure, with the reason, or leave meals or lines out, named.",
+    input_schema: {
+      type: "object",
+      properties: {
+        recipe_id: RECIPE_ID,
+        servings: { type: "number" },
+        week_of: WEEK_OF,
+        date: DATE,
+        member_id: { type: "string" },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+    strict: false,
+  },
+  {
+    name: "cost",
+    description:
+      "Money written by the app at the latest prices, as the recipe page, " +
+      "the Week band and the Shop show it. Either `recipe_id` (per serving " +
+      "and whole), or a day or week of the plan as in nutrition (a week " +
+      "also says what its receipts show was spent), or `trip: true` for " +
+      "what is left to buy on the week's list. A figure with a gap reads " +
+      '"at least" and names what has no price.',
+    input_schema: {
+      type: "object",
+      properties: {
+        recipe_id: RECIPE_ID,
+        servings: { type: "number" },
+        week_of: WEEK_OF,
+        date: DATE,
+        member_id: { type: "string" },
+        trip: { type: "boolean" },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+    strict: false,
+  },
+  {
+    name: "prices",
+    description:
+      "An ingredient's latest purchases — where, when, what was paid and " +
+      "for what pack — and the price its costs use. Take the id from " +
+      "find_ingredient.",
+    input_schema: {
+      type: "object",
+      properties: { ingredient_id: { type: "string" } },
+      required: ["ingredient_id"],
       additionalProperties: false,
     },
     strict: false,

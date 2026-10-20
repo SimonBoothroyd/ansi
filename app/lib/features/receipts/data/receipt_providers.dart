@@ -57,21 +57,18 @@ ReceiptRepository receiptRepository(Ref ref) => SqliteReceiptRepository(
 Stream<List<ReceiptSummary>> receiptSummaries(Ref ref) => ref
     .watch(receiptRepositoryProvider)
     .watchReceipts()
-    .map(
-      (rows) => [
-        for (final r in rows)
-          ReceiptSummary(
-            id: r.id,
-            store: r.store,
-            purchasedAt: r.purchasedAt,
-            totalCents:
-                r.totalCents ??
-                (r.linesSumCents + (r.taxCents ?? r.taxLinesCents)),
-            lineCount: r.lineCount,
-            notFoodCount: r.notFoodCount,
-          ),
-      ],
-    );
+    .map((rows) => [for (final r in rows) receiptSummaryOf(r)]);
+
+/// One ledger row as the ledger and the week band read it.
+ReceiptSummary receiptSummaryOf(ReceiptLedgerRow r) => ReceiptSummary(
+  id: r.id,
+  store: r.store,
+  purchasedAt: r.purchasedAt,
+  totalCents:
+      r.totalCents ?? (r.linesSumCents + (r.taxCents ?? r.taxLinesCents)),
+  lineCount: r.lineCount,
+  notFoodCount: r.notFoodCount,
+);
 
 /// The receipts dated inside the week beginning [weekStart] — the band's
 /// second figure, and nothing else.

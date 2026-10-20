@@ -37,14 +37,14 @@ POST { messages: [ {role, content}, … ] }      turns alternate from the member
 504  out of time (safe to retry) · 500 anything else, detail in the log only
 ```
 
-Caps: 120 messages and 256 KB per request. The prompt and the thirteen tools are
+Caps: 120 messages and 256 KB per request. The prompt and the sixteen tools are
 in `_shared/prompts/ask.ts`; the app's side is `app/lib/features/ask/`. Slice
 1's six tools are strict, inside the API's per-request limits for strict schemas
 (20 tools, 24 optional parameters, 16 with a union type), which
-`claude_ask.test.ts` counts. Slice 2's seven are not: a strict schema is
-compiled into a grammar on first use, and theirs — mostly optional fields and a
-nested list of changes — took the first questions after their deploy past the 30
-s budget. The app checks every input they send and answers a bad one with a
+`claude_ask.test.ts` counts. The other ten are not: a strict schema is compiled
+into a grammar on first use, and theirs — mostly optional fields and a nested
+list of changes — took the first questions after their deploy past the 30 s
+budget. The app checks every input they send and answers a bad one with a
 sentence.
 
 Two cache breakpoints: one on the system block (the prompt and tools, which

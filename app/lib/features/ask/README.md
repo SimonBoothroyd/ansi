@@ -48,6 +48,13 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
   would open on (`defaultAmountFor`: last time at that door, else one of its
   word for one, else one piece), and the card says which. With neither, the
   call is refused with a sentence telling the model to ask how much.
+- **Figures are the screens' own.** `nutrition` and `cost` call the same
+  summations the recipe panel, the Week band and the Shop do
+  (`sumPlannedMacros`, `sumPlannedCost`, `tripCostCents`) and write them with
+  the same words (`incompleteNote`, `excludedLine`, `weekCostLine`,
+  `costFloor`), so an answer cannot disagree with a screen. A day or a week
+  is the speaker's unless `everyone` or a member is named; money and macros
+  never share a result.
 - **"I" is the member signed in**, matched by the account's own name or email
   as onboarding named the member (`askMe`); when no one or two match, the week
   marks no one "you" and Ansi asks.
@@ -74,6 +81,9 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
 | `cook_sessions` | the derived batches by cook day, portions and the meals they feed |
 | `shopping` | one ingredient's rows with the meals that ask for it, or what is left to buy by aisle; totals as the Shop prints them |
 | `find_ingredient` | the vocabulary's best matches, each with the unit ids and measure names an amount may use and its usual amount |
+| `nutrition` | a recipe's per-serving macros (and at the servings on screen), or a day's or a week's under a member's lens — the speaker's by default — with a week's per-day average; incomplete and left-out named |
+| `cost` | a recipe per serving and whole, a day's or a week's cost to cook beside the week's receipts, or the Shop's trip estimate; a gap reads `at least` |
+| `prices` | an ingredient's latest three purchases and the price its costs read |
 | `propose_plan_changes` | add, remove, move, set eaters — checked, drawn as a card, written on Confirm |
 | `propose_copy_last_week` | the Week's own copy, as a card |
 | `propose_top_up` | an ingredient with an amount, or a free-text item, onto the week's list, as a card |
@@ -118,6 +128,9 @@ ask/
                           the card waiting on Confirm
     ask_card.dart         the card, and the one write Confirm makes
     ask_door.dart         the bar's door on the Library, Week, Cook and Shop
+    ask_figures.dart      what nutrition, cost and prices answer, in the
+                          panel's and the band's own words
+    ask_figures_wiring.dart  those figures read for any recipe, day or week
     ask_wiring.dart       the runner over a captured container's repositories
     ask_sheet.dart        the chip, the conversation, the field and the mic
 ```

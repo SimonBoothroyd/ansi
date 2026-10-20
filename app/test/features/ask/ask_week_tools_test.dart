@@ -309,4 +309,86 @@ void main() {
       expect(household.cards, isEmpty);
     });
   });
+
+  group('figures default to the person asking', () {
+    AskToolRunner runner(FakeAskHousehold household, AskScreen screen) =>
+        AskToolRunner(
+          screen: () => screen,
+          loadRecipe: (_) async => null,
+          listRecipes: () async => const [],
+          weekOf: (_, _) async =>
+              (overrides: const <LineOverride>[], portions: null),
+          setServings: (_, _) {},
+          startTimer:
+              (
+                _, {
+                required step,
+                required ordinal,
+                required low,
+                required high,
+              }) {},
+          openRecipe: (_) {},
+          household: household.household,
+        );
+
+    AskToolCall call(String name, Map<String, Object?> input) =>
+        AskToolCall(id: 't1', name: name, input: input);
+
+    test("a day with no one named is the signed-in member's", () async {
+      final household = FakeAskHousehold(
+        members: const [_simon, _emma],
+        me: 'm1',
+      );
+      await runner(
+        household,
+        const AskNoScreen(),
+      ).run(call('nutrition', {'date': '2026-10-21'}));
+      final scope = household.figures.single as AskPlanFigures;
+      expect(scope.memberId, 'm1');
+      expect(scope.forWhom, 'Simon');
+      expect(scope.weekStart, _thisWeek);
+    });
+
+    test('"we" is everyone; a name wins; nobody known is said so', () async {
+      final household = FakeAskHousehold(members: const [_simon, _emma]);
+      final r = runner(household, const AskNoScreen());
+      await r.run(call('cost', {'member_id': 'everyone'}));
+      await r.run(call('nutrition', {'member_id': 'm2'}));
+      await r.run(call('nutrition', <String, Object?>{}));
+      final scopes = household.figures.cast<AskPlanFigures>();
+      expect(scopes[0].memberId, isNull);
+      expect(scopes[0].forWhom, 'everyone');
+      expect(scopes[1].forWhom, 'Emma');
+      expect(scopes[2].forWhom, startsWith('everyone (who is asking'));
+      final bad = await r.run(call('nutrition', {'member_id': 'Simon'}));
+      expect(bad.isError, isTrue);
+    });
+
+    test('a recipe on screen defaults to the stepper and its week', () async {
+      final household = FakeAskHousehold();
+      await runner(
+        household,
+        const AskRecipeScreen(
+          recipeId: 'r1',
+          title: 'Ragù',
+          servings: 6,
+          servingsBase: 4,
+          weekKey: '2026-10-21',
+        ),
+      ).run(call('cost', {'recipe_id': 'r1'}));
+      final scope = household.figures.single as AskRecipeFigures;
+      expect(scope.servings, 6);
+      expect(scope.weekStart, _thisWeek);
+    });
+
+    test("the trip is the Shop's estimate for the week", () async {
+      final household = FakeAskHousehold();
+      final out = await runner(
+        household,
+        AskWeekScreen(tab: AskWeekTab.shop, weekStart: _thisWeek),
+      ).run(call('cost', {'trip': true}));
+      expect(out.content, 'cost');
+      expect((household.figures.single as AskTripFigures).weekStart, _thisWeek);
+    });
+  });
 }

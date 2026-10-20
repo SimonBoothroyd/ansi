@@ -29,6 +29,7 @@ import '../domain/ask_screen.dart';
 import '../domain/ask_tool_runner.dart';
 import '../domain/ask_week_tools.dart';
 import 'ask_controller.dart';
+import 'ask_figures_wiring.dart';
 
 /// Builds a runner whose `open_recipe` hands the recipe id to [open].
 typedef AskToolRunnerFactory =
@@ -133,6 +134,9 @@ AskToolRunner askToolRunner(
         };
       },
       // The card is drawn by the sheet, which writes on Confirm.
+      nutrition: (scope) => askNutrition(container, scope),
+      cost: (scope) => askCost(container, scope),
+      prices: (id) => askPrices(container, id),
       propose: (proposal) => container
           .read(askControllerProvider.notifier)
           .awaitDecision(proposal),

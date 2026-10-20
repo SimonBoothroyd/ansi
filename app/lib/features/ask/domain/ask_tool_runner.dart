@@ -28,6 +28,43 @@ import 'ask_thread.dart';
 import 'ask_tools.dart';
 import 'ask_week_tools.dart';
 
+/// What a `nutrition` or `cost` call is about.
+sealed class AskFigureScope {
+  const AskFigureScope();
+}
+
+/// One recipe, per serving and at [servings] when given; [weekStart] reads
+/// that week's variant of it.
+final class AskRecipeFigures extends AskFigureScope {
+  const AskRecipeFigures(this.recipeId, {this.servings, this.weekStart});
+  final String recipeId;
+  final double? servings;
+  final DateTime? weekStart;
+}
+
+/// A day ([date]) or a whole week of the plan, through [memberId]'s lens
+/// (null: everyone), as the Week band reads it.
+final class AskPlanFigures extends AskFigureScope {
+  const AskPlanFigures({
+    required this.weekStart,
+    required this.forWhom,
+    this.date,
+    this.memberId,
+  });
+  final DateTime weekStart;
+  final DateTime? date;
+  final String? memberId;
+
+  /// `Simon`, `everyone`: whose figures these are, as the answer says it.
+  final String forWhom;
+}
+
+/// The Shop's estimate of what is left to buy for [weekStart].
+final class AskTripFigures extends AskFigureScope {
+  const AskTripFigures(this.weekStart);
+  final DateTime weekStart;
+}
+
 /// The household beyond the recipe on screen: the weeks, the cook plan, the
 /// list and the vocabulary to read, and the card that asks before a write.
 class AskHousehold {
@@ -44,6 +81,9 @@ class AskHousehold {
     required this.searchIngredients,
     required this.ingredientFacts,
     required this.propose,
+    required this.nutrition,
+    required this.cost,
+    required this.prices,
   });
 
   /// Today, as a UTC date.
@@ -75,6 +115,15 @@ class AskHousehold {
 
   /// Draws the proposal as a card and resolves once the member has decided.
   final Future<AskDecision> Function(AskProposal proposal) propose;
+
+  /// The figures the recipe panel and the Week band print, as a tool result.
+  final Future<String> Function(AskFigureScope scope) nutrition;
+
+  /// The money the recipe panel, the Week band and the Shop print.
+  final Future<String> Function(AskFigureScope scope) cost;
+
+  /// One ingredient's latest purchases and the price its costs read.
+  final Future<String> Function(String ingredientId) prices;
 }
 
 /// What one call produced: the result the model reads, whether it is an
@@ -362,6 +411,15 @@ class AskToolRunner {
             item: input['item'] as String?,
           ),
         );
+
+      case AskTools.nutrition:
+        return _answer(await household.nutrition(await _figureScope(input)));
+
+      case AskTools.cost:
+        return _answer(await household.cost(await _figureScope(input)));
+
+      case AskTools.prices:
+        return _answer(await household.prices(_string(input, 'ingredient_id')));
     }
     throw AskToolError('there is no tool called ${call.name}');
   }
@@ -380,6 +438,59 @@ class AskToolRunner {
       }),
       isError: false,
       done: decision == AskDecision.confirmed ? proposal.title : null,
+    );
+  }
+
+  /// What a `nutrition` or `cost` call is about. A recipe defaults to the
+  /// servings on screen and, opened from a week, that week's variant. A day
+  /// or a week defaults to the member speaking (`askMe`), `everyone` for the
+  /// household.
+  Future<AskFigureScope> _figureScope(Map<String, Object?> input) async {
+    final shape = household.shape();
+    if (input['trip'] == true) {
+      return AskTripFigures(_weekOf(input['week_of']));
+    }
+    if (input['recipe_id'] case final String recipeId) {
+      final asked = input['servings'];
+      final on = screen();
+      final onScreen = on is AskRecipeScreen && on.recipeId == recipeId
+          ? on
+          : null;
+      final key = onScreen?.weekKey;
+      final date = key == null ? null : DateTime.tryParse(key);
+      return AskRecipeFigures(
+        recipeId,
+        servings: asked == null ? onScreen?.servings : acceptServings(asked),
+        weekStart: date == null ? null : shape.weekStartOf(date),
+      );
+    }
+    final date = input['date'] == null ? null : parseAskDate(input['date']);
+    final weekStart = date == null
+        ? _weekOf(input['week_of'])
+        : shape.weekStartOf(date);
+    final members = await household.members();
+    final said = input['member_id'];
+    if (said == 'everyone') {
+      return AskPlanFigures(
+        weekStart: weekStart,
+        date: date,
+        forWhom: 'everyone',
+      );
+    }
+    final id = said is String ? said : household.me(members);
+    final member = [
+      for (final m in members)
+        if (m.id == id) m,
+    ].firstOrNull;
+    if (said is String && member == null) {
+      throw AskToolError('`$said` is not a member id; read the week for them');
+    }
+    return AskPlanFigures(
+      weekStart: weekStart,
+      date: date,
+      memberId: member?.id,
+      // Nobody to say "I" for: the household, said as such.
+      forWhom: member?.displayName ?? 'everyone (who is asking is not known)',
     );
   }
 

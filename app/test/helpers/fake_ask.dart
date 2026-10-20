@@ -118,6 +118,9 @@ class FakeAskHousehold {
   final AskDecision Function(AskProposal proposal)? decide;
   final List<AskProposal> cards = [];
 
+  /// Every `nutrition` and `cost` scope the runner resolved, in order.
+  final List<AskFigureScope> figures = [];
+
   AskHousehold get household => AskHousehold(
     today: () => today,
     shape: () => WeekShape.monday,
@@ -140,6 +143,15 @@ class FakeAskHousehold {
         if (ids.contains(i.id))
           i.id: (ingredient: i, measures: const <Measure>[], usual: null),
     },
+    nutrition: (scope) async {
+      figures.add(scope);
+      return 'nutrition';
+    },
+    cost: (scope) async {
+      figures.add(scope);
+      return 'cost';
+    },
+    prices: (id) async => 'prices of $id',
     propose: (proposal) async {
       cards.add(proposal);
       return decide?.call(proposal) ?? AskDecision.cancelled;

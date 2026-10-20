@@ -37,6 +37,9 @@ abstract final class AskTools {
   static const proposePlanChanges = 'propose_plan_changes';
   static const proposeCopyLastWeek = 'propose_copy_last_week';
   static const proposeTopUp = 'propose_top_up';
+  static const nutrition = 'nutrition';
+  static const cost = 'cost';
+  static const prices = 'prices';
 }
 
 /// A tool call the app refuses, in words the model can repeat.

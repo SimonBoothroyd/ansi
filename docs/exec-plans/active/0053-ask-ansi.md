@@ -230,9 +230,9 @@ resolves in this order:
 
 | Say | Ansi does | Slice |
 |---|---|---|
-| *How much protein this week?* | The week band's own figure, with its exclusions named (*"two meals out don't state macros"*). | later |
-| *What will this week cost?* | The week's cost to cook, from unit prices ([ADR-0017](../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)), with the lines it couldn't price. | later |
-| *When did we last buy tamari, and for how much?* | The latest receipt line for the ingredient. | later |
+| *How much protein this week?* | The week band's own figure, with its exclusions named (*"two meals out don't state macros"*). | built |
+| *What will this week cost?* | The week's cost to cook, from unit prices ([ADR-0017](../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)), with the lines it couldn't price. | built |
+| *When did we last buy tamari, and for how much?* | The latest receipt line for the ingredient. | built |
 
 ### E. Finding things
 
@@ -448,6 +448,14 @@ answers short and stops repeating what the chip shows; "every day" means
 today to the week's end; a meal with no slot named is asked about. No
 migrations.
 
+**Figures (2026-10-20).** Three more tools read the numbers the screens
+already print: `nutrition` (a recipe per serving, a day, a week as its
+per-day average), `cost` (a recipe, a day's or week's cost to cook beside
+the week's receipts, the Shop's trip) and `prices` (an ingredient's latest
+purchases). Owner's rulings: a day or week is the signed-in member's unless
+*we* or a name says otherwise; a week answers with its per-day average; a
+price's age is never said. Section D's three rows are built by them.
+
 **Not built, and why:**
 
 - **The board does not draw slice 2.** The tab bars' new door and the card
@@ -459,6 +467,11 @@ migrations.
   renamed on the server would stop matching, and Ansi would ask.
 
 ## Decision log
+
+- 2026-10-20 — **Calories and cost (section D).** Built as three tools over
+  the summations the screens already run, so Ansi cannot disagree with the
+  recipe panel or the Week band. The owner ruled the three open questions:
+  the speaker's figures by default, a week's per-day average, no price ages.
 
 - 2026-10-20 — **The thread is cached as well as the prompt.** A question
   can take six model calls and each resent the whole thread at full price;
