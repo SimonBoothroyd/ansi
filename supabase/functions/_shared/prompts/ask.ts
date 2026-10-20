@@ -123,7 +123,8 @@ export interface AskTool {
   name: string;
   description: string;
   input_schema: Record<string, unknown>;
-  strict: true;
+  /** Strict on the slice-1 tools only — see [ASK_TOOLS]. */
+  strict: boolean;
 }
 
 /** A field the model must send, as a value or as null (strict tools have no
@@ -150,7 +151,16 @@ const WEEK_OF = {
 };
 
 /**
- * The tools. Every one is executed by the app (`features/ask` in
+ * The tools. Slice 1's six are strict: flat, small, and validated by the
+ * API's grammar. Slice 2's seven are not. Their schemas are almost all
+ * optional fields and a nested list of changes, and a strict schema is
+ * compiled into a grammar on first use and cached for a day; that compile
+ * cost the first questions after the slice-2 deploy their whole 30 s budget.
+ * The app checks every input these seven send (dates, ids, units, members)
+ * and answers a bad one with a sentence the model can act on, so the grammar
+ * was a second guard, not the only one.
+ *
+ * Every one is executed by the app (`features/ask` in
  * `app/lib`), which owns the names: a rename here is a rename there, and the
  * golden test in `ask/index.test.ts` holds the list.
  */
@@ -272,7 +282,7 @@ export const ASK_TOOLS: AskTool[] = [
       required: [],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
   {
     name: "cook_sessions",
@@ -286,7 +296,7 @@ export const ASK_TOOLS: AskTool[] = [
       required: [],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
   {
     name: "shopping",
@@ -304,7 +314,7 @@ export const ASK_TOOLS: AskTool[] = [
       required: [],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
   {
     name: "find_ingredient",
@@ -321,7 +331,7 @@ export const ASK_TOOLS: AskTool[] = [
       required: ["query"],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
   {
     name: "propose_plan_changes",
@@ -373,7 +383,7 @@ export const ASK_TOOLS: AskTool[] = [
       required: ["changes"],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
   {
     name: "propose_copy_last_week",
@@ -387,7 +397,7 @@ export const ASK_TOOLS: AskTool[] = [
       required: [],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
   {
     name: "propose_top_up",
@@ -411,6 +421,6 @@ export const ASK_TOOLS: AskTool[] = [
       required: [],
       additionalProperties: false,
     },
-    strict: true,
+    strict: false,
   },
 ];

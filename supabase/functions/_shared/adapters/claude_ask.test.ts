@@ -72,7 +72,7 @@ Deno.test("the request — what Claude Haiku 5.5 accepts: no sampling, no prefil
   assertEquals(system[0].cache_control, { type: "ephemeral" });
 });
 
-Deno.test("the tools — the names the app executes, every one strict", () => {
+Deno.test("the tools — the names the app executes; slice 1 strict, slice 2 not", () => {
   assertEquals(ASK_TOOLS.map((t) => t.name), [
     "find_recipe",
     "recipe_lines",
@@ -88,8 +88,20 @@ Deno.test("the tools — the names the app executes, every one strict", () => {
     "propose_copy_last_week",
     "propose_top_up",
   ]);
+  // Slice 2's schemas are mostly optional fields and a nested list: strict,
+  // their grammar compile ran past the turn's budget (see ASK_TOOLS).
+  assertEquals(
+    ASK_TOOLS.filter((t) => t.strict).map((t) => t.name),
+    [
+      "find_recipe",
+      "recipe_lines",
+      "method_step",
+      "start_step_timer",
+      "set_servings",
+      "open_recipe",
+    ],
+  );
   for (const tool of ASK_TOOLS) {
-    assertEquals(tool.strict, true);
     assertEquals(tool.input_schema.additionalProperties, false, tool.name);
   }
 });
@@ -113,7 +125,8 @@ Deno.test("the tools — inside the API's limits for strict schemas", () => {
   // parameters, 16 parameters with a union type (anyOf or a type array).
   let optional = 0;
   let unions = 0;
-  for (const tool of ASK_TOOLS) {
+  const strict = ASK_TOOLS.filter((t) => t.strict);
+  for (const tool of strict) {
     for (const o of objectsIn(tool.input_schema)) {
       assertEquals(o.additionalProperties, false, tool.name);
       const props = o.properties as Record<string, Record<string, unknown>>;
@@ -124,7 +137,7 @@ Deno.test("the tools — inside the API's limits for strict schemas", () => {
       }
     }
   }
-  assert(ASK_TOOLS.length <= 20, `${ASK_TOOLS.length} strict tools`);
+  assert(strict.length <= 20, `${strict.length} strict tools`);
   assert(optional <= 24, `${optional} optional parameters`);
   assert(unions <= 16, `${unions} union parameters`);
 });

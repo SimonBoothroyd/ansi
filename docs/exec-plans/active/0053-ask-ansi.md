@@ -460,6 +460,15 @@ migrations.
 
 ## Decision log
 
+- 2026-10-20 — **Slice 2's tools are not strict.** The first question on
+  `v0.31.0` (*what's for dinner this week*) timed out: one model call ran past
+  the 20 s attempt and the 30 s budget. A strict tool's schema is compiled
+  into a grammar on first use and cached for a day, and slice 2's seven
+  schemas are almost all optional fields plus a nested list of changes — the
+  shape the API's docs call expensive to compile. They lost `strict`; slice
+  1's six keep it. The app already validated every input those seven send,
+  so nothing it writes is less checked. A function redeploy, no app release.
+
 - 2026-10-20 — From the owner's first slice-2 sentences ("we'll have skyr as
   a snack every day", "how many times are we having this this week?") and a
   phone screenshot:
