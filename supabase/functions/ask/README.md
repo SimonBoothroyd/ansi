@@ -47,5 +47,10 @@ nested list of changes — took the first questions after their deploy past the 
 s budget. The app checks every input they send and answers a bad one with a
 sentence.
 
+Two cache breakpoints: one on the system block (the prompt and tools, which
+never vary) and the API's automatic one on the growing thread, so a question's
+tool rounds and a follow-up within five minutes read the thread back at a tenth
+of the input price rather than resending it.
+
 Each turn logs one line — model, input, output and cache-read tokens — so the
 spend can be read off the function log.

@@ -70,6 +70,10 @@ Deno.test("the request — what Claude Haiku 5.5 accepts: no sampling, no prefil
   const system = body.system as Record<string, unknown>[];
   assertEquals(system.length, 1);
   assertEquals(system[0].cache_control, { type: "ephemeral" });
+  // And the growing thread, by the API's automatic breakpoint — five
+  // minutes, as the system block's, so the longer TTL never follows the
+  // shorter.
+  assertEquals(body.cache_control, { type: "ephemeral" });
 });
 
 Deno.test("the tools — the names the app executes; slice 1 strict, slice 2 not", () => {

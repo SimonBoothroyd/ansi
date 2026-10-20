@@ -460,6 +460,12 @@ migrations.
 
 ## Decision log
 
+- 2026-10-20 — **The thread is cached as well as the prompt.** A question
+  can take six model calls and each resent the whole thread at full price;
+  the API's automatic breakpoint now caches it, so a call reads what the
+  last one sent at 0.1x and writes only what it added, at 1.25x. It pays
+  for itself on a question's second call.
+
 - 2026-10-20 — **Answers say what was asked, first, and stop.** The first
   phone session read correctly but awkwardly: "how many days did you have
   it?" led with the household's seven; a refusal ran to four sentences and

@@ -121,6 +121,12 @@ export class ClaudeAskAdapter implements AskAdapter {
       ],
       tools: ASK_TOOLS,
       tool_choice: { type: "auto" },
+      // The conversation, cached too: the API puts this breakpoint on the
+      // last block and moves it as the thread grows, so a question's tool
+      // rounds (seconds apart) and a follow-up within five minutes read the
+      // thread back at a tenth of the price instead of sending it again. A
+      // write costs 1.25x, and only on what the last turn added.
+      cache_control: { type: "ephemeral" },
       // Resolving "how much tamari" is a lookup, not a puzzle.
       output_config: { effort: "low" },
       messages,
