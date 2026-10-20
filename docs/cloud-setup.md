@@ -673,14 +673,16 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
-### 2026-10-20 — two `ask` fixes on `v0.31.0`, function only
+### 2026-10-20 — three `ask` changes on `v0.31.0`, function only
 
 - **deploy-supabase 39366363245** (on `12a45c86`): green — slice 2's seven
   tools no longer `strict`, after the first question on `v0.31.0` timed out
   (plan 0053, decision log). Nothing else changed.
 - **deploy-supabase 39366594943** (on `e7a8cf00`): green — the prompt's
   answers rewritten to say what was asked, first, and stop.
-- Neither needed an app release, a migration or a reseed; `cloud_verify.sh`
+- **deploy-supabase 39419289444** (on `3df195ef`): green — the thread cached
+  beside the prompt (the API's automatic breakpoint).
+- None needed an app release, a migration or a reseed; `cloud_verify.sh`
   was not run.
 
 ### 2026-10-19 — Ask Ansi slice 2 on cloud: the `ask` function redeployed
