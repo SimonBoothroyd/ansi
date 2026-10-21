@@ -21,8 +21,9 @@ The detail is in the plan; the landing dates are in the
 4. Plan 0053's phone checklist for Ask Ansi (in its *Handover*), on both
    phones on `v0.31.0`, with slice 2's paid eval (`run_ask_live.ts`, 40 cases)
    run first — it was not run before the deploy.
-5. [Plan 0054](./active/0054-eaten-vs-planned.md), eaten vs planned — a draft;
-   its phase 0 is the board's proposed frames, before any code.
+5. [Plan 0054](./active/0054-eaten-vs-planned.md), eaten vs planned —
+   phases 1–3 on main; deploy `0055`–`0057` before the next tag. Phase 4
+   (Health Connect) wants a session with an Android phone.
 6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
    first slice.
 
@@ -36,6 +37,7 @@ operator statement is owed there.
 | What | Plan |
 |------|------|
 | Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. The `ask` function deployed first (39425831242). No migrations | [0053](./active/0053-ask-ansi.md) |
+| Eaten vs planned, phases 1–3 — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, never cooked or bought, shown on your own phone only); and once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten). Undo after `−` now restores the same meal. Migrations `0055`–`0057` and the sync streams are **not on cloud yet**: deploy before tagging, or ticks have nowhere to upload. Health Connect (phase 4) and Ask's *I'm eating out* are still to come | [0054](./active/0054-eaten-vs-planned.md) |
 
 ## Shipped
 
