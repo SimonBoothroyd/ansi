@@ -52,24 +52,57 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
   changes `eaters`, `portions` or the batch, so the cook plan, the shop and
   the costs keep showing what was cooked and bought, and the gap is the data.
 - **Waste belongs to the batch, asked on Cook.** Once every day a batch
-  covers has passed and fewer portions were ticked than cooked, its Cook
+  covers has passed and fewer portions were ticked than planned, its Cook
   card asks *What happened to the other one?* — **Kept · Binned · Eaten**
   (the last for a forgotten tick). Either member can answer; it is about the
-  pot, not a person.
+  pot, not a person. See *Leftovers* below.
 - **Health Connect follows the ticks, at once.** One switch in Account,
   *Send my meals to Health Connect*, per phone. A tick sends that member's
   share of the meal; an untick, a swap or a `−` takes it back out; an edit to
   the meal updates the entry rather than adding one. A meal whose macros do
   not resolve is not sent and is named under the switch (`Office lunch has
   no macros · add ›`) — invariant 3; nothing is sent as a zero.
-- **No meal times to configure.** A tick made on the meal's day carries the
-  time it was made — roughly when the meal was eaten. A later tick carries
-  only the day (see *Open questions* for how Health Connect is given it).
+- **A tick's time is when you ticked, and you can change it.** No meal times
+  to configure. With *I ate this* on, the sheet shows the time beside it
+  (`19:42 ›`); tapping it opens a date-and-time picker. A tick made after the
+  meal's day defaults to that day at the tick's clock time, so a late tick
+  never lands on the wrong day. Health Connect gets this time.
+- **Your share is your usual portion.** The same rule the lens already uses
+  (`week_macros.dart`): your `portion_factor` in servings, or a `portions`
+  override shared out by the eaters' factors. One function feeds the Week,
+  Ask and Health Connect.
+- **A meal nobody ate is leftovers.** If it was planned it is assumed bought,
+  so every planned portion not ticked — nobody ticked it, or someone had
+  something else — is a leftover, not a gap. A meal that was never bought is
+  removed with `−` as today, and then it was never there.
 - **`−` on a ticked meal is still undone, not confirmed.** It removes every
   member's tick with the meal, so the existing undo toast names it:
   *Removed Ragù · Jun had ticked it*.
 - **Minimal words on screen.** No explanatory sentences in the app; a row,
   a badge, a switch. Explanation lives in this plan and the board.
+
+### Leftovers
+
+- **Counted, not asked for.** A batch's leftover is derived: its planned
+  portions (Σ demand over the entries it covers) less the portions its
+  members ticked, each at their share. Nothing is stored until somebody says
+  what became of it.
+- **Raw or cooked is the same question.** The app cannot know whether an
+  uneaten batch was ever cooked, and does not ask: food bought for a meal
+  nobody ate is either still here (*Kept*), thrown away (*Binned*) or was
+  eaten after all (*Eaten*). An answer is in portions, so `2 left` can be
+  `1 kept · 1 binned`.
+- **Unanswered is said as unanswered.** Until the question is answered the
+  band says `2 portions left`, never waste; only *Binned* counts as waste.
+- **Recipes only.** A bare item planned and not eaten (a yoghurt pot) keeps
+  in the fridge and is assumed kept, with no question; a meal eaten out
+  bought nothing, so it leaves nothing.
+- **What waste costs.** A binned portion is priced by the recipe's own cost
+  per serving (ADR-0017), so the band can say `2 portions binned · ≈ $6`; a
+  recipe with an unpriced line says `at least`, by the cost rule.
+- **Not in v1:** a kept portion offered back in the picker as a leftover to
+  eat (which would also answer *Kept → Eaten* on its own), and a kept portion
+  taking a meal off the next shop.
 
 ### Rejected
 
@@ -105,19 +138,21 @@ Phases land in order; each is shippable alone.
 
 2. **Migration `0055_meal_eaten.sql`:** `meal_eaten (id, household_id,
    plan_entry_id → plan_entry on delete cascade, member_id →
-   household_member, eaten_at timestamptz not null, created_at, updated_at,
-   deleted_at)`, one live row per `(plan_entry_id, member_id)`. RLS: read
+   household_member, eaten_at timestamptz not null — the tick's time until
+   the person changes it, created_at, updated_at, deleted_at)`, one live row per `(plan_entry_id, member_id)`. RLS: read
    household-wide; insert/update/delete only where `member_id` is the caller's
    own member (`household_member.auth_user_id = auth.uid()`). pgTAP: a member
    cannot write another member's row. Add it to both PowerSync stream files and
    the local schema. A separate table rather than a column on `plan_entry`:
    two phones ticking the same meal would otherwise race on one jsonb.
 3. **Domain (pure Dart, `planning/domain`):** `eatenBy(entry)`, and an
-   `eatenMacros` beside `week_macros.dart` that reuses the lens's share rule,
-   so the Week and Health Connect cannot disagree. Tests mirror it.
+   `eatenMacros` beside `week_macros.dart` that reuses the lens's share
+   function (lifted out, not copied), so the Week and Health Connect cannot
+   disagree. Tests mirror it.
 4. **Week:** the avatar badge; the band's EATEN / PLANNED lines and the day
    line under a person's lens; the sheet's *I ate this* block from the meal's
-   day on; the `−` toast naming lost ticks.
+   day on, with its time and the date-and-time picker; the `−` toast naming
+   lost ticks.
 
 ### Phase 2 — had something else
 
@@ -138,26 +173,30 @@ Phases land in order; each is shippable alone.
 
 ### Phase 3 — the leftover question
 
-9. **Migration `0057_batch_leftover.sql`:** the answer to one batch's
-   question, keyed to the batch's cook-day entry (sessions are derived and
-   have no row): `kept`, `binned`, `eaten` portion counts. Household-writable.
-10. Cook's *Done this week* cards: the tally, the question while open, the
-    answer after; the Week band's `1 kept · 2 binned` line.
+9. **Domain (`cook_plan/domain`):** a session's leftover, derived as in
+   *Leftovers* — planned portions less ticked shares — and whether its last
+   covered day has passed. Pure, tested on the same fixtures as the cook plan.
+10. **Migration `0057_batch_leftover.sql`:** the answer to one batch's
+    question, keyed to the batch's cook-day entry (sessions are derived and
+    have no row): `kept`, `binned`, `eaten` portion counts. Household-writable.
+11. Cook's *Done this week* cards: the tally, the question while open, the
+    answer after; the Week band's `2 portions left` / `1 kept · 1 binned ·
+    ≈ $3` line.
 
 ### Phase 4 — Health Connect (Android)
 
-11. A spike first: the `health` package's nutrition write on Health Connect,
-    `clientRecordId`/version for idempotent updates, and how a meal with no
-    clock time displays (*Open questions*). Record the finding here.
-12. A per-phone reconciler (local, never synced): the wanted set is this
+12. A spike first: the `health` package's nutrition write on Health Connect,
+    and `clientRecordId`/version for idempotent updates. Record the finding
+    here.
+13. A per-phone reconciler (local, never synced): the wanted set is this
     member's eaten meals with resolved macros over a trailing window; the sent
     set is a local table of `(record id, version)`. Any change to entries,
     ticks or substitutes — from either phone, via sync — diffs the two and
     upserts or deletes. That is what makes Ada's `−` remove Jun's entry once
     Jun's phone syncs.
-13. Account: the one switch, the permission ask on first turn-on, and the
+14. Account: the one switch, the permission ask on first turn-on, and the
     not-sent row.
-14. The platform and store work in *Privacy and the store* below, before the
+15. The platform and store work in *Privacy and the store* below, before the
     first build that carries the permission.
 
 ## Privacy and the store
@@ -198,9 +237,8 @@ phase that makes it true, not before.
 - **The policy needs a URL** the rationale screen and the declaration can
   point at; `PRIVACY.md` in the repo is not one. Serving it from
   `getansi.app/privacy` through the existing Worker is the cheap answer.
-- **iOS is not in scope.** If HealthKit is added later, it brings its own
-  entitlement and usage string; there is no App Store listing to update, since
-  iOS installs from Xcode ([release.md](../../release.md)).
+- **No HealthKit.** The owner left iOS out; the switch is Android only and
+  is not drawn on iOS or the web.
 
 ## Acceptance criteria
 
@@ -235,28 +273,24 @@ Append-only.
   yoghurt pot is wrong; renaming it everywhere is its own change
   ([backlog](../backlog.md), *Foods, not ingredients*). This plan's screens
   avoid the word rather than wait for it.
+- 2026-10-21 — Owner rulings: a tick's time defaults to when it was ticked
+  and is changed with a date-and-time picker; a share is weighted by usual
+  portion (already the lens's rule in code — the product spec still said
+  *even split*, fixed in the same commit); HealthKit is left out; a planned
+  meal nobody ate is assumed bought, so it is leftovers, and one never bought
+  is removed as today.
 
 ## Notes / open questions
 
-- **The time Health Connect gets for a late tick.** A nutrition record needs a
-  start and end. Options: the whole meal day as the interval, or a nominal time
-  per default slot that the person never sees. Decide in the phase 4 spike by
-  looking at both in Health Connect and Google Fit.
-- **A person's share of a meal.** The lens splits an entry evenly between its
-  eaters today (product spec, *Macros on a set of meals*). Weighting by
-  `portion_factor` would be truer for Health Connect, but changes the lens
-  too; this plan reuses the even split so the two stay one rule, and leaves
-  the weighting as its own ruling.
 - **The eaten-out row in the instead picker** is shown always in the canvas;
   the owner has not ruled on it against today's only-when-nothing-matches rule.
 - **Switching Health Connect off:** stop sending and leave what was written
   (it is the person's record, removable in Health Connect), or take back
   everything Ansi wrote? The first is assumed in *Privacy and the store*.
-- **iOS (HealthKit).** The same reconciler can write HealthKit through the same
-  package; not in this plan unless the owner wants it.
 - **A substitute that was another batch's leftover** (ate Monday's spare curry
-  instead of the ragù) ideally consumes that batch's untaken portion. Out of
-  scope for v1; revisit if it is common.
+  instead of the ragù) ideally consumes that batch's kept portion — the
+  picker offering kept leftovers, in *Leftovers*' not-in-v1. Revisit if it is
+  common.
 - **A substitute's row is household-writable** under `plan_entry`'s RLS; only
   the UI keeps it its member's. Narrowing `plan_entry` RLS for one kind of row
   is disproportionate unless it bites.

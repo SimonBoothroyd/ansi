@@ -1369,8 +1369,9 @@ set of meals whose label states it and each meal is an independently honest
 unit — the shopping list's doctrine. The teeth: the denominator is mandatory,
 and an exclusion is *named*, not counted. Under **Everyone** an entry counts
 `portions ?? |eaters|` servings; under a **person's** lens it counts only if
-they are an eater, at an even split (the only figure `eaters` + `portions` can
-honestly state). An entry nobody is eating is excluded with a reason, never
+they are an eater, at their usual portion: their `portion_factor` in servings,
+or — when a `portions` override is set — that override shared out in
+proportion to the eaters' factors. An entry nobody is eating is excluded with a reason, never
 divided by zero. The week band is labelled **PLANNED** and says outright that
 it is the sum of what is planned, not a daily target — a week that only plans
 dinners averages a dinner.
