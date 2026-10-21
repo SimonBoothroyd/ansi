@@ -75,6 +75,12 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
   so every planned portion not ticked — nobody ticked it, or someone had
   something else — is a leftover, not a gap. A meal that was never bought is
   removed with `−` as today, and then it was never there.
+- **Switching it off does what Health Connect does.** Sending stops and what
+  Ansi already wrote stays, as it does when any app's Health Connect
+  permissions are removed; deleting is Health Connect's own job, not Ansi's.
+  So there is no warning to give. While the switch is off, one row under it
+  — *Manage in Health Connect ›* — opens Health Connect's page for Ansi,
+  where the data can be deleted.
 - **`−` on a ticked meal is still undone, not confirmed.** It removes every
   member's tick with the meal, so the existing undo toast names it:
   *Removed Ragù · Jun had ticked it*.
@@ -218,7 +224,7 @@ phase that makes it true, not before.
   **reads nothing** from it; nothing read from Health Connect reaches Ansi's
   server or the household. What Ansi wrote stays in Health Connect under the
   person's control after the switch goes off or the account is deleted, and is
-  removed there (see *Open questions*). The deletion section says the same.
+  deleted there (see *Rulings*). The deletion section says the same.
 - **Write-only, by design.** Request `WRITE_NUTRITION` and no read permission:
   it is all the feature needs, and it keeps Google's Health Connect review and
   the policy's promises small.
@@ -279,14 +285,15 @@ Append-only.
   *even split*, fixed in the same commit); HealthKit is left out; a planned
   meal nobody ate is assumed bought, so it is leftovers, and one never bought
   is removed as today.
+- 2026-10-21 — Switching Health Connect off follows the platform: keep what
+  was written, delete in Health Connect. Google's help: *"When you remove data
+  permissions, you don't remove the stored data"*
+  ([Manage connected apps](https://support.google.com/android/answer/12201230)).
 
 ## Notes / open questions
 
 - **The eaten-out row in the instead picker** is shown always in the canvas;
   the owner has not ruled on it against today's only-when-nothing-matches rule.
-- **Switching Health Connect off:** stop sending and leave what was written
-  (it is the person's record, removable in Health Connect), or take back
-  everything Ansi wrote? The first is assumed in *Privacy and the store*.
 - **A substitute that was another batch's leftover** (ate Monday's spare curry
   instead of the ragù) ideally consumes that batch's kept portion — the
   picker offering kept leftovers, in *Leftovers*' not-in-v1. Revisit if it is
