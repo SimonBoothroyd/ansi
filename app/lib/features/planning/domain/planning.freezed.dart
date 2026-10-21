@@ -297,7 +297,10 @@ mixin _$PlanEntry {
 /// macro sum needs no second watch. Null on a recipe meal and on an
 /// ingredient meal whose row has not synced.
  IngredientNutrition? get nutrition; List<String> get eaterIds;/// How many portions to cook for; null tracks the eater count.
- int? get portions;
+ int? get portions;/// Who said they ate this meal, and when: member id → the time they gave.
+/// Ticking never edits the plan, so [eaterIds] and [portions] stay what
+/// was cooked for. Only an eater's tick counts ([eatenBy]).
+ Map<String, DateTime> get eatenAt;
 /// Create a copy of PlanEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -308,16 +311,16 @@ $PlanEntryCopyWith<PlanEntry> get copyWith => _$PlanEntryCopyWithImpl<PlanEntry>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.label, label) || other.label == label)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&const DeepCollectionEquality().equals(other.eaterIds, eaterIds)&&(identical(other.portions, portions) || other.portions == portions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.label, label) || other.label == label)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&const DeepCollectionEquality().equals(other.eaterIds, eaterIds)&&(identical(other.portions, portions) || other.portions == portions)&&const DeepCollectionEquality().equals(other.eatenAt, eatenAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,dayOfWeek,mealSlot,recipeId,recipeTitle,ingredientId,ingredientName,label,macros,quantity,unit,measureId,measure,nutrition,const DeepCollectionEquality().hash(eaterIds),portions);
+int get hashCode => Object.hash(runtimeType,id,dayOfWeek,mealSlot,recipeId,recipeTitle,ingredientId,ingredientName,label,macros,quantity,unit,measureId,measure,nutrition,const DeepCollectionEquality().hash(eaterIds),portions,const DeepCollectionEquality().hash(eatenAt));
 
 @override
 String toString() {
-  return 'PlanEntry(id: $id, dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, recipeId: $recipeId, recipeTitle: $recipeTitle, ingredientId: $ingredientId, ingredientName: $ingredientName, label: $label, macros: $macros, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, nutrition: $nutrition, eaterIds: $eaterIds, portions: $portions)';
+  return 'PlanEntry(id: $id, dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, recipeId: $recipeId, recipeTitle: $recipeTitle, ingredientId: $ingredientId, ingredientName: $ingredientName, label: $label, macros: $macros, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, nutrition: $nutrition, eaterIds: $eaterIds, portions: $portions, eatenAt: $eatenAt)';
 }
 
 
@@ -328,7 +331,7 @@ abstract mixin class $PlanEntryCopyWith<$Res>  {
   factory $PlanEntryCopyWith(PlanEntry value, $Res Function(PlanEntry) _then) = _$PlanEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, int dayOfWeek, String mealSlot, String? recipeId, String? recipeTitle, String? ingredientId, String? ingredientName, String? label, Macros? macros, double? quantity, Unit? unit, String? measureId, Measure? measure, IngredientNutrition? nutrition, List<String> eaterIds, int? portions
+ String id, int dayOfWeek, String mealSlot, String? recipeId, String? recipeTitle, String? ingredientId, String? ingredientName, String? label, Macros? macros, double? quantity, Unit? unit, String? measureId, Measure? measure, IngredientNutrition? nutrition, List<String> eaterIds, int? portions, Map<String, DateTime> eatenAt
 });
 
 
@@ -345,7 +348,7 @@ class _$PlanEntryCopyWithImpl<$Res>
 
 /// Create a copy of PlanEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? dayOfWeek = null,Object? mealSlot = null,Object? recipeId = freezed,Object? recipeTitle = freezed,Object? ingredientId = freezed,Object? ingredientName = freezed,Object? label = freezed,Object? macros = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? nutrition = freezed,Object? eaterIds = null,Object? portions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? dayOfWeek = null,Object? mealSlot = null,Object? recipeId = freezed,Object? recipeTitle = freezed,Object? ingredientId = freezed,Object? ingredientName = freezed,Object? label = freezed,Object? macros = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? nutrition = freezed,Object? eaterIds = null,Object? portions = freezed,Object? eatenAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,dayOfWeek: null == dayOfWeek ? _self.dayOfWeek : dayOfWeek // ignore: cast_nullable_to_non_nullable
@@ -363,7 +366,8 @@ as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast
 as Measure?,nutrition: freezed == nutrition ? _self.nutrition : nutrition // ignore: cast_nullable_to_non_nullable
 as IngredientNutrition?,eaterIds: null == eaterIds ? _self.eaterIds : eaterIds // ignore: cast_nullable_to_non_nullable
 as List<String>,portions: freezed == portions ? _self.portions : portions // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,eatenAt: null == eatenAt ? _self.eatenAt : eatenAt // ignore: cast_nullable_to_non_nullable
+as Map<String, DateTime>,
   ));
 }
 
@@ -448,10 +452,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int dayOfWeek,  String mealSlot,  String? recipeId,  String? recipeTitle,  String? ingredientId,  String? ingredientName,  String? label,  Macros? macros,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  IngredientNutrition? nutrition,  List<String> eaterIds,  int? portions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int dayOfWeek,  String mealSlot,  String? recipeId,  String? recipeTitle,  String? ingredientId,  String? ingredientName,  String? label,  Macros? macros,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  IngredientNutrition? nutrition,  List<String> eaterIds,  int? portions,  Map<String, DateTime> eatenAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlanEntry() when $default != null:
-return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.recipeTitle,_that.ingredientId,_that.ingredientName,_that.label,_that.macros,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.nutrition,_that.eaterIds,_that.portions);case _:
+return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.recipeTitle,_that.ingredientId,_that.ingredientName,_that.label,_that.macros,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.nutrition,_that.eaterIds,_that.portions,_that.eatenAt);case _:
   return orElse();
 
 }
@@ -469,10 +473,10 @@ return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.rec
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int dayOfWeek,  String mealSlot,  String? recipeId,  String? recipeTitle,  String? ingredientId,  String? ingredientName,  String? label,  Macros? macros,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  IngredientNutrition? nutrition,  List<String> eaterIds,  int? portions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int dayOfWeek,  String mealSlot,  String? recipeId,  String? recipeTitle,  String? ingredientId,  String? ingredientName,  String? label,  Macros? macros,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  IngredientNutrition? nutrition,  List<String> eaterIds,  int? portions,  Map<String, DateTime> eatenAt)  $default,) {final _that = this;
 switch (_that) {
 case _PlanEntry():
-return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.recipeTitle,_that.ingredientId,_that.ingredientName,_that.label,_that.macros,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.nutrition,_that.eaterIds,_that.portions);case _:
+return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.recipeTitle,_that.ingredientId,_that.ingredientName,_that.label,_that.macros,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.nutrition,_that.eaterIds,_that.portions,_that.eatenAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -489,10 +493,10 @@ return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.rec
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int dayOfWeek,  String mealSlot,  String? recipeId,  String? recipeTitle,  String? ingredientId,  String? ingredientName,  String? label,  Macros? macros,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  IngredientNutrition? nutrition,  List<String> eaterIds,  int? portions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int dayOfWeek,  String mealSlot,  String? recipeId,  String? recipeTitle,  String? ingredientId,  String? ingredientName,  String? label,  Macros? macros,  double? quantity,  Unit? unit,  String? measureId,  Measure? measure,  IngredientNutrition? nutrition,  List<String> eaterIds,  int? portions,  Map<String, DateTime> eatenAt)?  $default,) {final _that = this;
 switch (_that) {
 case _PlanEntry() when $default != null:
-return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.recipeTitle,_that.ingredientId,_that.ingredientName,_that.label,_that.macros,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.nutrition,_that.eaterIds,_that.portions);case _:
+return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.recipeTitle,_that.ingredientId,_that.ingredientName,_that.label,_that.macros,_that.quantity,_that.unit,_that.measureId,_that.measure,_that.nutrition,_that.eaterIds,_that.portions,_that.eatenAt);case _:
   return null;
 
 }
@@ -504,7 +508,7 @@ return $default(_that.id,_that.dayOfWeek,_that.mealSlot,_that.recipeId,_that.rec
 
 
 class _PlanEntry extends PlanEntry {
-  const _PlanEntry({required this.id, required this.dayOfWeek, required this.mealSlot, this.recipeId, this.recipeTitle, this.ingredientId, this.ingredientName, this.label, this.macros, this.quantity, this.unit, this.measureId, this.measure, this.nutrition, final  List<String> eaterIds = const <String>[], this.portions}): _eaterIds = eaterIds,super._();
+  const _PlanEntry({required this.id, required this.dayOfWeek, required this.mealSlot, this.recipeId, this.recipeTitle, this.ingredientId, this.ingredientName, this.label, this.macros, this.quantity, this.unit, this.measureId, this.measure, this.nutrition, final  List<String> eaterIds = const <String>[], this.portions, final  Map<String, DateTime> eatenAt = const <String, DateTime>{}}): _eaterIds = eaterIds,_eatenAt = eatenAt,super._();
   
 
 @override final  String id;
@@ -545,6 +549,19 @@ class _PlanEntry extends PlanEntry {
 
 /// How many portions to cook for; null tracks the eater count.
 @override final  int? portions;
+/// Who said they ate this meal, and when: member id → the time they gave.
+/// Ticking never edits the plan, so [eaterIds] and [portions] stay what
+/// was cooked for. Only an eater's tick counts ([eatenBy]).
+ final  Map<String, DateTime> _eatenAt;
+/// Who said they ate this meal, and when: member id → the time they gave.
+/// Ticking never edits the plan, so [eaterIds] and [portions] stay what
+/// was cooked for. Only an eater's tick counts ([eatenBy]).
+@override@JsonKey() Map<String, DateTime> get eatenAt {
+  if (_eatenAt is EqualUnmodifiableMapView) return _eatenAt;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_eatenAt);
+}
+
 
 /// Create a copy of PlanEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -556,16 +573,16 @@ _$PlanEntryCopyWith<_PlanEntry> get copyWith => __$PlanEntryCopyWithImpl<_PlanEn
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.label, label) || other.label == label)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&const DeepCollectionEquality().equals(other._eaterIds, _eaterIds)&&(identical(other.portions, portions) || other.portions == portions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.ingredientId, ingredientId) || other.ingredientId == ingredientId)&&(identical(other.ingredientName, ingredientName) || other.ingredientName == ingredientName)&&(identical(other.label, label) || other.label == label)&&(identical(other.macros, macros) || other.macros == macros)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unit, unit) || other.unit == unit)&&(identical(other.measureId, measureId) || other.measureId == measureId)&&(identical(other.measure, measure) || other.measure == measure)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&const DeepCollectionEquality().equals(other._eaterIds, _eaterIds)&&(identical(other.portions, portions) || other.portions == portions)&&const DeepCollectionEquality().equals(other._eatenAt, _eatenAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,dayOfWeek,mealSlot,recipeId,recipeTitle,ingredientId,ingredientName,label,macros,quantity,unit,measureId,measure,nutrition,const DeepCollectionEquality().hash(_eaterIds),portions);
+int get hashCode => Object.hash(runtimeType,id,dayOfWeek,mealSlot,recipeId,recipeTitle,ingredientId,ingredientName,label,macros,quantity,unit,measureId,measure,nutrition,const DeepCollectionEquality().hash(_eaterIds),portions,const DeepCollectionEquality().hash(_eatenAt));
 
 @override
 String toString() {
-  return 'PlanEntry(id: $id, dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, recipeId: $recipeId, recipeTitle: $recipeTitle, ingredientId: $ingredientId, ingredientName: $ingredientName, label: $label, macros: $macros, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, nutrition: $nutrition, eaterIds: $eaterIds, portions: $portions)';
+  return 'PlanEntry(id: $id, dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, recipeId: $recipeId, recipeTitle: $recipeTitle, ingredientId: $ingredientId, ingredientName: $ingredientName, label: $label, macros: $macros, quantity: $quantity, unit: $unit, measureId: $measureId, measure: $measure, nutrition: $nutrition, eaterIds: $eaterIds, portions: $portions, eatenAt: $eatenAt)';
 }
 
 
@@ -576,7 +593,7 @@ abstract mixin class _$PlanEntryCopyWith<$Res> implements $PlanEntryCopyWith<$Re
   factory _$PlanEntryCopyWith(_PlanEntry value, $Res Function(_PlanEntry) _then) = __$PlanEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int dayOfWeek, String mealSlot, String? recipeId, String? recipeTitle, String? ingredientId, String? ingredientName, String? label, Macros? macros, double? quantity, Unit? unit, String? measureId, Measure? measure, IngredientNutrition? nutrition, List<String> eaterIds, int? portions
+ String id, int dayOfWeek, String mealSlot, String? recipeId, String? recipeTitle, String? ingredientId, String? ingredientName, String? label, Macros? macros, double? quantity, Unit? unit, String? measureId, Measure? measure, IngredientNutrition? nutrition, List<String> eaterIds, int? portions, Map<String, DateTime> eatenAt
 });
 
 
@@ -593,7 +610,7 @@ class __$PlanEntryCopyWithImpl<$Res>
 
 /// Create a copy of PlanEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? dayOfWeek = null,Object? mealSlot = null,Object? recipeId = freezed,Object? recipeTitle = freezed,Object? ingredientId = freezed,Object? ingredientName = freezed,Object? label = freezed,Object? macros = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? nutrition = freezed,Object? eaterIds = null,Object? portions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? dayOfWeek = null,Object? mealSlot = null,Object? recipeId = freezed,Object? recipeTitle = freezed,Object? ingredientId = freezed,Object? ingredientName = freezed,Object? label = freezed,Object? macros = freezed,Object? quantity = freezed,Object? unit = freezed,Object? measureId = freezed,Object? measure = freezed,Object? nutrition = freezed,Object? eaterIds = null,Object? portions = freezed,Object? eatenAt = null,}) {
   return _then(_PlanEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,dayOfWeek: null == dayOfWeek ? _self.dayOfWeek : dayOfWeek // ignore: cast_nullable_to_non_nullable
@@ -611,7 +628,8 @@ as String?,measure: freezed == measure ? _self.measure : measure // ignore: cast
 as Measure?,nutrition: freezed == nutrition ? _self.nutrition : nutrition // ignore: cast_nullable_to_non_nullable
 as IngredientNutrition?,eaterIds: null == eaterIds ? _self._eaterIds : eaterIds // ignore: cast_nullable_to_non_nullable
 as List<String>,portions: freezed == portions ? _self.portions : portions // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,eatenAt: null == eatenAt ? _self._eatenAt : eatenAt // ignore: cast_nullable_to_non_nullable
+as Map<String, DateTime>,
   ));
 }
 

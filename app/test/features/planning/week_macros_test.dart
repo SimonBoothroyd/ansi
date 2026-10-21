@@ -774,4 +774,92 @@ void main() {
       },
     );
   });
+
+  group('eaten, not planned', () {
+    // Ada a portion, Jun three-quarters of one.
+    const members = {
+      'ada': Member(id: 'ada', displayName: 'Ada'),
+      'jun': Member(id: 'jun', displayName: 'Jun', portionFactor: 0.75),
+    };
+    final at = DateTime(2026, 10, 21, 19, 42);
+
+    MealSetMacros eaten(List<PlanEntry> entries, {String? lens}) =>
+        sumPlannedMacros(
+          entries,
+          summaryFor: _summaries,
+          lensMemberId: lens,
+          membersById: members,
+          eatenOnly: true,
+        );
+
+    test('a meal nobody ticked is out of scope — no meals, never 0 kcal', () {
+      final m = eaten([_entry(id: 'a')]);
+      expect(m.isEmpty, isTrue);
+      expect(m.total, isNull);
+    });
+
+    test('under Everyone it counts the shares of those who ticked', () {
+      final m = eaten([
+        _entry(id: 'a').copyWith(eatenAt: {'jun': at}),
+      ]);
+      // Jun's ¾ of a 100 kcal serving; Ada did not tick.
+      expect(m.total!.kcal, closeTo(75, 1e-9));
+      expect(m.counted, 1);
+    });
+
+    test('under a lens only that person, and only if they ticked', () {
+      final entry = _entry(id: 'a').copyWith(eatenAt: {'jun': at});
+      expect(eaten([entry], lens: 'ada').isEmpty, isTrue);
+      expect(eaten([entry], lens: 'jun').total!.kcal, closeTo(75, 1e-9));
+    });
+
+    test('a portions override is shared out by the eaters’ factors', () {
+      // 7 portions between factors 1 and ¾: Ada 4, Jun 3.
+      final entry = _entry(
+        id: 'a',
+        portions: 7,
+      ).copyWith(eatenAt: {'ada': at, 'jun': at});
+      expect(eaten([entry]).total!.kcal, closeTo(700, 1e-9));
+      expect(eaten([entry], lens: 'ada').total!.kcal, closeTo(400, 1e-9));
+    });
+
+    test('a tick from someone no longer eating it is not counted', () {
+      final entry = _entry(
+        id: 'a',
+        eaters: const ['ada'],
+      ).copyWith(eatenAt: {'jun': at});
+      expect(entry.eatenBy, isEmpty);
+      expect(eaten([entry]).isEmpty, isTrue);
+    });
+
+    test(
+      'an eaten meal that does not resolve is named, as planned ones are',
+      () {
+        final m = eaten([
+          _entry(id: 'a', recipeId: 'stub').copyWith(eatenAt: {'ada': at}),
+        ]);
+        expect(m.isRefused, isTrue);
+        expect(m.excluded.single.reason, MealExclusion.incomplete);
+      },
+    );
+  });
+
+  group('memberServings', () {
+    const members = {
+      'ada': Member(id: 'ada', displayName: 'Ada'),
+      'jun': Member(id: 'jun', displayName: 'Jun', portionFactor: 0.75),
+    };
+
+    test('is the usual portion, or a share of an override, or nothing', () {
+      expect(memberServings(_entry(id: 'a'), 'jun', members), 0.75);
+      expect(
+        memberServings(_entry(id: 'a', portions: 7), 'jun', members),
+        closeTo(3, 1e-9),
+      );
+      expect(
+        memberServings(_entry(id: 'a', eaters: const ['ada']), 'jun', members),
+        0,
+      );
+    });
+  });
 }

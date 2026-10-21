@@ -1,5 +1,6 @@
 /// The sheet a dish row's portions chip and avatars open: the meal's slot, its
-/// eaters and its portions.
+/// eaters and its portions — and, from the meal's own day on, *I ate this* for
+/// the member signed in on this phone (`meal_eaten_row.dart`).
 ///
 /// A field editor only: the recipe opens from the row's title and removal is
 /// the row's `−`. The day is not a field; a meal changes day by
@@ -12,6 +13,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/sync/session.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
@@ -19,6 +21,7 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
+import 'meal_eaten_row.dart';
 import 'meal_fields.dart';
 import 'week_variant_door.dart';
 import 'week_view_models.dart';
@@ -52,6 +55,15 @@ class _MealEditorSheet extends ConsumerWidget {
     // Removed while the sheet was open: draw nothing and let the user dismiss.
     if (entry == null) return const SizedBox.shrink();
 
+    // Only the person signed in here, only on a meal they are eating, and only
+    // once its day has come.
+    final me = ref.watch(currentMemberIdProvider);
+    final mealDay = entry.dateIn(week!.weekStart);
+    final canTick =
+        me != null &&
+        entry.eaterIds.contains(me) &&
+        !mealDay.isAfter(ref.watch(todayProvider));
+
     return AnsiSheetShell(
       // Every control writes through, so the way out is "Close".
       title: entry.recipeTitle ?? 'This meal',
@@ -64,6 +76,10 @@ class _MealEditorSheet extends ConsumerWidget {
       topPadding: 16,
       scrollable: true,
       children: [
+        if (canTick) ...[
+          const SizedBox(height: 16),
+          MealEatenRow(entry: entry, memberId: me, mealDay: mealDay),
+        ],
         const SizedBox(height: 18),
         const AnsiMicroLabel('Slot'),
         MealSlotPicker(

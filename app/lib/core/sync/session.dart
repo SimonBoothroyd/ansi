@@ -7,6 +7,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:powersync/powersync.dart' show PowerSyncDatabase;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -14,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/books/data/book_repository_impl.dart';
+import '../config/env.dart';
 import 'connector.dart';
 import 'database.dart';
 import 'device_prefs.dart';
@@ -306,3 +308,42 @@ String currentHouseholdId(Ref ref) {
   }
   return session.session.householdId;
 }
+
+/// The `member_id` claim of a Supabase access token: the household member the
+/// signed-in person is (0055). Null for a token issued before the claim
+/// existed, or one that cannot be read.
+String? memberIdFromAccessToken(String? token) {
+  final parts = token?.split('.');
+  if (parts == null || parts.length != 3) return null;
+  try {
+    final payload = jsonDecode(
+      utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+    );
+    final id = payload is Map ? payload['member_id'] : null;
+    return id is String && id.isNotEmpty ? id : null;
+  } on FormatException {
+    return null;
+  }
+}
+
+/// The member signed in on this phone, live: re-read on every token issue, so
+/// a session from before the claim existed picks it up at its next refresh.
+/// Null with no session, no claim yet, or no cloud.
+@Riverpod(keepAlive: true)
+Stream<String?> currentMemberIdStream(Ref ref) async* {
+  if (!Env.isConfigured) {
+    yield null;
+    return;
+  }
+  final auth = ref.watch(supabaseClientProvider).auth;
+  yield memberIdFromAccessToken(auth.currentSession?.accessToken);
+  yield* auth.onAuthStateChange.map(
+    (e) => memberIdFromAccessToken(e.session?.accessToken),
+  );
+}
+
+/// [currentMemberIdStream] as a plain value: who "I" am on this phone, or null
+/// while that is not known — then nothing offers to tick for anyone.
+@Riverpod(keepAlive: true)
+String? currentMemberId(Ref ref) =>
+    ref.watch(currentMemberIdStreamProvider).asData?.value;

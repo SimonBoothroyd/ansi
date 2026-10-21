@@ -592,7 +592,11 @@ class _Agenda extends ConsumerWidget {
             ],
           ),
         ),
-        WeekFootBand(macros: ref.watch(weekMacrosProvider(lens)), scope: scope),
+        WeekFootBand(
+          macros: ref.watch(weekMacrosProvider(lens)),
+          eaten: ref.watch(weekEatenMacrosProvider(lens)),
+          scope: scope,
+        ),
       ],
     );
   }

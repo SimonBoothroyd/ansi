@@ -86,6 +86,19 @@ abstract interface class PlanningRepository {
   /// Soft-deletes a planned meal.
   Future<void> removeEntry(String entryId);
 
+  /// Brings back a meal [removeEntry] took away — the same row, so whatever
+  /// hangs off it (who ate it) comes back with it.
+  Future<void> restoreEntry(String entryId);
+
+  /// Says [memberId] ate the meal at [eatenAt], or — with null — that they did
+  /// not. A second call moves the time. Only the member signed in on this
+  /// phone may be named: the server refuses anyone else (0055).
+  Future<void> setMealEaten(
+    String entryId, {
+    required String memberId,
+    required DateTime? eatenAt,
+  });
+
   /// Copies every meal from [mostRecentWeekBefore] into the week beginning
   /// [weekStart]. This-week recipe variants are not copied; the result names
   /// each one left behind.

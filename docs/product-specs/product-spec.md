@@ -737,6 +737,21 @@ go. There is no re-chip — tokenization happens only inside the import call.
     `1¾`, not `2`; and an eater the roster no longer holds counts as one
     portion, exactly as the head-count did. Demand is a `double` and is
     printed as a fraction everywhere, never rounded.
+- `meal_eaten: id · household_id · plan_entry_id · member_id · eaten_at`
+  (migration 0055, plan 0054)
+  - **A member saying they ate a planned meal**, and when. Written only by
+    that member — the server compares `member_id` with `current_member_id()`
+    — and read by the household. An untick sets `deleted_at`; duplicate
+    offline ticks merge on read, oldest canonical. Ticking **never edits the
+    plan**: `eaters`, `portions` and the batch stay what was cooked and bought
+    for. A tick from someone no longer among the eaters is kept but not
+    counted.
+  - **The phone knows who it is** from the access token's `member_id` claim,
+    injected by the same hook as `household_id`; `auth_user_id` still never
+    leaves the server.
+  - **A person's share** of a meal is `memberServings`: their
+    `portion_factor`, or a `portions` override shared out by the eaters'
+    factors — the lens's rule, used for eaten figures too.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
@@ -1317,7 +1332,25 @@ say what each tap means without one.
   ("dinner · Ada & Jun · 1¾ portions"), because an undo you cannot audit is a
   promise rather than a control. This is the one deliberate exception to "no
   success toasts" — the toast is not reporting success, it is carrying the
-  undo.
+  undo. **Undo restores the same row**, so whoever ticked it is ticked again —
+  a partner's tick included, which this phone could not write back — and the
+  toast says so (`Jun ate it`).
+- **Who ate it is a small tick on their avatar** (plan 0054). The row is
+  unchanged; a member who said they ate the meal carries a green tick at
+  their avatar's corner, visible to the whole household. The avatars still
+  open the meal sheet, which — from the meal's own day on, for the member
+  signed in on this phone, on a meal they are eating — leads with one row:
+  **I ate this**, a switch, and once on the time (`19:42 ›`, or `Thu 19:42`
+  on another day) that opens a date-and-time wheel. A tick is when it was
+  made; one made after the meal's day defaults to that day at the tick's
+  clock time. Nobody can tick for anyone else. A future meal's sheet is
+  unchanged, and so is the sheet of a phone that does not yet know who it is
+  (a token from before the claim, until it refreshes).
+- **What was eaten sits above what was planned.** Once anybody ticks a meal,
+  the week band (and the wide foot) leads with `EATEN · 2 940 kcal · 3
+  meals` under the same lens, the sum of the ticked people's shares; a meal
+  nobody ticked is out of that scope, never a zero. The day lines stay the
+  plan.
 - **One add door, in every state (E5).** `＋ add a meal` is the last row of
   every day card, sitting with the meals and **above** the day's total,
   because it adds a *meal*, not a number. On an empty day it is the same line

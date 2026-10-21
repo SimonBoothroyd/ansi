@@ -46,9 +46,20 @@ Hobby scale, but the basics are non-negotiable.
   claim, nothing syncs. Note: Supabase local issues **ES256** tokens, verified
   by PowerSync via the Supabase **JWKS** endpoint (not a shared secret); and a
   `config.toml` hook change needs a full `supabase stop && supabase start`.
+  Since 0055 the same hook also injects the caller's own **`member_id`**, from
+  the same membership, so a phone knows which member it is without
+  `auth_user_id` ever leaving the server.
 - Everything is scoped to `household_id`. **Row-Level Security policies** on every
   table enforce that a household only ever reads/writes its own rows — the
   client is untrusted. The sync rules mirror those boundaries.
+- **One table narrows writes to the member, not just the household:**
+  `meal_eaten` (0055, plan
+  [0054](./exec-plans/active/0054-eaten-vs-planned.md)) — who said they ate a
+  meal. It reads household-wide, but its insert and update policies also
+  require `member_id = current_member_id()` (`SECURITY DEFINER`, the oldest
+  live membership, agreeing with `current_household_id()`), so no phone can
+  tick, re-time or untick a meal for anyone else
+  (`supabase/tests/meal_eaten.sql`).
 - Deletes are soft-delete tombstones (spec §3), not hard deletes — the PowerSync
   connector maps even a stray CRUD delete to a `deleted_at` update.
 - **A recipe's share link** (`recipe_share`, migration 0054, plan

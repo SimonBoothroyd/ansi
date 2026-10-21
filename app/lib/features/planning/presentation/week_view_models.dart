@@ -292,6 +292,21 @@ MealSetMacros weekMacros(Ref ref, String? lens) {
   );
 }
 
+/// What the viewed week's ticks add up to under [lens] (null = Everyone): the
+/// same sum as [weekMacros], counting only meals somebody said they ate.
+@riverpod
+MealSetMacros weekEatenMacros(Ref ref, String? lens) {
+  final plan = ref.watch(viewedWeekProvider).asData?.value;
+  final macros = ref.watch(weekRecipeMacrosProvider);
+  return sumPlannedMacros(
+    plan?.entries ?? const [],
+    summaryFor: (id) => macros[id],
+    lensMemberId: lens,
+    membersById: ref.watch(membersByIdProvider),
+    eatenOnly: true,
+  );
+}
+
 /// One meal's macros under [lens], as served. Keyed by entry id so it follows
 /// the live week; an id the week no longer has reads as an empty set.
 @riverpod

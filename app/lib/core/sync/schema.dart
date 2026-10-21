@@ -129,6 +129,17 @@ const schema = Schema([
     Column.integer('sort_order'),
     ..._audit,
   ]),
+  // A member saying they ate a planned meal (0055). Written only for the
+  // member signed in on this phone; an untick sets `deleted_at`. Duplicates
+  // merge on read, oldest canonical, so an offline double tick never fails
+  // upload.
+  Table('meal_eaten', [
+    Column.text('household_id'),
+    Column.text('plan_entry_id'), // → plan_entry.id
+    Column.text('member_id'), // → household_member.id
+    Column.text('eaten_at'), // ISO-8601 UTC
+    ..._audit,
+  ]),
   // One delta against a recipe line for one planned week, keyed on
   // (week_plan, recipe). Amounts are absolute.
   Table('week_recipe_line_override', [

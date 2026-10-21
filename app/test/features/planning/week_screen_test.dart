@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ansi/core/sync/session.dart';
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
@@ -18,6 +19,7 @@ import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_macro_widgets.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
+import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
@@ -71,13 +73,15 @@ class _FakePlanningRepo extends FakePlanningRepository {
 }
 
 /// A planner whose writes are REAL to the stream: `removeEntry` re-emits the
-/// week without the entry and `addEntry` re-emits it with one, which is what
-/// lets a test watch the `−` and its undo round-trip (E3).
+/// week without the entry, `restoreEntry` brings the same row back and
+/// `addEntry` re-emits it with a new one, which is what lets a test watch the
+/// `−` and its undo round-trip (E3).
 class _LivePlanningRepo extends _FakePlanningRepo {
   _LivePlanningRepo(WeekPlan week) : _week = week, super(week: week);
 
   WeekPlan _week;
   final _ctrl = StreamController<WeekPlan?>.broadcast();
+  final _removed = <String, PlanEntry>{};
 
   @override
   Stream<WeekPlan?> watchWeek(DateTime weekStart) async* {
@@ -87,9 +91,21 @@ class _LivePlanningRepo extends _FakePlanningRepo {
 
   @override
   Future<void> removeEntry(String entryId) async {
+    for (final e in _week.entries) {
+      if (e.id == entryId) _removed[entryId] = e;
+    }
     _week = _week.copyWith(
       entries: [..._week.entries.where((e) => e.id != entryId)],
     );
+    _ctrl.add(_week);
+  }
+
+  @override
+  Future<void> restoreEntry(String entryId) async {
+    await super.restoreEntry(entryId);
+    final back = _removed.remove(entryId);
+    if (back == null) return;
+    _week = _week.copyWith(entries: [..._week.entries, back]);
     _ctrl.add(_week);
   }
 
@@ -210,6 +226,7 @@ Future<void> _pumpWeek(
   CookPlanRepository? cook,
   WeekShape shape = WeekShape.monday,
   void Function(GoRouter)? expose,
+  List<Override> extra = const [],
 }) async {
   final overrides = [
     planningRepositoryProvider.overrideWithValue(
@@ -219,6 +236,7 @@ Future<void> _pumpWeek(
       recipes ?? FakeRecipeRepository(),
     ),
     weekShapeProvider.overrideWithValue(shape),
+    ...extra,
   ];
   await tester.pumpWidget(
     expose == null
@@ -335,11 +353,25 @@ class _LiveOutRepo extends _FakePlanningRepo {
     yield* _ctrl.stream;
   }
 
+  final _removed = <String, PlanEntry>{};
+
   @override
   Future<void> removeEntry(String entryId) async {
+    for (final e in _week.entries) {
+      if (e.id == entryId) _removed[entryId] = e;
+    }
     _week = _week.copyWith(
       entries: [..._week.entries.where((e) => e.id != entryId)],
     );
+    _ctrl.add(_week);
+  }
+
+  @override
+  Future<void> restoreEntry(String entryId) async {
+    await super.restoreEntry(entryId);
+    final back = _removed.remove(entryId);
+    if (back == null) return;
+    _week = _week.copyWith(entries: [..._week.entries, back]);
     _ctrl.add(_week);
   }
 }
@@ -1324,8 +1356,10 @@ void main() {
 
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
-      expect(planning.outEntries.single.label, 'Office lunch');
-      expect(planning.outEntries.single.macros!.kcal, 620);
+      // The same row comes back, words, figures and all.
+      expect(planning.restores, [_outWeek().entries.single.id]);
+      expect(find.text('Office lunch'), findsOneWidget);
+      expect(planning.outEntries, isEmpty);
     });
   });
 
@@ -1404,6 +1438,127 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  group('who ate it', () {
+    // The fixture's dinner is Thursday 27 Aug; the phone is Ada's (m1).
+    final thursdayEvening = DateTime(2026, 8, 27, 19, 42);
+
+    Future<_FakePlanningRepo> pumpTickable(
+      WidgetTester tester, {
+      required WeekPlan week,
+      String? me = 'm1',
+      DateTime? now,
+    }) async {
+      final planning = _FakePlanningRepo(week: week);
+      await _pumpWeek(
+        tester,
+        planning: planning,
+        extra: [
+          currentMemberIdProvider.overrideWithValue(me),
+          clockProvider.overrideWithValue(() => now ?? thursdayEvening),
+        ],
+      );
+      return planning;
+    }
+
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.tap(find.bySemanticsLabel(RegExp('^Who is eating')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a tick is a small mark on that person\u2019s avatar', (
+      tester,
+    ) async {
+      final week = _plannedWeek(eaters: const ['m1', 'm2']);
+      await pumpTickable(
+        tester,
+        week: week.copyWith(
+          entries: [
+            week.entries.single.copyWith(eatenAt: {'m2': thursdayEvening}),
+          ],
+        ),
+      );
+      expect(find.byKey(const ValueKey('ate-m2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ate-m1')), findsNothing);
+    });
+
+    testWidgets('on the meal\u2019s day the sheet offers I ate this, and a '
+        'tick is written for this phone\u2019s member at the time', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final planning = await pumpTickable(tester, week: _plannedWeek());
+      await openSheet(tester);
+      expect(find.text('I ate this'), findsOneWidget);
+
+      await tester.tap(find.byType(FSwitch));
+      await tester.pumpAndSettle();
+      expect(planning.eatenWrites, [('e1', 'm1', thursdayEvening)]);
+    });
+
+    testWidgets('a tick on a later day lands on the meal\u2019s own day', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final planning = await pumpTickable(
+        tester,
+        week: _plannedWeek(),
+        now: DateTime(2026, 8, 29, 9, 15),
+      );
+      await openSheet(tester);
+      await tester.tap(find.byType(FSwitch));
+      await tester.pumpAndSettle();
+      expect(planning.eatenWrites.single.$3, DateTime(2026, 8, 27, 9, 15));
+    });
+
+    testWidgets('a meal still to come offers no tick', (tester) async {
+      await pumpTickable(
+        tester,
+        week: _plannedWeek(),
+        now: DateTime(2026, 8, 26, 12),
+      );
+      await openSheet(tester);
+      expect(find.text('I ate this'), findsNothing);
+      // The rest of the sheet is as it was.
+      expect(
+        find.textContaining(RegExp('who.s eating', caseSensitive: false)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('nobody is ticked for: not a meal I am not eating, and not '
+        'while this phone does not know who it is', (tester) async {
+      await pumpTickable(tester, week: _plannedWeek(eaters: const ['m2']));
+      await openSheet(tester);
+      expect(find.text('I ate this'), findsNothing);
+    });
+
+    testWidgets('an unknown member sees no tick either', (tester) async {
+      await pumpTickable(tester, week: _plannedWeek(), me: null);
+      await openSheet(tester);
+      expect(find.text('I ate this'), findsNothing);
+    });
+
+    testWidgets('a ticked meal shows its time, and switching off unticks', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final week = _plannedWeek();
+      final planning = await pumpTickable(
+        tester,
+        week: week.copyWith(
+          entries: [
+            week.entries.single.copyWith(eatenAt: {'m1': thursdayEvening}),
+          ],
+        ),
+      );
+      await openSheet(tester);
+      expect(find.text('19:42 \u203a'), findsOneWidget);
+      await tester.tap(find.byType(FSwitch));
+      await tester.pumpAndSettle();
+      expect(planning.eatenWrites, [('e1', 'm1', null)]);
     });
   });
 }

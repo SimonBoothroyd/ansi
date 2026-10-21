@@ -66,6 +66,23 @@ double eatersDemand(
 double demandPortions(PlanEntry entry, Map<String, Member> membersById) =>
     entry.portions?.toDouble() ?? eatersDemand(entry.eaterIds, membersById);
 
+/// [memberId]'s share of [entry] in servings: their usual portion, or — under a
+/// [PlanEntry.portions] override — the override shared out by the eaters'
+/// factors. Zero when they are not eating it. The Week's lens, the eaten
+/// figures and Health Connect all read a person's share through here.
+double memberServings(
+  PlanEntry entry,
+  String memberId,
+  Map<String, Member> membersById,
+) {
+  if (!entry.eaterIds.contains(memberId)) return 0;
+  final factor = membersById[memberId]?.portionFactor ?? 1;
+  final override = entry.portions;
+  if (override == null) return factor;
+  final factorsSum = eatersDemand(entry.eaterIds, membersById);
+  return factorsSum <= 0 ? 0 : factor * override / factorsSum;
+}
+
 /// What a planned meal is. Derivations `switch` on it so the compiler checks
 /// every kind is handled; a null `recipe_id` must never be read as "skip".
 enum PlanEntryKind {
@@ -135,6 +152,11 @@ abstract class PlanEntry with _$PlanEntry {
 
     /// How many portions to cook for; null tracks the eater count.
     int? portions,
+
+    /// Who said they ate this meal, and when: member id → the time they gave.
+    /// Ticking never edits the plan, so [eaterIds] and [portions] stay what
+    /// was cooked for. Only an eater's tick counts ([eatenBy]).
+    @Default(<String, DateTime>{}) Map<String, DateTime> eatenAt,
   }) = _PlanEntry;
 
   /// What this meal is, from whichever target column is set.
@@ -154,6 +176,18 @@ abstract class PlanEntry with _$PlanEntry {
   /// The [portions] override, or the eater head-count — before portion factors.
   /// The demand a plan cooks for is [demandPortions].
   int get portionsOrDefault => portions ?? eaterIds.length;
+
+  /// The eaters who said they ate it. A tick from someone no longer eating
+  /// the meal is kept but not counted.
+  Set<String> get eatenBy => {
+    for (final id in eaterIds)
+      if (eatenAt.containsKey(id)) id,
+  };
+
+  /// The local calendar day this meal falls on in the week beginning
+  /// [weekStart].
+  DateTime dateIn(DateTime weekStart) =>
+      DateTime(weekStart.year, weekStart.month, weekStart.day + dayOfWeek);
 }
 
 /// The words for a meal whose recipe or vocab row is gone, one sentence per

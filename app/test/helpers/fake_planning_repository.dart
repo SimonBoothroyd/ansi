@@ -153,6 +153,22 @@ class FakePlanningRepository implements PlanningRepository {
   @override
   Future<void> removeEntry(String entryId) async {}
 
+  /// Every entry id handed to [restoreEntry], in order.
+  final restores = <String>[];
+
+  @override
+  Future<void> restoreEntry(String entryId) async => restores.add(entryId);
+
+  /// Every `(entryId, memberId, eatenAt)` handed to [setMealEaten], in order.
+  final eatenWrites = <(String, String, DateTime?)>[];
+
+  @override
+  Future<void> setMealEaten(
+    String entryId, {
+    required String memberId,
+    required DateTime? eatenAt,
+  }) async => eatenWrites.add((entryId, memberId, eatenAt));
+
   @override
   Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart) async =>
       (meals: 0, variantsLeftBehind: const <VariantLeftBehind>[]);

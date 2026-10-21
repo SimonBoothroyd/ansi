@@ -8,10 +8,10 @@
 -- `supabase test db`.
 
 begin;
--- 18 tables x (select isolation + cross-household insert rejection)
+-- 19 tables x (select isolation + cross-household insert rejection)
 -- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks
 -- + 2 household column-grant checks + 4 usda_search_* denials.
-select plan(49);
+select plan(51);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -21,9 +21,9 @@ insert into auth.users (instance_id, id, aud, role, email) values
 insert into household (id, name) values
  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','House A'),
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','House B');
-insert into household_member (household_id, display_name, auth_user_id) values
- ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','A1','11111111-1111-1111-1111-111111111111'),
- ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','B1','22222222-2222-2222-2222-222222222222');
+insert into household_member (id, household_id, display_name, auth_user_id) values
+ ('aaaaaaaa-0000-0000-0000-000000000016','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','A1','11111111-1111-1111-1111-111111111111'),
+ ('bbbbbbbb-0000-0000-0000-000000000016','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','B1','22222222-2222-2222-2222-222222222222');
 insert into ingredient (id, household_id, canonical_name, default_unit, match_text) values
  ('aaaaaaaa-0000-0000-0000-000000000001','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','Flour','g','flour'),
  ('bbbbbbbb-0000-0000-0000-000000000001','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','Sugar','g','sugar');
@@ -60,6 +60,9 @@ insert into week_plan (id, household_id, week_start_date) values
 insert into plan_entry (id, household_id, week_plan_id, day_of_week, meal_slot, recipe_id) values
  ('aaaaaaaa-0000-0000-0000-000000000008','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000007',0,'Dinner','aaaaaaaa-0000-0000-0000-000000000004'),
  ('bbbbbbbb-0000-0000-0000-000000000008','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000007',0,'Dinner','bbbbbbbb-0000-0000-0000-000000000004');
+insert into meal_eaten (id, household_id, plan_entry_id, member_id, eaten_at) values
+ ('aaaaaaaa-0000-0000-0000-000000000017','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000008','aaaaaaaa-0000-0000-0000-000000000016','2026-01-05T19:00:00Z'),
+ ('bbbbbbbb-0000-0000-0000-000000000017','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000008','bbbbbbbb-0000-0000-0000-000000000016','2026-01-05T19:00:00Z');
 insert into shopping_list_entry (id, household_id, ingredient_id) values
  ('aaaaaaaa-0000-0000-0000-000000000009','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001'),
  ('bbbbbbbb-0000-0000-0000-000000000009','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001');
@@ -152,7 +155,12 @@ insert into iso_case values
  (18, 'recipe_share',
       $$ insert into recipe_share (household_id, recipe_id, token)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004','cccccccccccccccccccccc') $$,
-      'permission denied for table recipe_share');
+      'permission denied for table recipe_share'),
+ -- B's own member and meal, so only the household boundary can refuse it.
+ (19, 'meal_eaten',
+      $$ insert into meal_eaten (household_id, plan_entry_id, member_id, eaten_at)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000008','bbbbbbbb-0000-0000-0000-000000000016','2026-01-05T19:00:00Z') $$,
+      'new row violates row-level security policy for table "meal_eaten"');
 grant select on iso_case to authenticated;
 
 -- Row-count helper. Invoker rights, so when called as `authenticated` the

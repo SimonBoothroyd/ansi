@@ -24,7 +24,6 @@ import '../domain/planning.dart';
 import 'meal_editor_sheet.dart';
 import 'week_format.dart';
 import 'week_variant_format.dart';
-import 'week_view_models.dart';
 
 /// A rounded, tappable label that fills herb-green when [selected]. An [icon]
 /// renders instead of the label (the bundled fonts lack glyphs like ＋).
@@ -93,12 +92,14 @@ const _memberPalette = [
 Color memberColor(int rank) => _memberPalette[rank % _memberPalette.length];
 
 /// An initial-circle for a household member, ringed white so it reads when
-/// overlapped. [dimmed] greys it; [color] is the member's roster colour.
+/// overlapped. [dimmed] greys it; [color] is the member's roster colour;
+/// [ate] adds a small tick at its corner.
 class EaterAvatar extends StatelessWidget {
   const EaterAvatar({
     required this.member,
     this.color = AnsiColors.herb,
     this.dimmed = false,
+    this.ate = false,
     super.key,
   });
 
@@ -106,8 +107,42 @@ class EaterAvatar extends StatelessWidget {
   final Color color;
   final bool dimmed;
 
+  /// The member said they ate the meal.
+  final bool ate;
+
   @override
   Widget build(BuildContext context) {
+    final circle = _circle();
+    if (!ate) return circle;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        circle,
+        Positioned(
+          right: -3,
+          bottom: -3,
+          child: Container(
+            key: ValueKey('ate-${member.id}'),
+            width: 13,
+            height: 13,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AnsiColors.fresh,
+              shape: BoxShape.circle,
+              border: Border.all(color: AnsiColors.surface, width: 1.5),
+            ),
+            child: const Icon(
+              FLucideIcons.check,
+              size: 7,
+              color: AnsiColors.surface,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _circle() {
     return Container(
       width: 24,
       height: 24,
@@ -135,11 +170,15 @@ class EaterAvatarStack extends StatelessWidget {
   const EaterAvatarStack({
     required this.roster,
     required this.eaterIds,
+    this.eatenIds = const {},
     super.key,
   });
 
   final List<Member> roster;
   final Set<String> eaterIds;
+
+  /// The eaters who said they ate it; each gets a tick.
+  final Set<String> eatenIds;
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +194,7 @@ class EaterAvatarStack extends StatelessWidget {
       width: size + (eating.length - 1) * step,
       height: size,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           for (var j = 0; j < eating.length; j++)
             Positioned(
@@ -162,6 +202,7 @@ class EaterAvatarStack extends StatelessWidget {
               child: EaterAvatar(
                 member: eating[j].$2,
                 color: memberColor(eating[j].$1),
+                ate: eatenIds.contains(eating[j].$2.id),
               ),
             ),
         ],
@@ -237,9 +278,15 @@ class EatersTarget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nobody = entry.eaterIds.isEmpty && portions == null;
+    final ate = [
+      for (final m in roster)
+        if (entry.eatenBy.contains(m.id)) m.displayName,
+    ];
     return AnsiTap(
       onTap: () => showMealEditorSheet(context, entry: entry),
-      semanticsLabel: 'Who is eating',
+      semanticsLabel: ate.isEmpty
+          ? 'Who is eating'
+          : 'Who is eating. ${ate.join(' and ')} ate it',
       // Vertical padding is the hit area: it brings the 24 pt avatars to ~44.
       padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
       child: Row(
@@ -252,7 +299,11 @@ class EatersTarget extends StatelessWidget {
           if (nobody)
             Text('nobody', style: ansiMono(size: 10, color: AnsiColors.muted))
           else
-            EaterAvatarStack(roster: roster, eaterIds: entry.eaterIds.toSet()),
+            EaterAvatarStack(
+              roster: roster,
+              eaterIds: entry.eaterIds.toSet(),
+              eatenIds: entry.eatenBy,
+            ),
         ],
       ),
     );
@@ -280,7 +331,6 @@ class RemoveTarget extends ConsumerWidget {
 
   Future<void> _remove(BuildContext context, WidgetRef ref) async {
     final repo = ref.read(planningRepositoryProvider);
-    final weekStart = ref.read(viewedWeekStartProvider);
     // Captured before the write: the undo fires from a toast after this row is
     // gone, when `ref` and this context are unusable (`shared/write.dart`).
     final container = ProviderScope.containerOf(context, listen: false);
@@ -304,44 +354,19 @@ class RemoveTarget extends ConsumerWidget {
         container.write(
           host,
           'put that meal back',
-          // A new row with the same facts; nothing downstream keys on the old
-          // id. Each kind comes back with everything it carried.
-          () => switch (entry.kind) {
-            PlanEntryKind.ingredient => repo.addIngredientEntry(
-              weekStart: weekStart,
-              dayOfWeek: entry.dayOfWeek,
-              mealSlot: entry.mealSlot,
-              ingredientId: entry.ingredientId!,
-              eaterIds: entry.eaterIds,
-              quantity: entry.quantity,
-              unit: entry.unit,
-              measureId: entry.measureId,
-              portions: entry.portions,
-            ),
-            PlanEntryKind.out => repo.addOutEntry(
-              weekStart: weekStart,
-              dayOfWeek: entry.dayOfWeek,
-              mealSlot: entry.mealSlot,
-              label: entry.label!,
-              eaterIds: entry.eaterIds,
-              macros: entry.macros,
-              portions: entry.portions,
-            ),
-            PlanEntryKind.recipe => repo.addEntry(
-              weekStart: weekStart,
-              dayOfWeek: entry.dayOfWeek,
-              mealSlot: entry.mealSlot,
-              recipeId: entry.recipeId!,
-              eaterIds: entry.eaterIds,
-              portions: entry.portions,
-            ),
-          },
+          // The same row, so who ate it comes back with it — including a
+          // partner's tick, which this phone could not write again.
+          () => repo.restoreEntry(entry.id),
         ),
       ),
     );
   }
 
   String _undoDetail() {
+    final ate = [
+      for (final m in roster)
+        if (entry.eatenBy.contains(m.id)) m.displayName,
+    ];
     final names = [
       for (final m in roster)
         if (entry.eaterIds.contains(m.id)) m.displayName,
@@ -354,6 +379,7 @@ class RemoveTarget extends ConsumerWidget {
       entry.mealSlot.toLowerCase(),
       if (names.isNotEmpty) names.join(' & '),
       formatPortions(portions),
+      if (ate.isNotEmpty) '${ate.join(' & ')} ate it',
     ].join(' · ');
   }
 }

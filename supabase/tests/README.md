@@ -4,7 +4,7 @@ pgTAP tests for RLS policies and constraints. Run with `supabase test db`
 (also run in CI, `.github/workflows/backend.yml`). Each `*.sql` file wraps its
 assertions in `begin … rollback` so runs leave no residue.
 
-- `rls_household_isolation.sql` — data-driven over ALL 18 household-scoped
+- `rls_household_isolation.sql` — data-driven over ALL 19 household-scoped
   tables: a household can't read or write another's rows (select isolation +
   cross-household insert rejection per table); `usda_food` is denied to client
   roles but readable by `service_role`. New table? Add one setup row + one
@@ -66,6 +66,9 @@ assertions in `begin … rollback` so runs leave no residue.
   that a soft-deleted link doesn't count, and that a `sub_recipe_id` can
   never reach another household's recipe (from `authenticated` AND from a
   superuser write, where RLS isn't doing the work).
+- `meal_eaten.sql` — who ate a planned meal (0055, plan 0054): a member
+  ticks, re-times and unticks only their own meals (`current_member_id()`),
+  cannot tick for or untick a partner, and reads the partner's ticks.
 - `recipe_share.sql` — a recipe's share link (0054, plan 0051): the token is
   minted by `share_recipe()` alone (22 url-safe characters, the same one while
   live, a fresh one after `unshare_recipe()`); a member cannot insert or update
@@ -183,9 +186,11 @@ assertions in `begin … rollback` so runs leave no residue.
   member touches 0 rows, and the column-narrow grant means `display_name` and
   `auth_user_id` raise `42501` from the client (P-D3 — the one UPDATE door the
   table has).
-- `access_token_hook.sql` — `add_household_claim()` (0007/0008): injects the
+- `access_token_hook.sql` — `add_household_claim()` (0007/0008/0055): injects the
   `household_id` claim for an onboarded user (oldest live membership,
   agreeing with `current_household_id()`), passes a not-yet-onboarded user's
   event through unchanged, and is executable only by `supabase_auth_admin`.
+  Since 0055 it also injects that membership's own `member_id`, agreeing with
+  `current_member_id()`.
 
 Add a test here whenever a new table's RLS or a constraint needs defending.

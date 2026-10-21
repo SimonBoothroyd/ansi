@@ -81,6 +81,14 @@
         .avs{display:flex;}
         .av{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:8px;font-weight:600;color:#fff;font-family:'IBM Plex Mono',monospace;border:1.5px solid var(--frame);margin-left:-4px;flex:none;}
         .av:first-child{margin-left:0;}
+        /* who ate it: a small tick at an avatar's corner (plan 0054) */
+        .av.ate{position:relative;}
+        .av.ate::after{content:"✓";position:absolute;right:-4px;bottom:-4px;width:9px;height:9px;border-radius:50%;background:var(--fresh);color:#fff;font-size:6px;line-height:9px;text-align:center;border:1.5px solid var(--frame);}
+        .eaten-row{display:flex;align-items:center;gap:10px;margin:12px 20px 0;padding:10px 12px;border-radius:12px;background:var(--paper);font-size:14px;font-weight:500;}
+        .eaten-row .when{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--herb-deep);font-weight:400;}
+        .eaten-row .sw{width:36px;height:22px;border-radius:11px;background:var(--herb);position:relative;flex:none;}
+        .eaten-row .sw::after{content:"";position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;}
+        .eaten-line{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);margin:0 0 6px;}
         .av.a{background:var(--herb);}.av.j{background:var(--ink);}
 
         /* tabbar + nav */

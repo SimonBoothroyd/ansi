@@ -11,7 +11,7 @@
 -- Run by `supabase test db`.
 
 begin;
-select plan(5);
+select plan(6);
 
 insert into auth.users (instance_id, id, aud, role, email) values
  ('00000000-0000-0000-0000-000000000000','11111111-aaaa-aaaa-aaaa-111111111111','authenticated','authenticated','hook-a@x.com'),
@@ -53,6 +53,16 @@ select is(
   ) -> 'claims' ->> 'household_id',
   current_household_id()::text,
   'the hook and current_household_id() resolve the same membership'
+);
+
+-- 0055: the same membership's own member id rides beside it, so a phone
+-- knows who is signed in without auth_user_id ever leaving the server.
+select is(
+  add_household_claim(
+    jsonb_build_object('user_id', '11111111-aaaa-aaaa-aaaa-111111111111', 'claims', '{}'::jsonb)
+  ) -> 'claims' ->> 'member_id',
+  current_member_id()::text,
+  'the hook injects member_id from the membership current_member_id() resolves'
 );
 
 -- A user with no membership (signed in, not yet onboarded) passes through

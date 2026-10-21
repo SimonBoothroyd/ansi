@@ -214,15 +214,21 @@ MealSetMacros servedMealMacros(
 /// from here, so a week is never a sum of rounded days.
 ///
 /// Under Everyone ([lensMemberId] null) `servings` is [demandPortions]. Under a
-/// lens an entry counts only if that member eats it, at their own factor scaled
-/// by `override ÷ Σ factors`; an entry with no eaters stays in scope and is
-/// excluded with a reason. [summaryFor] returns a recipe's per-serving summary,
-/// or null when gone or not loaded.
+/// lens an entry counts only if that member eats it, at [memberServings]; an
+/// entry with no eaters stays in scope and is excluded with a reason.
+/// [summaryFor] returns a recipe's per-serving summary, or null when gone or
+/// not loaded.
+///
+/// [eatenOnly] counts what was eaten instead of what was planned: a meal is in
+/// scope only once someone eating it ticked it ([PlanEntry.eatenBy]), and
+/// `servings` is the sum of those people's shares — under a lens, only that
+/// person's, and only if they ticked.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
   String? lensMemberId,
   Map<String, Member> membersById = const {},
+  bool eatenOnly = false,
 }) {
   Macros? total;
   var counted = 0;
@@ -238,6 +244,13 @@ MealSetMacros sumPlannedMacros(
         eaters.isNotEmpty &&
         !eaters.contains(lensMemberId)) {
       // Somebody else's meal: out of scope, not an exclusion.
+      continue;
+    }
+    // Not eaten (by this person, under a lens): out of scope, not an exclusion.
+    if (eatenOnly &&
+        (lensMemberId == null
+            ? entry.eatenBy.isEmpty
+            : !entry.eatenBy.contains(lensMemberId))) {
       continue;
     }
     considered++;
@@ -315,10 +328,17 @@ MealSetMacros sumPlannedMacros(
         perPortion = summary.perServing;
     }
 
-    final servings = lensMemberId == null
-        ? demand
-        : (membersById[lensMemberId]?.portionFactor ?? 1) *
-              (entry.portions == null ? 1 : demand / factorsSum);
+    final double servings;
+    if (lensMemberId != null) {
+      servings = memberServings(entry, lensMemberId, membersById);
+    } else if (eatenOnly) {
+      servings = entry.eatenBy.fold(
+        0,
+        (sum, id) => sum + memberServings(entry, id, membersById),
+      );
+    } else {
+      servings = demand;
+    }
     final part = perPortion!.scaledBy(servings);
     total = total == null ? part : total + part;
     counted++;

@@ -192,4 +192,27 @@ void main() {
       expect(find.textContaining('to cook'), findsNothing);
     });
   });
+
+  group('the eaten line', () {
+    testWidgets('says nothing until somebody ticks a meal', (tester) async {
+      await tester.pumpWidget(_host(const EatenLine(eaten: MealSetMacros())));
+      expect(find.textContaining('EATEN'), findsNothing);
+    });
+
+    testWidgets('prints what was ticked, and how many meals', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          const EatenLine(
+            eaten: MealSetMacros(
+              total: Macros(kcal: 2940, protein: 150, carb: 300, fat: 100),
+              counted: 3,
+              considered: 3,
+              daysContributing: 2,
+            ),
+          ),
+        ),
+      );
+      expect(find.text('EATEN · 2\u2009940 kcal · 3 meals'), findsOneWidget);
+    });
+  });
 }

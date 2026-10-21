@@ -1442,6 +1442,97 @@ final class WeekMacrosFamily extends $Family
   String toString() => r'weekMacrosProvider';
 }
 
+/// What the viewed week's ticks add up to under [lens] (null = Everyone): the
+/// same sum as [weekMacros], counting only meals somebody said they ate.
+
+@ProviderFor(weekEatenMacros)
+const weekEatenMacrosProvider = WeekEatenMacrosFamily._();
+
+/// What the viewed week's ticks add up to under [lens] (null = Everyone): the
+/// same sum as [weekMacros], counting only meals somebody said they ate.
+
+final class WeekEatenMacrosProvider
+    extends $FunctionalProvider<MealSetMacros, MealSetMacros, MealSetMacros>
+    with $Provider<MealSetMacros> {
+  /// What the viewed week's ticks add up to under [lens] (null = Everyone): the
+  /// same sum as [weekMacros], counting only meals somebody said they ate.
+  const WeekEatenMacrosProvider._({
+    required WeekEatenMacrosFamily super.from,
+    required String? super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekEatenMacrosProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekEatenMacrosHash();
+
+  @override
+  String toString() {
+    return r'weekEatenMacrosProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<MealSetMacros> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  MealSetMacros create(Ref ref) {
+    final argument = this.argument as String?;
+    return weekEatenMacros(ref, argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MealSetMacros value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MealSetMacros>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekEatenMacrosProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekEatenMacrosHash() => r'b7be8f229d8d3e186022be5cb8389acdfdea23c6';
+
+/// What the viewed week's ticks add up to under [lens] (null = Everyone): the
+/// same sum as [weekMacros], counting only meals somebody said they ate.
+
+final class WeekEatenMacrosFamily extends $Family
+    with $FunctionalFamilyOverride<MealSetMacros, String?> {
+  const WeekEatenMacrosFamily._()
+    : super(
+        retry: null,
+        name: r'weekEatenMacrosProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// What the viewed week's ticks add up to under [lens] (null = Everyone): the
+  /// same sum as [weekMacros], counting only meals somebody said they ate.
+
+  WeekEatenMacrosProvider call(String? lens) =>
+      WeekEatenMacrosProvider._(argument: lens, from: this);
+
+  @override
+  String toString() => r'weekEatenMacrosProvider';
+}
+
 /// One meal's macros under [lens], as served. Keyed by entry id so it follows
 /// the live week; an id the week no longer has reads as an empty set.
 

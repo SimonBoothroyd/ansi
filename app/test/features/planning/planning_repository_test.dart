@@ -961,6 +961,109 @@ void main() {
       expect(last.measureId, isNull);
     },
   );
+
+  group('who ate it', () {
+    final at = DateTime.utc(2026, 8, 26, 18, 42);
+
+    Future<String> plannedDinner() async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      return repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const ['m1', 'm2'],
+      );
+    }
+
+    Future<PlanEntry> theMeal() async =>
+        (await repo.watchWeek(_thisWeek).first)!.entries.single;
+
+    test('a tick round-trips, and a second one moves the time', () async {
+      final id = await plannedDinner();
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      expect((await theMeal()).eatenAt, {'m1': at.toLocal()});
+      expect((await theMeal()).eatenBy, {'m1'});
+
+      final later = at.add(const Duration(hours: 1));
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: later);
+      expect((await theMeal()).eatenAt, {'m1': later.toLocal()});
+      final rows = await db.getAll(
+        'SELECT id FROM meal_eaten WHERE deleted_at IS NULL',
+      );
+      expect(rows, hasLength(1), reason: 'a re-time updates, never adds');
+    });
+
+    test('ticking never edits the plan', () async {
+      final id = await plannedDinner();
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      final entry = await theMeal();
+      expect(entry.eaterIds, ['m1', 'm2']);
+      expect(entry.portions, isNull);
+    });
+
+    test('an untick soft-deletes every live row, duplicates too', () async {
+      final id = await plannedDinner();
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      // A second device's offline tick of the same meal.
+      final now = DateTime.now().toUtc().toIso8601String();
+      await db.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        'eaten_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        ['dup', 'h', id, 'm1', at.toIso8601String(), now, now],
+      );
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: null);
+      expect((await theMeal()).eatenAt, isEmpty);
+    });
+
+    test('duplicate ticks merge on read, the oldest row canonical', () async {
+      final id = await plannedDinner();
+      final early = at.subtract(const Duration(minutes: 30));
+      await db.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        'eaten_at, created_at, updated_at) VALUES '
+        "(?, 'h', ?, 'm1', ?, '2026-08-26T19:00:00Z', '2026-08-26T19:00:00Z'), "
+        "(?, 'h', ?, 'm1', ?, '2026-08-26T19:05:00Z', '2026-08-26T19:05:00Z')",
+        ['old', id, early.toIso8601String(), 'new', id, at.toIso8601String()],
+      );
+      expect((await theMeal()).eatenAt, {'m1': early.toLocal()});
+    });
+
+    test('the week watch re-fires on a tick', () async {
+      final id = await plannedDinner();
+      final seen = expectLater(
+        repo.watchWeek(_thisWeek).map((w) => w!.entries.single.eatenBy),
+        emitsThrough({'m2'}),
+      );
+      await repo.setMealEaten(id, memberId: 'm2', eatenAt: at);
+      await seen;
+    });
+
+    test('removing a meal and restoring it brings its ticks back', () async {
+      final id = await plannedDinner();
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      await repo.removeEntry(id);
+      expect((await repo.watchWeek(_thisWeek).first)!.entries, isEmpty);
+      await repo.restoreEntry(id);
+      final entry = await theMeal();
+      expect(entry.id, id);
+      expect(entry.eatenBy, {'m1'});
+    });
+
+    test('copy last week carries the plan, not who ate it', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      final id = await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const ['m1'],
+      );
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      await repo.copyLastWeek(_thisWeek);
+      expect((await theMeal()).eatenAt, isEmpty);
+    });
+  });
 }
 
 DateTime _nextWeekOf(DateTime weekStart) =>

@@ -362,6 +362,33 @@ class MealMacroLine extends StatelessWidget {
   }
 }
 
+/// `EATEN · 2 940 kcal · 3 meals`: what was ticked, under the same lens as the
+/// planned total. Nothing at all until somebody ticks a meal.
+class EatenLine extends StatelessWidget {
+  const EatenLine({required this.eaten, super.key});
+
+  final MealSetMacros eaten;
+
+  @override
+  Widget build(BuildContext context) {
+    if (eaten.isEmpty) return const SizedBox.shrink();
+    final meals = eaten.considered;
+    final total = eaten.total;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        [
+          'EATEN',
+          if (total != null) '${formatMacroNumber(total.kcal)} kcal',
+          '$meals ${plural(meals, 'meal')}',
+          if (eaten.excluded.isNotEmpty) '${eaten.excluded.length} not counted',
+        ].join(' · '),
+        style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+      ),
+    );
+  }
+}
+
 /// The band at the foot of the phone's list: the week's total, its per-day
 /// average over the days that counted, and a label saying what the total is
 /// not.
@@ -369,6 +396,7 @@ class WeekMacroBand extends StatelessWidget {
   const WeekMacroBand({
     required this.macros,
     required this.scope,
+    this.eaten = const MealSetMacros(),
     this.cost,
     this.spent = const [],
     this.shape = WeekShape.monday,
@@ -377,6 +405,9 @@ class WeekMacroBand extends StatelessWidget {
 
   final MealSetMacros macros;
   final String scope;
+
+  /// What was ticked as eaten, under the same lens; drawn above the plan.
+  final MealSetMacros eaten;
 
   /// The receipts dated inside the week on screen. Empty draws no spend line.
   final List<ReceiptSummary> spent;
@@ -410,6 +441,7 @@ class WeekMacroBand extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          EatenLine(eaten: eaten),
           Row(
             children: [
               Expanded(
@@ -566,9 +598,17 @@ String weekAverageLine(MealSetMacros macros) {
 /// The wide agenda's pinned foot: the week's total as a [MacroStrip] and
 /// [weekAverageLine] under it. An empty week draws nothing.
 class WeekFootBand extends StatelessWidget {
-  const WeekFootBand({required this.macros, required this.scope, super.key});
+  const WeekFootBand({
+    required this.macros,
+    required this.scope,
+    this.eaten = const MealSetMacros(),
+    super.key,
+  });
 
   final MealSetMacros macros;
+
+  /// What was ticked as eaten, under the same lens.
+  final MealSetMacros eaten;
 
   /// Whose numbers these are — `Everyone`, or a member's display name.
   final String scope;
@@ -599,6 +639,7 @@ class WeekFootBand extends StatelessWidget {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                EatenLine(eaten: eaten),
                 MacroStrip(macros: macros.total!, size: 13),
                 Padding(
                   padding: const EdgeInsets.only(top: 4),

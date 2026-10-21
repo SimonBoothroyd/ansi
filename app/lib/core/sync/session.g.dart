@@ -248,3 +248,97 @@ final class CurrentHouseholdIdProvider
 
 String _$currentHouseholdIdHash() =>
     r'7087d03830015ee18da598f5f169a8d41ebb0f56';
+
+/// The member signed in on this phone, live: re-read on every token issue, so
+/// a session from before the claim existed picks it up at its next refresh.
+/// Null with no session, no claim yet, or no cloud.
+
+@ProviderFor(currentMemberIdStream)
+const currentMemberIdStreamProvider = CurrentMemberIdStreamProvider._();
+
+/// The member signed in on this phone, live: re-read on every token issue, so
+/// a session from before the claim existed picks it up at its next refresh.
+/// Null with no session, no claim yet, or no cloud.
+
+final class CurrentMemberIdStreamProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
+  /// The member signed in on this phone, live: re-read on every token issue, so
+  /// a session from before the claim existed picks it up at its next refresh.
+  /// Null with no session, no claim yet, or no cloud.
+  const CurrentMemberIdStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentMemberIdStreamProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentMemberIdStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<String?> create(Ref ref) {
+    return currentMemberIdStream(ref);
+  }
+}
+
+String _$currentMemberIdStreamHash() =>
+    r'a590f108dee8665511bde650b4bbe97833f74094';
+
+/// [currentMemberIdStream] as a plain value: who "I" am on this phone, or null
+/// while that is not known — then nothing offers to tick for anyone.
+
+@ProviderFor(currentMemberId)
+const currentMemberIdProvider = CurrentMemberIdProvider._();
+
+/// [currentMemberIdStream] as a plain value: who "I" am on this phone, or null
+/// while that is not known — then nothing offers to tick for anyone.
+
+final class CurrentMemberIdProvider
+    extends $FunctionalProvider<String?, String?, String?>
+    with $Provider<String?> {
+  /// [currentMemberIdStream] as a plain value: who "I" am on this phone, or null
+  /// while that is not known — then nothing offers to tick for anyone.
+  const CurrentMemberIdProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentMemberIdProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentMemberIdHash();
+
+  @$internal
+  @override
+  $ProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String? create(Ref ref) {
+    return currentMemberId(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String?>(value),
+    );
+  }
+}
+
+String _$currentMemberIdHash() => r'a33ac336568eedaada05ecf21260df6b249af921';

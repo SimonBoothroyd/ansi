@@ -1,6 +1,6 @@
 # Exec plan: Eaten vs planned
 
-- **Status:** draft — designed with the owner 2026-10-20/21; nothing built
+- **Status:** active — phase 1 (ticks) built on the branch, not yet on main or cloud; phases 2–4 to come
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 5; its leftover question is a first slice of step 11 (anti-waste)
 - **Created:** 2026-10-21
@@ -289,6 +289,20 @@ Append-only.
   was written, delete in Health Connect. Google's help: *"When you remove data
   permissions, you don't remove the stored data"*
   ([Manage connected apps](https://support.google.com/android/answer/12201230)).
+
+- 2026-10-21 — Phase 1 built. Three things the plan did not foresee:
+  - **The phone did not know who it is.** `auth_user_id` is kept off the
+    wire (0007), and Ask guesses "I" by matching the account's name. Ticks
+    need certainty, so the access-token hook now injects `member_id` beside
+    `household_id`, from the same membership, and `current_member_id()`
+    gives RLS the same answer. A token from before the claim reads as "not
+    known" (no tick offered) until it refreshes, within the hour. Ask still
+    guesses; moving it onto the claim is a small follow-up.
+  - **Undo re-added a removed meal as a new row**, so ticks — a partner's
+    included, which this phone may not write — would have been lost. Undo
+    now restores the same row (`restoreEntry`).
+  - **The day lines stay the plan.** Only the week band (and the wide foot)
+    gains the EATEN line, so a day card does not grow a second number.
 
 ## Notes / open questions
 

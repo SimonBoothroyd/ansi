@@ -42,11 +42,13 @@ class SqlitePlanningRepository implements PlanningRepository {
     // an unused LEFT JOIN, and the watch then misses that table.
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.title, i.canonical_name, im.label '
+          'SELECT wp.id, pe.id, r.title, i.canonical_name, im.label, me.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
+          // Who ate each meal re-fires the week too.
+          'LEFT JOIN meal_eaten me ON me.plan_entry_id = pe.id '
           // An ingredient meal's vocab row and measure are read too, so both
           // contribute a column.
           'LEFT JOIN ingredient i ON i.id = pe.ingredient_id '
@@ -93,13 +95,39 @@ class SqlitePlanningRepository implements PlanningRepository {
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [id],
     );
+    final eaten = await _eatenIn(id);
     return WeekPlan(
       id: id,
       // Parsed as a UTC date-only value so it equals the shape's week start.
       weekStart: DateTime.parse('${wp['week_start_date']}T00:00:00Z'),
       label: wp['label'] as String?,
-      entries: [for (final e in entryRows) _entryFrom(e)],
+      entries: [
+        for (final e in entryRows)
+          _entryFrom(e).copyWith(eatenAt: eaten[e['id']] ?? const {}),
+      ],
     );
+  }
+
+  /// Who ate each meal of the week [weekPlanId]: entry id → member id → when.
+  /// Duplicate live rows (two offline ticks) merge here, oldest canonical.
+  Future<Map<String, Map<String, DateTime>>> _eatenIn(String weekPlanId) async {
+    final rows = await _db.getAll(
+      'SELECT me.plan_entry_id, me.member_id, me.eaten_at '
+      'FROM meal_eaten me '
+      'JOIN plan_entry pe ON pe.id = me.plan_entry_id '
+      'WHERE pe.week_plan_id = ? AND me.deleted_at IS NULL '
+      'ORDER BY me.created_at DESC',
+      [weekPlanId],
+    );
+    final out = <String, Map<String, DateTime>>{};
+    for (final r in rows) {
+      final at = DateTime.tryParse(r['eaten_at'] as String? ?? '');
+      if (at == null) continue;
+      // Newest first, so the oldest row is written last and wins.
+      (out[r['plan_entry_id'] as String] ??= {})[r['member_id'] as String] = at
+          .toLocal();
+    }
+    return out;
   }
 
   /// One [PlanEntry] from a row of [_assembleWeek]'s SELECT. An unknown unit id
@@ -403,6 +431,53 @@ class SqlitePlanningRepository implements PlanningRepository {
       'UPDATE plan_entry SET deleted_at = ?, updated_at = ? WHERE id = ?',
       [now, now, entryId],
     );
+  }
+
+  @override
+  Future<void> restoreEntry(String entryId) async {
+    await _db.execute(
+      'UPDATE plan_entry SET deleted_at = NULL, updated_at = ? WHERE id = ?',
+      [_now(), entryId],
+    );
+  }
+
+  @override
+  Future<void> setMealEaten(
+    String entryId, {
+    required String memberId,
+    required DateTime? eatenAt,
+  }) async {
+    final now = _now();
+    await _db.writeTransaction((tx) async {
+      if (eatenAt == null) {
+        // Every live row, so an offline duplicate is unticked too.
+        await tx.execute(
+          'UPDATE meal_eaten SET deleted_at = ?, updated_at = ? '
+          'WHERE plan_entry_id = ? AND member_id = ? AND deleted_at IS NULL',
+          [now, now, entryId, memberId],
+        );
+        return;
+      }
+      final at = eatenAt.toUtc().toIso8601String();
+      final live = await tx.getOptional(
+        'SELECT id FROM meal_eaten '
+        'WHERE plan_entry_id = ? AND member_id = ? AND deleted_at IS NULL '
+        'ORDER BY created_at LIMIT 1',
+        [entryId, memberId],
+      );
+      if (live != null) {
+        await tx.execute(
+          'UPDATE meal_eaten SET eaten_at = ?, updated_at = ? WHERE id = ?',
+          [at, now, live['id']],
+        );
+        return;
+      }
+      await tx.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        'eaten_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [_uuid.v4(), _householdId, entryId, memberId, at, now, now],
+      );
+    });
   }
 
   @override

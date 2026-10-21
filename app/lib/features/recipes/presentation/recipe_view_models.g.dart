@@ -224,7 +224,7 @@ final class RecipeUsedInFamily extends $Family
 /// The servings a recipe page's stepper shows, or null until it moves (the
 /// page reads null as the recipe's own). A provider rather than page state so
 /// Ansi reads the servings on screen and its `set_servings` moves the
-/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// stepper. Auto-disposed: a page opened fresh starts at the
 /// recipe's own servings, as it always has.
 
 @ProviderFor(RecipeServings)
@@ -233,14 +233,14 @@ const recipeServingsProvider = RecipeServingsFamily._();
 /// The servings a recipe page's stepper shows, or null until it moves (the
 /// page reads null as the recipe's own). A provider rather than page state so
 /// Ansi reads the servings on screen and its `set_servings` moves the
-/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// stepper. Auto-disposed: a page opened fresh starts at the
 /// recipe's own servings, as it always has.
 final class RecipeServingsProvider
     extends $NotifierProvider<RecipeServings, double?> {
   /// The servings a recipe page's stepper shows, or null until it moves (the
   /// page reads null as the recipe's own). A provider rather than page state so
   /// Ansi reads the servings on screen and its `set_servings` moves the
-  /// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+  /// stepper. Auto-disposed: a page opened fresh starts at the
   /// recipe's own servings, as it always has.
   const RecipeServingsProvider._({
     required RecipeServingsFamily super.from,
@@ -291,7 +291,7 @@ String _$recipeServingsHash() => r'df59a294df07529247c98350911b58e5c4f01372';
 /// The servings a recipe page's stepper shows, or null until it moves (the
 /// page reads null as the recipe's own). A provider rather than page state so
 /// Ansi reads the servings on screen and its `set_servings` moves the
-/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// stepper. Auto-disposed: a page opened fresh starts at the
 /// recipe's own servings, as it always has.
 
 final class RecipeServingsFamily extends $Family
@@ -315,7 +315,7 @@ final class RecipeServingsFamily extends $Family
   /// The servings a recipe page's stepper shows, or null until it moves (the
   /// page reads null as the recipe's own). A provider rather than page state so
   /// Ansi reads the servings on screen and its `set_servings` moves the
-  /// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+  /// stepper. Auto-disposed: a page opened fresh starts at the
   /// recipe's own servings, as it always has.
 
   RecipeServingsProvider call(String recipeId) =>
@@ -328,7 +328,7 @@ final class RecipeServingsFamily extends $Family
 /// The servings a recipe page's stepper shows, or null until it moves (the
 /// page reads null as the recipe's own). A provider rather than page state so
 /// Ansi reads the servings on screen and its `set_servings` moves the
-/// stepper (plan 0053). Auto-disposed: a page opened fresh starts at the
+/// stepper. Auto-disposed: a page opened fresh starts at the
 /// recipe's own servings, as it always has.
 
 abstract class _$RecipeServings extends $Notifier<double?> {
