@@ -21,7 +21,10 @@ The detail is in the plan; the landing dates are in the
 4. Plan 0053's phone checklist for Ask Ansi (in its *Handover*), on both
    phones on `v0.31.0`, with slice 2's paid eval (`run_ask_live.ts`, 40 cases)
    run first — it was not run before the deploy.
-5. Step 11 (anti-waste), still stretch.
+5. [Plan 0054](./active/0054-eaten-vs-planned.md), eaten vs planned — a draft;
+   its phase 0 is the board's proposed frames, before any code.
+6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
+   first slice.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
