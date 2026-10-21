@@ -1,4 +1,5 @@
-/// [CookPlanRepository] over the local PowerSync SQLite. Read-only.
+/// [CookPlanRepository] over the local PowerSync SQLite. The plan is read;
+/// the one write is what became of a batch's leftovers.
 ///
 /// The watch query must select a column from every joined table: SQLite drops a
 /// LEFT JOIN with no selected column, and that table then never re-fires the
@@ -8,6 +9,7 @@ library;
 import 'dart:convert';
 
 import 'package:sqlite_async/sqlite_async.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
@@ -15,7 +17,8 @@ import '../../../core/week_shape.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
 import '../../planning/data/week_variant_repository_impl.dart'
     show loadWeekOverrides;
-import '../../planning/domain/planning.dart' show eatersDemand;
+import '../../planning/domain/planning.dart'
+    show PlanEntry, eatersDemand, memberServings;
 import '../../recipes/data/recipe_measure_repository_impl.dart'
     show loadRecipeMeasures;
 import '../../recipes/domain/component_math.dart';
@@ -37,10 +40,12 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, '
-          'wro.id, rm.id '
+          'wro.id, rm.id, me.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
+          // Who ate each meal moves what is left of its batch.
+          'LEFT JOIN meal_eaten me ON me.plan_entry_id = pe.id '
           'LEFT JOIN week_recipe_line_override wro '
           'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
@@ -61,7 +66,7 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     // meals and meals out are not cooked; `recipe_id IS NOT NULL` states that
     // explicitly beside the inner join.
     final rows = await _db.getAll(
-      'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
+      'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
       'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '
       'r.freezable, r.freezer_days '
       'FROM week_plan wp '
@@ -74,6 +79,19 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );
+    // Who said they ate each meal, for what is left of its batch.
+    final ticks = <String, Set<String>>{};
+    for (final t in await _db.getAll(
+      'SELECT me.plan_entry_id, me.member_id FROM meal_eaten me '
+      'JOIN plan_entry pe ON pe.id = me.plan_entry_id '
+      'JOIN week_plan wp ON wp.id = pe.week_plan_id '
+      'WHERE wp.week_start_date = ? AND me.deleted_at IS NULL',
+      [weekKey],
+    )) {
+      (ticks[t['plan_entry_id'] as String] ??= {}).add(
+        t['member_id'] as String,
+      );
+    }
 
     // A meal's demand is the sum of its eaters' portion factors unless the
     // entry overrides it: the same `eatersDemand` the Week reads.
@@ -98,11 +116,26 @@ class SqliteCookPlanRepository implements CookPlanRepository {
         freezable: (row['freezable'] as int? ?? 0) == 1,
         freezerDays: row['freezer_days'] as int?,
       );
+      // The share each eater who ticked it ate — the lens's own rule.
+      final entry = PlanEntry(
+        id: row['id'] as String,
+        dayOfWeek: row['day_of_week'] as int,
+        mealSlot: row['meal_slot'] as String,
+        eaterIds: eaters,
+        portions: row['portions'] as int?,
+      );
+      final eaten = [
+        for (final m in eaters)
+          if (ticks[entry.id]?.contains(m) ?? false)
+            memberServings(entry, m, members),
+      ].fold<double>(0, (a, b) => a + b);
       (meals[recipeId] ??= []).add(
         CoveredMeal(
-          dayOfWeek: row['day_of_week'] as int,
-          mealSlot: row['meal_slot'] as String,
+          dayOfWeek: entry.dayOfWeek,
+          mealSlot: entry.mealSlot,
           portions: portions,
+          entryId: entry.id,
+          eatenPortions: eaten > portions ? portions : eaten,
         ),
       );
     }
@@ -120,6 +153,63 @@ class SqliteCookPlanRepository implements CookPlanRepository {
         await loadWeekOverrides(_db, weekKey),
       ),
     );
+  }
+
+  @override
+  Stream<Map<String, LeftoverAnswer>> watchLeftovers(DateTime weekStart) => _db
+      .watch(
+        // A column from every joined table, so each re-fires the watch.
+        'SELECT bl.plan_entry_id, bl.kept, bl.binned, bl.eaten, pe.id, wp.id '
+        'FROM batch_leftover bl '
+        'JOIN plan_entry pe ON pe.id = bl.plan_entry_id '
+        'JOIN week_plan wp ON wp.id = pe.week_plan_id '
+        'WHERE wp.week_start_date = ? AND bl.deleted_at IS NULL '
+        // Oldest first, so the newest answer for a batch is written last.
+        'ORDER BY bl.updated_at',
+        parameters: [isoDateOf(weekStart)],
+      )
+      .map(
+        (rows) => {
+          for (final r in rows)
+            r['plan_entry_id'] as String: (
+              kept: (r['kept'] as num? ?? 0).toDouble(),
+              binned: (r['binned'] as num? ?? 0).toDouble(),
+              eaten: (r['eaten'] as num? ?? 0).toDouble(),
+            ),
+        },
+      );
+
+  @override
+  Future<void> setLeftover(String entryId, LeftoverAnswer? answer) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await _db.writeTransaction((tx) async {
+      // Every live answer for the batch goes; the new one is the only one.
+      await tx.execute(
+        'UPDATE batch_leftover SET deleted_at = ?, updated_at = ? '
+        'WHERE plan_entry_id = ? AND deleted_at IS NULL',
+        [now, now, entryId],
+      );
+      if (answer == null) return;
+      final household = await tx.get(
+        'SELECT household_id FROM plan_entry WHERE id = ?',
+        [entryId],
+      );
+      await tx.execute(
+        'INSERT INTO batch_leftover (id, household_id, plan_entry_id, kept, '
+        'binned, eaten, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          const Uuid().v4(),
+          household['household_id'],
+          entryId,
+          answer.kept,
+          answer.binned,
+          answer.eaten,
+          now,
+          now,
+        ],
+      );
+    });
   }
 }
 

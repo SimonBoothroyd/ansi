@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it</p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -98,6 +98,30 @@
                 </div>
             </div></div>
         </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>What a finished batch left over</b> · once a batch&rsquo;s days are over and fewer portions were ticked than planned, its session asks what became of the rest; an answer reads as one line, and a tap takes it back</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="wkhdr"><span class="chev">‹</span><span class="wt">This week<span class="caret">▾</span></span><span class="chev">›</span></div>
+            <p class="list-h">Cook</p>
+            <div class="cook">
+                <div class="cook-title">Weeknight Chicken Curry</div>
+                <div class="cook-sub">4 portions across the week · keeps 4 d</div>
+                <div class="session"><div class="ses-top"><span class="ses-when">Cook Mon</span><span class="ses-scale">×1</span></div>
+                    <div class="ses-covers">covers Mon, Tue dinner · 4 portions</div>
+                    <div style="font-size:12.5px;font-weight:600;margin-top:10px">1 portion left</div>
+                    <div style="display:flex;gap:6px;margin-top:6px"><span class="pchip" style="flex:1;justify-content:center">Kept</span><span class="pchip" style="flex:1;justify-content:center">Binned</span><span class="pchip" style="flex:1;justify-content:center">Eaten</span></div></div>
+            </div>
+            <div class="cook">
+                <div class="cook-title">Slow-Cooker Beef Ragù</div>
+                <div class="cook-sub">2 portions across the week · keeps 4 d</div>
+                <div class="session"><div class="ses-top"><span class="ses-when">Cook Wed</span><span class="ses-scale">×0.5</span></div>
+                    <div class="ses-covers">covers Wed dinner · 2 portions</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gone);margin-top:10px">2 portions binned ›</div></div>
+            </div>
+            <p class="conv-note">Either member can answer: it is about the pot, not a person. On the Week the band says the same in one line — <i>2 portions binned · 1 left</i>. A bare item and a meal eaten out are never asked. differs: the wide schedule sheet does not ask yet.</p>
+        </div></div>
+    </div>
 
     <div class="frame">
         <p class="frame-name"><b>The whole-batch nudge, and the week lens</b> · the nudge speaks the fraction; the lens weights by each person’s factor and names its denominator</p>

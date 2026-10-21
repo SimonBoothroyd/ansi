@@ -5,6 +5,8 @@
 /// the same plan is one schedule sheet ([CookSheet]).
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
@@ -12,12 +14,15 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_scroll.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
@@ -27,6 +32,7 @@ import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
+import '../data/cook_plan_providers.dart';
 import '../domain/cook_plan.dart';
 import 'cook_format.dart';
 import 'cook_sheet.dart';
@@ -451,10 +457,110 @@ class _SessionTile extends ConsumerWidget {
           ],
           const SizedBox(height: 10),
           CookTimeline(session: session),
+          if (!session.isComponent) LeftoverQuestion(session: session),
         ],
       ),
     );
   }
+}
+
+/// Once a batch's days are over and fewer portions were ticked than planned:
+/// what became of the rest — kept, binned, or eaten after all. Either member
+/// may answer; it is about the pot, not a person.
+class LeftoverQuestion extends ConsumerWidget {
+  const LeftoverQuestion({required this.session, super.key});
+
+  final CookSession session;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final key = session.leftoverKey;
+    final left = session.uneatenPortions;
+    if (key == null ||
+        left <= 0 ||
+        !session.isOverAfter(ref.watch(viewedWeekDaysPassedProvider))) {
+      return const SizedBox.shrink();
+    }
+    final answer = ref.watch(viewedWeekLeftoversProvider).asData?.value[key];
+    final repo = ref.read(cookPlanRepositoryProvider);
+
+    void answerAll(LeftoverAnswer? a, String what) =>
+        unawaited(ref.write(context, what, () => repo.setLeftover(key, a)));
+
+    if (answer != null) {
+      final said = leftoverAnswerLine(answer);
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: AnsiTap(
+          onTap: () => answerAll(null, 'change that'),
+          semanticsLabel: 'Change what happened to the leftovers',
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  said,
+                  style: ansiMono(
+                    size: 11,
+                    color: answer.binned > 0
+                        ? AnsiColors.gone
+                        : AnsiColors.herbDeep,
+                  ),
+                ),
+              ),
+              Text('›', style: ansiSans(size: 13, color: AnsiColors.muted)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '${formatPortions(left)} left',
+            style: ansiSans(size: 12.5, weight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              for (final (i, (label, answer)) in [
+                ('Kept', (kept: left, binned: 0.0, eaten: 0.0)),
+                ('Binned', (kept: 0.0, binned: left, eaten: 0.0)),
+                ('Eaten', (kept: 0.0, binned: 0.0, eaten: left)),
+              ].indexed) ...[
+                if (i > 0) const SizedBox(width: 6),
+                Expanded(
+                  child: FButton(
+                    variant: FButtonVariant.outline,
+                    size: FButtonSizeVariant.sm,
+                    onPress: () => answerAll(answer, 'say what happened'),
+                    child: Text(label),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// `1 portion kept`, `2 portions binned`, `1 kept · 1 binned`.
+String leftoverAnswerLine(LeftoverAnswer a) {
+  final parts = [
+    if (a.kept > 0) (a.kept, 'kept'),
+    if (a.binned > 0) (a.binned, 'binned'),
+    if (a.eaten > 0) (a.eaten, 'eaten after all'),
+  ];
+  if (parts.isEmpty) return 'nothing left';
+  if (parts.length == 1) {
+    return '${formatPortions(parts.single.$1)} ${parts.single.$2}';
+  }
+  return [for (final (n, w) in parts) '${formatFraction(n)} $w'].join(' · ');
 }
 
 /// The freshness timeline on the week's seven-day axis; geometry from

@@ -14,7 +14,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CoveredMeal {
 
- int get dayOfWeek; String get mealSlot; double get portions;
+ int get dayOfWeek; String get mealSlot; double get portions;/// The planned meal this is, where it came from one.
+ String? get entryId;/// The shares of its eaters who said they ate it — the rest is left
+/// over. Never more than [portions].
+ double get eatenPortions;
 /// Create a copy of CoveredMeal
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +28,16 @@ $CoveredMealCopyWith<CoveredMeal> get copyWith => _$CoveredMealCopyWithImpl<Cove
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoveredMeal&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.portions, portions) || other.portions == portions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoveredMeal&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.portions, portions) || other.portions == portions)&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.eatenPortions, eatenPortions) || other.eatenPortions == eatenPortions));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,dayOfWeek,mealSlot,portions);
+int get hashCode => Object.hash(runtimeType,dayOfWeek,mealSlot,portions,entryId,eatenPortions);
 
 @override
 String toString() {
-  return 'CoveredMeal(dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, portions: $portions)';
+  return 'CoveredMeal(dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, portions: $portions, entryId: $entryId, eatenPortions: $eatenPortions)';
 }
 
 
@@ -45,7 +48,7 @@ abstract mixin class $CoveredMealCopyWith<$Res>  {
   factory $CoveredMealCopyWith(CoveredMeal value, $Res Function(CoveredMeal) _then) = _$CoveredMealCopyWithImpl;
 @useResult
 $Res call({
- int dayOfWeek, String mealSlot, double portions
+ int dayOfWeek, String mealSlot, double portions, String? entryId, double eatenPortions
 });
 
 
@@ -62,11 +65,13 @@ class _$CoveredMealCopyWithImpl<$Res>
 
 /// Create a copy of CoveredMeal
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? dayOfWeek = null,Object? mealSlot = null,Object? portions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? dayOfWeek = null,Object? mealSlot = null,Object? portions = null,Object? entryId = freezed,Object? eatenPortions = null,}) {
   return _then(_self.copyWith(
 dayOfWeek: null == dayOfWeek ? _self.dayOfWeek : dayOfWeek // ignore: cast_nullable_to_non_nullable
 as int,mealSlot: null == mealSlot ? _self.mealSlot : mealSlot // ignore: cast_nullable_to_non_nullable
 as String,portions: null == portions ? _self.portions : portions // ignore: cast_nullable_to_non_nullable
+as double,entryId: freezed == entryId ? _self.entryId : entryId // ignore: cast_nullable_to_non_nullable
+as String?,eatenPortions: null == eatenPortions ? _self.eatenPortions : eatenPortions // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }
@@ -152,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  double portions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  double portions,  String? entryId,  double eatenPortions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoveredMeal() when $default != null:
-return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
+return $default(_that.dayOfWeek,_that.mealSlot,_that.portions,_that.entryId,_that.eatenPortions);case _:
   return orElse();
 
 }
@@ -173,10 +178,10 @@ return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  double portions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int dayOfWeek,  String mealSlot,  double portions,  String? entryId,  double eatenPortions)  $default,) {final _that = this;
 switch (_that) {
 case _CoveredMeal():
-return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
+return $default(_that.dayOfWeek,_that.mealSlot,_that.portions,_that.entryId,_that.eatenPortions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +198,10 @@ return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int dayOfWeek,  String mealSlot,  double portions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int dayOfWeek,  String mealSlot,  double portions,  String? entryId,  double eatenPortions)?  $default,) {final _that = this;
 switch (_that) {
 case _CoveredMeal() when $default != null:
-return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
+return $default(_that.dayOfWeek,_that.mealSlot,_that.portions,_that.entryId,_that.eatenPortions);case _:
   return null;
 
 }
@@ -208,12 +213,17 @@ return $default(_that.dayOfWeek,_that.mealSlot,_that.portions);case _:
 
 
 class _CoveredMeal implements CoveredMeal {
-  const _CoveredMeal({required this.dayOfWeek, required this.mealSlot, required this.portions});
+  const _CoveredMeal({required this.dayOfWeek, required this.mealSlot, required this.portions, this.entryId, this.eatenPortions = 0.0});
   
 
 @override final  int dayOfWeek;
 @override final  String mealSlot;
 @override final  double portions;
+/// The planned meal this is, where it came from one.
+@override final  String? entryId;
+/// The shares of its eaters who said they ate it — the rest is left
+/// over. Never more than [portions].
+@override@JsonKey() final  double eatenPortions;
 
 /// Create a copy of CoveredMeal
 /// with the given fields replaced by the non-null parameter values.
@@ -225,16 +235,16 @@ _$CoveredMealCopyWith<_CoveredMeal> get copyWith => __$CoveredMealCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoveredMeal&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.portions, portions) || other.portions == portions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoveredMeal&&(identical(other.dayOfWeek, dayOfWeek) || other.dayOfWeek == dayOfWeek)&&(identical(other.mealSlot, mealSlot) || other.mealSlot == mealSlot)&&(identical(other.portions, portions) || other.portions == portions)&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.eatenPortions, eatenPortions) || other.eatenPortions == eatenPortions));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,dayOfWeek,mealSlot,portions);
+int get hashCode => Object.hash(runtimeType,dayOfWeek,mealSlot,portions,entryId,eatenPortions);
 
 @override
 String toString() {
-  return 'CoveredMeal(dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, portions: $portions)';
+  return 'CoveredMeal(dayOfWeek: $dayOfWeek, mealSlot: $mealSlot, portions: $portions, entryId: $entryId, eatenPortions: $eatenPortions)';
 }
 
 
@@ -245,7 +255,7 @@ abstract mixin class _$CoveredMealCopyWith<$Res> implements $CoveredMealCopyWith
   factory _$CoveredMealCopyWith(_CoveredMeal value, $Res Function(_CoveredMeal) _then) = __$CoveredMealCopyWithImpl;
 @override @useResult
 $Res call({
- int dayOfWeek, String mealSlot, double portions
+ int dayOfWeek, String mealSlot, double portions, String? entryId, double eatenPortions
 });
 
 
@@ -262,11 +272,13 @@ class __$CoveredMealCopyWithImpl<$Res>
 
 /// Create a copy of CoveredMeal
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? dayOfWeek = null,Object? mealSlot = null,Object? portions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? dayOfWeek = null,Object? mealSlot = null,Object? portions = null,Object? entryId = freezed,Object? eatenPortions = null,}) {
   return _then(_CoveredMeal(
 dayOfWeek: null == dayOfWeek ? _self.dayOfWeek : dayOfWeek // ignore: cast_nullable_to_non_nullable
 as int,mealSlot: null == mealSlot ? _self.mealSlot : mealSlot // ignore: cast_nullable_to_non_nullable
 as String,portions: null == portions ? _self.portions : portions // ignore: cast_nullable_to_non_nullable
+as double,entryId: freezed == entryId ? _self.entryId : entryId // ignore: cast_nullable_to_non_nullable
+as String?,eatenPortions: null == eatenPortions ? _self.eatenPortions : eatenPortions // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }

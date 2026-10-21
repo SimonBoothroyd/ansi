@@ -144,6 +144,17 @@ const schema = Schema([
     Column.text('eaten_at'), // ISO-8601 UTC
     ..._audit,
   ]),
+  // What became of a batch's uneaten portions (0057), keyed to its first
+  // covered meal. The leftover is derived; only the answer is stored. Newest
+  // `updated_at` wins on read.
+  Table('batch_leftover', [
+    Column.text('household_id'),
+    Column.text('plan_entry_id'), // → plan_entry.id
+    Column.real('kept'),
+    Column.real('binned'),
+    Column.real('eaten'),
+    ..._audit,
+  ]),
   // One delta against a recipe line for one planned week, keyed on
   // (week_plan, recipe). Amounts are absolute.
   Table('week_recipe_line_override', [

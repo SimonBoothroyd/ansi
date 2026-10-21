@@ -1148,4 +1148,48 @@ void main() {
       });
     });
   });
+
+  group('leftovers', () {
+    CookSession session({double eatenTue = 1}) => CookSession(
+      recipeId: 'curry',
+      recipeTitle: 'Curry',
+      servingsBase: 4,
+      cookDay: 0,
+      covers: [
+        const CoveredMeal(
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+          portions: 2,
+          entryId: 'mon',
+          eatenPortions: 2,
+        ),
+        CoveredMeal(
+          dayOfWeek: 1,
+          mealSlot: 'Dinner',
+          portions: 2,
+          entryId: 'tue',
+          eatenPortions: eatenTue,
+        ),
+      ],
+    );
+
+    test(
+      'what nobody ticked is left, keyed to the batch\u2019s first meal',
+      () {
+        final s = session();
+        expect(s.eatenPortions, 3);
+        expect(s.uneatenPortions, 1);
+        expect(s.leftoverKey, 'mon');
+      },
+    );
+
+    test('a batch is over once its last day is behind us', () {
+      expect(session().isOverAfter(1), isFalse);
+      expect(session().isOverAfter(2), isTrue);
+    });
+
+    test('everything ticked leaves nothing', () {
+      expect(session(eatenTue: 2).uneatenPortions, 0);
+    });
+  });
 }

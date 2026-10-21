@@ -8,10 +8,10 @@
 -- `supabase test db`.
 
 begin;
--- 19 tables x (select isolation + cross-household insert rejection)
+-- 20 tables x (select isolation + cross-household insert rejection)
 -- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks
 -- + 2 household column-grant checks + 4 usda_search_* denials.
-select plan(51);
+select plan(53);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -63,6 +63,9 @@ insert into plan_entry (id, household_id, week_plan_id, day_of_week, meal_slot, 
 insert into meal_eaten (id, household_id, plan_entry_id, member_id, eaten_at) values
  ('aaaaaaaa-0000-0000-0000-000000000017','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000008','aaaaaaaa-0000-0000-0000-000000000016','2026-01-05T19:00:00Z'),
  ('bbbbbbbb-0000-0000-0000-000000000017','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000008','bbbbbbbb-0000-0000-0000-000000000016','2026-01-05T19:00:00Z');
+insert into batch_leftover (id, household_id, plan_entry_id, binned) values
+ ('aaaaaaaa-0000-0000-0000-000000000018','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000008',1),
+ ('bbbbbbbb-0000-0000-0000-000000000018','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000008',1);
 insert into shopping_list_entry (id, household_id, ingredient_id) values
  ('aaaaaaaa-0000-0000-0000-000000000009','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001'),
  ('bbbbbbbb-0000-0000-0000-000000000009','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001');
@@ -160,7 +163,11 @@ insert into iso_case values
  (19, 'meal_eaten',
       $$ insert into meal_eaten (household_id, plan_entry_id, member_id, eaten_at)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000008','bbbbbbbb-0000-0000-0000-000000000016','2026-01-05T19:00:00Z') $$,
-      'new row violates row-level security policy for table "meal_eaten"');
+      'new row violates row-level security policy for table "meal_eaten"'),
+ (20, 'batch_leftover',
+      $$ insert into batch_leftover (household_id, plan_entry_id, kept)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000008',1) $$,
+      'new row violates row-level security policy for table "batch_leftover"');
 grant select on iso_case to authenticated;
 
 -- Row-count helper. Invoker rights, so when called as `authenticated` the

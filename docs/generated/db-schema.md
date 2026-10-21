@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (57 migrations, 25 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (58 migrations, 26 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -464,6 +464,22 @@ introduced in `0055_meal_eaten.sql` · RLS enabled · in the `powersync` publica
 | `plan_entry_id` | `uuid` | no | not null references plan_entry(id) on delete cascade |
 | `member_id` | `uuid` | no | not null references household_member(id) |
 | `eaten_at` | `timestamptz` | no | not null |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `updated_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |
+
+## `batch_leftover`
+
+introduced in `0057_batch_leftover.sql` · RLS enabled · in the `powersync` publication
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `plan_entry_id` | `uuid` | no | not null references plan_entry(id) on delete cascade |
+| `kept` | `numeric` | no | not null default 0 constraint batch_leftover_kept_nonneg check (kept >= 0) |
+| `binned` | `numeric` | no | not null default 0 constraint batch_leftover_binned_nonneg check (binned >= 0) |
+| `eaten` | `numeric` | no | not null default 0 constraint batch_leftover_eaten_nonneg check (eaten >= 0) |
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |

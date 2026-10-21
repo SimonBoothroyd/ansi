@@ -35,8 +35,19 @@ abstract class CoveredMeal with _$CoveredMeal {
     required int dayOfWeek,
     required String mealSlot,
     required double portions,
+
+    /// The planned meal this is, where it came from one.
+    String? entryId,
+
+    /// The shares of its eaters who said they ate it — the rest is left
+    /// over. Never more than [portions].
+    @Default(0.0) double eatenPortions,
   }) = _CoveredMeal;
 }
+
+/// What became of a batch's uneaten portions, once its days are over: kept,
+/// binned (the only waste) or eaten after all (a forgotten tick).
+typedef LeftoverAnswer = ({double kept, double binned, double eaten});
 
 /// A recipe as it appears across the week, before clustering: its shelf life
 /// and every [meals] entry that calls for it. The clustering input.
@@ -157,6 +168,23 @@ abstract class CookSession with _$CookSession {
   /// Portions to cook: the sum of every covered meal's demand, possibly
   /// fractional. Zero on a component session.
   double get totalPortions => covers.fold(0, (s, m) => s + m.portions);
+
+  /// The portions its eaters said they ate.
+  double get eatenPortions => covers.fold(0, (s, m) => s + m.eatenPortions);
+
+  /// The planned portions nobody said they ate: bought for, so left over.
+  double get uneatenPortions {
+    final left = totalPortions - eatenPortions;
+    return left > 1e-9 ? left : 0;
+  }
+
+  /// The planned meal a leftover answer is keyed to: the batch's first.
+  String? get leftoverKey => covers.isEmpty ? null : covers.first.entryId;
+
+  /// Whether every day this batch covers is behind us, given how many of the
+  /// week's days have fully passed (0 for a week still to come, 7 for one
+  /// gone).
+  bool isOverAfter(int daysPassed) => lastCoveredDay < daysPassed;
 
   /// The multiplier the recipe's lines scale by: `total_portions /
   /// servings_base`, unrounded, for a meal session; the batch count for a

@@ -1,6 +1,6 @@
 # Exec plan: Eaten vs planned
 
-- **Status:** active — phases 1 (ticks) and 2 (had something else) built on the branch, not yet on main or cloud; phases 3–4 to come
+- **Status:** active — phases 1–3 (ticks, had something else, leftovers) built on the branch, not yet on main or cloud; phase 4 (Health Connect) to come
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 5; its leftover question is a first slice of step 11 (anti-waste)
 - **Created:** 2026-10-21
@@ -313,6 +313,14 @@ Append-only.
   moved yet** (step 8): its *I'm eating out* still takes the speaker off a
   meal's eaters. Moving it is a tool and prompt change that wants its paid
   eval run, so it is its own follow-up.
+
+- 2026-10-21 — Phase 3 built, smaller than *Leftovers* drew it, on
+  purpose. **One answer covers the whole leftover** (kept, binned or eaten),
+  stored as portions so a split answer can come later without a migration.
+  **The waste is not priced yet**: the band says `2 portions binned`, not
+  `≈ $6` — that wants the recipe's cost per serving joined in, a follow-up.
+  **The wide schedule sheet does not ask**; the phone card does, and the
+  board says so.
 
 ## Notes / open questions
 

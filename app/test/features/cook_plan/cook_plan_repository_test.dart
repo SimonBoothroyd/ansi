@@ -746,4 +746,56 @@ void main() {
       expect(stream.current.recipes.map((r) => r.recipeId), ['sliders']);
     });
   });
+
+  group('what is left of a batch', () {
+    Future<String> curryFor(int day) async => planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: day,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: const ['a', 'b'],
+    );
+
+    setUp(() async {
+      await _insertRecipe(db, 'curry', 'Curry');
+      await db.execute(
+        'INSERT INTO household_member (id, household_id, display_name, '
+        'sort_order, portion_factor, created_at, updated_at) VALUES '
+        "('a', 'h', 'Ada', 0, 1, '2026-01-01', '2026-01-01'), "
+        "('b', 'h', 'Jun', 1, 0.75, '2026-01-01', '2026-01-01')",
+      );
+    });
+
+    test('a covered meal knows the shares its eaters ticked', () async {
+      final mon = await curryFor(0);
+      await planning.setMealEaten(
+        mon,
+        memberId: 'b',
+        eatenAt: DateTime.utc(2026, 8, 24, 19),
+      );
+      final session = (await repo.watchCookPlan(_week).first)
+          .recipes
+          .single
+          .sessions
+          .single;
+      expect(session.leftoverKey, mon);
+      expect(session.totalPortions, 1.75);
+      expect(session.eatenPortions, 0.75);
+      expect(session.uneatenPortions, 1);
+    });
+
+    test(
+      'an answer round-trips, a second replaces it, null takes it back',
+      () async {
+        final mon = await curryFor(0);
+        await repo.setLeftover(mon, (kept: 1, binned: 0, eaten: 0));
+        expect((await repo.watchLeftovers(_week).first)[mon]!.kept, 1);
+        await repo.setLeftover(mon, (kept: 0, binned: 1, eaten: 0));
+        final answer = (await repo.watchLeftovers(_week).first)[mon]!;
+        expect((answer.kept, answer.binned), (0, 1));
+        await repo.setLeftover(mon, null);
+        expect(await repo.watchLeftovers(_week).first, isEmpty);
+      },
+    );
+  });
 }

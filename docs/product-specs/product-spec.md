@@ -821,6 +821,17 @@ into **cook sessions** bounded by shelf life:
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
 - **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **whole-batch nudge** on the session card ("cook ×1 instead — covers 4 portions · 1 left over") — display-level advice the cook can toggle per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
+- **What a finished batch left over (plan 0054, migration 0057):** a planned
+  meal is assumed bought, so a batch's planned portions less the shares its
+  eaters ticked are **left over** — derived, never stored. Once every day the
+  batch covers is behind us and something is left, its session asks: `1
+  portion left` · **Kept · Binned · Eaten** (the last for a forgotten tick).
+  Either member answers, for the whole leftover; the answer
+  (`batch_leftover`, keyed to the batch's first covered meal) reads as one
+  line — `2 portions binned ›` — and a tap takes it back. Only *binned* is
+  waste. The Week band carries the week in one line, `2 portions binned · 1
+  left`, counting only finished batches. A bare item or a meal eaten out is
+  never asked: the first keeps in the fridge, the second bought nothing.
 
 ### Recipe additions for the above
 - `keeps_for_days` (fridge shelf life) — **core**; drives clustering + freshness.

@@ -19,4 +19,18 @@ class FakeCookPlanRepository implements CookPlanRepository {
 
   @override
   Stream<CookPlan> watchCookPlan(DateTime weekStart) => Stream.value(plan);
+
+  /// The answers [watchLeftovers] hands out, keyed like the real ones.
+  Map<String, LeftoverAnswer> leftovers = const {};
+
+  @override
+  Stream<Map<String, LeftoverAnswer>> watchLeftovers(DateTime weekStart) =>
+      Stream.value(leftovers);
+
+  /// Every `(entryId, answer)` handed to [setLeftover], in order.
+  final leftoverWrites = <(String, LeftoverAnswer?)>[];
+
+  @override
+  Future<void> setLeftover(String entryId, LeftoverAnswer? answer) async =>
+      leftoverWrites.add((entryId, answer));
 }

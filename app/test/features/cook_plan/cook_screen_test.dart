@@ -7,6 +7,7 @@ import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_sheet.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
+import 'package:ansi/features/cook_plan/presentation/cook_view_models.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
@@ -549,6 +550,82 @@ void main() {
       expect(find.text('Cook Mon'), findsOneWidget);
       expect(find.text('MON'), findsNothing);
       expect(find.byType(CookTrack), findsNothing);
+    });
+  });
+
+  group('what a finished batch left over', () {
+    // Curry for Mon and Tue, 2 portions each; 3 of the 4 were ticked.
+    PlannedRecipe curry() => const PlannedRecipe(
+      recipeId: 'curry',
+      title: 'Curry',
+      servingsBase: 4,
+      keepsForDays: 4,
+      meals: [
+        CoveredMeal(
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+          portions: 2,
+          entryId: 'mon',
+          eatenPortions: 2,
+        ),
+        CoveredMeal(
+          dayOfWeek: 1,
+          mealSlot: 'Dinner',
+          portions: 2,
+          entryId: 'tue',
+          eatenPortions: 1,
+        ),
+      ],
+    );
+
+    Future<FakeCookPlanRepository> pump(
+      WidgetTester tester, {
+      required int daysPassed,
+      Map<String, LeftoverAnswer> answers = const {},
+    }) async {
+      final repo = FakeCookPlanRepository.of([curry()])..leftovers = answers;
+      await tester.pumpWidget(
+        _host([
+          cookPlanRepositoryProvider.overrideWithValue(repo),
+          viewedWeekDaysPassedProvider.overrideWithValue(daysPassed),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets('asks nothing while the batch still has days to come', (
+      tester,
+    ) async {
+      await pump(tester, daysPassed: 1);
+      expect(find.text('1 portion left'), findsNothing);
+    });
+
+    testWidgets('once its days are over, asks what became of the rest', (
+      tester,
+    ) async {
+      final repo = await pump(tester, daysPassed: 2);
+      expect(find.text('1 portion left'), findsOneWidget);
+      await tester.tap(find.text('Binned'));
+      await tester.pumpAndSettle();
+      expect(repo.leftoverWrites, [
+        ('mon', (kept: 0.0, binned: 1.0, eaten: 0.0)),
+      ]);
+    });
+
+    testWidgets('an answer reads as a line, and a tap takes it back', (
+      tester,
+    ) async {
+      final repo = await pump(
+        tester,
+        daysPassed: 7,
+        answers: {'mon': (kept: 1.0, binned: 0.0, eaten: 0.0)},
+      );
+      expect(find.text('1 portion kept'), findsOneWidget);
+      expect(find.text('Binned'), findsNothing);
+      await tester.tap(find.text('1 portion kept'));
+      await tester.pumpAndSettle();
+      expect(repo.leftoverWrites, [('mon', null)]);
     });
   });
 }
