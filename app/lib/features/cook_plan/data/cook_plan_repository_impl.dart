@@ -69,6 +69,8 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
       'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
       'AND pe.recipe_id IS NOT NULL '
+      // What a member had instead of a meal was never cooked.
+      'AND pe.instead_of IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );

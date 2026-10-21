@@ -1561,4 +1561,72 @@ void main() {
       expect(planning.eatenWrites, [('e1', 'm1', null)]);
     });
   });
+
+  group('what I had instead', () {
+    final thursdayEvening = DateTime(2026, 8, 27, 19, 42);
+
+    WeekPlan swappedWeek({String had = 'm1'}) {
+      final week = _plannedWeek(eaters: const ['m1', 'm2']);
+      return week.copyWith(
+        entries: [
+          week.entries.single.copyWith(
+            had: {
+              had: PlanEntry(
+                id: 's1',
+                dayOfWeek: 3,
+                mealSlot: 'Dinner',
+                label: 'Pizza with work',
+                eaterIds: [had],
+                insteadOf: 'e1',
+              ),
+            },
+          ),
+        ],
+      );
+    }
+
+    Future<_FakePlanningRepo> pump(WidgetTester tester, WeekPlan week) async {
+      final planning = _FakePlanningRepo(week: week);
+      await _pumpWeek(
+        tester,
+        planning: planning,
+        extra: [
+          currentMemberIdProvider.overrideWithValue('m1'),
+          clockProvider.overrideWithValue(() => thursdayEvening),
+        ],
+      );
+      return planning;
+    }
+
+    testWidgets('mine shows on my avatar and under the title', (tester) async {
+      await pump(tester, swappedWeek());
+      expect(find.byKey(const ValueKey('swapped-m1')), findsOneWidget);
+      expect(find.text('Pizza with work'), findsOneWidget);
+    });
+
+    testWidgets('a partner\u2019s shows nothing at all', (tester) async {
+      await pump(tester, swappedWeek(had: 'm2'));
+      expect(find.byKey(const ValueKey('swapped-m2')), findsNothing);
+      expect(find.text('Pizza with work'), findsNothing);
+    });
+
+    testWidgets('the sheet offers it while unticked, and the cross takes it '
+        'back', (tester) async {
+      filterForuiSemanticsAssertions();
+      final planning = await pump(tester, swappedWeek());
+      await tester.tap(find.bySemanticsLabel(RegExp('^Who is eating')));
+      await tester.pumpAndSettle();
+      expect(find.text('Instead: Pizza with work'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Had nothing else'));
+      await tester.pumpAndSettle();
+      expect(planning.insteadWrites, [('e1', 'm1', null)]);
+    });
+
+    testWidgets('a meal not ticked offers Had something else', (tester) async {
+      await pump(tester, _plannedWeek());
+      await tester.tap(find.bySemanticsLabel(RegExp('^Who is eating')));
+      await tester.pumpAndSettle();
+      expect(find.text('Had something else'), findsOneWidget);
+    });
+  });
 }

@@ -92,11 +92,22 @@ abstract interface class PlanningRepository {
 
   /// Says [memberId] ate the meal at [eatenAt], or — with null — that they did
   /// not. A second call moves the time. Only the member signed in on this
-  /// phone may be named: the server refuses anyone else (0055).
+  /// phone may be named: the server refuses anyone else (0055). A tick takes
+  /// back whatever they had instead.
   Future<void> setMealEaten(
     String entryId, {
     required String memberId,
     required DateTime? eatenAt,
+  });
+
+  /// Says [memberId] had [meal] instead of the planned meal [entryId], or —
+  /// with null — that they had nothing else. Replaces what they had said
+  /// before, and takes back their tick: a member either ate the meal or had
+  /// something else. The substitute is never cooked, bought or costed.
+  Future<void> setInstead(
+    String entryId, {
+    required String memberId,
+    required InsteadMeal? meal,
   });
 
   /// Copies every meal from [mostRecentWeekBefore] into the week beginning

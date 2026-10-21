@@ -155,6 +155,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'ON im.id = pe.measure_id AND im.deleted_at IS NULL '
       'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
       'AND pe.ingredient_id IS NOT NULL '
+      // What a member had instead of a meal was never bought for.
+      'AND pe.instead_of IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );
@@ -233,6 +235,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
       // Recipe meals only. A bare-ingredient meal goes through
       // [_derivePlannedIngredients]; a meal out buys nothing.
       'AND pe.recipe_id IS NOT NULL '
+      // What a member had instead of a meal was never cooked or bought for.
+      'AND pe.instead_of IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );

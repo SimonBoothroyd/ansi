@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
@@ -100,6 +101,7 @@ class EaterAvatar extends StatelessWidget {
     this.color = AnsiColors.herb,
     this.dimmed = false,
     this.ate = false,
+    this.swapped = false,
     super.key,
   });
 
@@ -110,10 +112,14 @@ class EaterAvatar extends StatelessWidget {
   /// The member said they ate the meal.
   final bool ate;
 
+  /// The member had something else instead. Drawn only for the person on
+  /// this phone; anyone else shows a tick or nothing.
+  final bool swapped;
+
   @override
   Widget build(BuildContext context) {
     final circle = _circle();
-    if (!ate) return circle;
+    if (!ate && !swapped) return circle;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -122,17 +128,17 @@ class EaterAvatar extends StatelessWidget {
           right: -3,
           bottom: -3,
           child: Container(
-            key: ValueKey('ate-${member.id}'),
+            key: ValueKey('${ate ? 'ate' : 'swapped'}-${member.id}'),
             width: 13,
             height: 13,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AnsiColors.fresh,
+              color: ate ? AnsiColors.fresh : AnsiColors.aging,
               shape: BoxShape.circle,
               border: Border.all(color: AnsiColors.surface, width: 1.5),
             ),
-            child: const Icon(
-              FLucideIcons.check,
+            child: Icon(
+              ate ? FLucideIcons.check : FLucideIcons.arrowLeftRight,
               size: 7,
               color: AnsiColors.surface,
             ),
@@ -171,6 +177,7 @@ class EaterAvatarStack extends StatelessWidget {
     required this.roster,
     required this.eaterIds,
     this.eatenIds = const {},
+    this.swappedIds = const {},
     super.key,
   });
 
@@ -179,6 +186,9 @@ class EaterAvatarStack extends StatelessWidget {
 
   /// The eaters who said they ate it; each gets a tick.
   final Set<String> eatenIds;
+
+  /// The eaters shown as having had something else.
+  final Set<String> swappedIds;
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +213,7 @@ class EaterAvatarStack extends StatelessWidget {
                 member: eating[j].$2,
                 color: memberColor(eating[j].$1),
                 ate: eatenIds.contains(eating[j].$2.id),
+                swapped: swappedIds.contains(eating[j].$2.id),
               ),
             ),
         ],
@@ -263,7 +274,7 @@ int? portionsChipFor(PlanEntry entry, List<Member> roster) {
 /// The portions chip and eater avatars as one tap target, opening the meal
 /// editor. With no eaters and no override it says `nobody`, so the target is
 /// never empty.
-class EatersTarget extends StatelessWidget {
+class EatersTarget extends ConsumerWidget {
   const EatersTarget({
     required this.entry,
     required this.roster,
@@ -276,8 +287,11 @@ class EatersTarget extends StatelessWidget {
   final int? portions;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final nobody = entry.eaterIds.isEmpty && portions == null;
+    // What somebody had instead is theirs: only this phone's own shows.
+    final me = ref.watch(currentMemberIdProvider);
+    final swapped = me != null && entry.had.containsKey(me) ? {me} : <String>{};
     final ate = [
       for (final m in roster)
         if (entry.eatenBy.contains(m.id)) m.displayName,
@@ -303,7 +317,44 @@ class EatersTarget extends StatelessWidget {
               roster: roster,
               eaterIds: entry.eaterIds.toSet(),
               eatenIds: entry.eatenBy,
+              swappedIds: swapped,
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What the person on this phone had instead of a meal, under its title:
+/// `⇄ Pizza with work`. Nobody else's is shown.
+class HadInsteadLine extends ConsumerWidget {
+  const HadInsteadLine({required this.entry, this.size = 11.5, super.key});
+
+  final PlanEntry entry;
+  final double size;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final me = ref.watch(currentMemberIdProvider);
+    final had = me == null ? null : entry.had[me];
+    if (had == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(
+            FLucideIcons.arrowLeftRight,
+            size: size,
+            color: AnsiColors.cautionInk,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              mealTitleText(had),
+              overflow: TextOverflow.ellipsis,
+              style: ansiSans(size: size, color: AnsiColors.cautionInk),
+            ),
+          ),
         ],
       ),
     );

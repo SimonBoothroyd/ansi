@@ -1064,6 +1064,100 @@ void main() {
       expect((await theMeal()).eatenAt, isEmpty);
     });
   });
+
+  group('what a member had instead', () {
+    final at = DateTime.utc(2026, 8, 26, 18, 42);
+
+    Future<String> plannedDinner() async {
+      await _insertRecipe(db, 'r1', 'Ragù');
+      await _insertRecipe(db, 'r2', 'Curry');
+      return repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const ['m1', 'm2'],
+      );
+    }
+
+    Future<WeekPlan> theWeek() async =>
+        (await repo.watchWeek(_thisWeek).first)!;
+
+    test('hangs off the meal it replaced, never among the planned', () async {
+      final id = await plannedDinner();
+      await repo.setInstead(
+        id,
+        memberId: 'm1',
+        meal: const InsteadOut('Pizza with work'),
+      );
+      final week = await theWeek();
+      expect(week.entries, hasLength(1));
+      final had = week.entries.single.had['m1']!;
+      expect(had.label, 'Pizza with work');
+      expect(had.eaterIds, ['m1']);
+      expect(had.insteadOf, id);
+      expect(had.eatenBy, {'m1'});
+    });
+
+    test('a second answer replaces the first; null takes it back', () async {
+      final id = await plannedDinner();
+      await repo.setInstead(id, memberId: 'm1', meal: const InsteadOut('A'));
+      await repo.setInstead(
+        id,
+        memberId: 'm1',
+        meal: const InsteadRecipe('r2'),
+      );
+      expect((await theWeek()).entries.single.had['m1']!.recipeTitle, 'Curry');
+      await repo.setInstead(id, memberId: 'm1', meal: null);
+      expect((await theWeek()).entries.single.had, isEmpty);
+    });
+
+    test('having something else takes back the tick, and a tick takes back '
+        'what was had', () async {
+      final id = await plannedDinner();
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      await repo.setInstead(id, memberId: 'm1', meal: const InsteadOut('A'));
+      var meal = (await theWeek()).entries.single;
+      expect(meal.eatenAt, isEmpty);
+      expect(meal.had.keys, ['m1']);
+
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      meal = (await theWeek()).entries.single;
+      expect(meal.had, isEmpty);
+      expect(meal.eatenBy, {'m1'});
+    });
+
+    test('one member\u2019s answer leaves the other\u2019s alone', () async {
+      final id = await plannedDinner();
+      await repo.setInstead(id, memberId: 'm1', meal: const InsteadOut('A'));
+      await repo.setInstead(id, memberId: 'm2', meal: const InsteadOut('B'));
+      await repo.setInstead(id, memberId: 'm1', meal: null);
+      expect((await theWeek()).entries.single.had.keys, ['m2']);
+    });
+
+    test('is not planned: not in the recency map, not copied', () async {
+      await _insertRecipe(db, 'r1', 'Ragù');
+      await _insertRecipe(db, 'r2', 'Curry');
+      final id = await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: const ['m1'],
+      );
+      await repo.setInstead(
+        id,
+        memberId: 'm1',
+        meal: const InsteadRecipe('r2'),
+      );
+      expect((await repo.watchLastPlanned().first).keys, ['r1']);
+      final copied = await repo.copyLastWeek(_thisWeek);
+      expect(copied.meals, 1);
+      final week = await theWeek();
+      expect(week.entries.single.recipeId, 'r1');
+      expect(week.entries.single.had, isEmpty);
+    });
+  });
 }
 
 DateTime _nextWeekOf(DateTime weekStart) =>

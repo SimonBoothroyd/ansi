@@ -169,6 +169,16 @@ class FakePlanningRepository implements PlanningRepository {
     required DateTime? eatenAt,
   }) async => eatenWrites.add((entryId, memberId, eatenAt));
 
+  /// Every `(entryId, memberId, meal)` handed to [setInstead], in order.
+  final insteadWrites = <(String, String, InsteadMeal?)>[];
+
+  @override
+  Future<void> setInstead(
+    String entryId, {
+    required String memberId,
+    required InsteadMeal? meal,
+  }) async => insteadWrites.add((entryId, memberId, meal));
+
   @override
   Future<CopyLastWeekResult> copyLastWeek(DateTime weekStart) async =>
       (meals: 0, variantsLeftBehind: const <VariantLeftBehind>[]);

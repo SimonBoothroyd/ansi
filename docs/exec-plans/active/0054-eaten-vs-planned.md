@@ -1,6 +1,6 @@
 # Exec plan: Eaten vs planned
 
-- **Status:** active — phase 1 (ticks) built on the branch, not yet on main or cloud; phases 2–4 to come
+- **Status:** active — phases 1 (ticks) and 2 (had something else) built on the branch, not yet on main or cloud; phases 3–4 to come
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 5; its leftover question is a first slice of step 11 (anti-waste)
 - **Created:** 2026-10-21
@@ -303,6 +303,16 @@ Append-only.
     now restores the same row (`restoreEntry`).
   - **The day lines stay the plan.** Only the week band (and the wide foot)
     gains the EATEN line, so a day card does not grow a second number.
+
+- 2026-10-21 — Phase 2 built. The one choke point is the week itself: the
+  repository hangs each substitute off the meal it replaced (`had`) instead
+  of listing it, so every derivation that walks a week's meals passes over it
+  without being told; only the cook plan's and the shop's own SQL needed
+  `instead_of is null`. The picker keeps today's rule — the eaten-out row
+  only when nothing matches — pending the owner's ruling. **Ask is not
+  moved yet** (step 8): its *I'm eating out* still takes the speaker off a
+  meal's eaters. Moving it is a tool and prompt change that wants its paid
+  eval run, so it is its own follow-up.
 
 ## Notes / open questions
 

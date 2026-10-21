@@ -752,6 +752,14 @@ go. There is no re-chip — tokenization happens only inside the import call.
   - **A person's share** of a meal is `memberServings`: their
     `portion_factor`, or a `portions` override shared out by the eaters'
     factors — the lens's rule, used for eaten figures too.
+- `plan_entry.instead_of` (migration 0056, plan 0054) — **what a member had
+  instead** of a planned meal: an ordinary entry of any kind, eaten by that
+  one member, naming the meal it replaced. It is **never planned**: the week
+  hangs it off the meal it replaced (`PlanEntry.had`, by member) rather than
+  listing it, so macros, cost, the picker, Ask and a copy all pass over it,
+  and the cook plan and the shop read `instead_of is null`. It counts only in
+  what its member ate. A member either ate the meal or had something else:
+  setting one takes back the other.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
@@ -1346,6 +1354,13 @@ say what each tap means without one.
   clock time. Nobody can tick for anyone else. A future meal's sheet is
   unchanged, and so is the sheet of a phone that does not yet know who it is
   (a token from before the claim, until it refreshes).
+- **Had something else** sits under *I ate this* while it is off: the
+  planning picker (recipes, bare items and a meal eaten out in one search),
+  then a bare item's amount or a meal out's optional figures. Once said, the
+  row reads `Instead: Pizza with work ›` with a `×` to take it back; on the
+  week, an amber swap badge on that person's avatar and `⇄ Pizza with work`
+  under the title — **on their own phone only**. Anyone else sees a tick or
+  nothing.
 - **What was eaten sits above what was planned.** Once anybody ticks a meal,
   the week band (and the wide foot) leads with `EATEN · 2 940 kcal · 3
   meals` under the same lens, the sum of the ticked people's shares; a meal

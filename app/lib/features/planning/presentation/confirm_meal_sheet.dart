@@ -14,6 +14,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/units/measure.dart';
+import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
@@ -21,9 +22,12 @@ import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_view_models.dart'
     show MacroDraft;
+import '../../ingredients/presentation/quantity_unit_sheet.dart';
+import '../../ingredients/presentation/usual_amount.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart' show defaultMealSlot;
@@ -64,6 +68,45 @@ final class OutMeal extends MealTarget {
   const OutMeal(this.label);
 
   final String label;
+}
+
+/// The amount of one portion of [ingredient], asked on the quantity sheet: it
+/// opens filled in with the amount of the last meal of it, else one of its
+/// word for one, else one piece (`defaultAmountFor`); else empty, on the row's
+/// first chip (ADR-0015). Null when the person backs out.
+Future<SnackMeal?> askSnackAmount(
+  ProviderContainer container,
+  HostContext host,
+  Ingredient ingredient,
+) async {
+  final usual = await usualAmountOf(container, ingredient, forMeal: true);
+  final result = await showQuantityUnitSheet(
+    // The host outlives the row that started the flow — see [hostContextOf].
+    // ignore: use_build_context_synchronously
+    host.context,
+    ingredient: ingredient,
+    initialQuantity: usual?.quantity,
+    initialChoice: usual?.choice,
+    requireQuantity: true,
+    confirmLabel: 'Next',
+  );
+  if (result is! QuantitySaved) return null;
+  return SnackMeal(
+    ingredient: ingredient,
+    quantity: result.quantity,
+    unit: switch (result.choice) {
+      // A measure-quantified row stores the count fallback beside the
+      // measure id.
+      MeasureOption() => pieces,
+      RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
+      UnitOption(:final unit) => unit,
+    },
+    measure: switch (result.choice) {
+      MeasureOption(:final measure) => measure,
+      RecipeMeasureOption(:final measure) => notAWordForAnIngredient(measure),
+      UnitOption() => null,
+    },
+  );
 }
 
 /// Opens the confirm sheet for [target] on [dayOfWeek], pre-selecting [slot].

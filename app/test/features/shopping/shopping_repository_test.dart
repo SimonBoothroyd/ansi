@@ -5,6 +5,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/shopping/data/shopping_repository_impl.dart';
@@ -1546,6 +1547,23 @@ void main() {
         isNot(contains('Office lunch')),
       );
     });
+  });
+
+  test('what a member had instead of a meal is never bought for', () async {
+    await _insertIngredient(db, 'bar', 'Protein bar', 'snacks', 'g');
+    final id = await planning.addOutEntry(
+      weekStart: _week,
+      dayOfWeek: 1,
+      mealSlot: 'Lunch',
+      label: 'Office lunch',
+      eaterIds: const ['a'],
+    );
+    await planning.setInstead(
+      id,
+      memberId: 'a',
+      meal: const InsteadIngredient(ingredientId: 'bar', quantity: 60, unit: g),
+    );
+    expect((await repo.watchShoppingList(_week).first).groups, isEmpty);
   });
 
   // --- A planned ingredient is bought, though nothing cooks it (8.14 / A-D4) -

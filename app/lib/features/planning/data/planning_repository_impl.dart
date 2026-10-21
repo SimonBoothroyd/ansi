@@ -77,7 +77,7 @@ class SqlitePlanningRepository implements PlanningRepository {
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
       // `pe.macros` is aliased: it is per portion as stated, while the vocab
       // row's `macros` below is per 100 of a basis.
-      'pe.label, pe.macros AS stated_macros, '
+      'pe.label, pe.macros AS stated_macros, pe.instead_of, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -96,14 +96,33 @@ class SqlitePlanningRepository implements PlanningRepository {
       [id],
     );
     final eaten = await _eatenIn(id);
+    // A substitute is never one of the week's planned meals: it hangs off the
+    // meal it replaced, under its one eater, so every derivation that walks
+    // `entries` — macros, cost, the picker, Ask, a copy — skips it.
+    final planned = <PlanEntry>[];
+    final had = <String, Map<String, PlanEntry>>{};
+    for (final e in entryRows) {
+      final entry = _entryFrom(e);
+      final insteadOf = e['instead_of'] as String?;
+      if (insteadOf == null) {
+        planned.add(entry.copyWith(eatenAt: eaten[entry.id] ?? const {}));
+      } else {
+        for (final m in entry.eaterIds) {
+          // Oldest wins, as for ticks: rows come in creation order.
+          (had[insteadOf] ??= {}).putIfAbsent(
+            m,
+            () => entry.copyWith(insteadOf: insteadOf),
+          );
+        }
+      }
+    }
     return WeekPlan(
       id: id,
       // Parsed as a UTC date-only value so it equals the shape's week start.
       weekStart: DateTime.parse('${wp['week_start_date']}T00:00:00Z'),
       label: wp['label'] as String?,
       entries: [
-        for (final e in entryRows)
-          _entryFrom(e).copyWith(eatenAt: eaten[e['id']] ?? const {}),
+        for (final e in planned) e.copyWith(had: had[e.id] ?? const {}),
       ],
     );
   }
@@ -223,8 +242,10 @@ class SqlitePlanningRepository implements PlanningRepository {
         'FROM plan_entry pe '
         'JOIN week_plan wp ON wp.id = pe.week_plan_id '
         'AND wp.deleted_at IS NULL '
-        // Recipe meals only: this feeds the recipe picker's "last planned".
+        // Planned recipe meals only: this feeds the recipe picker's "last
+        // planned", and what was had instead was not planned.
         'WHERE pe.deleted_at IS NULL AND pe.recipe_id IS NOT NULL '
+        'AND pe.instead_of IS NULL '
         'GROUP BY pe.recipe_id',
       )
       .map(
@@ -458,6 +479,8 @@ class SqlitePlanningRepository implements PlanningRepository {
         );
         return;
       }
+      // Eating the meal is not having something else.
+      await _dropInstead(tx, entryId, memberId, now);
       final at = eatenAt.toUtc().toIso8601String();
       final live = await tx.getOptional(
         'SELECT id FROM meal_eaten '
@@ -478,6 +501,88 @@ class SqlitePlanningRepository implements PlanningRepository {
         [_uuid.v4(), _householdId, entryId, memberId, at, now, now],
       );
     });
+  }
+
+  @override
+  Future<void> setInstead(
+    String entryId, {
+    required String memberId,
+    required InsteadMeal? meal,
+  }) async {
+    final now = _now();
+    await _db.writeTransaction((tx) async {
+      // Whatever they had before goes: one substitute per member per meal.
+      await _dropInstead(tx, entryId, memberId, now);
+      if (meal == null) return;
+
+      // Having something else is not having eaten the meal.
+      await tx.execute(
+        'UPDATE meal_eaten SET deleted_at = ?, updated_at = ? '
+        'WHERE plan_entry_id = ? AND member_id = ? AND deleted_at IS NULL',
+        [now, now, entryId, memberId],
+      );
+      final parent = await tx.get(
+        'SELECT week_plan_id, day_of_week, meal_slot FROM plan_entry '
+        'WHERE id = ?',
+        [entryId],
+      );
+      final (recipeId, ingredientId, label) = switch (meal) {
+        InsteadRecipe(:final recipeId) => (recipeId, null, null),
+        InsteadIngredient(:final ingredientId) => (null, ingredientId, null),
+        InsteadOut(:final label) => (null, null, label.trim()),
+      };
+      final ingredient = meal is InsteadIngredient ? meal : null;
+      final stated = meal is InsteadOut ? meal.macros : null;
+      // jsonb as TEXT, as `_insertEntry` writes it.
+      final statedJson = stated == null ? null : jsonEncode(stated.toJson());
+      await tx.execute(
+        'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
+        'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
+        'measure_id, eaters, instead_of, sort_order, created_at, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
+        [
+          _uuid.v4(),
+          _householdId,
+          parent['week_plan_id'],
+          parent['day_of_week'],
+          parent['meal_slot'],
+          recipeId,
+          ingredientId,
+          label,
+          statedJson,
+          ingredient?.quantity,
+          ingredient?.unit?.id,
+          ingredient?.measureId,
+          jsonEncode([memberId]),
+          entryId,
+          now,
+          now,
+        ],
+      );
+    });
+  }
+
+  /// Soft-deletes what [memberId] had instead of [entryId], duplicates too.
+  Future<void> _dropInstead(
+    SqliteWriteContext tx,
+    String entryId,
+    String memberId,
+    String now,
+  ) async {
+    final rows = await tx.getAll(
+      'SELECT id, eaters FROM plan_entry '
+      'WHERE instead_of = ? AND deleted_at IS NULL',
+      [entryId],
+    );
+    for (final r in rows) {
+      final eaters = (jsonDecode(r['eaters'] as String? ?? '[]') as List)
+          .cast<String>();
+      if (!eaters.contains(memberId)) continue;
+      await tx.execute(
+        'UPDATE plan_entry SET deleted_at = ?, updated_at = ? WHERE id = ?',
+        [now, now, r['id']],
+      );
+    }
   }
 
   @override

@@ -69,6 +69,8 @@ assertions in `begin … rollback` so runs leave no residue.
 - `meal_eaten.sql` — who ate a planned meal (0055, plan 0054): a member
   ticks, re-times and unticks only their own meals (`current_member_id()`),
   cannot tick for or untick a partner, and reads the partner's ticks.
+- `plan_entry_instead_of.sql` — what a member had instead (0056, plan 0054):
+  a substitute names the meal it replaced, never itself, and goes with it.
 - `recipe_share.sql` — a recipe's share link (0054, plan 0051): the token is
   minted by `share_recipe()` alone (22 url-safe characters, the same one while
   live, a fresh one after `unshare_recipe()`); a member cannot insert or update

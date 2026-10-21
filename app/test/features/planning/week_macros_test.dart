@@ -823,6 +823,24 @@ void main() {
       expect(eaten([entry], lens: 'ada').total!.kcal, closeTo(400, 1e-9));
     });
 
+    test('what a member had instead counts as theirs, never as planned', () {
+      final had = _entry(
+        id: 's',
+        eaters: const ['jun'],
+      ).copyWith(insteadOf: 'a');
+      final entry = _entry(id: 'a').copyWith(had: {'jun': had});
+      // Jun's ¾ of the substitute; nobody ticked the planned meal.
+      expect(eaten([entry]).total!.kcal, closeTo(75, 1e-9));
+      expect(eaten([entry], lens: 'ada').isEmpty, isTrue);
+      // The plan is the plan: the substitute adds nothing to it.
+      final planned = sumPlannedMacros(
+        [entry],
+        summaryFor: _summaries,
+        membersById: members,
+      );
+      expect(planned.total!.kcal, closeTo(175, 1e-9));
+    });
+
     test('a tick from someone no longer eating it is not counted', () {
       final entry = _entry(
         id: 'a',

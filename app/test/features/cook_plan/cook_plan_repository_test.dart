@@ -5,6 +5,7 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -134,6 +135,27 @@ void main() {
 
   test('an unplanned week derives an empty cook plan', () async {
     expect((await repo.watchCookPlan(_week).first).isEmpty, isTrue);
+  });
+
+  test('what a member had instead of a meal is never cooked', () async {
+    await _insertRecipe(db, 'ragu', 'House Ragù');
+    await _insertRecipe(db, 'curry', 'Curry');
+    final id = await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 2,
+      mealSlot: 'Dinner',
+      recipeId: 'ragu',
+      eaterIds: const ['a', 'b'],
+    );
+    await planning.setInstead(
+      id,
+      memberId: 'a',
+      meal: const InsteadRecipe('curry'),
+    );
+    final plan = await repo.watchCookPlan(_week).first;
+    expect(plan.recipes.map((r) => r.title), ['House Ragù']);
+    // The planned meal's batch is unchanged: the portion went uneaten.
+    expect(plan.recipes.single.totalPortions, 2);
   });
 
   // A-D4, the half of the ruling that lives here: nothing about a protein bar

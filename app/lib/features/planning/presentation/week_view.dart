@@ -17,7 +17,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
@@ -28,9 +27,6 @@ import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
-import '../../ingredients/domain/allowed_units.dart';
-import '../../ingredients/presentation/quantity_unit_sheet.dart';
-import '../../ingredients/presentation/usual_amount.dart';
 import '../../receipts/data/receipt_providers.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
@@ -72,42 +68,10 @@ Future<void> _addMealFlow(
     case PickedRecipe(:final recipe):
       target = RecipeMeal(recipe);
     case PickedIngredientMeal(:final ingredient):
-      // Opens filled in: the amount of the last meal of it, else one of its
-      // word for one, else one piece (`defaultAmountFor`); else empty, on the
-      // row's first chip (ADR-0015).
-      final usual = await usualAmountOf(container, ingredient, forMeal: true);
-      final result = await showQuantityUnitSheet(
-        // The host outlives the row — see [hostContextOf].
-        // ignore: use_build_context_synchronously
-        host.context,
-        ingredient: ingredient,
-        initialQuantity: usual?.quantity,
-        initialChoice: usual?.choice,
-        requireQuantity: true,
-        confirmLabel: 'Next',
-      );
+      final snack = await askSnackAmount(container, host, ingredient);
       // Backing out of the amount backs out of the whole add.
-      if (result is! QuantitySaved) return;
-      target = SnackMeal(
-        ingredient: ingredient,
-        quantity: result.quantity,
-        unit: switch (result.choice) {
-          // A measure-quantified row stores the count fallback beside the
-          // measure id.
-          MeasureOption() => pieces,
-          RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
-            measure,
-          ),
-          UnitOption(:final unit) => unit,
-        },
-        measure: switch (result.choice) {
-          MeasureOption(:final measure) => measure,
-          RecipeMeasureOption(:final measure) => notAWordForAnIngredient(
-            measure,
-          ),
-          UnitOption() => null,
-        },
-      );
+      if (snack == null) return;
+      target = snack;
     case PickedMealOut(:final label):
       // A meal out needs nothing settled first.
       target = OutMeal(label);
@@ -613,6 +577,7 @@ class _DishRow extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 6),
               child: OutMealLine(entry: entry),
             ),
+          HadInsteadLine(entry: entry),
         ],
       ),
     );

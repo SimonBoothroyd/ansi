@@ -509,6 +509,7 @@ class _PaneMeal extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: OutMealLine(entry: entry, size: 11),
               ),
+            HadInsteadLine(entry: entry, size: 11),
             // Read through the day total's own function so the parts match the
             // sum.
             MealMacroLine(

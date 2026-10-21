@@ -222,7 +222,8 @@ MealSetMacros servedMealMacros(
 /// [eatenOnly] counts what was eaten instead of what was planned: a meal is in
 /// scope only once someone eating it ticked it ([PlanEntry.eatenBy]), and
 /// `servings` is the sum of those people's shares — under a lens, only that
-/// person's, and only if they ticked.
+/// person's, and only if they ticked. What a member had instead of a meal
+/// ([PlanEntry.had]) counts too, as theirs.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
   required RecipeMacroSummary? Function(String recipeId) summaryFor,
@@ -230,6 +231,12 @@ MealSetMacros sumPlannedMacros(
   Map<String, Member> membersById = const {},
   bool eatenOnly = false,
 }) {
+  // What was had instead of a meal is eaten too, but never planned.
+  final scope = eatenOnly
+      ? [
+          for (final e in entries) ...[e, ...e.had.values],
+        ]
+      : entries;
   Macros? total;
   var counted = 0;
   var considered = 0;
@@ -238,7 +245,7 @@ MealSetMacros sumPlannedMacros(
   var servingsSum = 0.0;
   var demandSum = 0.0;
 
-  for (final entry in entries) {
+  for (final entry in scope) {
     final eaters = entry.eaterIds;
     if (lensMemberId != null &&
         eaters.isNotEmpty &&

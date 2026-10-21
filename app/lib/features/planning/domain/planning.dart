@@ -157,6 +157,16 @@ abstract class PlanEntry with _$PlanEntry {
     /// Ticking never edits the plan, so [eaterIds] and [portions] stay what
     /// was cooked for. Only an eater's tick counts ([eatenBy]).
     @Default(<String, DateTime>{}) Map<String, DateTime> eatenAt,
+
+    /// Set on a substitute: the planned meal this was eaten instead of. A
+    /// substitute is never one of a week's planned meals; it hangs off the
+    /// meal it replaced, in [had].
+    String? insteadOf,
+
+    /// What each member had instead of this meal: member id → the
+    /// substitute. Never cooked, bought or costed; counted only in what that
+    /// member ate.
+    @Default(<String, PlanEntry>{}) Map<String, PlanEntry> had,
   }) = _PlanEntry;
 
   /// What this meal is, from whichever target column is set.
@@ -178,16 +188,55 @@ abstract class PlanEntry with _$PlanEntry {
   int get portionsOrDefault => portions ?? eaterIds.length;
 
   /// The eaters who said they ate it. A tick from someone no longer eating
-  /// the meal is kept but not counted.
-  Set<String> get eatenBy => {
-    for (final id in eaterIds)
-      if (eatenAt.containsKey(id)) id,
-  };
+  /// the meal is kept but not counted. A substitute is eaten by its eater by
+  /// being there.
+  Set<String> get eatenBy => insteadOf != null
+      ? eaterIds.toSet()
+      : {
+          for (final id in eaterIds)
+            if (eatenAt.containsKey(id)) id,
+        };
 
   /// The local calendar day this meal falls on in the week beginning
   /// [weekStart].
   DateTime dateIn(DateTime weekStart) =>
       DateTime(weekStart.year, weekStart.month, weekStart.day + dayOfWeek);
+}
+
+/// What a member had instead of a planned meal: one of the three kinds a meal
+/// can be, said for that member alone.
+sealed class InsteadMeal {
+  const InsteadMeal();
+}
+
+/// A recipe from the Library, at the member's usual portion.
+final class InsteadRecipe extends InsteadMeal {
+  const InsteadRecipe(this.recipeId);
+
+  final String recipeId;
+}
+
+/// A bare ingredient, with one portion's amount as the quantity sheet said it.
+final class InsteadIngredient extends InsteadMeal {
+  const InsteadIngredient({
+    required this.ingredientId,
+    this.quantity,
+    this.unit,
+    this.measureId,
+  });
+
+  final String ingredientId;
+  final double? quantity;
+  final Unit? unit;
+  final String? measureId;
+}
+
+/// A meal eaten out: its words, and its figures if they were stated.
+final class InsteadOut extends InsteadMeal {
+  const InsteadOut(this.label, {this.macros});
+
+  final String label;
+  final Macros? macros;
 }
 
 /// The words for a meal whose recipe or vocab row is gone, one sentence per

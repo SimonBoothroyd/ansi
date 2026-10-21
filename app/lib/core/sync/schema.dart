@@ -127,6 +127,10 @@ const schema = Schema([
     Column.text('eaters'), // JSON array of household_member ids
     Column.integer('portions'), // null → defaults to |eaters|
     Column.integer('sort_order'),
+    // → plan_entry.id: the planned meal this one was eaten instead of, by its
+    // one eater. Null on every planned meal; a substitute is never cooked,
+    // bought or costed.
+    Column.text('instead_of'),
     ..._audit,
   ]),
   // A member saying they ate a planned meal (0055). Written only for the
