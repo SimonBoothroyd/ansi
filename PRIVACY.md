@@ -10,6 +10,10 @@ no data is sold or shared for marketing.
   name on your Google account.
 - **Your household's content:** recipes, ingredients, meal plans, shopping
   lists, prices and receipts you scan or type in.
+- **What you ate:** which planned meals you said you ate and when, what you
+  had instead, and what became of a batch's leftovers. Like the rest of the
+  household's content, your household can read it. The app shows the other
+  members only whether you ticked a meal, not what you had instead.
 
 This is stored with **Supabase** (database and sign-in) and synced between
 your devices by **PowerSync**. Both act only as hosting providers for Ansi.
