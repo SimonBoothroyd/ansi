@@ -157,6 +157,50 @@ Phases land in order; each is shippable alone.
     Jun's phone syncs.
 13. Account: the one switch, the permission ask on first turn-on, and the
     not-sent row.
+14. The platform and store work in *Privacy and the store* below, before the
+    first build that carries the permission.
+
+## Privacy and the store
+
+`PRIVACY.md` describes the app as it works, so each paragraph lands with the
+phase that makes it true, not before.
+
+- **Phase 1 — the household sees your ticks.** *What Ansi stores* gains which
+  meals each member said they ate, synced like the rest of the household's
+  content. The app shows the other members only a tick; the policy says the
+  data itself is household-readable, because it is (`meal_eaten` reads
+  household-wide).
+- **Phase 2 — what you had instead** is household content too, said in the
+  same paragraph. If Ask reads ticks or substitutes, its paragraph's list of
+  what is sent to Anthropic grows by them.
+- **Phase 4 — a Health Connect section:** only when the switch is on; Ansi
+  **writes** each member's own eaten meals (energy, protein, carbs, fat, fibre
+  when stated, the meal type and a time) to Health Connect on that phone, and
+  **reads nothing** from it; nothing read from Health Connect reaches Ansi's
+  server or the household. What Ansi wrote stays in Health Connect under the
+  person's control after the switch goes off or the account is deleted, and is
+  removed there (see *Open questions*). The deletion section says the same.
+- **Write-only, by design.** Request `WRITE_NUTRITION` and no read permission:
+  it is all the feature needs, and it keeps Google's Health Connect review and
+  the policy's promises small.
+- **Android manifest:** the permission; the `<queries>` entry for the Health
+  Connect package; and the privacy-policy rationale Android requires of any app
+  asking for health permissions — an activity for
+  `androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE` (Android 13) and the
+  `VIEW_PERMISSION_USAGE` / `HEALTH_PERMISSIONS` alias (14+), showing the
+  policy. Without it the permission dialog does not offer the app.
+- **Play Console:** the **Health apps declaration** naming nutrition write and
+  why; the **Data safety** form revisited — eaten meals now sync to the server,
+  and whether that counts as *Health and fitness* data there is to be read off
+  Google's current definitions, not guessed. Check whether internal testing is
+  gated on the declaration being approved; [release.md](../../release.md)'s
+  Play section gains a line either way.
+- **The policy needs a URL** the rationale screen and the declaration can
+  point at; `PRIVACY.md` in the repo is not one. Serving it from
+  `getansi.app/privacy` through the existing Worker is the cheap answer.
+- **iOS is not in scope.** If HealthKit is added later, it brings its own
+  entitlement and usage string; there is no App Store listing to update, since
+  iOS installs from Xcode ([release.md](../../release.md)).
 
 ## Acceptance criteria
 
@@ -172,6 +216,8 @@ Phases land in order; each is shippable alone.
 - [ ] Health Connect holds exactly this member's eaten, resolved meals after
       any sequence of ticks, unticks, swaps, edits and removals on either
       phone; an unresolved meal is named, never sent.
+- [ ] `PRIVACY.md` true at every phase's release; the Play Console's Health
+      apps declaration and Data safety form match what the build does.
 - [ ] Tests cover the new logic in `planning/domain`, `cook_plan/domain` and
       the reconciler's diff.
 - [ ] Docs updated: product spec (*Meal plan* data model, *The Week screen*,
@@ -203,6 +249,9 @@ Append-only.
   the weighting as its own ruling.
 - **The eaten-out row in the instead picker** is shown always in the canvas;
   the owner has not ruled on it against today's only-when-nothing-matches rule.
+- **Switching Health Connect off:** stop sending and leave what was written
+  (it is the person's record, removable in Health Connect), or take back
+  everything Ansi wrote? The first is assumed in *Privacy and the store*.
 - **iOS (HealthKit).** The same reconciler can write HealthKit through the same
   package; not in this plan unless the owner wants it.
 - **A substitute that was another batch's leftover** (ate Monday's spare curry
