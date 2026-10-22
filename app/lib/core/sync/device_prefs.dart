@@ -23,10 +23,17 @@ abstract final class DevicePrefs {
   /// notifications, so it is never asked twice.
   static const timerAlarmPrefix = 'ansi.timer_alarm.';
 
+  /// `+ enabled` / `+ sent` → whether this phone sends its member's meals to
+  /// Health Connect, and what it last sent there (`features/health`). Swept on
+  /// sign-out: what was sent stays in Health Connect, which is the person's to
+  /// manage.
+  static const healthPrefix = 'ansi.health.';
+
   /// Every prefix above, in the order sign-out sweeps them.
   static const sweptOnSignOut = [
     householdIdPrefix,
     bookCollapsedPrefix,
     cookTimersPrefix,
+    healthPrefix,
   ];
 }

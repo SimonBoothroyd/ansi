@@ -64,12 +64,26 @@ make it ring. Ansi asks for permission to send notifications (and, on Android,
 to ring on time) the first time you start a timer, and works without it: the
 timer then sounds only while Ansi is open.
 
+## Health Connect (Android)
+
+Only if you switch it on, under Account. Ansi then **writes** the meals you
+ate — the planned ones you ticked, at your share, and what you had instead —
+to Health Connect on that phone: energy, protein, carbohydrate, fat, fibre
+where it is known, the meal type and the time. Ansi asks only for permission
+to write nutrition and **reads nothing** from Health Connect. Each phone sends
+only its own person's meals.
+
+What Ansi wrote stays in Health Connect if you switch it off, sign out or
+delete your account; you can delete it there, from Health Connect's page for
+Ansi (Account › Manage in Health Connect).
+
 ## Deleting your account
 
 Email **wkndvibes@proton.me** from the address you sign in with and ask for your
 account to be deleted. Your account and, if you are its last member, your
 household's data are deleted within 30 days. You can also delete individual
-recipes, plans and receipts in the app at any time.
+recipes, plans and receipts in the app at any time. Meals Ansi wrote to Health
+Connect are deleted in Health Connect, not by Ansi.
 
 ## Children
 

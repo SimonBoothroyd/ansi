@@ -9,6 +9,9 @@
     <!-- Ask Ansi's mic (plan 0053): the phone's own speech recogniser hears the
          question. Asked for the first time the mic is tapped, never before. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Health Connect (plan 0054): write-only, nutrition only. Asked for when
+         the Account switch is turned on, never before. -->
+    <uses-permission android:name="android.permission.health.WRITE_NUTRITION"/>
     <!-- enableOnBackInvokedCallback: Flutter's PredictiveBackPageTransitionsBuilder
          needs this opt-in (it is absent from Flutter's own app template), and
          without it every back falls through to the FadeForwards fallback. With
@@ -51,6 +54,28 @@
                 <data android:scheme="io.ansi.app" android:host="login-callback"/>
             </intent-filter>
         </activity>
+        <!-- Health Connect requires an answer to "why does Ansi want this?":
+             the privacy policy, opened by this activity. Android 13 asks
+             with ACTION_SHOW_PERMISSIONS_RATIONALE; 14 and later through the
+             alias below. Without both, Ansi is not offered the permission. -->
+        <activity
+            android:name=".PermissionsRationaleActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"/>
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".PermissionsRationaleActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE"/>
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS"/>
+            </intent-filter>
+        </activity-alias>
         <!-- image_cropper (recipe photo intake): its crop/rotate editor is a
              uCrop activity that must be declared by the host app. -->
         <activity
@@ -94,5 +119,7 @@
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
+        <!-- Health Connect itself (plan 0054), to see whether it is there. -->
+        <package android:name="com.google.android.apps.healthdata"/>
     </queries>
 </manifest>

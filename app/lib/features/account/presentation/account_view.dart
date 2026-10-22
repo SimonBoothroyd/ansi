@@ -14,6 +14,8 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/sync_health_row.dart';
+import '../../health/data/health_providers.dart';
+import '../../health/presentation/health_section.dart';
 import '../../planning/presentation/household_section.dart';
 
 /// The route the Library header's household control opens.
@@ -45,6 +47,13 @@ class AccountView extends ConsumerWidget {
           const _Eyebrow('This device'),
           FItemGroup(children: const [SyncHealthRow()]),
           const SizedBox(height: 26),
+
+          // Android only; draws nothing elsewhere.
+          if (ref.watch(healthIsSupportedProvider)) ...[
+            const _Eyebrow('Health Connect'),
+            const HealthSection(),
+            const SizedBox(height: 26),
+          ],
 
           const _Eyebrow('Session'),
           FItemGroup(

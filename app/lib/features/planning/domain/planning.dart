@@ -167,6 +167,9 @@ abstract class PlanEntry with _$PlanEntry {
     /// substitute. Never cooked, bought or costed; counted only in what that
     /// member ate.
     @Default(<String, PlanEntry>{}) Map<String, PlanEntry> had,
+
+    /// When the row was written. A substitute's eaten time is read from it.
+    DateTime? createdAt,
   }) = _PlanEntry;
 
   /// What this meal is, from whichever target column is set.

@@ -4,6 +4,7 @@ library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/account/presentation/account_view.dart';
+import 'package:ansi/features/health/data/health_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:flutter/material.dart';
@@ -19,8 +20,10 @@ const _roster = [
   Member(id: 'm2', displayName: 'Jun', portionFactor: 0.75),
 ];
 
+/// Flutter's tests run as Android, so the Health Connect section would draw
+/// and reach for the platform; its own test file covers it.
 Widget _host(List<Override> overrides) => ProviderScope(
-  overrides: overrides,
+  overrides: [healthIsSupportedProvider.overrideWithValue(false), ...overrides],
   child: MaterialApp(
     home: const AccountView(),
     builder: (context, child) => FTheme(

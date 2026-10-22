@@ -1198,6 +1198,17 @@ books, their user-named sections, and the recipes filed under each.
   plan · cook · buy), and this is visited monthly. The *loud* half of sync
   health does not live here — a stall or a refused write still raises the
   shell's banner over whatever you are doing.
+- **Health Connect, on Android only (plan 0054, phase 4).** One switch under
+  Account, *Send my meals to Health Connect*, per phone; turning it on asks
+  Health Connect's permission (write nutrition, nothing read) and stays off if
+  refused. While on, each tick, untick, swap or `−` reaches Health Connect a
+  moment later: the member's own meals over this week and last, one record per
+  meal at their share, replaced rather than duplicated (`features/health`,
+  `MainActivity.kt`). A meal whose macros do not resolve is not sent and is
+  named under the switch (`Office lunch has no macros`). While off, one row —
+  *Manage in Health Connect ›* — opens Health Connect's page for Ansi;
+  switching off deletes nothing, as the platform does. A phone without Health
+  Connect says so, and iOS and the web draw nothing.
 - **Search is a field pinned under the header**, not a sheet or a route. A live
   query REPLACES the tree with flat rows carrying a `Book · Section` filing
   line (without it, two recipes called "Ragù" in two books are the same row

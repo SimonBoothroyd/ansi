@@ -1,6 +1,6 @@
 # Exec plan: Eaten vs planned
 
-- **Status:** active — phases 1–3 (ticks, had something else, leftovers) built on the branch, not yet on main or cloud; phase 4 (Health Connect) to come
+- **Status:** active — phases 1–3 on main (migrations not yet on cloud); phase 4 (Health Connect) built on the branch, waiting on the phone checklist below
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 5; its leftover question is a first slice of step 11 (anti-waste)
 - **Created:** 2026-10-21
@@ -321,6 +321,50 @@ Append-only.
   `≈ $6` — that wants the recipe's cost per serving joined in, a follow-up.
   **The wide schedule sheet does not ask**; the phone card does, and the
   board says so.
+
+- 2026-10-21 — Phase 4 built, and built differently from step 12's
+  spike. **No `health` package**: every version of it collides with
+  something the app pins (the custom_lint stack, `wakelock_plus`'s `win32`,
+  `intl`), so `MainActivity.kt` speaks to Google's own
+  `androidx.health.connect:connect-client` 1.1.0 over one method channel —
+  about a hundred lines, no new Dart dependency, and exact control of the
+  `clientRecordId` and version that make a write a replacement. Consequences:
+  `MainActivity` is a `FlutterFragmentActivity` (the permission contract
+  needs one), and `minSdk` is 26. A meal goes as a one-minute record at its
+  time. The window is this week and last; a meal that leaves it stays in
+  Health Connect and drops out of the phone's log, so nothing old is ever
+  taken back by accident. The log is per phone and swept on sign-out.
+  `flutter build apk` (debug and release) passes in the session; nothing has
+  run on a device.
+
+## Phase 4 — the phone checklist
+
+On an Android 14+ phone (or Android Studio's emulator, API 34+), with a build
+from the branch and migrations `0055`–`0057` deployed:
+
+1. Account shows *Health Connect* with the switch off and *Manage in Health
+   Connect ›*, which opens Health Connect's page for Ansi.
+2. Turning the switch on shows Health Connect's own prompt, asking to write
+   nutrition only. Refusing leaves the switch off; allowing turns it on.
+3. In that prompt, the privacy link opens the policy (needs
+   `getansi.app/privacy` to exist — see below).
+4. Tick a planned dinner: within a few seconds Health Connect (Data and
+   access › Nutrition) shows it, at the tick's time, as a dinner, with your
+   share's figures.
+5. Change the time in the sheet: the same record moves; no second one.
+6. Untick it: the record goes. Tick again, then remove the meal with `−`:
+   the record goes; Undo brings it back.
+7. Say you had something else: the planned meal's record becomes the
+   substitute's.
+8. A meal with no macros (a meal eaten out with none stated) is named under
+   the switch and does not reach Health Connect.
+9. Switch off: nothing in Health Connect changes.
+10. On the partner's phone, remove a meal you ticked: once your phone syncs,
+    your record goes.
+
+**Before the Play Store sees it:** serve the privacy policy at
+`getansi.app/privacy` (the rationale screen opens that address), and fill in
+Play Console's Health apps declaration (nutrition, write) and Data safety.
 
 ## Notes / open questions
 

@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/sync/session.dart';
 import 'core/theme/ansi_theme.dart';
+import 'features/health/presentation/health_sync.dart';
 import 'features/timers/presentation/timer_chrome.dart';
 import 'shared/ansi_scroll.dart';
 import 'shared/ansi_toast.dart';
@@ -18,7 +19,11 @@ class AnsiApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Keeps the session controller alive: it listens to auth changes and
     // connects/disconnects PowerSync.
-    ref.watch(sessionControllerProvider);
+    ref
+      ..watch(sessionControllerProvider)
+      // Keeps Health Connect in step with what was eaten, whatever is on
+      // screen; it does nothing until the Account switch is on.
+      ..watch(healthSyncRunnerProvider);
     final theme = ansiThemeData();
     return MaterialApp.router(
       title: 'Ansi',

@@ -77,7 +77,7 @@ class SqlitePlanningRepository implements PlanningRepository {
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
       // `pe.macros` is aliased: it is per portion as stated, while the vocab
       // row's `macros` below is per 100 of a basis.
-      'pe.label, pe.macros AS stated_macros, pe.instead_of, '
+      'pe.label, pe.macros AS stated_macros, pe.instead_of, pe.created_at, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -180,6 +180,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     eaterIds: (jsonDecode(e['eaters'] as String? ?? '[]') as List)
         .cast<String>(),
     portions: e['portions'] as int?,
+    createdAt: DateTime.tryParse(e['created_at'] as String? ?? '')?.toLocal(),
   );
 
   /// The row's resolved [Measure], or null when the entry has none or its
