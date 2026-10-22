@@ -22,8 +22,10 @@ const _roster = [
 
 /// Flutter's tests run as Android, so the Health Connect section would draw
 /// and reach for the platform; its own test file covers it.
+final _noHealthConnect = healthIsSupportedProvider.overrideWithValue(false);
+
 Widget _host(List<Override> overrides) => ProviderScope(
-  overrides: [healthIsSupportedProvider.overrideWithValue(false), ...overrides],
+  overrides: [_noHealthConnect, ...overrides],
   child: MaterialApp(
     home: const AccountView(),
     builder: (context, child) => FTheme(
