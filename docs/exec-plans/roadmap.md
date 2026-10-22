@@ -22,10 +22,9 @@ The detail is in the plan; the landing dates are in the
    phones on `v0.31.0`, with slice 2's paid eval (`run_ask_live.ts`, 40 cases)
    run first — it was not run before the deploy.
 5. [Plan 0054](./active/0054-eaten-vs-planned.md), eaten vs planned —
-   all on main; deploy `0055`–`0057` before the next tag. Phase 4 (Health
-   Connect) wants its phone checklist on an Android phone, and Ask's
-   `had_instead` its paid eval (`run_ask_live.ts`) before the `ask` deploy,
-   which follows the app release.
+   all on main, `0055`–`0057`, the streams and `ask` deployed (run
+   39765796412). Phase 4 (Health Connect) wants its phone checklist on an
+   Android phone, and Ask's `had_instead` its paid eval (`run_ask_live.ts`).
 6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
    first slice.
 
@@ -39,7 +38,7 @@ operator statement is owed there.
 | What | Plan |
 |------|------|
 | Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. The `ask` function deployed first (39425831242). No migrations | [0053](./active/0053-ask-ansi.md) |
-| Eaten vs planned — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, never cooked or bought, shown on your own phone only); and once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten). Undo after `−` now restores the same meal. Migrations `0055`–`0057` and the sync streams are **not on cloud yet**: deploy before tagging, or ticks have nowhere to upload. Health Connect (phase 4: one switch in Account, Android only, write-only, untested on a phone) and Ask's *I'm eating out* on a meal today or earlier (`had_instead`; ship the app before the `ask` function) are on main too | [0054](./active/0054-eaten-vs-planned.md) |
+| Eaten vs planned — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, never cooked or bought, shown on your own phone only); and once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten). Undo after `−` now restores the same meal. Migrations `0055`–`0057`, the sync streams and `ask` are on cloud (deploy-supabase 39765796412). Health Connect (phase 4: one switch in Account, Android only, write-only, untested on a phone) and Ask's *I'm eating out* on a meal today or earlier (`had_instead`; the function is already live, so until the release Ask answers that with an error) are on main too | [0054](./active/0054-eaten-vs-planned.md) |
 
 ## Shipped
 

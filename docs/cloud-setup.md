@@ -673,6 +673,17 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-10-22 — eaten vs planned: migrations `0055`–`0057`, streams and `ask`
+
+- **deploy-supabase 39765796412** (on `751626ba`): green — `db push` applied
+  `0055_meal_eaten`, `0056_plan_entry_instead_of` and `0057_batch_leftover`;
+  the sync streams (now carrying `meal_eaten` and `batch_leftover`) deployed;
+  `ask` redeployed with `had_instead`, the other functions unchanged. No
+  reseed. Ahead of the app on purpose (the owner's call): until the phones run
+  the release carrying plan 0054, an *I ate out* on a past or today's meal gets
+  a tool error back from the app instead of a card. The paid Ask eval was not
+  run first; `cloud_verify.sh` was not run.
+
 ### 2026-10-20 — Ask's figures: the `ask` function ahead of `v0.32.0`
 
 - **deploy-supabase 39425831242** (on `3a5d4cca`): green — the `nutrition`,
