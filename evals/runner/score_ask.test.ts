@@ -12,6 +12,7 @@ import {
   parseCases,
   scoreAnswer,
   scoreFirstMove,
+  scoreThenMove,
 } from "./score_ask.ts";
 
 const CASE: AskCase = {
@@ -55,6 +56,30 @@ Deno.test("first move — right tool, wrong tool, none, forbidden", () => {
   assert(
     !scoreFirstMove(refusal, { name: "start_step_timer", input: {} }).pass,
   );
+});
+
+Deno.test("then move — the proposal, the change it holds, or none", () => {
+  const c = {
+    ...CASE,
+    result: "{}",
+    then_tool: "propose_plan_changes",
+    then_change: { op: "had_instead", entry_id: "e1" },
+  };
+  const propose = (changes: unknown[]) => ({
+    name: "propose_plan_changes",
+    input: { changes },
+  });
+  assert(
+    scoreThenMove(c, propose([{ op: "had_instead", entry_id: "e1" }])).pass,
+  );
+  assert(
+    !scoreThenMove(c, propose([{ op: "set_eaters", entry_id: "e1" }])).pass,
+  );
+  assert(!scoreThenMove(c, null).pass);
+  const none = { ...c, then_tool: null };
+  assert(scoreThenMove(none, null).pass);
+  assert(scoreThenMove(none, { name: "week", input: {} }).pass);
+  assert(!scoreThenMove(none, propose([])).pass);
 });
 
 Deno.test("numbers — the app's own forms are all found", () => {

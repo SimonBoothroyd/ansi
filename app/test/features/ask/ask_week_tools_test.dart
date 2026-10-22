@@ -47,6 +47,20 @@ Map<String, Object?> _json(String s) => jsonDecode(s) as Map<String, Object?>;
 
 void main() {
   group('who "I" is', () {
+    test('the member the token names wins over any name', () {
+      expect(
+        askSpeaker(const [_simon, _emma], claimed: 'm2', fullName: 'Simon'),
+        'm2',
+      );
+    });
+    test('a token from before the claim falls back to the name', () {
+      expect(askSpeaker(const [_simon, _emma], fullName: 'Emma'), 'm2');
+      // A claim naming nobody in the household is no claim.
+      expect(
+        askSpeaker(const [_simon, _emma], claimed: 'm9', fullName: 'Emma'),
+        'm2',
+      );
+    });
     test('the member named as the account is', () {
       expect(askMe(const [_simon, _emma], fullName: 'Emma'), 'm2');
       expect(askMe(const [_simon, _emma], email: 'simon@example.com'), 'm1');

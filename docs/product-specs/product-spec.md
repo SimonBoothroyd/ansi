@@ -1596,8 +1596,14 @@ the list*.
   the week again. A named meal is a recipe of that exact title, else an
   ingredient of that exact name, else Ansi asks — offering near names or a
   meal eaten out — and never invents a recipe. *I* is the member signed in on
-  the phone; *I'm eating out* takes them off that meal's eaters, and a meal
-  left with no one eating it is removed, as the card says. An ingredient meal
+  the phone — the token's `member_id`, else the account's name for a session
+  from before that claim. For a meal still to come, *I'm eating out* takes
+  them off that meal's eaters, and a meal left with no one eating it is
+  removed, as the card says. For a meal today or earlier, *I'm eating out* or
+  *I had something else* says what **they** had instead (plan 0054): the
+  plan is left as it is, the card reads *Simon had Pizza (eaten out)
+  instead*, and Confirm writes it as the Week's own *Had something else*
+  does. Ansi never says it for another member. An ingredient meal
   or a top-up carries the amount said, else the ingredient's usual one — the
   same the Week's and the Shop's sheets open on — and the card says which
   (*1 pot (150 g) each · as last time*); with neither, Ansi asks how much. Ansi does not edit recipes or ingredients or tick off the list,

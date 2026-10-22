@@ -113,6 +113,22 @@ final class PlanSetEaters extends PlanChange {
   final List<String> eaterIds;
 }
 
+/// What [memberId] had instead of the meal [expected]. The plan is untouched:
+/// the substitute is never cooked or bought, and replaces the member's tick
+/// or an earlier substitute (`PlanningRepository.setInstead`).
+final class PlanHadInstead extends PlanChange {
+  const PlanHadInstead(
+    this.expected, {
+    required this.memberId,
+    required this.meal,
+  });
+
+  @override
+  final PlanEntry expected;
+  final String memberId;
+  final InsteadMeal meal;
+}
+
 /// A meal a change set touches was edited, moved or removed after the set
 /// was drawn. Nothing was written.
 class PlanChangedError implements Exception {

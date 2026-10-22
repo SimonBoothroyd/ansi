@@ -509,58 +509,67 @@ class SqlitePlanningRepository implements PlanningRepository {
     String entryId, {
     required String memberId,
     required InsteadMeal? meal,
-  }) async {
-    final now = _now();
-    await _db.writeTransaction((tx) async {
-      // Whatever they had before goes: one substitute per member per meal.
-      await _dropInstead(tx, entryId, memberId, now);
-      if (meal == null) return;
+  }) => _db.writeTransaction(
+    (tx) => _setInsteadIn(tx, entryId, memberId, meal, _now()),
+  );
 
-      // Having something else is not having eaten the meal.
-      await tx.execute(
-        'UPDATE meal_eaten SET deleted_at = ?, updated_at = ? '
-        'WHERE plan_entry_id = ? AND member_id = ? AND deleted_at IS NULL',
-        [now, now, entryId, memberId],
-      );
-      final parent = await tx.get(
-        'SELECT week_plan_id, day_of_week, meal_slot FROM plan_entry '
-        'WHERE id = ?',
-        [entryId],
-      );
-      final (recipeId, ingredientId, label) = switch (meal) {
-        InsteadRecipe(:final recipeId) => (recipeId, null, null),
-        InsteadIngredient(:final ingredientId) => (null, ingredientId, null),
-        InsteadOut(:final label) => (null, null, label.trim()),
-      };
-      final ingredient = meal is InsteadIngredient ? meal : null;
-      final stated = meal is InsteadOut ? meal.macros : null;
-      // jsonb as TEXT, as `_insertEntry` writes it.
-      final statedJson = stated == null ? null : jsonEncode(stated.toJson());
-      await tx.execute(
-        'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
-        'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
-        'measure_id, eaters, instead_of, sort_order, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
-        [
-          _uuid.v4(),
-          _householdId,
-          parent['week_plan_id'],
-          parent['day_of_week'],
-          parent['meal_slot'],
-          recipeId,
-          ingredientId,
-          label,
-          statedJson,
-          ingredient?.quantity,
-          ingredient?.unit?.id,
-          ingredient?.measureId,
-          jsonEncode([memberId]),
-          entryId,
-          now,
-          now,
-        ],
-      );
-    });
+  /// [setInstead] inside a transaction, shared with an Ask card's
+  /// [PlanHadInstead].
+  Future<void> _setInsteadIn(
+    SqliteWriteContext tx,
+    String entryId,
+    String memberId,
+    InsteadMeal? meal,
+    String now,
+  ) async {
+    // Whatever they had before goes: one substitute per member per meal.
+    await _dropInstead(tx, entryId, memberId, now);
+    if (meal == null) return;
+
+    // Having something else is not having eaten the meal.
+    await tx.execute(
+      'UPDATE meal_eaten SET deleted_at = ?, updated_at = ? '
+      'WHERE plan_entry_id = ? AND member_id = ? AND deleted_at IS NULL',
+      [now, now, entryId, memberId],
+    );
+    final parent = await tx.get(
+      'SELECT week_plan_id, day_of_week, meal_slot FROM plan_entry '
+      'WHERE id = ?',
+      [entryId],
+    );
+    final (recipeId, ingredientId, label) = switch (meal) {
+      InsteadRecipe(:final recipeId) => (recipeId, null, null),
+      InsteadIngredient(:final ingredientId) => (null, ingredientId, null),
+      InsteadOut(:final label) => (null, null, label.trim()),
+    };
+    final ingredient = meal is InsteadIngredient ? meal : null;
+    final stated = meal is InsteadOut ? meal.macros : null;
+    // jsonb as TEXT, as `_insertEntry` writes it.
+    final statedJson = stated == null ? null : jsonEncode(stated.toJson());
+    await tx.execute(
+      'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
+      'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
+      'measure_id, eaters, instead_of, sort_order, created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)',
+      [
+        _uuid.v4(),
+        _householdId,
+        parent['week_plan_id'],
+        parent['day_of_week'],
+        parent['meal_slot'],
+        recipeId,
+        ingredientId,
+        label,
+        statedJson,
+        ingredient?.quantity,
+        ingredient?.unit?.id,
+        ingredient?.measureId,
+        jsonEncode([memberId]),
+        entryId,
+        now,
+        now,
+      ],
+    );
   }
 
   /// Soft-deletes what [memberId] had instead of [entryId], duplicates too.
@@ -691,6 +700,8 @@ class SqlitePlanningRepository implements PlanningRepository {
             'UPDATE plan_entry SET eaters = ?, updated_at = ? WHERE id = ?',
             [jsonEncode(eaterIds), now, expected.id],
           );
+        case PlanHadInstead(:final expected, :final memberId, :final meal):
+          await _setInsteadIn(tx, expected.id, memberId, meal, now);
       }
     }
   });

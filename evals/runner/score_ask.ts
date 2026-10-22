@@ -33,6 +33,13 @@ export interface AskCase {
   /** Strings the final answer must not contain (case-insensitive): what the
    *  screen already shows, which a concise answer leaves out. */
   answer_excludes?: string[];
+  /** The model's next move once [result] is fed back: a tool it must call,
+   *  or null for "no proposal" (it answers, asks, or reads on). Graded
+   *  instead of the answer. */
+  then_tool?: string | null;
+  /** Keys one change in that call's `changes` must carry, compared like
+   *  `expect_input` — the change a proposal must hold. */
+  then_change?: Record<string, unknown>;
 }
 
 /** A tool call as the API returns it. */
@@ -110,6 +117,41 @@ export function scoreFirstMove(
   return { pass: true, why: call.name };
 }
 
+/**
+ * Grades the move after the first tool's result: the expected tool, with a
+ * change that matches [AskCase.then_change] — or, for `then_tool: null`, no
+ * `propose_*` tool at all.
+ */
+export function scoreThenMove(
+  c: AskCase,
+  call: ToolCall | null,
+): { pass: boolean; why: string } {
+  if (c.then_tool === null) {
+    return call?.name.startsWith("propose_")
+      ? { pass: false, why: `proposed with ${call.name}, which it must not` }
+      : { pass: true, why: call ? `then ${call.name}` : "then no tool" };
+  }
+  if (!call) {
+    return { pass: false, why: `then no tool; expected ${c.then_tool}` };
+  }
+  if (call.name !== c.then_tool) {
+    return { pass: false, why: `then ${call.name}; expected ${c.then_tool}` };
+  }
+  if (c.then_change) {
+    const changes = Array.isArray(call.input.changes)
+      ? call.input.changes as Record<string, unknown>[]
+      : [];
+    if (!changes.some((ch) => inputMatches(ch, c.then_change!))) {
+      return {
+        pass: false,
+        why: `then ${call.name} with ${JSON.stringify(call.input)}; ` +
+          `expected a change ${JSON.stringify(c.then_change)}`,
+      };
+    }
+  }
+  return { pass: true, why: `then ${call.name}` };
+}
+
 /** The vulgar fractions the app prints (`formatAmount`). */
 const FRACTIONS = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞";
 
@@ -168,6 +210,14 @@ export function parseCases(jsonl: string): AskCase[] {
     }
     if (c.result !== undefined && c.expect_tool === null) {
       throw new Error(`line ${i + 1} (${c.id}) has a result but no tool`);
+    }
+    if (c.then_tool !== undefined && c.result === undefined) {
+      throw new Error(`line ${i + 1} (${c.id}) has a then_tool but no result`);
+    }
+    if (c.then_tool && !ASK_TOOL_NAMES.includes(c.then_tool)) {
+      throw new Error(
+        `line ${i + 1} (${c.id}) names unknown tool ${c.then_tool}`,
+      );
     }
     cases.push(c);
   }

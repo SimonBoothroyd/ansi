@@ -132,9 +132,18 @@ class AskPlanContext {
     required this.members,
     required this.recipeTitles,
     required this.ingredients,
+    this.me,
+    this.today,
   });
 
   final WeekShape shape;
+
+  /// The member speaking, or null when that is not known. What someone had
+  /// instead is only ever said for them.
+  final String? me;
+
+  /// Today, as a UTC date: a meal after it has not been eaten yet.
+  final DateTime? today;
 
   /// Every week a change names, by its first day; null where nothing is
   /// planned yet.
@@ -291,6 +300,68 @@ AskPlanProposal buildPlanProposal(
     return hit;
   }
 
+  /// The one meal a change names — a recipe, an ingredient with its amount
+  /// (as said, else its usual one), or the words of a meal eaten out — and
+  /// how the card says it.
+  ({PlanTarget target, String what, String? amount}) targetOf(
+    AskRawChange c, {
+    required String kind,
+    required String Function(String name) amountAsked,
+  }) {
+    final saidRecipe = c['recipe_id'] as String?;
+    final saidIngredient = c['ingredient_id'] as String?;
+    final saidLabel = c['out_label'] as String?;
+    final named = [
+      saidRecipe,
+      saidIngredient,
+      saidLabel,
+    ].where((v) => v != null);
+    if (named.length != 1) {
+      throw AskToolError(
+        '$kind names exactly one of recipe_id, ingredient_id or out_label',
+      );
+    }
+    if (saidRecipe case final recipeId?) {
+      final title = context.recipeTitles[recipeId];
+      if (title == null) {
+        throw AskToolError('there is no recipe with the id `$recipeId`');
+      }
+      return (target: PlanRecipeTarget(recipeId), what: title, amount: null);
+    }
+    if (saidIngredient case final ingredientId?) {
+      final facts = context.ingredients[ingredientId];
+      if (facts == null) {
+        throw AskToolError(
+          'there is no ingredient with the id `$ingredientId`',
+        );
+      }
+      final name = facts.ingredient.canonicalName;
+      final q = amountOrUsual(
+        facts,
+        c['quantity'],
+        c['unit'],
+        asked: amountAsked(name),
+      );
+      return (
+        target: PlanIngredientTarget(
+          facts.ingredient.id,
+          quantity: q.amount.quantity,
+          unit: q.amount.unit,
+          measureId: q.amount.measure?.id,
+        ),
+        what: name,
+        amount: ['${amountSaid(q.amount)} each', ?q.from].join(' · '),
+      );
+    }
+    final words = saidLabel!.trim();
+    if (words.isEmpty) throw const AskToolError('`out_label` is empty');
+    return (
+      target: PlanOutTarget(words),
+      what: '$words (eaten out)',
+      amount: null,
+    );
+  }
+
   final changes = <PlanChange>[];
   final touched = <String>{};
   // Sort keys beside each row: the date, then the slot's rank.
@@ -301,7 +372,7 @@ AskPlanProposal buildPlanProposal(
       '${isoDateOf(weekStart)}|$day|${slot.toLowerCase()}';
 
   for (final c in raw) {
-    if (c['op'] case 'remove' || 'move' || 'set_eaters') {
+    if (c['op'] case 'remove' || 'move' || 'set_eaters' || 'had_instead') {
       final id = c['entry_id'];
       if (id is String && !touched.add(id)) {
         throw AskToolError('the meal `$id` is changed twice; change it once');
@@ -386,12 +457,79 @@ AskPlanProposal buildPlanProposal(
             ),
           ));
         }
+      case 'had_instead':
+        final hit = existing(c);
+        final me = context.me;
+        if (me == null) {
+          throw const AskToolError(
+            'who is speaking is not known, so nothing can be said for them; '
+            'what someone had instead is said from their own phone',
+          );
+        }
+        final date = shape.dateFor(hit.weekStart, hit.entry.dayOfWeek);
+        final today = context.today;
+        if (today != null && date.isAfter(today)) {
+          throw const AskToolError(
+            'that meal is still to come, so nothing was had instead of it '
+            'yet; to take the speaker off it, use set_eaters',
+          );
+        }
+        if (!hit.entry.eaterIds.contains(me)) {
+          throw const AskToolError(
+            'the speaker is not eating that meal; read the week for the meal '
+            'they meant',
+          );
+        }
+        final (:target, :what, :amount) = targetOf(
+          c,
+          kind: 'what was had instead',
+          amountAsked: (name) => 'how much $name they had',
+        );
+        changes.add(
+          PlanHadInstead(
+            hit.entry,
+            memberId: me,
+            meal: switch (target) {
+              PlanRecipeTarget(:final recipeId) => InsteadRecipe(recipeId),
+              PlanIngredientTarget(
+                :final ingredientId,
+                :final quantity,
+                :final unit,
+                :final measureId,
+              ) =>
+                InsteadIngredient(
+                  ingredientId: ingredientId,
+                  quantity: quantity,
+                  unit: unit,
+                  measureId: measureId,
+                ),
+              PlanOutTarget(:final label) => InsteadOut(label),
+            },
+          ),
+        );
+        rows.add((
+          date: date,
+          rank: mealSlotRank(hit.entry.mealSlot),
+          row: AskProposalRow(
+            when: whenOf(
+              hit.weekStart,
+              hit.entry.dayOfWeek,
+              hit.entry.mealSlot,
+            ),
+            what: titleOf(hit.entry),
+            note: [
+              '${names[me] ?? 'you'} had $what instead',
+              ?amount,
+            ].join(' · '),
+          ),
+        ));
       case 'add':
         // Read in a second pass, once every remove is known.
         break;
       default:
         throw AskToolError(
-          '`${c['op']}` is not a change; use add, remove, move or set_eaters',
+          '`${c['op']}` is not a change; use add, remove, move, set_eaters or '
+          'had_instead',
         );
     }
   }
@@ -405,58 +543,11 @@ AskPlanProposal buildPlanProposal(
     final eaters = eatersOf(c['eaters'], orEveryone: true);
     if (eaters.isEmpty) throw const AskToolError('a meal needs an eater');
 
-    final saidRecipe = c['recipe_id'] as String?;
-    final saidIngredient = c['ingredient_id'] as String?;
-    final saidLabel = c['out_label'] as String?;
-    final named = [
-      saidRecipe,
-      saidIngredient,
-      saidLabel,
-    ].where((v) => v != null);
-    if (named.length != 1) {
-      throw const AskToolError(
-        'an added meal names exactly one of recipe_id, ingredient_id or '
-        'out_label',
-      );
-    }
-    final PlanTarget target;
-    final String what;
-    String? amount;
-    if (saidRecipe case final recipeId?) {
-      final title = context.recipeTitles[recipeId];
-      if (title == null) {
-        throw AskToolError('there is no recipe with the id `$recipeId`');
-      }
-      target = PlanRecipeTarget(recipeId);
-      what = title;
-    } else if (saidIngredient case final ingredientId?) {
-      final facts = context.ingredients[ingredientId];
-      if (facts == null) {
-        throw AskToolError(
-          'there is no ingredient with the id `$ingredientId`',
-        );
-      }
-      final name = facts.ingredient.canonicalName;
-      final q = amountOrUsual(
-        facts,
-        c['quantity'],
-        c['unit'],
-        asked: 'how much $name each time',
-      );
-      target = PlanIngredientTarget(
-        facts.ingredient.id,
-        quantity: q.amount.quantity,
-        unit: q.amount.unit,
-        measureId: q.amount.measure?.id,
-      );
-      what = name;
-      amount = ['${amountSaid(q.amount)} each', ?q.from].join(' · ');
-    } else {
-      final words = saidLabel!.trim();
-      if (words.isEmpty) throw const AskToolError('`out_label` is empty');
-      target = PlanOutTarget(words);
-      what = '$words (eaten out)';
-    }
+    final (:target, :what, :amount) = targetOf(
+      c,
+      kind: 'an added meal',
+      amountAsked: (name) => 'how much $name each time',
+    );
     changes.add(
       PlanAdd(
         weekStart: weekStart,

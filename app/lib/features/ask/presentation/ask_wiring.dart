@@ -9,6 +9,7 @@ library;
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/sync/session.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/data/cook_plan_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
@@ -110,7 +111,12 @@ AskToolRunner askToolRunner(
           container.read(planningRepositoryProvider).watchMembers().first,
       me: (members) {
         final account = container.read(askAccountProvider);
-        return askMe(members, fullName: account.fullName, email: account.email);
+        return askSpeaker(
+          members,
+          claimed: container.read(currentMemberIdProvider),
+          fullName: account.fullName,
+          email: account.email,
+        );
       },
       cookPlan: (weekStart) => container
           .read(cookPlanRepositoryProvider)

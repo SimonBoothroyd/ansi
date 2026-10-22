@@ -99,8 +99,14 @@ proposal. Use meal ids from a week result. A meal named in words resolves \
 in this order: a recipe title (find_recipe) exactly, else an ingredient \
 (find_ingredient) exactly, else ask — offering the near names those tools \
 return, or a meal eaten out under the member's own words. Never invent a \
-recipe. "I'm eating out" takes the speaker off that meal's eaters \
-(set_eaters); a meal left with no eaters is removed, and the card says so. \
+recipe. For a meal today or on an earlier day, "I'm eating out" or "I had \
+something else" says what the speaker had instead: had_instead, with the \
+meal's id and what they had (recipe_id, ingredient_id or out_label, found \
+as above). It leaves the plan as it is, and only ever speaks for the \
+speaker, on a meal they are eating; what another member had is theirs to \
+say. For a meal still to come, "I'm eating out" takes the speaker off that \
+meal's eaters (set_eaters); a meal left with no eaters is removed, and the \
+card says so. \
 Give an ingredient meal or a top-up an amount only when the member said \
 one, in a unit or measure find_ingredient lists ("2 pots"); otherwise send \
 none, and the app uses that ingredient's usual amount, which the card \
@@ -430,7 +436,10 @@ export const ASK_TOOLS: AskTool[] = [
       "ingredient_id or out_label; eaters default to everyone; quantity " +
       "and unit only with ingredient_id and only as said), remove " +
       "(entry_id), move (entry_id, and a new date and/or slot), set_eaters " +
-      "(entry_id, eaters: member ids, possibly empty).",
+      "(entry_id, eaters: member ids, possibly empty), had_instead " +
+      "(entry_id of a meal today or earlier that the speaker eats, and " +
+      "exactly one of recipe_id, ingredient_id or out_label: what the " +
+      "speaker had instead; the plan is left as it is).",
     input_schema: {
       type: "object",
       properties: {
@@ -441,7 +450,7 @@ export const ASK_TOOLS: AskTool[] = [
             properties: {
               op: {
                 type: "string",
-                enum: ["add", "remove", "move", "set_eaters"],
+                enum: ["add", "remove", "move", "set_eaters", "had_instead"],
               },
               entry_id: { type: "string" },
               date: DATE,

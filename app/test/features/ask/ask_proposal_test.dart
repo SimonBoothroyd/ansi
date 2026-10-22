@@ -51,12 +51,16 @@ AskIngredientFacts _yoghurtFacts({
 AskPlanContext _context({
   Map<DateTime, WeekPlan?> weeks = const {},
   AskIngredientFacts? yoghurt,
+  String? me = 'm1',
+  DateTime? today,
 }) => AskPlanContext(
   shape: WeekShape.monday,
   weeks: weeks,
   members: const [_simon, _emma],
   recipeTitles: const {'r-hh': 'Hamburger Helper', 'r-curry': 'Curry'},
   ingredients: {'i1': yoghurt ?? _yoghurtFacts()},
+  me: me,
+  today: today,
 );
 
 AskRawChange _change({
@@ -361,5 +365,74 @@ void main() {
       ),
       throwsA(isA<AskToolError>()),
     );
+  });
+
+  group('what the speaker had instead', () {
+    // Wednesday 21 Oct; Tuesday's dinner has been and Friday's has not.
+    final wednesday = DateTime.utc(2026, 10, 21);
+    final week = WeekPlan(
+      id: 'w1',
+      weekStart: _thisWeek,
+      entries: [
+        _dinner('tue', 1, 'Ragù'),
+        _dinner('emma', 1, 'Curry', eaters: ['m2']),
+        _dinner('fri', 4, 'Curry'),
+      ],
+    );
+    AskPlanContext ctx({String? me = 'm1'}) =>
+        _context(weeks: {_thisWeek: week}, me: me, today: wednesday);
+
+    test('"I ate out last night": the speaker\u2019s substitute, the plan '
+        'left as it is', () {
+      final proposal = buildPlanProposal([
+        _change(op: 'had_instead', entryId: 'tue', outLabel: 'Pizza'),
+      ], ctx());
+      final change = proposal.changes.single as PlanHadInstead;
+      expect(change.memberId, 'm1');
+      expect(change.expected.id, 'tue');
+      expect((change.meal as InsteadOut).label, 'Pizza');
+      expect(proposal.rows.single.note, 'Simon had Pizza (eaten out) instead');
+    });
+
+    test('a recipe they had instead is named by its title', () {
+      final proposal = buildPlanProposal([
+        _change(op: 'had_instead', entryId: 'tue', recipeId: 'r-curry'),
+      ], ctx());
+      expect(
+        (proposal.changes.single as PlanHadInstead).meal,
+        isA<InsteadRecipe>(),
+      );
+      expect(proposal.rows.single.note, 'Simon had Curry instead');
+    });
+
+    test('a meal still to come is refused, pointing at set_eaters', () {
+      expect(
+        () => buildPlanProposal([
+          _change(op: 'had_instead', entryId: 'fri', outLabel: 'Pizza'),
+        ], ctx()),
+        throwsA(
+          isA<AskToolError>().having(
+            (e) => e.toString(),
+            'says',
+            contains('set_eaters'),
+          ),
+        ),
+      );
+    });
+
+    test('never for someone else, nor when who is speaking is unknown', () {
+      expect(
+        () => buildPlanProposal([
+          _change(op: 'had_instead', entryId: 'emma', outLabel: 'Sandwich'),
+        ], ctx()),
+        throwsA(isA<AskToolError>()),
+      );
+      expect(
+        () => buildPlanProposal([
+          _change(op: 'had_instead', entryId: 'tue', outLabel: 'Pizza'),
+        ], ctx(me: null)),
+        throwsA(isA<AskToolError>()),
+      );
+    });
   });
 }

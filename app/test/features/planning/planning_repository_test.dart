@@ -1135,6 +1135,32 @@ void main() {
       expect((await theWeek()).entries.single.had.keys, ['m2']);
     });
 
+    test(
+      'an Ask card says it in its one transaction, or refuses whole',
+      () async {
+        final id = await plannedDinner();
+        final meal = (await theWeek()).entries.single;
+        await repo.applyPlanChanges([
+          PlanHadInstead(meal, memberId: 'm1', meal: const InsteadOut('Pizza')),
+        ]);
+        expect((await theWeek()).entries.single.had['m1']!.label, 'Pizza');
+
+        // Drawn from the meal as it was; the eaters have changed since.
+        await repo.setEaters(id, const ['m1']);
+        await expectLater(
+          repo.applyPlanChanges([
+            PlanHadInstead(
+              meal,
+              memberId: 'm1',
+              meal: const InsteadOut('Soup'),
+            ),
+          ]),
+          throwsA(isA<PlanChangedError>()),
+        );
+        expect((await theWeek()).entries.single.had['m1']!.label, 'Pizza');
+      },
+    );
+
     test('is not planned: not in the recency map, not copied', () async {
       await _insertRecipe(db, 'r1', 'Ragù');
       await _insertRecipe(db, 'r2', 'Curry');

@@ -337,6 +337,18 @@ Append-only.
   `flutter build apk` (debug and release) passes in the session; nothing has
   run on a device.
 
+- 2026-10-22 — **Ask moved (step 8).** A new change, `had_instead`
+  (entry id, and the recipe, ingredient or words of what was had), refused
+  for a meal still to come (it points the model at `set_eaters`), for a meal
+  the speaker is not eating, and when who is speaking is not known; Confirm
+  writes it in the card's one transaction through the same code as the
+  Week's sheet. *I* is now the token's `member_id` (falling back to the
+  account's name), which closes phase 1's follow-up. The eval set grows a
+  `then_tool` / `then_change`: after the week is read, which proposal and
+  which change — `eating-out-tonight`, `ate-out-last-night`,
+  `partner-had-instead` (no proposal) and `eating-out-friday`, which now
+  checks it stays `set_eaters`. The paid run is the owner's.
+
 ## Phase 4 — the phone checklist
 
 On an Android 14+ phone (or Android Studio's emulator, API 34+), with a build

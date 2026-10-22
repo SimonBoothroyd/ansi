@@ -360,12 +360,15 @@ class AskToolRunner {
         }) {
           await _week(weekStart);
         }
+        final members = await household.members();
         final proposal = buildPlanProposal(
           changes,
           AskPlanContext(
             shape: shape,
             weeks: _read,
-            members: await household.members(),
+            members: members,
+            me: household.me(members),
+            today: household.today(),
             recipeTitles: {
               for (final c in changes)
                 if (c['recipe_id'] case final String id)

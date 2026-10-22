@@ -8,7 +8,9 @@
 // (`scoreFirstMove`). When the case carries a canned `result`, it is fed back
 // as the expected call's result and the answer is graded (`scoreAnswer`):
 // required words present, no number invented. A case with no tool expected
-// grades the first answer directly.
+// grades the first answer directly. A case with a `then_tool` grades the move
+// after the result instead (`scoreThenMove`): which proposal, holding which
+// change — or none at all.
 
 import {
   ClaudeAskAdapter,
@@ -24,6 +26,7 @@ import {
   parseCases,
   scoreAnswer,
   scoreFirstMove,
+  scoreThenMove,
   type ToolCall,
 } from "./score_ask.ts";
 
@@ -59,6 +62,21 @@ async function runCase(adapter: ClaudeAskAdapter, c: AskCase) {
 
   if (c.expect_tool === null && !call && c.answer_includes) {
     answer = scoreAnswer(c, textOf(first.content), given);
+  } else if (
+    c.then_tool !== undefined && c.result !== undefined && call &&
+    move.pass
+  ) {
+    messages.push({ role: "assistant", content: first.content });
+    messages.push({
+      role: "user",
+      content: [{
+        type: "tool_result",
+        tool_use_id: call.id,
+        content: c.result,
+      }],
+    });
+    const second = await adapter.turn(messages);
+    answer = scoreThenMove(c, firstCall(second.content));
   } else if (c.result !== undefined && call && move.pass) {
     given.push(c.result);
     messages.push({ role: "assistant", content: first.content });

@@ -38,6 +38,18 @@ String? askMe(List<Member> members, {String? fullName, String? email}) {
   return hits.length == 1 ? hits.single : null;
 }
 
+/// Who "I" is: the member the access token names, when it names one of
+/// [members]; else [askMe]'s guess from the account's name, for a session
+/// from before that claim.
+String? askSpeaker(
+  List<Member> members, {
+  String? claimed,
+  String? fullName,
+  String? email,
+}) => claimed != null && members.any((m) => m.id == claimed)
+    ? claimed
+    : askMe(members, fullName: fullName, email: email);
+
 /// The household, as every week result names it.
 List<Map<String, Object?>> askMembers(List<Member> members, String? me) => [
   for (final m in members)
