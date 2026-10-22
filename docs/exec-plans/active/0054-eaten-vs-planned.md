@@ -1,6 +1,6 @@
 # Exec plan: Eaten vs planned
 
-- **Status:** active — phases 1–3 on main (migrations not yet on cloud); phase 4 (Health Connect) built on the branch, waiting on the phone checklist below
+- **Status:** active — phases 1–4 and Ask's *had_instead* on main (migrations not yet on cloud); phase 4 (Health Connect) waits on the phone checklist below, Ask on its paid eval run
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 5; its leftover question is a first slice of step 11 (anti-waste)
 - **Created:** 2026-10-21
@@ -352,7 +352,7 @@ Append-only.
 ## Phase 4 — the phone checklist
 
 On an Android 14+ phone (or Android Studio's emulator, API 34+), with a build
-from the branch and migrations `0055`–`0057` deployed:
+from main and migrations `0055`–`0057` deployed:
 
 1. Account shows *Health Connect* with the switch off and *Manage in Health
    Connect ›*, which opens Health Connect's page for Ansi.
