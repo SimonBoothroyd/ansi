@@ -22,9 +22,9 @@ The detail is in the plan; the landing dates are in the
    phones on `v0.31.0`, with slice 2's paid eval (`run_ask_live.ts`, 40 cases)
    run first — it was not run before the deploy.
 5. [Plan 0054](./active/0054-eaten-vs-planned.md), eaten vs planned —
-   all on main, `0055`–`0057`, the streams and `ask` deployed (run
-   39765796412). Phase 4 (Health Connect) wants its phone checklist on an
-   Android phone, and Ask's `had_instead` its paid eval (`run_ask_live.ts`).
+   shipped in `v0.32.0`. Phase 4 (Health Connect) wants its phone checklist
+   on an Android phone, and Ask's `had_instead` its paid eval
+   (`run_ask_live.ts`).
 6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
    first slice.
 
@@ -35,10 +35,7 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-| What | Plan |
-|------|------|
-| Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. The `ask` function deployed first (39425831242). No migrations | [0053](./active/0053-ask-ansi.md) |
-| Eaten vs planned — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, never cooked or bought, shown on your own phone only); and once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten). Undo after `−` now restores the same meal. Migrations `0055`–`0057`, the sync streams and `ask` are on cloud (deploy-supabase 39765796412). Health Connect (phase 4: one switch in Account, Android only, write-only, untested on a phone) and Ask's *I'm eating out* on a meal today or earlier (`had_instead`; the function is already live, so until the release Ask answers that with an error) are on main too | [0054](./active/0054-eaten-vs-planned.md) |
+Nothing.
 
 ## Shipped
 
@@ -118,6 +115,8 @@ rows below, in that order.)
 | — | A pass over buttons and menus — the recipe page's Edit is a pencil in the bar (from a week it offers both edits side by side); every ⋯ groups its items, with Delete last, alone and in Ansi's own red; Move up / Move down only where they move something, and the week menu's duplicate *Jump to today* gone. Also toasts swipe away sideways as well as down. No migrations | `v0.29.0` | [0052](./active/0052-buttons-and-menus.md) |
 | — | Ask Ansi, slice 1 — a question about the recipe on screen, typed or spoken, answered from the app's own scaled lines and steps through the `ask` function, every number out of a tool result; a step's timer, the servings stepper and opening another recipe as on-phone actions; answers read aloud. Also a week-only row's nutrition and a receipt line's pack size. No migrations | `v0.30.0` | [0053](./active/0053-ask-ansi.md) |
 | — | Ask Ansi, slice 2 — the door on the Library, Week, Cook and Shop tabs too; questions about the week, the cook plan and the list (*what's for dinner tonight?*, *what am I cooking on Sunday?*, *do we need tamari?*); and changes to the plan or the list — set a week's dinners, move a meal, *I'm eating out Friday*, copy last week, add to the list — each a card the member confirms, written in one transaction that refuses a meal edited meanwhile. The `ask` function redeployed first. No migrations | `v0.31.0` | [0053](./active/0053-ask-ansi.md) |
+| — | Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. The `ask` function deployed first. No migrations | `v0.32.0` | [0053](./active/0053-ask-ansi.md) |
+| — | Eaten vs planned — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, shown on your own phone only), in the sheet or to Ask (*I ate out last night*); once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten); and on Android, one switch in Account sends what you ate to Health Connect (write-only, not yet tried on a phone). Undo after `−` restores the same meal. Migrations `0055`–`0057`, on cloud | `v0.32.0` | [0054](./active/0054-eaten-vs-planned.md) |
 
 ## Stretch
 
