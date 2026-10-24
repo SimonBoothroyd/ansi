@@ -4,6 +4,8 @@ library;
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/health/domain/health_meal.dart';
 import 'package:ansi/features/health/presentation/health_sync.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/fake_health.dart';
@@ -64,5 +66,107 @@ void main() {
     );
     expect(gateway.deleted, isEmpty);
     expect(log.log.keys, ['x']);
+  });
+
+  group('a tick, the switch and an untick, in any order', () {
+    const members = {'ada': Member(id: 'ada', displayName: 'Ada')};
+    const curry = RecipeMacroSummary(
+      perServing: Macros(kcal: 400, protein: 30, carb: 40, fat: 10),
+    );
+    final weekStart = DateTime.utc(2026, 10, 19);
+
+    /// Ada's meals as the phone would send them, with Wednesday's dinner
+    /// ticked at [ticked] (or not), and what she had instead.
+    List<HealthMeal> wanted({DateTime? ticked, PlanEntry? had}) =>
+        healthMealsIn(
+          WeekPlan(
+            id: 'w',
+            weekStart: weekStart,
+            entries: [
+              PlanEntry(
+                id: 'e1',
+                dayOfWeek: 2,
+                mealSlot: 'Dinner',
+                recipeId: 'curry',
+                recipeTitle: 'Curry',
+                eaterIds: const ['ada'],
+                eatenAt: {'ada': ?ticked},
+                had: {'ada': ?had},
+              ),
+            ],
+          ),
+          memberId: 'ada',
+          membersById: members,
+          summaryFor: (id) => id == 'curry' ? curry : null,
+        ).meals;
+
+    final gateway = FakeHealthGateway();
+    final log = FakeHealthSendLog();
+    Future<void> pass(List<HealthMeal> meals) =>
+        reconcileHealth(meals, windowStart: window, gateway: gateway, log: log);
+
+    setUp(() {
+      gateway.records.clear();
+      log.log = {};
+    });
+
+    test('ticked before the switch, sent once on; an untick takes it '
+        'back, and nothing is ever sent as less than nothing', () async {
+      final tick = DateTime(2026, 10, 21, 19, 42);
+      // Ticked while off: nothing runs. Switched on: the first pass.
+      await pass(wanted(ticked: tick));
+      expect(gateway.records.keys, ['ansi:e1:ada']);
+      expect(gateway.records.values.single.macros.kcal, 400);
+
+      await pass(wanted());
+      expect(gateway.records, isEmpty);
+      expect(log.log, isEmpty);
+      expect(gateway.written.every((m) => m.macros.kcal >= 0), isTrue);
+    });
+
+    test('a changed tick time replaces the record, never adds one', () async {
+      await pass(wanted(ticked: DateTime(2026, 10, 21, 19, 42)));
+      await pass(wanted(ticked: DateTime(2026, 10, 21, 21)));
+      expect(gateway.records.keys, ['ansi:e1:ada']);
+      expect(gateway.records.values.single.at, DateTime(2026, 10, 21, 21));
+    });
+
+    test(
+      'unticked while switched off, it goes once switched back on',
+      () async {
+        await pass(wanted(ticked: DateTime(2026, 10, 21, 19, 42)));
+        // Switched off, then unticked: nothing runs, the record stays.
+        expect(gateway.records, hasLength(1));
+        // Switched back on.
+        await pass(wanted());
+        expect(gateway.records, isEmpty);
+      },
+    );
+
+    test(
+      'something else instead of a tick replaces the meal in place',
+      () async {
+        await pass(wanted(ticked: DateTime(2026, 10, 21, 19, 42)));
+        await pass(
+          wanted(
+            had: PlanEntry(
+              id: 'h1',
+              dayOfWeek: 2,
+              mealSlot: 'Dinner',
+              label: 'Pizza',
+              macros: const Macros(kcal: 900, protein: 30, carb: 100, fat: 40),
+              eaterIds: const ['ada'],
+              insteadOf: 'e1',
+              createdAt: DateTime(2026, 10, 21, 20),
+            ),
+          ),
+        );
+        expect(gateway.records.keys, ['ansi:e1:ada']);
+        final record = gateway.records.values.single;
+        expect(record.name, 'Pizza');
+        expect(record.macros.kcal, 900);
+        expect(record.at, DateTime(2026, 10, 21, 20));
+      },
+    );
   });
 }

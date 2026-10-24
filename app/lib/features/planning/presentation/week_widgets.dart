@@ -94,7 +94,7 @@ Color memberColor(int rank) => _memberPalette[rank % _memberPalette.length];
 
 /// An initial-circle for a household member, ringed white so it reads when
 /// overlapped. [dimmed] greys it; [color] is the member's roster colour;
-/// [ate] adds a small tick at its corner.
+/// [ate] shows a tick in place of the initial.
 class EaterAvatar extends StatelessWidget {
   const EaterAvatar({
     required this.member,
@@ -109,47 +109,24 @@ class EaterAvatar extends StatelessWidget {
   final Color color;
   final bool dimmed;
 
-  /// The member said they ate the meal.
+  /// The member said they ate the meal: a tick in place of their initial.
   final bool ate;
 
-  /// The member had something else instead. Drawn only for the person on
-  /// this phone; anyone else shows a tick or nothing.
+  /// The member had something else instead: a swap in place of their
+  /// initial. Drawn only for the person on this phone; anyone else shows a
+  /// tick or their initial.
   final bool swapped;
 
   @override
   Widget build(BuildContext context) {
-    final circle = _circle();
-    if (!ate && !swapped) return circle;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        circle,
-        Positioned(
-          right: -3,
-          bottom: -3,
-          child: Container(
-            key: ValueKey('${ate ? 'ate' : 'swapped'}-${member.id}'),
-            width: 13,
-            height: 13,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: ate ? AnsiColors.fresh : AnsiColors.aging,
-              shape: BoxShape.circle,
-              border: Border.all(color: AnsiColors.surface, width: 1.5),
-            ),
-            child: Icon(
-              ate ? FLucideIcons.check : FLucideIcons.arrowLeftRight,
-              size: 7,
-              color: AnsiColors.surface,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _circle() {
+    // The mark replaces the initial rather than sitting on a corner, which
+    // the next avatar in the stack would cover. Whose it is reads from the
+    // colour and the place in the stack.
+    final ink = dimmed ? AnsiColors.muted : AnsiColors.surface;
     return Container(
+      key: ate || swapped
+          ? ValueKey('${ate ? 'ate' : 'swapped'}-${member.id}')
+          : null,
       width: 24,
       height: 24,
       alignment: Alignment.center,
@@ -158,14 +135,16 @@ class EaterAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: AnsiColors.surface, width: 1.5),
       ),
-      child: Text(
-        member.initial,
-        style: ansiMono(
-          size: 11,
-          color: dimmed ? AnsiColors.muted : AnsiColors.surface,
-          weight: FontWeight.w600,
-        ),
-      ),
+      child: ate || swapped
+          ? Icon(
+              ate ? FLucideIcons.check : FLucideIcons.arrowLeftRight,
+              size: 13,
+              color: ink,
+            )
+          : Text(
+              member.initial,
+              style: ansiMono(size: 11, color: ink, weight: FontWeight.w600),
+            ),
     );
   }
 }

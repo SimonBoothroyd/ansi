@@ -15,6 +15,10 @@ class FakeHealthGateway implements HealthGateway {
   final written = <HealthMeal>[];
   final deleted = <String>[];
 
+  /// What Health Connect holds: a write replaces the record with its id, a
+  /// delete removes it.
+  final records = <String, HealthMeal>{};
+
   @override
   Future<HealthAvailability> availability() async => available;
 
@@ -28,10 +32,18 @@ class FakeHealthGateway implements HealthGateway {
   }
 
   @override
-  Future<void> write(List<HealthMeal> meals) async => written.addAll(meals);
+  Future<void> write(List<HealthMeal> meals) async {
+    written.addAll(meals);
+    for (final m in meals) {
+      records[m.id] = m;
+    }
+  }
 
   @override
-  Future<void> delete(List<String> ids) async => deleted.addAll(ids);
+  Future<void> delete(List<String> ids) async {
+    deleted.addAll(ids);
+    ids.forEach(records.remove);
+  }
 
   @override
   Future<void> openSettings() async => settingsOpened++;

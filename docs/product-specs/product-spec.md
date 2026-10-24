@@ -1199,7 +1199,7 @@ books, their user-named sections, and the recipes filed under each.
   health does not live here — a stall or a refused write still raises the
   shell's banner over whatever you are doing.
 - **Health Connect, on Android only (plan 0054, phase 4).** One switch under
-  Account, *Send my meals to Health Connect*, per phone; turning it on asks
+  Account's *Health Connect*, *Send my meals*, per phone; turning it on asks
   Health Connect's permission (write nutrition, nothing read) and stays off if
   refused. While on, each tick, untick, swap or `−` reaches Health Connect a
   moment later: the member's own meals over this week and last, one record per
@@ -1365,9 +1365,9 @@ say what each tap means without one.
   undo. **Undo restores the same row**, so whoever ticked it is ticked again —
   a partner's tick included, which this phone could not write back — and the
   toast says so (`Jun ate it`).
-- **Who ate it is a small tick on their avatar** (plan 0054). The row is
-  unchanged; a member who said they ate the meal carries a green tick at
-  their avatar's corner, visible to the whole household. The avatars still
+- **Who ate it is a tick on their avatar** (plan 0054). The row is
+  unchanged; a member who said they ate the meal has a tick in place of their
+  initial, in their own colour, visible to the whole household. The avatars still
   open the meal sheet, which — from the meal's own day on, for the member
   signed in on this phone, on a meal they are eating — leads with one row:
   **I ate this**, a switch, and once on the time (`19:42 ›`, or `Thu 19:42`
@@ -1380,7 +1380,7 @@ say what each tap means without one.
   planning picker (recipes, bare items and a meal eaten out in one search),
   then a bare item's amount or a meal out's optional figures. Once said, the
   row reads `Instead: Pizza with work ›` with a `×` to take it back; on the
-  week, an amber swap badge on that person's avatar and `⇄ Pizza with work`
+  week, a swap in place of that person's initial and `⇄ Pizza with work`
   under the title — **on their own phone only**. Anyone else sees a tick or
   nothing.
 - **What was eaten sits above what was planned.** Once anybody ticks a meal,

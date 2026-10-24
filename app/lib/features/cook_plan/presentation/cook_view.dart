@@ -17,6 +17,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/ansi_callout.dart';
+import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_scroll.dart';
@@ -532,13 +533,11 @@ class LeftoverQuestion extends ConsumerWidget {
                 ('Eaten', (kept: 0.0, binned: 0.0, eaten: left)),
               ].indexed) ...[
                 if (i > 0) const SizedBox(width: 6),
-                Expanded(
-                  child: FButton(
-                    variant: FButtonVariant.outline,
-                    size: FButtonSizeVariant.sm,
-                    onPress: () => answerAll(answer, 'say what happened'),
-                    child: Text(label),
-                  ),
+                AnsiChip(
+                  label: label,
+                  selected: false,
+                  expand: true,
+                  onTap: () => answerAll(answer, 'say what happened'),
                 ),
               ],
             ],

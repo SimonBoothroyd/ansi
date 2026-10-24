@@ -49,7 +49,7 @@ void main() {
       log: FakeHealthSendLog(),
       supported: false,
     );
-    expect(find.text('Send my meals to Health Connect'), findsNothing);
+    expect(find.text('Send my meals'), findsNothing);
   });
 
   testWidgets('says so when the phone has no Health Connect', (tester) async {
@@ -67,7 +67,7 @@ void main() {
   ) async {
     final gateway = FakeHealthGateway();
     await _pump(tester, gateway: gateway, log: FakeHealthSendLog());
-    expect(find.text('Send my meals to Health Connect'), findsOneWidget);
+    expect(find.text('Send my meals'), findsOneWidget);
     await tester.tap(find.text('Manage in Health Connect'));
     await tester.pumpAndSettle();
     expect(gateway.settingsOpened, 1);

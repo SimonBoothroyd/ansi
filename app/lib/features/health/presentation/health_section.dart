@@ -15,6 +15,9 @@ import '../data/health_providers.dart';
 import '../domain/health_gateway.dart';
 import 'health_sync.dart';
 
+/// A row's words: the page's own sans, not the list's default.
+final _row = ansiSans(size: 14);
+
 class HealthSection extends ConsumerWidget {
   const HealthSection({super.key});
 
@@ -44,7 +47,7 @@ class HealthSection extends ConsumerWidget {
               )
             else ...[
               FItem(
-                title: const Text('Send my meals to Health Connect'),
+                title: Text('Send my meals', style: _row),
                 suffix: FSwitch(
                   semanticsLabel: 'Send my meals to Health Connect',
                   value: on,
@@ -62,7 +65,7 @@ class HealthSection extends ConsumerWidget {
                 ),
               if (!on)
                 FItem(
-                  title: const Text('Manage in Health Connect'),
+                  title: Text('Manage in Health Connect', style: _row),
                   suffix: const Icon(FLucideIcons.chevronRight),
                   onPress: () =>
                       unawaited(ref.read(healthGatewayProvider).openSettings()),

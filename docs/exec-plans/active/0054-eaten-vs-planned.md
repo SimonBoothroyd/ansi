@@ -26,10 +26,10 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
 - **You say eaten; nothing is assumed.** A meal counts as eaten for a person
   only when that person ticked it. An unticked past meal is *not ticked* —
   never "skipped", never "didn't eat", and never silently eaten.
-- **A tick is a small badge on your own avatar.** The row is today's row —
-  title, avatars, `−` — unchanged. A ticked avatar carries a small green tick
-  at its corner; a person who had something else carries a small amber swap
-  badge, and only on their own phone does a line under the title name what
+- **A tick is on your own avatar.** The row is today's row — title,
+  avatars, `−` — unchanged. A ticked avatar shows a tick in place of its
+  initial, in the member's colour; a person who had something else shows a
+  swap there, and only on their own phone does a line under the title name what
   (`Pizza with work`). Another person's avatar shows a tick or nothing.
 - **You can only tick yourself.** No phone sets another member's tick, and
   the server refuses it (RLS on `auth.uid()`), not only the UI.
@@ -56,8 +56,8 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
   card asks *What happened to the other one?* — **Kept · Binned · Eaten**
   (the last for a forgotten tick). Either member can answer; it is about the
   pot, not a person. See *Leftovers* below.
-- **Health Connect follows the ticks, at once.** One switch in Account,
-  *Send my meals to Health Connect*, per phone. A tick sends that member's
+- **Health Connect follows the ticks, at once.** One switch in Account's
+  *Health Connect*, *Send my meals*, per phone. A tick sends that member's
   share of the meal; an untick, a swap or a `−` takes it back out; an edit to
   the meal updates the entry rather than adding one. A meal whose macros do
   not resolve is not sent and is named under the switch (`Office lunch has
@@ -348,6 +348,13 @@ Append-only.
   which change — `eating-out-tonight`, `ate-out-last-night`,
   `partner-had-instead` (no proposal) and `eating-out-friday`, which now
   checks it stays `set_eaters`. The paid run is the owner's.
+- 2026-10-24 — **The tick moved into the avatar** (owner, on `v0.32.0`).
+  The corner badge sat on the side the next avatar in the stack covers, so a
+  tick on the first eater was hidden. It now replaces the initial: full size,
+  never covered, whose it is read from the colour and the place in the stack.
+  Also from the same look: Cook's Kept · Binned · Eaten are the app's own
+  pills (`AnsiChip`), not the list's default button, and the Health Connect
+  row reads *Send my meals* in the page's sans, under its own heading.
 
 ## Phase 4 — the phone checklist
 
