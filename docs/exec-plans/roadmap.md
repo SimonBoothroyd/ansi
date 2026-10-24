@@ -35,7 +35,9 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-Nothing.
+| What | Plan |
+|------|------|
+| Eaten vs planned, from the owner's look at `v0.32.0` — the tick (and your swap) replaces the avatar's initial, where it can no longer be covered; Cook's Kept · Binned · Eaten are the app's pills; Account's row reads *Send my meals*; *Had instead* always offers the typed words, so an ad-hoc lunch can be said; and a Health Connect pass that does not get through says so under the switch with *Try again*, is retried on returning to the app, sends a refused batch one meal at a time, and waits for the recipes' figures. No migrations, no deploy | [0054](./active/0054-eaten-vs-planned.md) |
 
 ## Shipped
 

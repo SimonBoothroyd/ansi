@@ -370,6 +370,9 @@ Append-only.
   never holds back the rest; and no pass runs while the recipes' figures are
   still loading (it would have read every meal as having no macros and taken
   back what was sent).
+  Later the same day: the meals were in Health Connect all along; it was
+  Fitbit that did not show them. Whether Fitbit reads nutrition from Health
+  Connect is Fitbit's to say (its read permissions there), not Ansi's.
 
 ## Phase 4 — the phone checklist
 
