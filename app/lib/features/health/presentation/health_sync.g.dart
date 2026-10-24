@@ -42,7 +42,7 @@ final class HealthEnabledProvider
   HealthEnabled create() => HealthEnabled();
 }
 
-String _$healthEnabledHash() => r'437c4d8bdc5a5ab6bdb09d826c79d49fd1d659db';
+String _$healthEnabledHash() => r'3781fce91a637c7309e192819029c6da74c68580';
 
 /// The Account switch: whether this phone sends its member's meals. Turning
 /// it on asks Health Connect for permission, and stays off if refused.
@@ -193,22 +193,28 @@ final class HealthWeekFamily extends $Family
   String toString() => r'healthWeekProvider';
 }
 
-/// The recipes' figures for one week, its variants re-summed.
+/// The recipes' figures for one week, its variants re-summed. Null until
+/// both have loaded: read early, every meal would look like it had no macros
+/// and a pass would take back everything already sent.
 
 @ProviderFor(healthWeekMacros)
 const healthWeekMacrosProvider = HealthWeekMacrosFamily._();
 
-/// The recipes' figures for one week, its variants re-summed.
+/// The recipes' figures for one week, its variants re-summed. Null until
+/// both have loaded: read early, every meal would look like it had no macros
+/// and a pass would take back everything already sent.
 
 final class HealthWeekMacrosProvider
     extends
         $FunctionalProvider<
-          Map<String, RecipeMacroSummary>,
-          Map<String, RecipeMacroSummary>,
-          Map<String, RecipeMacroSummary>
+          Map<String, RecipeMacroSummary>?,
+          Map<String, RecipeMacroSummary>?,
+          Map<String, RecipeMacroSummary>?
         >
-    with $Provider<Map<String, RecipeMacroSummary>> {
-  /// The recipes' figures for one week, its variants re-summed.
+    with $Provider<Map<String, RecipeMacroSummary>?> {
+  /// The recipes' figures for one week, its variants re-summed. Null until
+  /// both have loaded: read early, every meal would look like it had no macros
+  /// and a pass would take back everything already sent.
   const HealthWeekMacrosProvider._({
     required HealthWeekMacrosFamily super.from,
     required String super.argument,
@@ -232,21 +238,21 @@ final class HealthWeekMacrosProvider
 
   @$internal
   @override
-  $ProviderElement<Map<String, RecipeMacroSummary>> $createElement(
+  $ProviderElement<Map<String, RecipeMacroSummary>?> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  Map<String, RecipeMacroSummary> create(Ref ref) {
+  Map<String, RecipeMacroSummary>? create(Ref ref) {
     final argument = this.argument as String;
     return healthWeekMacros(ref, argument);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, RecipeMacroSummary> value) {
+  Override overrideWithValue(Map<String, RecipeMacroSummary>? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, RecipeMacroSummary>>(
+      providerOverride: $SyncValueProvider<Map<String, RecipeMacroSummary>?>(
         value,
       ),
     );
@@ -263,12 +269,14 @@ final class HealthWeekMacrosProvider
   }
 }
 
-String _$healthWeekMacrosHash() => r'92434e8e41292ccc6157a5d7ae415cd496eea355';
+String _$healthWeekMacrosHash() => r'dba3c0b3576000ab256a99e102f39f0d1819585d';
 
-/// The recipes' figures for one week, its variants re-summed.
+/// The recipes' figures for one week, its variants re-summed. Null until
+/// both have loaded: read early, every meal would look like it had no macros
+/// and a pass would take back everything already sent.
 
 final class HealthWeekMacrosFamily extends $Family
-    with $FunctionalFamilyOverride<Map<String, RecipeMacroSummary>, String> {
+    with $FunctionalFamilyOverride<Map<String, RecipeMacroSummary>?, String> {
   const HealthWeekMacrosFamily._()
     : super(
         retry: null,
@@ -278,7 +286,9 @@ final class HealthWeekMacrosFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The recipes' figures for one week, its variants re-summed.
+  /// The recipes' figures for one week, its variants re-summed. Null until
+  /// both have loaded: read early, every meal would look like it had no macros
+  /// and a pass would take back everything already sent.
 
   HealthWeekMacrosProvider call(String weekKey) =>
       HealthWeekMacrosProvider._(argument: weekKey, from: this);
@@ -347,26 +357,38 @@ final class HealthMealsProvider
   }
 }
 
-String _$healthMealsHash() => r'c2d8dd48f223625e6b8716a65bdd17bc737f9650';
+String _$healthMealsHash() => r'e9e101be9130c26ba467bdad7d3e2232a56034c8';
 
 /// Writes the difference between [healthMeals] and what was last sent, a
-/// moment after anything changes, while the switch is on. Watched from the
-/// app's root for the app's whole life, so it runs whatever is on screen and
-/// keeps everything it reads alive.
+/// moment after anything changes and whenever the app comes back to the
+/// front, while the switch is on. Watched from the app's root for the app's
+/// whole life, so it runs whatever is on screen and keeps everything it reads
+/// alive.
+///
+/// Its value is why the last pass did not reach Health Connect, or null when
+/// it did: Account shows it, and its *Try again* invalidates this.
 
 @ProviderFor(HealthSyncRunner)
 const healthSyncRunnerProvider = HealthSyncRunnerProvider._();
 
 /// Writes the difference between [healthMeals] and what was last sent, a
-/// moment after anything changes, while the switch is on. Watched from the
-/// app's root for the app's whole life, so it runs whatever is on screen and
-/// keeps everything it reads alive.
+/// moment after anything changes and whenever the app comes back to the
+/// front, while the switch is on. Watched from the app's root for the app's
+/// whole life, so it runs whatever is on screen and keeps everything it reads
+/// alive.
+///
+/// Its value is why the last pass did not reach Health Connect, or null when
+/// it did: Account shows it, and its *Try again* invalidates this.
 final class HealthSyncRunnerProvider
-    extends $NotifierProvider<HealthSyncRunner, void> {
+    extends $NotifierProvider<HealthSyncRunner, String?> {
   /// Writes the difference between [healthMeals] and what was last sent, a
-  /// moment after anything changes, while the switch is on. Watched from the
-  /// app's root for the app's whole life, so it runs whatever is on screen and
-  /// keeps everything it reads alive.
+  /// moment after anything changes and whenever the app comes back to the
+  /// front, while the switch is on. Watched from the app's root for the app's
+  /// whole life, so it runs whatever is on screen and keeps everything it reads
+  /// alive.
+  ///
+  /// Its value is why the last pass did not reach Health Connect, or null when
+  /// it did: Account shows it, and its *Try again* invalidates this.
   const HealthSyncRunnerProvider._()
     : super(
         from: null,
@@ -386,36 +408,40 @@ final class HealthSyncRunnerProvider
   HealthSyncRunner create() => HealthSyncRunner();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(void value) {
+  Override overrideWithValue(String? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<void>(value),
+      providerOverride: $SyncValueProvider<String?>(value),
     );
   }
 }
 
-String _$healthSyncRunnerHash() => r'f434fd56a37d8269b823a3387d05a4f42caef5e4';
+String _$healthSyncRunnerHash() => r'9679a6a30bcfb74a114fe0198ee89b3dbd8dfa0a';
 
 /// Writes the difference between [healthMeals] and what was last sent, a
-/// moment after anything changes, while the switch is on. Watched from the
-/// app's root for the app's whole life, so it runs whatever is on screen and
-/// keeps everything it reads alive.
+/// moment after anything changes and whenever the app comes back to the
+/// front, while the switch is on. Watched from the app's root for the app's
+/// whole life, so it runs whatever is on screen and keeps everything it reads
+/// alive.
+///
+/// Its value is why the last pass did not reach Health Connect, or null when
+/// it did: Account shows it, and its *Try again* invalidates this.
 
-abstract class _$HealthSyncRunner extends $Notifier<void> {
-  void build();
+abstract class _$HealthSyncRunner extends $Notifier<String?> {
+  String? build();
   @$mustCallSuper
   @override
   void runBuild() {
-    build();
-    final ref = this.ref as $Ref<void, void>;
+    final created = build();
+    final ref = this.ref as $Ref<String?, String?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<void, void>,
-              void,
+              AnyNotifier<String?, String?>,
+              String?,
               Object?,
               Object?
             >;
-    element.handleValue(ref, null);
+    element.handleValue(ref, created);
   }
 }

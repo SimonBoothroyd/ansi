@@ -96,6 +96,7 @@ class _FakeVocab extends ReadOnlyIngredientRepo {
 Widget _host({
   List<RecipeSummary> recipes = const [_curry, _salad],
   void Function(PickedMeal?)? onPicked,
+  bool instead = false,
 }) => ProviderScope(
   overrides: [
     recipeRepositoryProvider.overrideWithValue(
@@ -117,6 +118,7 @@ Widget _host({
                   context,
                   dayOfWeek: 2,
                   slot: 'Dinner',
+                  instead: instead,
                 );
                 onPicked?.call(picked);
               },
@@ -399,6 +401,33 @@ void main() {
 
       expect(picked, isA<PickedMealOut>());
       expect((picked! as PickedMealOut).label, 'Office lunch');
+    });
+  });
+
+  group('what was had instead', () {
+    testWidgets('can always be noted as typed, even when the words hit '
+        'something, and offers no new recipe', (tester) async {
+      filterForuiSemanticsAssertions();
+
+      PickedMeal? picked;
+      await tester.pumpWidget(
+        _host(onPicked: (p) => picked = p, instead: true),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Had instead'), findsOneWidget);
+      expect(find.textContaining('new recipe'), findsNothing);
+      expect(find.textContaining('note it'), findsNothing);
+
+      // "prot" hits the protein bar, and the words can still be noted.
+      await tester.enterText(find.byType(EditableText).first, 'prot');
+      await tester.pumpAndSettle();
+      expect(find.text('Protein bar'), findsOneWidget);
+      await tester.tap(find.text(noteItLabel('prot')));
+      await tester.pumpAndSettle();
+
+      expect(picked, isA<PickedMealOut>());
+      expect((picked! as PickedMealOut).label, 'prot');
     });
   });
 }

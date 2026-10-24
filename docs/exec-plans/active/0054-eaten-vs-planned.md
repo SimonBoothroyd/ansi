@@ -355,6 +355,21 @@ Append-only.
   Also from the same look: Cook's Kept · Binned · Eaten are the app's own
   pills (`AnsiChip`), not the list's default button, and the Health Connect
   row reads *Send my meals* in the page's sans, under its own heading.
+- 2026-10-24 — **The instead picker always offers the words** (owner: an
+  ad-hoc lunch could not be said). Typed words nearly always hit something
+  in the vocabulary, so the eaten-out row, shown only when nothing matched,
+  never appeared. In *Had instead* it now shows whenever something is typed,
+  and the picker has no *new recipe* row. Planning keeps its rule.
+- 2026-10-24 — **Health Connect: a meal ticked before the switch went on was
+  not sent** (owner's household, one phone). Not reproduced: the runner sends
+  such a meal in a test that drives the real providers. Hardened instead:
+  a failed pass now says so under the switch (`Not sent`, `2 not sent`,
+  `Permission is off in Health Connect`, each with *Try again ›*) where it
+  used to only log; it is retried whenever the app comes back to the front;
+  a batch Health Connect refuses is resent one meal at a time, so one record
+  never holds back the rest; and no pass runs while the recipes' figures are
+  still loading (it would have read every meal as having no macros and taken
+  back what was sent).
 
 ## Phase 4 — the phone checklist
 
@@ -387,8 +402,8 @@ Play Console's Health apps declaration (nutrition, write) and Data safety.
 
 ## Notes / open questions
 
-- **The eaten-out row in the instead picker** is shown always in the canvas;
-  the owner has not ruled on it against today's only-when-nothing-matches rule.
+- ~~**The eaten-out row in the instead picker**~~ — ruled 2026-10-24: always
+  offered once something is typed (decision log).
 - **A substitute that was another batch's leftover** (ate Monday's spare curry
   instead of the ragù) ideally consumes that batch's kept portion — the
   picker offering kept leftovers, in *Leftovers*' not-in-v1. Revisit if it is

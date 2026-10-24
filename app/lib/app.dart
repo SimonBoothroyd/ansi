@@ -22,8 +22,9 @@ class AnsiApp extends ConsumerWidget {
     ref
       ..watch(sessionControllerProvider)
       // Keeps Health Connect in step with what was eaten, whatever is on
-      // screen; it does nothing until the Account switch is on.
-      ..watch(healthSyncRunnerProvider);
+      // screen; it does nothing until the Account switch is on. Listened,
+      // not watched: what it reports is Account's to show.
+      ..listen(healthSyncRunnerProvider, (_, _) {});
     final theme = ansiThemeData();
     return MaterialApp.router(
       title: 'Ansi',

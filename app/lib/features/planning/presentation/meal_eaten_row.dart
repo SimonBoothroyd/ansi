@@ -209,6 +209,7 @@ class MealEatenRow extends ConsumerWidget {
       context,
       dayOfWeek: entry.dayOfWeek,
       slot: entry.mealSlot,
+      instead: true,
     );
     if (picked == null) return;
     final InsteadMeal meal;

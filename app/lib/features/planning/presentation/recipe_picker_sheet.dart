@@ -58,7 +58,7 @@ final class PickedIngredientMeal extends PickedMeal {
 }
 
 /// A meal eaten out. Offered only when the typed words match no recipe and no
-/// ingredient.
+/// ingredient — or, for what was had instead, whenever something is typed.
 final class PickedMealOut extends PickedMeal {
   const PickedMealOut(this.label);
 
@@ -69,22 +69,33 @@ final class PickedMealOut extends PickedMeal {
 
 /// Opens the meal picker for a meal on [dayOfWeek] in [slot]. Resolves to the
 /// pick, or null if dismissed.
+///
+/// [instead] is for what someone had instead of a planned meal: whatever is
+/// typed can always be noted as it is, since a lunch out rarely matches
+/// nothing in the whole vocabulary, and there is no new recipe to build.
 Future<PickedMeal?> showRecipePickerSheet(
   BuildContext context, {
   required int dayOfWeek,
   required String slot,
+  bool instead = false,
 }) {
   return showAnsiSheet<PickedMeal>(
     context: context,
-    builder: (_) => _RecipePickerSheet(dayOfWeek: dayOfWeek, slot: slot),
+    builder: (_) =>
+        _RecipePickerSheet(dayOfWeek: dayOfWeek, slot: slot, instead: instead),
   );
 }
 
 class _RecipePickerSheet extends HookConsumerWidget {
-  const _RecipePickerSheet({required this.dayOfWeek, required this.slot});
+  const _RecipePickerSheet({
+    required this.dayOfWeek,
+    required this.slot,
+    required this.instead,
+  });
 
   final int dayOfWeek;
   final String slot;
+  final bool instead;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -205,7 +216,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
     };
 
     return PickerShell(
-      title: 'Add a meal',
+      title: instead ? 'Had instead' : 'Add a meal',
       subtitle:
           'to · ${ref.watch(weekShapeProvider).labelFull(dayOfWeek)}, $slot',
       // One field searches both corpora — that is what makes it one door.
@@ -252,13 +263,15 @@ class _RecipePickerSheet extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // When the typed words hit no recipe and no ingredient, offer to plan
-          // the words as a meal eaten out.
-          if (_nothingMatched(
-            query: query.value,
-            recipeTier: tier,
-            ingredientHits: ingredientHits,
-            searchedQuery: ingredientSearch.query,
-          ))
+          // the words as a meal eaten out; for what was had instead, always.
+          if (instead
+              ? typed.isNotEmpty
+              : _nothingMatched(
+                  query: query.value,
+                  recipeTier: tier,
+                  ingredientHits: ingredientHits,
+                  searchedQuery: ingredientSearch.query,
+                ))
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: DashedAction(
@@ -269,35 +282,36 @@ class _RecipePickerSheet extends HookConsumerWidget {
                 ).pop(PickedMealOut(query.value.trim())),
               ),
             ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              Navigator.of(context).pop();
-              context.pushOnce('/recipes/new');
-            },
-            child: DashedBorderBox(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    FLucideIcons.plus,
-                    size: 12,
-                    color: AnsiColors.herb,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'new recipe — build it from scratch',
-                    textAlign: TextAlign.center,
-                    style: ansiMono(
-                      size: 11,
+          if (!instead)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Navigator.of(context).pop();
+                context.pushOnce('/recipes/new');
+              },
+              child: DashedBorderBox(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      FLucideIcons.plus,
+                      size: 12,
                       color: AnsiColors.herb,
-                      letterSpacing: 0.5,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 5),
+                    Text(
+                      'new recipe — build it from scratch',
+                      textAlign: TextAlign.center,
+                      style: ansiMono(
+                        size: 11,
+                        color: AnsiColors.herb,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           if (members.isNotEmpty) ...[
             const SizedBox(height: 10),
             _EatingFooter(members: members),

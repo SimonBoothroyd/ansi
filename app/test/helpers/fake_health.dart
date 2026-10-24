@@ -19,6 +19,13 @@ class FakeHealthGateway implements HealthGateway {
   /// delete removes it.
   final records = <String, HealthMeal>{};
 
+  /// Record ids a write refuses, failing the whole call as Health Connect
+  /// fails a whole batch.
+  final refuses = <String>{};
+
+  /// While true, every write fails, as when Health Connect cannot be reached.
+  bool unreachable = false;
+
   @override
   Future<HealthAvailability> availability() async => available;
 
@@ -33,6 +40,10 @@ class FakeHealthGateway implements HealthGateway {
 
   @override
   Future<void> write(List<HealthMeal> meals) async {
+    if (unreachable) throw Exception('Health Connect is not available');
+    if (meals.any((m) => refuses.contains(m.id))) {
+      throw Exception('a record was refused');
+    }
     written.addAll(meals);
     for (final m in meals) {
       records[m.id] = m;

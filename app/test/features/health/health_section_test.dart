@@ -7,6 +7,7 @@ import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/features/health/data/health_providers.dart';
 import 'package:ansi/features/health/domain/health_gateway.dart';
 import 'package:ansi/features/health/presentation/health_section.dart';
+import 'package:ansi/features/health/presentation/health_sync.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -20,6 +21,7 @@ Future<void> _pump(
   required FakeHealthGateway gateway,
   required FakeHealthSendLog log,
   bool supported = true,
+  HealthSyncRunner Function()? runner,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -29,6 +31,7 @@ Future<void> _pump(
         healthSendLogProvider.overrideWithValue(log),
         // Who is signed in is not known: nothing to send, nothing named.
         currentMemberIdProvider.overrideWithValue(null),
+        if (runner != null) healthSyncRunnerProvider.overrideWith(runner),
       ],
       child: MaterialApp(
         home: FTheme(
@@ -99,4 +102,34 @@ void main() {
     expect(log.on, isTrue);
     expect(find.text('Manage in Health Connect'), findsNothing);
   });
+
+  testWidgets('a pass that did not get through says so, with a way to try '
+      'again', (tester) async {
+    filterForuiSemanticsAssertions();
+    var builds = 0;
+    final runner = _NotSent(() => builds++);
+    await _pump(
+      tester,
+      gateway: FakeHealthGateway(),
+      log: FakeHealthSendLog()..on = true,
+      runner: () => runner,
+    );
+    expect(find.text('Not sent'), findsOneWidget);
+    await tester.tap(find.text('Try again ›'));
+    await tester.pumpAndSettle();
+    expect(builds, 2);
+  });
+}
+
+/// A runner whose last pass failed; counts how often it is asked to run.
+class _NotSent extends HealthSyncRunner {
+  _NotSent(this._onBuild);
+
+  final void Function() _onBuild;
+
+  @override
+  String? build() {
+    _onBuild();
+    return 'Not sent';
+  }
 }

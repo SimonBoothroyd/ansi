@@ -55,17 +55,36 @@ void main() {
     expect(gateway.written, isEmpty);
   });
 
-  test('without permission it touches nothing, and forgets nothing', () async {
+  test('without permission it touches nothing, forgets nothing, and says '
+      'so', () async {
     final gateway = FakeHealthGateway()..granted = false;
     final log = FakeHealthSendLog()..log = {'x': _meal('x').contentKey};
-    await reconcileHealth(
-      const [],
+    await expectLater(
+      reconcileHealth(
+        const [],
+        windowStart: window,
+        gateway: gateway,
+        log: log,
+      ),
+      throwsA(isA<HealthNotAllowed>()),
+    );
+    expect(gateway.deleted, isEmpty);
+    expect(log.log.keys, ['x']);
+  });
+
+  test('a record Health Connect refuses never holds back the rest', () async {
+    final gateway = FakeHealthGateway()..refuses.add('bad');
+    final log = FakeHealthSendLog();
+    final refused = await reconcileHealth(
+      [_meal('a'), _meal('bad'), _meal('b')],
       windowStart: window,
       gateway: gateway,
       log: log,
     );
-    expect(gateway.deleted, isEmpty);
-    expect(log.log.keys, ['x']);
+    expect(refused, ['bad']);
+    expect(gateway.records.keys, unorderedEquals(['a', 'b']));
+    // Not remembered as sent, so the next pass tries it again.
+    expect(log.log.keys, unorderedEquals(['a', 'b']));
   });
 
   group('a tick, the switch and an untick, in any order', () {

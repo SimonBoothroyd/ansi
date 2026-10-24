@@ -27,6 +27,8 @@ class HealthSection extends ConsumerWidget {
     final availability = ref.watch(healthAvailabilityProvider).asData?.value;
     if (availability == null) return const SizedBox.shrink();
     final on = ref.watch(healthEnabledProvider).asData?.value ?? false;
+    // Why the last pass did not reach Health Connect, if it did not.
+    final problem = on ? ref.watch(healthSyncRunnerProvider) : null;
     final notSent = on
         ? ref.watch(healthMealsProvider)?.notSent ?? const <String>[]
         : const <String>[];
@@ -56,6 +58,18 @@ class HealthSection extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (problem != null)
+                FItem(
+                  title: Text(
+                    problem,
+                    style: ansiSans(size: 14, color: AnsiColors.cautionInk),
+                  ),
+                  suffix: Text(
+                    'Try again ›',
+                    style: ansiSans(size: 13, color: AnsiColors.herbDeep),
+                  ),
+                  onPress: () => ref.invalidate(healthSyncRunnerProvider),
+                ),
               for (final title in notSent)
                 FItem(
                   title: Text(

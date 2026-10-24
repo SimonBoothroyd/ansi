@@ -1205,7 +1205,9 @@ books, their user-named sections, and the recipes filed under each.
   moment later: the member's own meals over this week and last, one record per
   meal at their share, replaced rather than duplicated (`features/health`,
   `MainActivity.kt`). A meal whose macros do not resolve is not sent and is
-  named under the switch (`Office lunch has no macros`). While off, one row —
+  named under the switch (`Office lunch has no macros`). A pass that does not
+  get through says so there too (`Not sent · Try again ›`), and is tried
+  again whenever the app comes back to the front. While off, one row —
   *Manage in Health Connect ›* — opens Health Connect's page for Ansi;
   switching off deletes nothing, as the platform does. A phone without Health
   Connect says so, and iOS and the web draw nothing.
@@ -1378,7 +1380,8 @@ say what each tap means without one.
   (a token from before the claim, until it refreshes).
 - **Had something else** sits under *I ate this* while it is off: the
   planning picker (recipes, bare items and a meal eaten out in one search),
-  then a bare item's amount or a meal out's optional figures. Once said, the
+  then a bare item's amount or a meal out's optional figures. Here the
+  typed words can always be noted as they are, whatever they also match. Once said, the
   row reads `Instead: Pizza with work ›` with a `×` to take it back; on the
   week, a swap in place of that person's initial and `⇄ Pizza with work`
   under the title — **on their own phone only**. Anyone else sees a tick or
