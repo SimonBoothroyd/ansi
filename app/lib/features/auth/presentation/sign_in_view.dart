@@ -6,12 +6,13 @@
 /// session controller take it from there. This screen never navigates.
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart' show launchUrl;
 
 import '../../../core/config/env.dart';
 import '../../../core/sync/session.dart';
@@ -146,21 +147,26 @@ class SignInView extends HookConsumerWidget {
                   variant: FButtonVariant.secondary,
                   onPress: busy.value
                       ? null
-                      : () => run(
-                          () => supabase.auth.signInWithOAuth(
-                            OAuthProvider.google,
+                      : () => run(() async {
+                          // Not signInWithOAuth: it forces the external
+                          // browser for Google on Android, whatever mode it
+                          // is given, and that leaves a Chrome tab behind.
+                          final oauth = await supabase.auth.getOAuthSignInUrl(
+                            provider: OAuthProvider.google,
                             redirectTo: oauthRedirectFor(
                               Uri.base,
                               configured: Env.isConfigured,
                             ),
-                            // Native only: the in-app browser sheet does not
-                            // dismiss itself when the deep link fires; the
-                            // external browser does. The web has no sheet.
-                            authScreenLaunchMode: kIsWeb
-                                ? LaunchMode.platformDefault
-                                : LaunchMode.externalApplication,
-                          ),
-                        ),
+                          );
+                          await launchUrl(
+                            Uri.parse(oauth.url),
+                            mode: oauthLaunchModeFor(
+                              defaultTargetPlatform,
+                              isWeb: kIsWeb,
+                            ),
+                            webOnlyWindowName: '_self',
+                          );
+                        }),
                   child: const Text('Continue with Google'),
                 ),
               ],

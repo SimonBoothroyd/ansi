@@ -44,9 +44,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Custom URL scheme for the Supabase/Google OAuth redirect
-                 (io.ansi.app://login-callback). Routes the deep link back to
-                 the app after login. -->
+        </activity>
+        <!-- The Supabase/Google OAuth redirect (io.ansi.app://login-callback).
+             Not on MainActivity: the sign-in page is a Custom Tab above it,
+             and this trampoline clears that tab while handing the link to
+             the running MainActivity (see AuthCallbackActivity.kt). -->
+        <activity
+            android:name=".AuthCallbackActivity"
+            android:exported="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
