@@ -17,8 +17,10 @@ no data is sold or shared for marketing.
 
 This is stored with **Supabase** (database and sign-in) and synced between
 your devices by **PowerSync**. Both act only as hosting providers for Ansi.
-All traffic is encrypted in transit (HTTPS). Only members of your household
-can read your household's data.
+All traffic is encrypted in transit (HTTPS). Other households can't see your
+data. The person who runs Ansi can access the database to keep the app
+working; they don't look at a household's content except to fix a problem you
+report or to carry out a deletion request.
 
 ## What is sent to other services, and when
 
