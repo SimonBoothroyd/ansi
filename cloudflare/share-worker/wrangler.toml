@@ -1,7 +1,8 @@
 # The share host's Worker (exec plan 0051): getansi.app/r/* → the
-# share-recipe edge function. Deployed by deploy-supabase.yml, after the
-# function, with the function's URL passed as SHARE_ORIGIN — the project ref
-# names a private family's infrastructure and is never committed.
+# share-recipe edge function, and getansi.app/privacy, PRIVACY.md as a page
+# (bundled from the checkout it deploys from). Deployed by deploy-supabase.yml,
+# after the function, with the function's URL passed as SHARE_ORIGIN — the
+# project ref names a private family's infrastructure and is never committed.
 name = "ansi-share"
 main = "worker.ts"
 compatibility_date = "2025-09-01"

@@ -514,8 +514,10 @@ page's headers itself. Free tier: 100k requests a day.
   `routes = [{ pattern = "getansi.app", custom_domain = true }]` in
   `cloudflare/share-worker/wrangler.toml`. Cloudflare made the DNS record and
   the certificate when the Worker first deployed; neither is edited by hand.
-  Every path on the host reaches the Worker, which answers anything but
-  `/r/<token>` and `/r/share.js` with its own 404. The same Worker also
+  Every path on the host reaches the Worker, which forwards `/r/<token>` and
+  `/r/share.js` to the function, serves the privacy policy at `/privacy`
+  (`PRIVACY.md`, bundled at deploy — the address Health Connect and the Play
+  listing name), and answers anything else with its own 404. The same Worker also
   answers on its `workers.dev` address (`workers_dev = true`).
 - **`app.getansi.app` is the web app's**, not the Worker's: a `CNAME` to
   `simonboothroyd.github.io`, DNS only (not proxied), made by hand once, and
@@ -558,6 +560,8 @@ in this order. Nothing here is a secret except the token.
    curl -sI https://getansi.app/r/<token> | grep -iE '^HTTP|content-type|x-robots'
    #   HTTP/2 200 · content-type: text/html; charset=utf-8 · x-robots-tag: noindex
    curl -sI https://getansi.app/r/AAAAAAAAAAAAAAAAAAAAAA | head -1   # HTTP/2 404
+   curl -s https://getansi.app/privacy | grep -o '<title>.*</title>'
+   #   <title>Ansi — privacy policy</title>
    ```
 
    Then open the link on a phone, and paste it into WhatsApp or Messages to

@@ -1,5 +1,5 @@
 // The share host's Worker: `getansi.app/r/*` → the `share-recipe` edge
-// function (exec plan 0051).
+// function (exec plan 0051), and `getansi.app/privacy`, the privacy policy.
 //
 // Supabase serves no browser-renderable HTML on its shared `*.supabase.co`
 // domain without its paid Custom Domain add-on, so the function's page cannot
@@ -10,6 +10,12 @@
 //
 // It holds no logic about recipes. Everything it refuses, the function would
 // refuse too; refusing here first just keeps junk off the origin.
+//
+// The privacy policy is the one page it answers itself: `PRIVACY.md`, bundled
+// at deploy (`privacy.ts`). Health Connect's permission screen opens that
+// address, and the Play listing names the same one.
+
+import { PRIVACY_PAGE } from "./privacy.ts";
 
 /** What the Worker is configured with (`wrangler.toml`, `--var`). */
 export interface Env {
@@ -28,6 +34,19 @@ const PAGE_POLICY = [
   "script-src 'self'",
   "style-src 'unsafe-inline' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com",
+  "base-uri 'none'",
+  "form-action 'none'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+/** The policy's address, and how long a copy of it may be kept. */
+const PRIVACY_PATH = "/privacy";
+const PRIVACY_MAX_AGE_S = 300;
+
+/** The policy is static text: inline styles, nothing else. */
+const PRIVACY_POLICY = [
+  "default-src 'none'",
+  "style-src 'unsafe-inline'",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'",
@@ -57,6 +76,18 @@ export function makeWorker(
       });
     }
     const url = new URL(req.url);
+    if (url.pathname === PRIVACY_PATH) return privacy(req);
+    // One address for the policy: the trailing slash is sent to it.
+    if (url.pathname === `${PRIVACY_PATH}/`) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          ...COMMON,
+          location: PRIVACY_PATH,
+          "cache-control": `public, max-age=${PRIVACY_MAX_AGE_S}`,
+        },
+      });
+    }
     const match = url.pathname.match(PATH);
     if (!match) return notFound(req);
     const tail = match[1];
@@ -102,6 +133,19 @@ export function makeWorker(
       headers,
     });
   };
+}
+
+/** The policy, indexable: it should be findable. */
+function privacy(req: Request): Response {
+  return new Response(req.method === "HEAD" ? null : PRIVACY_PAGE, {
+    status: 200,
+    headers: {
+      ...COMMON,
+      "content-type": "text/html; charset=utf-8",
+      "content-security-policy": PRIVACY_POLICY,
+      "cache-control": `public, max-age=${PRIVACY_MAX_AGE_S}`,
+    },
+  });
 }
 
 function notFound(req: Request): Response {

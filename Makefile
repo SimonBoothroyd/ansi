@@ -172,7 +172,7 @@ share-bundle: ## Rebuild the share page's JS bundle beside share-recipe, and ren
 	./scripts/share_bundle.sh
 
 worker-test: ## The share host's Cloudflare Worker: fmt, lint and tests (Deno)
-	cd cloudflare/share-worker && deno fmt --check && deno lint && deno test --no-lock
+	cd cloudflare/share-worker && deno fmt --check && deno lint && deno task test
 
 ci: format analyze fns-lint test seed-test scripts-test share-bundle worker-test docs-check ## The fast local subset of CI
 ci-full: ci db-reset ## Everything CI runs, needs Docker (adds migrations + pgTAP)

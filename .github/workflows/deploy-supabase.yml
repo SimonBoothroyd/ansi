@@ -120,8 +120,10 @@ jobs:
           # Public, no JWT (config.toml says so too): a recipe's share page.
           supabase functions deploy share-recipe --no-verify-jwt
 
-      # The Worker that puts the share page on the share host. The function's
-      # URL is built here from the project ref, so it is never committed.
+      # The Worker that puts the share page on the share host, with the
+      # privacy policy at /privacy (PRIVACY.md, bundled from this checkout).
+      # The function's URL is built here from the project ref, so it is never
+      # committed.
       # Pinned, not latest: local and CI move together.
       - name: 3b · Deploy the share host's Worker (when Cloudflare is configured)
         working-directory: cloudflare/share-worker

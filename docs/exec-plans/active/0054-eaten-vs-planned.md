@@ -399,9 +399,11 @@ from main (migrations `0055`–`0057` are deployed):
 10. On the partner's phone, remove a meal you ticked: once your phone syncs,
     your record goes.
 
-**Before the Play Store sees it:** serve the privacy policy at
-`getansi.app/privacy` (the rationale screen opens that address), and fill in
-Play Console's Health apps declaration (nutrition, write) and Data safety.
+**Before the Play Store sees it:** the share Worker serves the privacy policy
+at `getansi.app/privacy` (the rationale screen opens that address) once a
+`deploy-supabase` run has redeployed it; then fill in Play Console's Health
+apps declaration (nutrition, write) and Data safety, with that address as the
+listing's privacy policy.
 
 ## Notes / open questions
 

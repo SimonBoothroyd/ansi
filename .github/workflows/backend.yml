@@ -4,15 +4,17 @@ name: backend
 # backend fact: how the Supabase CLI answers a query. The deploy branches on one
 # of those answers, so a change to the helper or its fixtures has to be able to
 # fail a run — and nothing else triggers on scripts/db_query_value.sh.
+# PRIVACY.md is here because the share Worker renders it, and its tests hold
+# the page to every word of the file.
 on:
   push:
     paths: ["supabase/**", "cloudflare/**", ".github/workflows/backend.yml",
             ".github/workflows/deploy-supabase.yml",
-            "scripts/db_query_value.sh", "scripts/tests/**"]
+            "scripts/db_query_value.sh", "scripts/tests/**", "PRIVACY.md"]
   pull_request:
     paths: ["supabase/**", "cloudflare/**", ".github/workflows/backend.yml",
             ".github/workflows/deploy-supabase.yml",
-            "scripts/db_query_value.sh", "scripts/tests/**"]
+            "scripts/db_query_value.sh", "scripts/tests/**", "PRIVACY.md"]
 
 concurrency:
   group: backend-${{ github.ref }}
@@ -42,7 +44,7 @@ jobs:
         run: |
           deno fmt --check
           deno lint
-          deno test --no-lock
+          deno task test
       - name: Lint + test seed scripts
         working-directory: supabase/seed/scripts
         run: |

@@ -252,7 +252,9 @@ take a day or two; nothing below works until it clears.
 | Free or paid | Free |
 
 Then Play Console → **Dashboard → set up your app** and work the declarations
-(privacy policy, ads, content rating, target audience, data safety). They are
+(privacy policy — `https://getansi.app/privacy`, the page Health Connect's
+permission screen opens, which Play requires to match; ads, content rating,
+target audience, data safety). They are
 required even for a private internal-testing app — do the minimum honestly.
 
 > **The package name is set by your first upload, not by a form**, and it is
