@@ -19,12 +19,11 @@ Two workflows do the mechanical parts:
 > - Repo: `github.com/SimonBoothroyd/ansi`, public. All four signing secrets,
 >   both Supabase deploy secrets, the PowerSync deploy token, and the five
 >   endpoint secrets (§2.3, §4.1) are set.
-> - **Play is deliberately not used** (owner decision, 2026-09-03: the console
->   walk in §3a became a form-filling nightmare and was abandoned).
->   `PLAY_SERVICE_ACCOUNT_JSON` is intentionally unset, so `play-internal`
->   skips on every tag by design and the phones install the signed APK from
->   the GitHub Release (§3b's sideload fallback is the primary path). §3a
->   stays in this file as the record of what it would take, not as a to-do.
+> - **The phones update from Play's internal track.** `PLAY_SERVICE_ACCOUNT_JSON`
+>   is set (the `play-publisher` service account in the `mise` Cloud project,
+>   app-level *release to testing tracks* on Ansi), so every tag's AAB goes to
+>   internal with no review. The app has passed Google's review once, through
+>   a closed-testing release; the closed track is not kept current (§3a).
 > - The Gradle signing block is committed (§1).
 > - Play Console: the account exists, the **Ansi** app is created under the
 >   permanent package `io.ansi.app`, the internal track and its tester list are
@@ -40,7 +39,7 @@ mutate live household data stays a human act.
 | What | How it ships | Trigger |
 |------|--------------|---------|
 | Android APK + AAB | `release.yml` → GitHub Release assets | `git push origin v0.1.0` |
-| The phones | the signed APK from that GitHub Release, sideloaded (Play is deliberately unused — see the note above; §3a records what it would take) | same tag push |
+| The phones | Play's internal track (`play-internal`, §3b); the Play Store installs the update in the background, or at once from *Manage apps & device* | same tag push |
 | iOS build | `release.yml` → unsigned `.app` **artifact** (compile proof only, see §3) | same tag push |
 | Migrations (`supabase/migrations/`) | `deploy-supabase.yml` → `supabase db push` | Actions → Run workflow |
 | `import-recipe` edge function | `deploy-supabase.yml` → `supabase functions deploy` | same run |
@@ -168,7 +167,8 @@ nothing.
 It also *probes* for `PLAY_SERVICE_ACCOUNT_JSON`, but **never fails on it**.
 Play is an additive delivery channel: without the key you still get a signed
 APK and AAB on the Release, and only the phone-auto-update leg is skipped. The
-guard prints a notice saying so and pointing at §3a.
+guard prints a notice saying so and pointing at §3a. With the key set, a skipped
+`play-internal` on a tag is a fault; on a run from `main` it skips by design.
 
 ## 3. Cut a release
 
@@ -183,7 +183,7 @@ That runs four jobs:
 |-----|--------|------|--------|
 | `guard` | ubuntu | §2.4 checks only | pass/fail, plus the Play notice |
 | `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release --target-platform android-arm64` (the phones are Pixels; one ABI, about 35 MB instead of a 94 MB fat APK) + `appbundle --release` (every ABI) with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
-| `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a) — **skipped by design** on every tag, since `PLAY_SERVICE_ACCOUNT_JSON` is deliberately unset | nothing, today |
+| `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a); tag runs only | the release on the internal track |
 | `ios` | macOS | `flutter build ios --release --no-codesign` | unsigned `Runner.app` **artifact** |
 
 `android` needs `guard`. `play-internal` needs both, and is **skipped** (not
@@ -317,6 +317,22 @@ rm ~/Downloads/play-service-account.json
 Permissions can take a few minutes to propagate; a first upload that 401s
 immediately after step 5 usually just needs a re-run.
 
+**What else the console holds** (needed for the one review, and for any later
+one Google asks for):
+
+- **Privacy policy:** `https://getansi.app/privacy`, the same page Health
+  Connect's rationale screen opens; the share Worker renders it from
+  `PRIVACY.md` on each deploy-supabase run.
+- **App access:** a reviewer account (email + password, sign-up stays off),
+  pre-created in the Supabase dashboard with its own household that is **not**
+  in the AI allowlist; the instructions say the AI features are refused for it.
+- **Declarations:** Health apps (nutrition and weight management; Health
+  Connect write-nutrition only), Data safety (no data shared; Health info among
+  what is collected), content rating, store listing.
+- **Tracks:** the household's Google accounts are on the internal tester list
+  and opted in through its link; closed testing holds one hand-made release,
+  made only to get the app reviewed.
+
 ### 3b. The recurring flow
 
 From here on it is the same one command as everything else:
@@ -329,13 +345,20 @@ git tag v0.2.0 && git push origin v0.2.0
 internal track as release `v0.2.0`, status `completed` → **Play notifies the
 Pixel and it updates itself.**
 
-Internal-track releases go live in **minutes, usually with no review** (that is
-the whole point of the internal track versus closed/open testing). If the phone
-is slow to notice, open the Play Store → **Manage apps & device** → pull to
-refresh.
+Internal-track releases go live with **no review** (that is the whole point of
+the internal track versus closed/open testing), but can take minutes to hours to
+reach a phone, and the Play Store installs them when it next auto-updates
+(usually idle, charging, on Wi-Fi). To take one at once: Play Store → profile →
+**Manage apps & device** → pull to refresh → **Update**.
 
-The GitHub Release still gets the APK too, so sideloading remains available as a
-fallback that needs nothing from Google.
+Closed testing is **not** a CI target: every closed release goes through
+Google's review, which would hold each update for hours or days. A closed
+release was made once, by hand, only to get the app reviewed (which is what
+replaces the temporary `io.ansi.app (unreviewed)` name).
+
+The GitHub Release still gets the APK, but it is **not an update path** for a
+Play install: Play re-signs the app with Google's key, so a sideloaded APK
+cannot install over it (nor the reverse) without uninstalling first.
 
 ### 3c. The versionCode rule
 
@@ -367,8 +390,8 @@ builds, but nothing enforces it.
 ### 3d. Tags shipped
 
 Append-only: one row per tag, newest last. Every tag since `v0.4.0` has put a
-signed APK and AAB on its GitHub Release, with `play-internal` skipped by
-design; through `v0.14.0` the APK was a fat build (88–94 MB) and from the next
+signed APK and AAB on its GitHub Release; `play-internal` skipped by design
+through `v0.32.1` (whose re-run was the first upload) and uploads from `v0.32.2`; through `v0.14.0` the APK was a fat build (88–94 MB) and from the next
 tag it is arm64-only (about 35 MB). The AAB (76–83 MB) keeps every ABI. "Deploy" is the deploy-supabase run that
 went first when the tag needed one.
 
@@ -420,6 +443,8 @@ went first when the tag needed one.
 | `v0.30.1` | 2026-10-19 | A spoken question waits for the member's pause, not the phone's — Android's recogniser ends a session on its own silence of about a second, so the app restarts it, keeps its words and sends after 2.5 s of quiet (6 s for a first word, 30 s in all). No migrations, no deploy | release 39191302407 |
 | `v0.31.0` | 2026-10-19 | Ask Ansi, slice 2 (plan 0053) — the door on the Library, Week, Cook and Shop too; questions about the week, the cook plan and the list; changes to the plan and the list as a card written only on Confirm, in one transaction that refuses a meal edited meanwhile; an unsaid amount is the ingredient's usual one, and the Week's snack sheet and the Shop's top-up sheet open on it; shorter answers; a question Ansi asks back reopens the mic. No migrations. Deploy 39270405613 went first; the paid eval was not run. Tagged from GitHub's Releases page | release 39313729599 |
 | `v0.32.0` | 2026-10-23 | Ask's figures (plan 0053) — calories and macros, costs beside what was spent, the trip estimate and an ingredient's latest purchases, each the screens' own figure. Eaten vs planned (plan 0054) — a tick on your own avatar and *I ate this* with its time, *Had something else* (also to Ask, `had_instead`, for a meal today or earlier), the band's EATEN line, Cook's leftover question (Kept · Binned · Eaten), and Health Connect on Android behind one switch in Account, write-only. The first build with Health Connect's client: `MainActivity` is a `FlutterFragmentActivity` and minSdk is 26. Migrations `0055`–`0057`; deploy 39765796412 went first, `ask` included, ahead of the app. Rehearsed first on main (run 39767206589: android · web · ios green). Tagged from GitHub's Releases page | release 39879653370 |
+| `v0.32.1` | 2026-10-24 | Eaten vs planned fixes (plan 0054) — the tick replaces the avatar's initial; app pills and the sans face on Cook and Health; an ad-hoc meal can always be said; Health Connect says when it did not send. No migrations, no deploy. Its re-run, once `PLAY_SERVICE_ACCOUNT_JSON` was set, was the first CI upload to the internal track | release 40102760454 (attempt 2) |
+| `v0.32.2` | 2026-10-24 | Android Google sign-in opens in a Custom Tab and closes it on the way back: the redirect lands on a trampoline (`AuthCallbackActivity`) that hands it to the running `MainActivity` with CLEAR_TOP, which stays `singleTop`. Also: the share Worker serves `PRIVACY.md` at `getansi.app/privacy` (live since the deploy before it). The first tag uploaded to Play by `play-internal` | release 40118371807 |
 
 ## 4. Deploy Supabase
 
@@ -573,12 +598,11 @@ record the run in cloud-setup's ledger.
 4. `scripts/cloud_verify.sh` clean.
 5. `git tag vX.Y.Z && git push origin vX.Y.Z`. (No pubspec bump needed — the
    tag is the version of record, §3c.)
-6. Watch the run: `guard` · `android` · `web` · `ios` green, `play-internal`
-   skipped by design, and `pages` deployed — it skips itself where no host
+6. Watch the run: `guard` · `android` · `web` · `ios` · `play-internal`
+   green, and `pages` deployed — it skips itself where no host
    exists, and fails the whole run where the `github-pages` environment will
    not admit the tag (§6.1).
-7. Install the APK from the GitHub Release on each phone. Sign in; confirm
-   sync.
+7. Update each phone from the Play Store (§3b). Confirm sync.
 8. Add the tag's row to §3d, append the deploy to cloud-setup's ledger if
    there was one, and move the roadmap's untagged rows into Shipped.
 
