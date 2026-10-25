@@ -79,7 +79,7 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
 | `open_recipe` | closes the sheet and opens the recipe once the answer is in |
 | `week` | a week's meals by day, each day dated, each meal with its id, kind, eaters and portions; the members, the speaker marked; with `recipe_id`, one recipe's meals and how many, counted here |
 | `cook_sessions` | the derived batches by cook day, portions and the meals they feed |
-| `shopping` | one ingredient's rows with the meals that ask for it, or what is left to buy by aisle; totals as the Shop prints them |
+| `shopping` | one ingredient's rows with the meals that ask for it, or what is left to buy by aisle and what is all at home; totals as the Shop prints them, with a row's `at_home` amount when one was said |
 | `find_ingredient` | the vocabulary's best matches, each with the unit ids and measure names an amount may use and its usual amount |
 | `nutrition` | a recipe's per-serving macros (and at the servings on screen), or a day's or a week's under a member's lens — the speaker's by default — with a week's per-day average; incomplete and left-out named |
 | `cost` | a recipe per serving and whole, a day's or a week's cost to cook beside the week's receipts, or the Shop's trip estimate; a gap reads `at least` |

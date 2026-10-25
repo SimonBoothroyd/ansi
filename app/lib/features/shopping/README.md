@@ -14,12 +14,15 @@ shopping/
                               ShoppingList, aggregateQuantities,
                               buildShoppingList, completesTheList
     shopping_cost.dart        a row's estimate and the trip's (ADR-0017)
+    at_home.dart              what is already at home: leftToBuy,
+                              amountForAll, whyNotAtHome
     shopping_repository.dart  read/write contract
   data/           SqliteShoppingRepository (derive + overlay) + providers
   presentation/
     shopping_view.dart            the screen: aisles, basket, echo rows, doors
     add_shopping_item_sheet.dart  add an item or a top-up
     edit_top_up_sheet.dart        edit or remove one manual top-up
+    at_home_sheet.dart            how much is at home (sheet, or the wide pane)
     shopping_format.dart          totals copy, pure Dart
     confetti_burst.dart           the last tick's burst, in a root overlay entry
     shopping_view_models.dart
@@ -33,6 +36,10 @@ Only what cannot be re-derived (migration `0006`):
   (checked or topped up), plus free-text items. Holds `checked`.
 - **`shopping_list_contribution`** — `manual` top-ups only. Cook contributions
   are derived live from the cook plan, which has no table of its own.
+- **The amount at home** (migration `0058`) — three columns on the week's
+  entry, `at_home_quantity · at_home_unit · at_home_measure_id`, stored as
+  said. Duplicate entries keep the newest amount, and a fold carries it onto
+  the survivor.
 
 `SqliteShoppingRepository` runs the same `buildCookPlan` and
 `loadComponentGraph` the Cook screen uses, scales each session's lines, and
@@ -89,6 +96,17 @@ hands them with the overlay to `buildShoppingList` (pure).
   and `no price yet` prints only once something on the trip has a price.
 - **Two empty states**, told apart by the derived cook plan: nothing planned,
   or meals planned whose recipes have no ingredients.
+- **Already at home.** The foot's *check what's at home* door opens a pass
+  (`shopCheckingProvider`, this phone's alone; **Done** or leaving the tab
+  ends it). A row tap stores `amountForAll` — the need as it stands, never a
+  flag — or clears what was said; the amount chip opens `at_home_sheet.dart`,
+  the wide pane at expanded. `leftToBuy` takes the amount off the need
+  through the same bridges the sum uses, or returns `NotCounted` with the
+  reason the sub-line prints. Imprecise words ride along; a row with two
+  measurable totals cannot take an amount (`whyNotAtHome`). `openGroups` drop
+  rows all at home, which sit in `atHome` under the basket; the trip's cost
+  follows, `completesTheList` ignores them, and `allAtHome` closes the list on
+  *everything's at home*. Ask's `shopping` tool names both.
 
 ## Doors to receipts
 

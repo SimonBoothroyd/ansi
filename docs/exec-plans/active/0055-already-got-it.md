@@ -1,6 +1,6 @@
 # Exec plan: Already got it
 
-- **Status:** draft. The design is ruled and drawn; no code yet
+- **Status:** built on branch `ccr-e2788faa-k9cnvl`, not yet on `main` — every phase in code with tests; migration `0058` not on cloud; the phone check (two phones, one pass) is still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 7, from the owner's ask
 - **Created:** 2026-10-25
@@ -188,7 +188,8 @@ refusals, the growth and shrink cases, and duplicate entries.
     phone's alone and never synced. Leaving the Shop tab ends it, and changing
     the week keeps it. While checking:
     - the band with **Done**;
-    - the house box: dashed when empty, filled ⌂ for all of it, **½** for some;
+    - the house box: empty when nothing is said, filled ⌂ for all of it,
+      **½** for some;
     - the amount chip: `all 5` or `200 of 500 g`;
     - no provenance, prices, basket or free text.
     At ≥ 1024 the box target becomes the house, the rest of the row points
@@ -234,21 +235,29 @@ refusal.
 
 ## Acceptance criteria
 
-- [ ] A row tapped in the pass leaves the aisles for *At home* on both phones,
-      and the trip's figure drops by its price.
-- [ ] An amount shortens the row, the sub-line says it, and the provenance is
+- [x] A row tapped in the pass leaves the aisles for *At home*, and the
+      trip's figure drops by its price (widget and domain tests). *On both
+      phones* waits on the phone check: the amount syncs as a column of an
+      entry that already syncs, and no stream rule changed.
+- [x] An amount shortens the row, the sub-line says it, and the provenance is
       unchanged.
-- [ ] Growing the week brings a whole-have back as a part-have; shrinking it
+- [x] Growing the week brings a whole-have back as a part-have; shrinking it
       keeps the row at home.
-- [ ] An amount that cannot honestly come off is shown as *not counted*,
+- [x] An amount that cannot honestly come off is shown as *not counted*,
       never guessed.
-- [ ] Ticks, the basket, the confetti, receipts and the Week's cost behave as
-      before.
-- [ ] Next week's list starts with nothing at home.
-- [ ] Tests cover the domain, repository, screen and sheet;
-      `make analyze`, `make test` and `make docs-check` pass, as does
-      `make ci-full` for the migration.
-- [ ] Docs above updated in the same commits.
+- [x] Ticks, the basket, the confetti, receipts and the Week's cost behave as
+      before: the whole Flutter suite passes unchanged beside the new tests.
+- [x] Next week's list starts with nothing at home.
+- [x] Tests cover the domain (`at_home_test`), repository, screen and sheet
+      (`at_home_sheet_test`), and Ask's `shopping` tool. `flutter analyze`
+      and `custom_lint` report no issues and `flutter test` passes (4,283, 18 skipped);
+      `make docs-check` passes apart from the active-plan freshness warnings.
+      `supabase test db` passes `shopping_at_home.sql` and every shopping
+      suite; ten assertions in four unrelated suites (`portion_factor`,
+      `recipe_share`, `rls_household_isolation`, `usda_search`) fail
+      identically without this migration on the local CLI used here
+      (2.122.0), so they are not this plan's.
+- [x] Docs above updated in the same commits.
 
 ## Decision log
 
@@ -264,6 +273,18 @@ refusal.
 - 2026-10-25: Owner's rulings: the closing line is *everything's at home*
   when the basket is empty; wide gets a frame, and the pane is the amount
   editor.
+- 2026-10-25, building: the amount sheet is the shared quantity editor with
+  two new slots (`summary`, `removeLabel`) and two switches (`autofocus`,
+  `onDismiss`), so the amount is the app's typed field, not the stepper first
+  drawn; the board now draws the field. The sheet's title is the
+  ingredient's name, as every quantity sheet's is.
+- 2026-10-25, building: the wide pane's × ends the pass, as **Done** does —
+  a pane is not a route, so there is nothing else for it to close.
+- 2026-10-25, building: "leaving the Shop tab ends the pass" reads the tab
+  shell's `TickerMode`, which is off for a hidden tab.
+- 2026-10-25, building: Ask's `shopping` result names `at_home` on a row and
+  lists whole-haves; the edge function's tool description is unchanged, so
+  nothing needs a deploy for Ask.
 
 ## Open questions
 
@@ -279,12 +300,12 @@ None open. Resolved 2026-10-25:
 
 - [ ] Roadmap row updated: status flipped, one line on what shipped and what
       was deliberately deferred.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for Shop.
-- [ ] `app/AGENTS.md` "Current focus" and command list still true.
+- [x] `ARCHITECTURE.md`'s standing table matches reality for Shop.
+- [x] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] `make test-sim` run once on a booted simulator, and the result recorded
       here.
-- [ ] Tech-debt rows added for corners knowingly cut, and retired or
-      narrowed for debt this plan paid off.
+- [x] Tech-debt rows added for corners knowingly cut, and retired or
+      narrowed for debt this plan paid off: none cut, none paid.
 - [ ] Migration `0058`: say in the roadmap row whether it has reached
       **cloud**, and append a `docs/cloud-setup.md` ledger entry when it
       does.

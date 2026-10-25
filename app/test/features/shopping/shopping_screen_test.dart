@@ -15,6 +15,7 @@ import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
+import 'package:ansi/features/shopping/domain/at_home.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
 import 'package:ansi/features/shopping/presentation/confetti_burst.dart';
@@ -28,7 +29,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
+import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_week_variant_repository.dart';
+import '../../helpers/forui_semantics.dart';
 
 /// A canned shopping list; mutations are no-ops (the screen just renders)
 /// unless [live], when an entry tick re-derives the list the way the real
@@ -126,6 +130,39 @@ class _FakeShoppingRepo implements ShoppingRepository {
 
   @override
   Future<LastAmount?> lastTopUp(String ingredientId) async => null;
+
+  /// Every amount said at home, in order.
+  final atHomeSet =
+      <
+        ({String ingredientId, double quantity, Unit unit, String? measureId})
+      >[];
+
+  /// Every ingredient whose amount at home was cleared, in order.
+  final atHomeCleared = <String>[];
+
+  @override
+  Future<void> setAtHome({
+    required String ingredientId,
+    required double quantity,
+    required Unit unit,
+    required DateTime weekStart,
+    String? measureId,
+  }) async {
+    atHomeSet.add((
+      ingredientId: ingredientId,
+      quantity: quantity,
+      unit: unit,
+      measureId: measureId,
+    ));
+  }
+
+  @override
+  Future<void> clearAtHome({
+    required String ingredientId,
+    required DateTime weekStart,
+  }) async {
+    atHomeCleared.add(ingredientId);
+  }
 }
 
 Widget _host(List<Override> overrides, {bool disableAnimations = false}) =>
@@ -1517,6 +1554,281 @@ void main() {
       expect(find.text(r'550 g · ≈ $2.42'), findsNothing);
       // And it is out of the trip figure, which answers what is LEFT.
       expect(find.textContaining('still to buy'), findsNothing);
+    });
+  });
+
+  group('what is already at home', () {
+    const onionMedium = Measure(
+      id: 'm-onion',
+      label: 'onion, medium',
+      amount: 110,
+    );
+
+    IngredientMetaInput meta(
+      String name,
+      String category, {
+      Unit unit = g,
+      List<Measure> measures = const [],
+    }) => (
+      name: name,
+      category: category,
+      densityGPerMl: null,
+      defaultUnit: unit,
+      measures: measures,
+      pieceBasisAmount: null,
+      basis: MacrosBasis.perG,
+    );
+
+    CookContributionInput cook(
+      String id,
+      double qty,
+      Unit unit, {
+      Measure? measure,
+      String recipe = 'Curry',
+    }) => (
+      ingredientId: id,
+      quantity: qty,
+      unit: unit,
+      rawUnit: unit.id,
+      measure: measure,
+      recipeTitle: recipe,
+      cookDay: 0,
+      batched: false,
+      forParents: const [],
+      weekNote: null,
+    );
+
+    ShoppingEntryInput entry(String id, String ingredientId) => (
+      id: id,
+      ingredientId: ingredientId,
+      freeText: null,
+      category: null,
+      checked: false,
+      unit: null,
+      createdAt: null,
+    );
+
+    AtHomeInput home(String entryId, double qty, Unit unit, {Measure? m}) => (
+      entryId: entryId,
+      quantity: qty,
+      unit: unit,
+      rawUnit: unit.id,
+      measureId: m?.id,
+      measure: m,
+      updatedAt: null,
+    );
+
+    /// Flour 500 g, onions 5 medium, butter in two units (no density), and
+    /// paper towels; [atHome] says what is already in the cupboard.
+    ShoppingList walk({Map<String, AtHomeInput> atHome = const {}}) =>
+        buildShoppingList(
+          cook: [
+            cook('flour', 300, g),
+            cook('flour', 200, g, recipe: 'Cookies'),
+            cook('onion', 5, pieces, measure: onionMedium),
+            cook('butter', 100, g),
+            cook('butter', 2, tbsp),
+          ],
+          entries: [
+            entry('e-flour', 'flour'),
+            entry('e-onion', 'onion'),
+            (
+              id: 'e-towels',
+              ingredientId: null,
+              freeText: 'Paper towels',
+              category: null,
+              checked: false,
+              unit: null,
+              createdAt: null,
+            ),
+          ],
+          manual: const {},
+          meta: {
+            'flour': meta('Flour', 'baking'),
+            'onion': meta(
+              'Yellow onion',
+              'produce',
+              unit: pieces,
+              measures: const [onionMedium],
+            ),
+            'butter': meta('Butter', 'dairy'),
+          },
+          weekdayShort: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          atHome: atHome,
+        );
+
+    Future<_FakeShoppingRepo> pumpWalk(
+      WidgetTester tester, {
+      Map<String, AtHomeInput> atHome = const {},
+    }) async {
+      final repo = _FakeShoppingRepo(walk(atHome: atHome));
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(repo),
+          // The amount editor reads the row and its measures.
+          ingredientRepositoryProvider.overrideWithValue(
+            FakeIngredientRepo([]),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+        ]),
+      );
+      await tester.pump();
+      return repo;
+    }
+
+    Future<void> enterThePass(WidgetTester tester) async {
+      final door = find.text('check what’s at home');
+      // The list is lazy: scroll the door into being, then fully into view.
+      await tester.scrollUntilVisible(
+        door,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(door);
+      await tester.pump();
+      await tester.tap(door);
+      await tester.pump();
+    }
+
+    testWidgets('the door at the foot opens the pass: houses and amounts, no '
+        'provenance, no free text, and Done leaves it', (tester) async {
+      await pumpWalk(tester);
+      expect(find.text('What’s already at home?'), findsNothing);
+      expect(find.text('Curry'), findsWidgets);
+
+      await enterThePass(tester);
+      expect(find.text('What’s already at home?'), findsOneWidget);
+      expect(find.text('500 g'), findsOneWidget);
+      expect(find.text('5 onion, medium'), findsOneWidget);
+      // The question is only "do we have it": no breakdown, no non-food.
+      expect(find.text('Curry'), findsNothing);
+      expect(find.text('Paper towels'), findsNothing);
+
+      await tester.tap(find.text('Done'));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text('What’s already at home?'), findsNothing);
+      expect(find.text('Paper towels'), findsOneWidget);
+    });
+
+    testWidgets('a tap on the row says all of it — the need as it stands, '
+        'in the measure it is counted in', (tester) async {
+      final repo = await pumpWalk(tester);
+      await enterThePass(tester);
+
+      await tester.tap(find.byKey(shopHomeRowKey('onion')));
+      await tester.pump();
+      expect(repo.atHomeSet.single, (
+        ingredientId: 'onion',
+        quantity: 5.0,
+        unit: pieces,
+        measureId: 'm-onion',
+      ));
+
+      await tester.tap(find.byKey(shopHomeRowKey('flour')));
+      await tester.pump();
+      expect(repo.atHomeSet.last.quantity, 500);
+      expect(repo.atHomeSet.last.unit, g);
+    });
+
+    testWidgets(
+      'a row already answered reads its amount, and a tap clears it',
+      (tester) async {
+        final repo = await pumpWalk(
+          tester,
+          atHome: {
+            'e-flour': home('e-flour', 200, g),
+            'e-onion': home('e-onion', 5, pieces, m: onionMedium),
+          },
+        );
+        await enterThePass(tester);
+        expect(find.text('200 of 500 g'), findsOneWidget);
+        expect(find.text('all 5'), findsOneWidget);
+
+        await tester.tap(find.byKey(shopHomeRowKey('flour')));
+        await tester.pump();
+        expect(repo.atHomeCleared, ['flour']);
+        expect(repo.atHomeSet, isEmpty);
+      },
+    );
+
+    testWidgets('a row in two units says why it cannot take an amount, and a '
+        'tap does nothing', (tester) async {
+      final repo = await pumpWalk(tester);
+      await enterThePass(tester);
+      expect(find.text('two units — no density'), findsOneWidget);
+      await tester.tap(find.byKey(shopHomeRowKey('butter')));
+      await tester.pump();
+      expect(repo.atHomeSet, isEmpty);
+    });
+
+    testWidgets('after: a part-have says so first on its sub-line, and a '
+        'whole-have sits in At home, under the basket', (tester) async {
+      final repo = await pumpWalk(
+        tester,
+        atHome: {
+          'e-flour': home('e-flour', 200, g),
+          'e-onion': home('e-onion', 5, pieces, m: onionMedium),
+        },
+      );
+      expect(find.text('300 g'), findsWidgets);
+      expect(find.textContaining('200 g at home'), findsOneWidget);
+      // The provenance still says what the week asked for.
+      expect(find.text('Cookies'), findsOneWidget);
+      expect(find.text('AT HOME · 1'), findsOneWidget);
+      expect(find.byKey(shopAtHomeRowKey('onion')), findsOneWidget);
+      // Never struck through: it was not bought.
+      final name = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(shopAtHomeRowKey('onion')),
+          matching: find.text('Yellow onion'),
+        ),
+      );
+      expect(name.style?.decoration, isNot(TextDecoration.lineThrough));
+
+      // A tap puts it back in its aisle.
+      await tester.tap(find.byKey(shopAtHomeRowKey('onion')));
+      await tester.pump();
+      expect(repo.atHomeCleared, ['onion']);
+    });
+
+    testWidgets(
+      'everything at home and nothing ticked closes on its own line',
+      (tester) async {
+        final list = buildShoppingList(
+          cook: [cook('flour', 500, g)],
+          entries: [entry('e-flour', 'flour')],
+          manual: const {},
+          meta: {'flour': meta('Flour', 'baking')},
+          weekdayShort: const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          atHome: {'e-flour': home('e-flour', 500, g)},
+        );
+        await tester.pumpWidget(
+          _host([
+            shoppingRepositoryProvider.overrideWithValue(
+              _FakeShoppingRepo(list),
+            ),
+          ]),
+        );
+        await tester.pump();
+        expect(find.text('everything’s at home'), findsOneWidget);
+        expect(find.text('everything’s in the basket'), findsNothing);
+      },
+    );
+
+    testWidgets('wide: the house says all of it, and the pane holds the '
+        'amount for the row the list points at', (tester) async {
+      filterForuiSemanticsAssertions();
+      deskWidth(tester);
+      final repo = await pumpWalk(tester);
+      await enterThePass(tester);
+
+      // The pane asks how much, in place of where it came from.
+      expect(find.text('WHERE IT CAME FROM'), findsNothing);
+      expect(find.text('this week needs'), findsOneWidget);
+
+      await tester.tap(find.byKey(shopHomeTargetKey('flour')));
+      await tester.pump();
+      expect(repo.atHomeSet.single.ingredientId, 'flour');
     });
   });
 }

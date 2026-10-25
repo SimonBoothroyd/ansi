@@ -37,9 +37,11 @@ import '../../planning/presentation/week_view_models.dart';
 import '../../receipts/data/receipt_providers.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
+import '../domain/at_home.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_cost.dart';
 import 'add_shopping_item_sheet.dart';
+import 'at_home_sheet.dart';
 import 'confetti_burst.dart';
 import 'edit_top_up_sheet.dart';
 import 'shopping_format.dart';
@@ -60,6 +62,14 @@ class ShoppingView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(currentShoppingListProvider);
     final viewed = ref.watch(viewedWeekStartProvider);
+    final checking = ref.watch(shopCheckingProvider);
+    // Leaving the tab ends the checking pass. The shell keeps a hidden tab
+    // mounted with its tickers off, so that is how "left" reads here.
+    if (checking && !TickerMode.valuesOf(context).enabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) ref.read(shopCheckingProvider.notifier).done();
+      });
+    }
 
     return WeekInTheLocation(
       path: '/shop',
@@ -98,6 +108,7 @@ class ShoppingView extends ConsumerWidget {
               noun: 'tick',
               trailing: _TripEstimate(trip: ref.watch(shopTripCostProvider)),
             ),
+            if (checking) const _CheckingBand(),
             // At expanded width the walk stays one column; the width buys only
             // the breakdown pane beside it.
             Expanded(
@@ -166,34 +177,95 @@ Widget _shoppingList(
   ),
   // An empty list is a quiet line inside the list chrome, so the add-item door
   // stays available with no plan at all.
-  data: (data) => ListView(
+  data: (data) => ref.watch(shopCheckingProvider)
+      ? _checkingList(context, data, selection: selection)
+      : ListView(
+          padding: ansiScrollPadding(
+            context,
+            const EdgeInsets.only(top: 6, bottom: 24),
+          ),
+          children: [
+            const _ListCaption(),
+            if (data.isEmpty) const _NothingToBuyLine(),
+            // The aisles hold only what is left to buy; when nothing is, a line
+            // says why — all of it at home, or in the basket.
+            if (data.allAtHome)
+              const _EverythingAtHomeLine()
+            else if (data.allTicked)
+              const _EverythingInBasketLine(),
+            for (final group in data.openGroups)
+              _Group(group: group, selection: selection),
+            if (data.basket.isNotEmpty)
+              _Basket(groups: data.basketGroups, selection: selection),
+            // Last: what was never on the trip.
+            if (data.atHome.isNotEmpty)
+              _AtHomeSection(items: data.atHome, selection: selection),
+            // An unresolved component contributes nothing, so its parent
+            // recipe says so and points at the Cook tab.
+            for (final note in data.unresolvedComponents)
+              _UnresolvedEcho(note: note),
+            // A line or planned meal whose vocab row was retired. Amber: it is
+            // fixable.
+            for (final note in data.retiredIngredients)
+              RetiredIngredientEcho(note: note),
+            // Optional lines left out by rule. Muted: a choice, not a defect.
+            for (final note in data.optionalLines)
+              OptionalLinesEcho(note: note),
+            const _AddItemButton(),
+            if (_hasRowsToCheck(data)) const CheckAtHomeDoor(),
+            const ScanReceiptDoor(),
+          ],
+        ),
+);
+
+/// The rows the checking pass walks: every ingredient row not yet ticked, in
+/// its aisle — at home or not, since a tap there takes it back.
+List<ShoppingGroup> _checkingGroups(ShoppingList data) => [
+  for (final g in data.groups)
+    if (g.items.any(_checkable))
+      g.copyWith(
+        items: [
+          for (final i in g.items)
+            if (_checkable(i)) i,
+        ],
+      ),
+];
+
+bool _checkable(ShoppingItem i) => !i.isFreeText && !i.checked;
+
+bool _hasRowsToCheck(ShoppingList data) =>
+    data.groups.any((g) => g.items.any(_checkable));
+
+/// The checking pass: the same aisles, each row a house and an amount. No
+/// provenance, prices, basket, free text or echo rows — the only question is
+/// what is already here.
+Widget _checkingList(
+  BuildContext context,
+  ShoppingList data, {
+  _Selection? selection,
+}) {
+  final groups = _checkingGroups(data);
+  return ListView(
     padding: ansiScrollPadding(
       context,
       const EdgeInsets.only(top: 6, bottom: 24),
     ),
     children: [
-      const _ListCaption(),
-      if (data.isEmpty) const _NothingToBuyLine(),
-      // The aisles hold only unticked rows; when all are ticked a line says so.
-      if (data.allTicked) const _EverythingInBasketLine(),
-      for (final group in data.openGroups)
-        _Group(group: group, selection: selection),
-      if (data.basket.isNotEmpty)
-        _Basket(groups: data.basketGroups, selection: selection),
-      // An unresolved component contributes nothing, so its parent recipe says
-      // so and points at the Cook tab.
-      for (final note in data.unresolvedComponents) _UnresolvedEcho(note: note),
-      // A line or planned meal whose vocab row was retired. Amber: it is
-      // fixable.
-      for (final note in data.retiredIngredients)
-        RetiredIngredientEcho(note: note),
-      // Optional lines left out by rule. Muted: a choice, not a defect.
-      for (final note in data.optionalLines) OptionalLinesEcho(note: note),
-      const _AddItemButton(),
-      const ScanReceiptDoor(),
+      if (groups.isEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+          child: Text(
+            'nothing left to check',
+            style: ansiMono(size: 11.5, color: AnsiColors.muted),
+          ),
+        ),
+      for (final g in groups) ...[
+        _GroupLabel(label: g.label),
+        for (final item in g.items) _HomeRow(item: item, selection: selection),
+      ],
     ],
-  ),
-);
+  );
+}
 
 /// The row the provenance pane is reading, named by [shoppingItemIdentity]
 /// because an index does not survive a re-derivation.
@@ -226,13 +298,22 @@ class _WideShopState extends ConsumerState<_WideShop> {
   Widget build(BuildContext context) {
     final list = ref.watch(currentShoppingListProvider);
     final data = list.asData?.value;
+    final checking = ref.watch(shopCheckingProvider);
     // Aisle order, the walk before the basket — so "the first row" is the first
-    // thing still to grab, which is where a shopper is.
+    // thing still to grab, which is where a shopper is. While checking, the
+    // rows are the pass's own.
     final rows = <({ShoppingItem item, String aisle})>[
-      for (final g in data?.openGroups ?? const <ShoppingGroup>[])
-        for (final i in g.items) (item: i, aisle: g.label),
-      for (final g in data?.basketGroups ?? const <ShoppingGroup>[])
-        for (final i in g.items) (item: i, aisle: g.label),
+      if (checking && data != null)
+        for (final g in _checkingGroups(data))
+          for (final i in g.items) (item: i, aisle: g.label)
+      else ...[
+        for (final g in data?.openGroups ?? const <ShoppingGroup>[])
+          for (final i in g.items) (item: i, aisle: g.label),
+        for (final g in data?.basketGroups ?? const <ShoppingGroup>[])
+          for (final i in g.items) (item: i, aisle: g.label),
+        for (final i in data?.atHome ?? const <ShoppingItem>[])
+          (item: i, aisle: 'At home'),
+      ],
     ];
     final reading =
         rows
@@ -264,7 +345,12 @@ class _WideShopState extends ConsumerState<_WideShop> {
                       ),
               ),
             ),
-            _ProvenancePane(item: reading?.item, aisle: reading?.aisle),
+            // While checking, the pane trades its question: not where a row
+            // came from, but how much of it is already here.
+            if (checking)
+              _AtHomePane(item: reading?.item)
+            else
+              _ProvenancePane(item: reading?.item, aisle: reading?.aisle),
           ],
         ),
       ),
@@ -327,6 +413,15 @@ class _ProvenancePane extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (atHomeWords(row) case final home
+                    when home.isNotEmpty && !row.isAtHome)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      home,
+                      style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                    ),
+                  ),
                 if (itemSecondary(row) case final secondary
                     when secondary.isNotEmpty)
                   Padding(
@@ -343,6 +438,7 @@ class _ProvenancePane extends StatelessWidget {
                     [
                       ?aisle?.toUpperCase(),
                       if (row.checked) 'In the basket'.toUpperCase(),
+                      if (!row.checked && row.isAtHome) 'At home'.toUpperCase(),
                     ].join(' · '),
                     style: ansiMono(
                       size: 9,
@@ -401,20 +497,29 @@ class _Group extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-          child: Text(
-            group.label.toUpperCase(),
-            style: ansiMono(
-              size: 10,
-              color: AnsiColors.muted,
-              letterSpacing: 1.4,
-            ),
-          ),
-        ),
+        _GroupLabel(label: group.label),
         for (final item in group.items)
           _ItemRow(item: item, selection: selection),
       ],
+    );
+  }
+}
+
+/// An aisle's label over its rows (`PRODUCE`), or a section's (`AT HOME · 2`).
+class _GroupLabel extends StatelessWidget {
+  const _GroupLabel({required this.label, this.bottom = 6});
+
+  final String label;
+  final double bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 14, 20, bottom),
+      child: Text(
+        label.toUpperCase(),
+        style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1.4),
+      ),
     );
   }
 }
@@ -801,6 +906,9 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             // price; before that the household simply has not started.
             anyPriced: ref.watch(shopTripCostProvider).cents != null,
           );
+    // A part-have opens the sub-line, muted: the reason the total is smaller
+    // is read at the same glance as the total.
+    final home = item.checked ? '' : atHomeWords(item);
     final selection = widget.selection;
     final reading =
         selection != null && selection.identity == shoppingItemIdentity(item);
@@ -873,14 +981,28 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             ),
             // What a measure-counted row weighs, or the whole-unit round-up;
             // always under the total, never replacing it (invariant 3).
-            if (secondary.isNotEmpty) ...[
+            if (secondary.isNotEmpty || home.isNotEmpty) ...[
               const SizedBox(height: 3),
               Padding(
                 padding: const EdgeInsets.only(left: 31),
                 child: Align(
                   alignment: Alignment.centerRight,
-                  child: Text(
-                    secondary,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        if (home.isNotEmpty)
+                          TextSpan(
+                            text: home,
+                            style: ansiMono(
+                              size: 10.5,
+                              color: AnsiColors.muted,
+                            ),
+                          ),
+                        if (home.isNotEmpty && secondary.isNotEmpty)
+                          const TextSpan(text: ' · '),
+                        if (secondary.isNotEmpty) TextSpan(text: secondary),
+                      ],
+                    ),
                     style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                   ),
                 ),
@@ -903,7 +1025,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             ],
             // The bottom half of the padding the tick target took, put back
             // under a tail that would otherwise sit on the hairline.
-            if (selection != null && secondary.isNotEmpty)
+            if (selection != null && (secondary.isNotEmpty || home.isNotEmpty))
               const SizedBox(height: 11),
           ],
         ),
@@ -1228,4 +1350,448 @@ Future<void> _confirmRemove(
     'remove ${item.name}',
     () => repo.removeEntry(entryId: entryId),
   );
+}
+
+// --- What is already at home ----------------------------------------------
+
+/// The door into the checking pass, at the foot beside the top-up and in its
+/// dashed idiom. Drawn while any ingredient row is still to tick.
+class CheckAtHomeDoor extends ConsumerWidget {
+  const CheckAtHomeDoor({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => ref.read(shopCheckingProvider.notifier).start(),
+        child: DashedBorderBox(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(FLucideIcons.house, size: 12, color: AnsiColors.herb),
+              const SizedBox(width: 5),
+              Text(
+                'check what’s at home',
+                textAlign: TextAlign.center,
+                style: ansiMono(
+                  size: 11,
+                  color: AnsiColors.herb,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The band over the list while checking: the question, and **Done**.
+class _CheckingBand extends ConsumerWidget {
+  const _CheckingBand();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      color: AnsiColors.herbSoft,
+      padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'What’s already at home?',
+              style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+            ),
+          ),
+          FButton(
+            size: FButtonSizeVariant.sm,
+            mainAxisSize: MainAxisSize.min,
+            onPress: () => ref.read(shopCheckingProvider.notifier).done(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One row of the checking pass. The row (the house at expanded) says all of
+/// it, or clears what was said; the amount opens the sheet (points the pane at
+/// expanded). A row with two measurable totals cannot take an amount: its
+/// house is muted and the reason sits under its name.
+class _HomeRow extends ConsumerWidget {
+  const _HomeRow({required this.item, this.selection});
+
+  final ShoppingItem item;
+  final _Selection? selection;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final said = item.atHome;
+    final why = said == null ? whyNotAtHome(item) : null;
+    final identity = shoppingItemIdentity(item);
+    final selection = this.selection;
+    final reading = selection != null && selection.identity == identity;
+
+    Future<void> toggle() async {
+      final repo = ref.read(shoppingRepositoryProvider);
+      final week = ref.read(viewedWeekStartProvider);
+      final id = item.ingredientId!;
+      if (said != null) {
+        await ref.write(
+          context,
+          'put ${item.name} back on the list',
+          () => repo.clearAtHome(ingredientId: id, weekStart: week),
+        );
+        return;
+      }
+      final all = amountForAll(item);
+      if (all == null) return;
+      await ref.write(
+        context,
+        'say ${item.name} is at home',
+        () => repo.setAtHome(
+          ingredientId: id,
+          quantity: all.quantity,
+          unit: all.unit,
+          measureId: all.measure?.id,
+          weekStart: week,
+        ),
+      );
+    }
+
+    final house = _HouseBox(
+      state: why != null
+          ? _HouseState.off
+          : said == null
+          ? _HouseState.none
+          : (said.all ? _HouseState.all : _HouseState.some),
+    );
+    final chip = GestureDetector(
+      key: shopHomeAmountKey(identity),
+      behavior: HitTestBehavior.opaque,
+      onTap: why != null
+          ? null
+          : selection != null
+          ? () => selection.read(item)
+          : () => showAtHomeSheet(context, item),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: said == null ? AnsiColors.paper : AnsiColors.herbSoft,
+          border: Border.all(
+            color: said == null ? AnsiColors.line : AnsiColors.herb,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          atHomeChip(item),
+          style: ansiMono(
+            size: 12,
+            weight: FontWeight.w500,
+            color: said == null ? AnsiColors.ink : AnsiColors.herbDeep,
+          ),
+        ),
+      ),
+    );
+
+    return GestureDetector(
+      key: shopHomeRowKey(identity),
+      behavior: HitTestBehavior.opaque,
+      onTap: selection != null
+          ? () => selection.read(item)
+          : (why == null ? toggle : null),
+      child: Container(
+        key: reading ? kShopReadingRowKey : null,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(
+          vertical: selection == null ? 11 : 0,
+          horizontal: reading ? 11 : 0,
+        ),
+        decoration: reading
+            ? BoxDecoration(
+                color: AnsiColors.herbSoft,
+                borderRadius: BorderRadius.circular(11),
+              )
+            : const BoxDecoration(
+                color: AnsiColors.surface,
+                border: Border(bottom: BorderSide(color: AnsiColors.line)),
+              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (selection == null) ...[
+                  house,
+                  const SizedBox(width: 11),
+                ] else
+                  // The house carries the 44 px target the check box does.
+                  GestureDetector(
+                    key: shopHomeTargetKey(identity),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: why == null ? toggle : null,
+                    child: SizedBox(
+                      width: 31,
+                      height: 44,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: house,
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    style: ansiSans(
+                      size: 14,
+                      color: why == null ? AnsiColors.ink : AnsiColors.muted,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                chip,
+              ],
+            ),
+            if (why != null)
+              Padding(
+                padding: EdgeInsets.only(
+                  left: 31,
+                  top: 3,
+                  bottom: selection == null ? 0 : 11,
+                ),
+                child: Text(
+                  why,
+                  style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The key on a checking row, named by [shoppingItemIdentity].
+ValueKey<String> shopHomeRowKey(String identity) =>
+    ValueKey('shop-home-row-$identity');
+
+/// The key on a checking row's amount chip.
+ValueKey<String> shopHomeAmountKey(String identity) =>
+    ValueKey('shop-home-amount-$identity');
+
+/// The key on a wide checking row's house target.
+ValueKey<String> shopHomeTargetKey(String identity) =>
+    ValueKey('shop-home-$identity');
+
+enum _HouseState { none, some, all, off }
+
+/// Where the tick box was: an empty box, ½ for some, a house for all of it,
+/// and a faded box for a row that cannot take an amount.
+class _HouseBox extends StatelessWidget {
+  const _HouseBox({required this.state});
+
+  final _HouseState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final said = state == _HouseState.some || state == _HouseState.all;
+    final box = Container(
+      width: 20,
+      height: 20,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: said ? AnsiColors.herbSoft : AnsiColors.surface,
+        border: Border.all(
+          color: said ? AnsiColors.herb : AnsiColors.line,
+          width: 1.6,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: switch (state) {
+        _HouseState.all => const Icon(
+          FLucideIcons.house,
+          size: 12,
+          color: AnsiColors.herbDeep,
+        ),
+        _HouseState.some => Text(
+          '½',
+          style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+        ),
+        _ => null,
+      },
+    );
+    return state == _HouseState.off ? Opacity(opacity: 0.4, child: box) : box;
+  }
+}
+
+/// The *At home* section, last on the list: rows all at home, muted but never
+/// struck through, a house where the tick would be and no price. A tap puts
+/// the row back in its aisle, as a tap on a basket row unticks it.
+class _AtHomeSection extends StatelessWidget {
+  const _AtHomeSection({required this.items, this.selection});
+
+  final List<ShoppingItem> items;
+  final _Selection? selection;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _GroupLabel(label: 'At home · ${items.length}', bottom: 2),
+        for (final item in items) _AtHomeRow(item: item, selection: selection),
+      ],
+    );
+  }
+}
+
+class _AtHomeRow extends ConsumerWidget {
+  const _AtHomeRow({required this.item, this.selection});
+
+  final ShoppingItem item;
+  final _Selection? selection;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final identity = shoppingItemIdentity(item);
+    final selection = this.selection;
+    final reading = selection != null && selection.identity == identity;
+
+    Future<void> putBack() async {
+      final repo = ref.read(shoppingRepositoryProvider);
+      final week = ref.read(viewedWeekStartProvider);
+      await ref.write(
+        context,
+        'put ${item.name} back on the list',
+        () =>
+            repo.clearAtHome(ingredientId: item.ingredientId!, weekStart: week),
+      );
+    }
+
+    const house = _HouseBox(state: _HouseState.all);
+    return GestureDetector(
+      key: shopAtHomeRowKey(identity),
+      behavior: HitTestBehavior.opaque,
+      onTap: selection == null ? putBack : () => selection.read(item),
+      child: Container(
+        key: reading ? kShopReadingRowKey : null,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(
+          vertical: selection == null ? 11 : 0,
+          horizontal: reading ? 11 : 0,
+        ),
+        decoration: reading
+            ? BoxDecoration(
+                color: AnsiColors.herbSoft,
+                borderRadius: BorderRadius.circular(11),
+              )
+            : const BoxDecoration(
+                color: AnsiColors.surface,
+                border: Border(bottom: BorderSide(color: AnsiColors.line)),
+              ),
+        child: Row(
+          children: [
+            if (selection == null) ...[
+              house,
+              const SizedBox(width: 11),
+            ] else
+              GestureDetector(
+                key: shopHomeTargetKey(identity),
+                behavior: HitTestBehavior.opaque,
+                onTap: putBack,
+                child: const SizedBox(
+                  width: 31,
+                  height: 44,
+                  child: Align(alignment: Alignment.centerLeft, child: house),
+                ),
+              ),
+            Expanded(
+              child: Text(
+                item.name,
+                style: ansiSans(size: 14, color: AnsiColors.muted),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              needTotal(item),
+              style: ansiMono(
+                size: 13,
+                weight: FontWeight.w500,
+                color: AnsiColors.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The key on a row of the *At home* section.
+ValueKey<String> shopAtHomeRowKey(String identity) =>
+    ValueKey('shop-at-home-$identity');
+
+/// Shown where the aisles were when everything left is at home and nothing
+/// was put in the basket.
+class _EverythingAtHomeLine extends StatelessWidget {
+  const _EverythingAtHomeLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      child: Text(
+        'everything’s at home',
+        style: ansiMono(size: 11.5, color: AnsiColors.muted),
+      ),
+    );
+  }
+}
+
+/// The wide pane while checking: the amount editor for the row the list is
+/// pointed at, in place of where it came from. Keyed by row and amount, so it
+/// opens fresh on each row and on what was last saved.
+class _AtHomePane extends ConsumerWidget {
+  const _AtHomePane({required this.item});
+
+  final ShoppingItem? item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final row = item;
+    return Container(
+      width: kProvenancePaneWidth,
+      decoration: const BoxDecoration(
+        color: AnsiColors.paper,
+        border: Border(left: BorderSide(color: AnsiColors.line)),
+      ),
+      padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
+      child: row == null || whyNotAtHome(row) != null
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Text(
+                row == null
+                    ? 'nothing left to check'
+                    : '${row.name} · ${whyNotAtHome(row)}',
+                style: ansiMono(size: 11.5, color: AnsiColors.muted),
+              ),
+            )
+          : SingleChildScrollView(
+              child: AtHomeEditor(
+                key: ValueKey(
+                  'at-home-${shoppingItemIdentity(row)}-'
+                  '${row.atHome?.quantity}-${row.atHome?.unit?.id}',
+                ),
+                item: row,
+                inPane: true,
+                // The pane's X closes the pass, as Done does.
+                onDismiss: () => ref.read(shopCheckingProvider.notifier).done(),
+              ),
+            ),
+    );
+  }
 }

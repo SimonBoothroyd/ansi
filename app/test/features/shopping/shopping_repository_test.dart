@@ -1846,4 +1846,179 @@ void main() {
       expect(await repo.lastTopUp('onion'), isNull);
     },
   );
+
+  group('what is already at home (plan 0055)', () {
+    Future<void> planCake({double flour = 500}) async {
+      await _insertRecipe(db, 'cake', 'Cake', lines: [('flour', flour, g)]);
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'cake',
+        eaterIds: ['a', 'b'],
+      );
+    }
+
+    Future<ShoppingItem> flourOn(DateTime week) async =>
+        (await repo.watchShoppingList(week).first).groups.single.items.single;
+
+    test(
+      'an amount shortens the row; the provenance still says the need',
+      () async {
+        await planCake();
+        await repo.setAtHome(
+          ingredientId: 'flour',
+          quantity: 200,
+          unit: g,
+          weekStart: _week,
+        );
+        final flour = await flourOn(_week);
+        expect(flour.totals.single.amount, closeTo(300, 1e-9));
+        expect(flour.need.totals.single.amount, 500);
+        expect(flour.contributions.single.quantity, 500);
+        expect(flour.atHome!.quantity, 200);
+      },
+    );
+
+    test('a second say replaces the first, on the same entry', () async {
+      await planCake();
+      await repo.setAtHome(
+        ingredientId: 'flour',
+        quantity: 200,
+        unit: g,
+        weekStart: _week,
+      );
+      await repo.setAtHome(
+        ingredientId: 'flour',
+        quantity: 500,
+        unit: g,
+        weekStart: _week,
+      );
+      final list = await repo.watchShoppingList(_week).first;
+      expect(list.atHome.single.name, 'Flour');
+      expect(list.openGroups, isEmpty);
+      final rows = await db.getAll(
+        'SELECT id FROM shopping_list_entry WHERE deleted_at IS NULL',
+      );
+      expect(rows, hasLength(1));
+    });
+
+    test('clearing puts the row back at its full need', () async {
+      await planCake();
+      await repo.setAtHome(
+        ingredientId: 'flour',
+        quantity: 500,
+        unit: g,
+        weekStart: _week,
+      );
+      await repo.clearAtHome(ingredientId: 'flour', weekStart: _week);
+      final flour = await flourOn(_week);
+      expect(flour.atHome, isNull);
+      expect(flour.totals.single.amount, 500);
+    });
+
+    test('an amount belongs to its week; next week starts clean', () async {
+      await planCake();
+      final next = _week.add(const Duration(days: 7));
+      await planning.addEntry(
+        weekStart: next,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'cake',
+        eaterIds: ['a', 'b'],
+      );
+      await repo.setAtHome(
+        ingredientId: 'flour',
+        quantity: 200,
+        unit: g,
+        weekStart: _week,
+      );
+      expect((await flourOn(next)).atHome, isNull);
+      expect((await flourOn(next)).totals.single.amount, 500);
+    });
+
+    test('an amount counted in a measure keeps its measure', () async {
+      await db.execute(
+        'INSERT INTO ingredient_measure '
+        '(id, household_id, ingredient_id, label, basis_amount, sort_order) '
+        'VALUES (?, ?, ?, ?, ?, 0)',
+        ['m-onion', 'h', 'onion', 'onion, medium', 110],
+      );
+      await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 5, pieces)]);
+      await db.execute(
+        "UPDATE recipe_line_item SET measure_id = 'm-onion' "
+        "WHERE id = 'curry-li0'",
+      );
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'curry',
+        eaterIds: ['a', 'b'],
+      );
+      await repo.setAtHome(
+        ingredientId: 'onion',
+        quantity: 2,
+        unit: pieces,
+        measureId: 'm-onion',
+        weekStart: _week,
+      );
+      final onion = (await repo.watchShoppingList(_week).first)
+          .groups
+          .single
+          .items
+          .single;
+      expect(onion.measureTotal!.amount, closeTo(3, 1e-9));
+      expect(onion.atHome!.measure!.label, 'onion, medium');
+    });
+
+    test('a tick folding a duplicate keeps the newer amount', () async {
+      await planCake();
+      Future<void> insertEntry(String id, String at, double? home) =>
+          db.execute(
+            'INSERT INTO shopping_list_entry (id, household_id, '
+            'ingredient_id, checked, week_start_date, created_at, '
+            'updated_at, at_home_quantity, at_home_unit) '
+            'VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?)',
+            [
+              id,
+              'h',
+              'flour',
+              '2026-08-24',
+              at,
+              at,
+              home,
+              if (home == null) null else 'g',
+            ],
+          );
+      await insertEntry('dev-a', '2026-08-24T09:00:00Z', 100);
+      await insertEntry('dev-b', '2026-08-24T10:00:00Z', 400);
+      // The read already prefers the newer say…
+      expect((await flourOn(_week)).totals.single.amount, closeTo(100, 1e-9));
+      // …and a write that folds the duplicate carries it onto the survivor.
+      await repo.setIngredientChecked(
+        ingredientId: 'flour',
+        checked: true,
+        weekStart: _week,
+      );
+      final rows = await db.getAll(
+        'SELECT id, at_home_quantity FROM shopping_list_entry '
+        'WHERE deleted_at IS NULL',
+      );
+      expect(rows.single['id'], 'dev-a');
+      expect(rows.single['at_home_quantity'], 400);
+    });
+
+    test('an entry holding only an amount drops off with its need', () async {
+      await planCake();
+      await repo.setAtHome(
+        ingredientId: 'flour',
+        quantity: 200,
+        unit: g,
+        weekStart: _week,
+      );
+      await db.execute("UPDATE recipe SET deleted_at = '2026-08-25'");
+      expect((await repo.watchShoppingList(_week).first).isEmpty, isTrue);
+    });
+  });
 }

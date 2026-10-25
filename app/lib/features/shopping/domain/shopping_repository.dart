@@ -30,6 +30,26 @@ abstract interface class ShoppingRepository {
     required bool checked,
   });
 
+  /// Says how much of [ingredientId] is already at home on the list for
+  /// [weekStart], finding or creating its entry within that week,
+  /// and replacing any amount said before. With [measureId] the amount is
+  /// counted in that measure, and [unit] must be the count unit (`pieces`).
+  /// "All of it" is the need as it stands (`amountForAll`), never a flag.
+  Future<void> setAtHome({
+    required String ingredientId,
+    required double quantity,
+    required Unit unit,
+    required DateTime weekStart,
+    String? measureId,
+  });
+
+  /// Clears what was said to be at home for [ingredientId] on [weekStart]'s
+  /// list: the row goes back to its aisle at its full need.
+  Future<void> clearAtHome({
+    required String ingredientId,
+    required DateTime weekStart,
+  });
+
   /// Adds a manual top-up to an ingredient on the list for [weekStart], finding
   /// or creating its entry within that week. With [measureId] the top-up is
   /// counted in that measure, and [unit] must be the count unit (`pieces`).

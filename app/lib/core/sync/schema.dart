@@ -190,6 +190,11 @@ const schema = Schema([
     // The first day of the entry's week. Null only on a legacy row, which
     // the server stamps onto the week it was created in.
     Column.text('week_start_date'),
+    // What is already at home for this week's list, as said.
+    // Null until somebody says; subtracted from the derived need.
+    Column.real('at_home_quantity'),
+    Column.text('at_home_unit'),
+    Column.text('at_home_measure_id'), // → ingredient_measure.id (nullable)
     ..._audit,
   ]),
   Table('shopping_list_contribution', [

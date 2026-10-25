@@ -29,6 +29,7 @@ import '../../planning/domain/planning.dart' show eatersDemand;
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe.dart';
+import '../domain/at_home.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_repository.dart';
 
@@ -103,7 +104,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
         await _deriveCookContributions(weekKey);
     // The week's own entries, not only its cook sessions.
     final (planned, retiredPlanned) = await _derivePlannedIngredients(weekKey);
-    final (entries, manual) = await _loadOverlay(weekKey);
+    final (entries, manual, atHome) = await _loadOverlay(weekKey);
     final meta = await _loadIngredientMeta({
       ...cook.map((c) => c.ingredientId),
       ...planned.map((p) => p.ingredientId),
@@ -116,6 +117,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
       manual: manual,
       meta: meta,
       weekdayShort: _weekShape.shortLabels,
+      atHome: atHome,
       unresolvedComponents: unresolved,
       optionalLines: optional,
       // Both walks can meet a retired row; the shopper reads one sorted list.
@@ -512,17 +514,47 @@ class SqliteShoppingRepository implements ShoppingRepository {
     );
   }
 
-  /// The week's overlay: the entries stamped with this week, and their manual
-  /// contributions.
-  Future<(List<ShoppingEntryInput>, Map<String, List<ManualContributionInput>>)>
+  /// The week's overlay: the entries stamped with this week, their manual
+  /// contributions, and what each says is already at home.
+  Future<
+    (
+      List<ShoppingEntryInput>,
+      Map<String, List<ManualContributionInput>>,
+      Map<String, AtHomeInput>,
+    )
+  >
   _loadOverlay(String weekKey) async {
     final entryRows = await _db.getAll(
-      'SELECT id, ingredient_id, free_text, category, checked, unit, '
-      'created_at '
-      'FROM shopping_list_entry WHERE deleted_at IS NULL '
-      'AND week_start_date = ?',
+      'SELECT se.id, se.ingredient_id, se.free_text, se.category, se.checked, '
+      'se.unit, se.created_at, se.updated_at, se.at_home_quantity, '
+      'se.at_home_unit, se.at_home_measure_id AS measure_id, '
+      'im.label AS measure_label, im.basis_amount AS measure_amount, '
+      'i2.macros_basis AS measure_basis, im.sort_order AS measure_sort, '
+      'im.source AS measure_source '
+      'FROM shopping_list_entry se '
+      'LEFT JOIN ingredient_measure im '
+      'ON im.id = se.at_home_measure_id AND im.deleted_at IS NULL '
+      'LEFT JOIN ingredient i2 ON i2.id = im.ingredient_id '
+      'WHERE se.deleted_at IS NULL AND se.week_start_date = ?',
       [weekKey],
     );
+    final atHome = <String, AtHomeInput>{};
+    for (final r in entryRows) {
+      final quantity = (r['at_home_quantity'] as num?)?.toDouble();
+      if (quantity == null || !(quantity > 0)) continue;
+      final id = r['id'] as String;
+      final rawUnit = r['at_home_unit'] as String?;
+      atHome[id] = (
+        entryId: id,
+        quantity: quantity,
+        unit: unitById(rawUnit ?? ''),
+        rawUnit: rawUnit,
+        // The stored id verbatim, like a top-up's, so a re-save never wipes it.
+        measureId: r['measure_id'] as String?,
+        measure: _toMeasure(r),
+        updatedAt: r['updated_at'] as String?,
+      );
+    }
     final entries = [
       for (final r in entryRows)
         (
@@ -567,7 +599,7 @@ class SqliteShoppingRepository implements ShoppingRepository {
         note: r['note'] as String?,
       ));
     }
-    return (entries, manual);
+    return (entries, manual, atHome);
   }
 
   /// The vocab facts for the ids in hand: name, aisle, density, measures. No
@@ -634,7 +666,8 @@ class SqliteShoppingRepository implements ShoppingRepository {
     String weekKey,
   ) async {
     final rows = await tx.getAll(
-      'SELECT id, checked FROM shopping_list_entry '
+      'SELECT id, checked, updated_at, at_home_quantity, at_home_unit, '
+      'at_home_measure_id FROM shopping_list_entry '
       'WHERE ingredient_id = ? AND week_start_date = ? AND deleted_at IS NULL '
       'ORDER BY created_at, id',
       [ingredientId, weekKey],
@@ -659,6 +692,33 @@ class SqliteShoppingRepository implements ShoppingRepository {
             'UPDATE shopping_list_entry SET checked = 1, updated_at = ? '
             'WHERE id = ? AND checked = 0',
             [now, canonicalId],
+          );
+        }
+        // The newest amount at home wins, as [buildShoppingList] reads it; a
+        // duplicate's is carried onto the canonical row before it goes.
+        Row? newest;
+        for (final r in rows) {
+          if (r['at_home_quantity'] == null) continue;
+          if (newest == null ||
+              (r['updated_at'] as String? ?? '').compareTo(
+                    newest['updated_at'] as String? ?? '',
+                  ) >
+                  0) {
+            newest = r;
+          }
+        }
+        if (newest != null && newest['id'] != canonicalId) {
+          await tx.execute(
+            'UPDATE shopping_list_entry SET at_home_quantity = ?, '
+            'at_home_unit = ?, at_home_measure_id = ?, updated_at = ? '
+            'WHERE id = ?',
+            [
+              newest['at_home_quantity'],
+              newest['at_home_unit'],
+              newest['at_home_measure_id'],
+              now,
+              canonicalId,
+            ],
           );
         }
         await tx.execute(
@@ -708,6 +768,42 @@ class SqliteShoppingRepository implements ShoppingRepository {
     await _db.execute(
       'UPDATE shopping_list_entry SET checked = ?, updated_at = ? WHERE id = ?',
       [flag, _now(), entryId],
+    );
+  }
+
+  @override
+  Future<void> setAtHome({
+    required String ingredientId,
+    required double quantity,
+    required Unit unit,
+    required DateTime weekStart,
+    String? measureId,
+  }) async {
+    final key = _weekKey(weekStart);
+    await _db.writeTransaction((tx) async {
+      final entryId = await _findOrCreateIngredientEntry(tx, ingredientId, key);
+      await tx.execute(
+        'UPDATE shopping_list_entry SET at_home_quantity = ?, '
+        'at_home_unit = ?, at_home_measure_id = ?, updated_at = ? '
+        'WHERE id = ?',
+        [quantity, unit.id, measureId, _now(), entryId],
+      );
+    });
+  }
+
+  @override
+  Future<void> clearAtHome({
+    required String ingredientId,
+    required DateTime weekStart,
+  }) async {
+    // Every live entry of the week, so an offline duplicate cannot bring the
+    // amount back.
+    await _db.execute(
+      'UPDATE shopping_list_entry SET at_home_quantity = NULL, '
+      'at_home_unit = NULL, at_home_measure_id = NULL, updated_at = ? '
+      'WHERE ingredient_id = ? AND week_start_date = ? '
+      'AND deleted_at IS NULL AND at_home_quantity IS NOT NULL',
+      [_now(), ingredientId, _weekKey(weekStart)],
     );
   }
 

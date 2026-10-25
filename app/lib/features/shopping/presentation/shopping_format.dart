@@ -99,3 +99,77 @@ String contributionQuantity(ShoppingContribution c) {
 String wholeUnitHintText(WholeUnitHint h) =>
     '${h.approx ? '≈ ' : ''}${formatQuantity(h.count)} ${h.unitLabel} '
     '→ buy ${h.buy}';
+
+// --- What is already at home ----------------------------------------------
+
+/// [item]'s total before anything at home came off it — what the week asks
+/// for, in the words [itemTotal] uses.
+String needTotal(ShoppingItem item) {
+  final need = item.need;
+  return itemTotal(
+    item.copyWith(
+      totals: need.totals,
+      measureTotal: need.measureTotal,
+      pieceTotal: need.pieceTotal,
+    ),
+  );
+}
+
+/// The amount said at home, as briefly as the row allows: a bare count when
+/// it is counted in the measure the row itself is counted in (`5`), else the
+/// amount with its words (`200 g`, `1 cup`, `2 onion, medium`). An imprecise
+/// word says nothing (`to taste` has no amount to repeat).
+String atHomeAmount(ShoppingItem item, {bool bare = false}) {
+  final a = item.atHome;
+  if (a == null) return '';
+  final measure = a.measure;
+  if (measure != null) {
+    final sameMeasure = item.need.measureTotal?.measure.id == measure.id;
+    return sameMeasure
+        ? formatQuantity(a.quantity)
+        : formatMeasureCount(a.quantity, measure);
+  }
+  final unit = a.unit;
+  if (unit == null) return formatQuantity(a.quantity);
+  if (unit.family == UnitFamily.imprecise) return '';
+  if (bare && _needUnit(item) == unit) {
+    return formatQuantityIn(a.quantity, unit);
+  }
+  return '${formatQuantityIn(a.quantity, unit)} ${unit.label}';
+}
+
+Unit? _needUnit(ShoppingItem item) {
+  final totals = item.need.totals;
+  return totals.length == 1 ? totals.single.unit : null;
+}
+
+/// What the sub-line opens with on a row that is partly at home: `200 g at
+/// home`, `5 at home`, or `1 cup at home · not counted (no density)` when the
+/// amount could not come off honestly. Empty when nothing was said.
+String atHomeWords(ShoppingItem item) {
+  final a = item.atHome;
+  if (a == null) return '';
+  final amount = atHomeAmount(item);
+  final words = amount.isEmpty ? 'at home' : '$amount at home';
+  final refusal = a.refusal;
+  return refusal == null ? words : '$words · not counted ($refusal)';
+}
+
+/// The amount chip in the checking pass: the need when nothing is said
+/// (`500 g`), `all 5` or `all 500 g` when it is all at home, `200 of 500 g`
+/// for a part, and `1 cup · not counted` when the amount could not come off.
+String atHomeChip(ShoppingItem item) {
+  final a = item.atHome;
+  final need = needTotal(item);
+  if (a == null) return need;
+  if (a.refusal != null) return '${atHomeAmount(item)} · not counted';
+  if (a.all) {
+    final counted = item.need.measureTotal;
+    if (counted != null) return 'all ${formatQuantity(counted.amount)}';
+    final measurable = item.need.totals.where(
+      (t) => t.unit.family != UnitFamily.imprecise,
+    );
+    return measurable.isEmpty ? 'got it' : 'all $need';
+  }
+  return '${atHomeAmount(item, bare: true)} of $need';
+}

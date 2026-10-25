@@ -35,3 +35,19 @@ TripCost shopTripCost(Ref ref) {
     for (final group in list.openGroups) ...group.items,
   ], (id) => pricing[id]);
 }
+
+/// Whether this phone's Shop is in its checking pass — *what's already at
+/// home?*. The tick turns into a house and the total into the door
+/// to an amount. This phone's alone and never synced: **Done** ends it, and so
+/// does leaving the Shop tab.
+@riverpod
+class ShopChecking extends _$ShopChecking {
+  @override
+  bool build() => false;
+
+  /// Enters the pass.
+  void start() => state = true;
+
+  /// Leaves the pass. Every tap in it was written as it was made.
+  void done() => state = false;
+}

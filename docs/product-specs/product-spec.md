@@ -874,8 +874,30 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   *Ingredient*: a retire is refused while a live line names the row).
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
+- **Already at home** (migration 0058, [plan 0055](../exec-plans/active/0055-already-got-it.md)):
+  before a trip, either of us says what is already in the cupboard, through
+  a *check what's at home* pass opened from the list's foot — no swipe, no
+  long-press. In the pass the tick is a house: a tap on the row says all of
+  it, a tap on its amount opens a sheet (the wide pane, from 1024) asking how
+  much. The amount is stored **as said** on the week's entry
+  (`at_home_quantity · at_home_unit · at_home_measure_id`) and is always an
+  amount, never "all": a tap stores the need as it stood, so a week that
+  grows brings the row back for the difference. It is taken off the summed
+  need honestly — through the ratio table, a density, a measure's weight or
+  the piece weight, or not at all, when the row reads
+  `200 g at home · not counted (no density)`. Imprecise words (`to taste`)
+  ride along with the measurable total. A row with two measurable totals
+  (only after a density or piece weight was deleted) cannot take an amount
+  and says why. A **part-have** shortens the row, and its sub-line opens with
+  `200 g at home`; the provenance still says the need. A **whole-have**
+  leaves the aisles for an **At home** section under the basket — muted,
+  never struck through, no price — and a tap puts it back. The trip's
+  estimate drops by what is at home and says nothing about it; the Week's
+  cost, receipts and the tick are untouched, and a row moving to *At home*
+  never plays the last tick. With nothing open and nothing ticked the list
+  closes on *everything's at home*.
 - **Scoped to a week** (migrations 0019 and 0036): every entry carries the first day of the week it was made against, so a tick made while looking at next week belongs to next week's list. That includes a *free-text non-food item* — you wrote "paper towels" while shopping for one week, and it is bought on that trip, so it does not follow you onto every future list. A contribution rides its entry and stores no week of its own. `week_start_date` stays nullable for the rows older clients wrote; a week-less free-text row is backfilled onto the start of the week its `created_at` falls in. There is still **no unique index** on an entry (0006's reasoning is unchanged: two offline devices must each be able to create one and converge later); convergence simply happens within a week.
-- **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
+- **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items, the amount at home) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
 - Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
 
 ### Price & receipt (what a shop cost)

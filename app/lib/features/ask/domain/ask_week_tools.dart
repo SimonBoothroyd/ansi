@@ -10,12 +10,14 @@ library;
 import 'dart:convert';
 
 import '../../../core/search/search_rank.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../planning/domain/planning.dart';
+import '../../shopping/domain/at_home.dart';
 import '../../shopping/domain/shopping.dart';
 import 'ask_proposal.dart';
 import 'ask_tools.dart';
@@ -164,8 +166,10 @@ String cookSessionsResult(
 
 /// `shopping`: the list for the week beginning [weekStart]. With
 /// [ingredient], the rows whose name it hits, each with the meals that ask
-/// for it; otherwise what is left to buy by aisle and how much is ticked.
-/// [total] is the Shop screen's own total for a row.
+/// for it; otherwise what is left to buy by aisle, how much is ticked, and
+/// what is all at home. [total] is the Shop screen's own total for a row —
+/// what is left to buy, once something was said to be at home, which the row
+/// then names (`at_home`).
 String shoppingResult(
   ShoppingList list, {
   required DateTime weekStart,
@@ -175,7 +179,14 @@ String shoppingResult(
   final query = ingredient?.trim() ?? '';
   Map<String, Object?> row(ShoppingItem i, {bool why = false}) => {
     'name': i.name,
-    'amount': total(i),
+    'amount': i.isAtHome ? 'none — all at home' : total(i),
+    if (i.atHome case final home?)
+      'at_home': home.all
+          ? 'all of it'
+          : [
+              _atHomeAmount(home),
+              if (home.refusal case final why?) 'not counted ($why)',
+            ].join(' · '),
     if (i.checked) 'ticked': true,
     if (why)
       'for': [
@@ -209,7 +220,20 @@ String shoppingResult(
         },
     ],
     'ticked': list.basket.length,
+    if (list.atHome.isNotEmpty)
+      'at_home': [for (final i in list.atHome) i.name],
   });
+}
+
+/// An amount said at home in plain words (`200 g`, `2 onion, medium`).
+String _atHomeAmount(AtHome home) {
+  final amount = home.quantity;
+  final measure = home.measure;
+  if (measure != null) return '${formatAmount(amount)} ${measure.label}';
+  final unit = home.unit;
+  return unit == null
+      ? formatAmount(amount)
+      : '${formatAmountIn(amount, unit)} ${unit.label}';
 }
 
 /// `find_ingredient`: up to [kAskFindLimit] of the household's ingredients

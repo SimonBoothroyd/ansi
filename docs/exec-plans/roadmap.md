@@ -28,8 +28,9 @@ The detail is in the plan; the landing dates are in the
 6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
    first slice.
 7. [Plan 0055](./active/0055-already-got-it.md), already got it — say on the
-   Shop list what is already at home, all of a row or an amount. Ruled and
-   drawn as `proposed`; no code yet.
+   Shop list what is already at home, all of a row or an amount. Built and
+   tested on branch `ccr-e2788faa-k9cnvl`, not yet on `main`; migration
+   `0058` is not on cloud, and the phone check (two phones, one pass) is owed.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.

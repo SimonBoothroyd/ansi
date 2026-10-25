@@ -54,3 +54,8 @@ persisted manual ones, summed in canonical base with provenance.
 - If cook sessions ever gain persisted state (e.g. the deferred cook-day
   override), the forward-compat columns allow revisiting without a schema
   change — that reversal would be a new ADR.
+- **Amended in place by 0058 (plan 0055), not reversed:** the overlay gains a
+  third stored fact, the amount already at home, as three columns on the
+  week's `shopping_list_entry`. It cannot be re-derived from the week or the
+  recipes, so it is exactly the kind of state this decision stores; the
+  subtraction from the derived need happens at read time like the rest.

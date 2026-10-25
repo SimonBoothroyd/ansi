@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (58 migrations, 26 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (59 migrations, 26 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -268,8 +268,11 @@ introduced in `0006_shopping.sql` · RLS enabled · in the `powersync` publicati
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
 | `week_start_date` | `date` | yes | *(added in `0019_shopping_week.sql`)* |
+| `at_home_quantity` | `numeric` | yes | *(added in `0058_shopping_at_home.sql`)* |
+| `at_home_unit` | `text` | yes | *(added in `0058_shopping_at_home.sql`)* |
+| `at_home_measure_id` | `uuid` | yes | references ingredient_measure(id) *(added in `0058_shopping_at_home.sql`)* |
 
-Table constraints: `check ((ingredient_id is not null) <> (free_text is not null))`
+Table constraints: `check ((ingredient_id is not null) <> (free_text is not null))`; `constraint shopping_list_entry_at_home_amount check ( at_home_quantity is null or (at_home_quantity > 0 and at_home_unit is not null and ingredient_id is not null) )`; `constraint shopping_list_entry_at_home_measure check (at_home_measure_id is null or at_home_quantity is not null)`
 
 ## `shopping_list_contribution`
 

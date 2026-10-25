@@ -123,6 +123,10 @@ assertions in `begin … rollback` so runs leave no residue.
   ingredient can sit on two weeks AND still twice on one week — the offline
   duplicate 0006 deliberately allows; and that the identity XOR, the
   contribution cascade and household RLS are all unchanged by it.
+- `shopping_at_home.sql` — what is already at home (0058, plan 0055): the
+  entry carries an amount and the measure it was counted in, null until said;
+  a zero amount, an amount without a unit, an amount on a free-text item and
+  a measure without an amount are all refused.
 - `household_week_start.sql` — the household's first day of the week and the
   re-home that follows it (0043): the column's shape, default and ISO range,
   and the two questions the re-home asks — `week_key_for()` of a DATE, and

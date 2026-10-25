@@ -19,6 +19,7 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../recipes/domain/effective_lines.dart';
+import 'at_home.dart';
 
 part 'shopping.freezed.dart';
 
@@ -220,7 +221,23 @@ abstract class ShoppingItem with _$ShoppingItem {
     /// (invariant 3). Null when the item does not qualify ([wholeUnitHintFor])
     /// or when [measureTotal] or [pieceTotal] is set.
     WholeUnitHint? wholeUnitHint,
+
+    /// What is already at home, or null when nothing was said.
+    /// When set, [totals], [measureTotal], [pieceTotal] and [wholeUnitHint]
+    /// are what is LEFT to buy, and `atHome.need` is what the week asked for;
+    /// [contributions] always say the need. A refused amount leaves the need
+    /// as the total and says why ([AtHome] `refusal`).
+    AtHome? atHome,
   }) = _ShoppingItem;
+
+  /// What the week asks for, before anything at home came off it.
+  ShoppingNeed get need =>
+      atHome?.need ??
+      (totals: totals, measureTotal: measureTotal, pieceTotal: pieceTotal);
+
+  /// Whether what is at home covers the whole row: it leaves the aisles for
+  /// the *At home* section and is not bought.
+  bool get isAtHome => atHome?.all ?? false;
 
   /// A free-text non-food item ("paper towels") rather than a vocab ingredient.
   bool get isFreeText => ingredientId == null;
@@ -263,17 +280,29 @@ abstract class ShoppingList with _$ShoppingList {
 
   bool get isEmpty => groups.isEmpty;
 
-  /// The aisles still to walk: each group with only its unticked items, empty
-  /// groups dropped. [groups] stays the full list.
+  /// The aisles still to walk: each group with only its items still to buy —
+  /// not ticked, and not all at home — empty groups dropped. [groups] stays
+  /// the full list.
   List<ShoppingGroup> get openGroups => [
     for (final g in groups)
-      if (g.items.any((i) => !i.checked))
+      if (g.items.any(_isOpen))
         g.copyWith(
           items: [
             for (final i in g.items)
-              if (!i.checked) i,
+              if (_isOpen(i)) i,
           ],
         ),
+  ];
+
+  static bool _isOpen(ShoppingItem i) => !i.checked && !i.isAtHome;
+
+  /// Every row already at home and not ticked, flattened in aisle order then
+  /// name — the *At home* section, under the basket. A ticked row stays in the
+  /// basket even if an amount covers it: the tick says it was bought.
+  List<ShoppingItem> get atHome => [
+    for (final g in groups)
+      for (final i in g.items)
+        if (!i.checked && i.isAtHome) i,
   ];
 
   /// Every ticked item, flattened in aisle order then name.
@@ -291,9 +320,14 @@ abstract class ShoppingList with _$ShoppingList {
         ),
   ];
 
-  /// Whether the list has items and every one of them is ticked — the aisles
-  /// are empty but the trip is not. The single place "all ticked" is known.
+  /// Whether the list has items and none is left to buy — the aisles are
+  /// empty but the trip is not: everything is ticked or at home. The single
+  /// place "nothing left" is known.
   bool get allTicked => groups.isNotEmpty && openGroups.isEmpty;
+
+  /// Whether nothing is left to buy because it is ALL at home: [allTicked]
+  /// with an empty basket. The list closes on *everything's at home* then.
+  bool get allAtHome => allTicked && basketGroups.isEmpty;
 }
 
 // --- The last tick -----------------------------------------------------------
@@ -305,10 +339,15 @@ String shoppingItemIdentity(ShoppingItem item) =>
 
 /// Whether ticking [item] finishes [list]: more than one item, [item] unticked
 /// and every other item ticked. Decided before the write, so a list that
-/// arrives all-ticked by sync does not qualify.
+/// arrives all-ticked by sync does not qualify. A row all at home is not on
+/// the trip, so it counts neither way: saying so never plays the confetti.
 bool completesTheList(ShoppingList list, ShoppingItem item) {
-  final items = [for (final g in list.groups) ...g.items];
-  if (items.length < 2 || item.checked) return false;
+  final items = [
+    for (final g in list.groups)
+      for (final i in g.items)
+        if (i.checked || !i.isAtHome) i,
+  ];
+  if (items.length < 2 || item.checked || item.isAtHome) return false;
   final id = shoppingItemIdentity(item);
   return items.every((i) => i.checked || shoppingItemIdentity(i) == id);
 }
@@ -625,14 +664,17 @@ PieceTotal? _pieceTotal({
 /// An entry shows only while it has a live contribution or is free text. Two
 /// live entries for one ingredient can exist (two offline devices; no unique
 /// index, by design) and merge deterministically: contributions unioned,
-/// checked is any-checked, the oldest row is canonical. [unresolvedComponents],
-/// [optionalLines] and [retiredIngredients] pass through untouched.
+/// checked is any-checked, the oldest row is canonical, and the newest amount
+/// at home wins. [atHome] is keyed by entry id; its amount is taken off the
+/// summed need by [leftToBuy]. [unresolvedComponents], [optionalLines] and
+/// [retiredIngredients] pass through untouched.
 ShoppingList buildShoppingList({
   required List<CookContributionInput> cook,
   required List<ShoppingEntryInput> entries,
   required Map<String, List<ManualContributionInput>> manual,
   required Map<String, IngredientMetaInput> meta,
   required List<String> weekdayShort,
+  Map<String, AtHomeInput> atHome = const {},
   List<PlanIngredientInput> planned = const [],
   List<UnresolvedComponentNote> unresolvedComponents = const [],
   List<OptionalLinesNote> optionalLines = const [],
@@ -818,19 +860,56 @@ ShoppingList buildShoppingList({
       measured: measured,
       measureTotal: measureTotal,
     );
+    // What is at home comes off the need.
+    final said = newestAtHome([
+      for (final e in ingredientEntries)
+        if (atHome[e.id] case final a?) a,
+    ]);
+    final need = (
+      totals: totals,
+      measureTotal: measureTotal,
+      pieceTotal: pieceTotal,
+    );
+    var shown = need;
+    AtHome? home;
+    if (said != null) {
+      final result = leftToBuy(
+        need: need,
+        quantity: said.quantity,
+        unit: said.unit,
+        measure: said.measure,
+        densityGPerMl: m?.densityGPerMl,
+        pieceMeasure: pieceMeasure,
+      );
+      if (result case SomeLeft(:final left)) shown = left;
+      home = (
+        quantity: said.quantity,
+        unit: said.unit,
+        measure: said.measure,
+        measureId: said.measureId,
+        need: need,
+        all: result is AllAtHome,
+        refusal: switch (result) {
+          NotCounted(:final reason) => reason,
+          _ => null,
+        },
+      );
+    }
     items.add(
       ShoppingItem(
         entryId: entry?.id,
         ingredientId: id,
         name: m?.name ?? '(unknown ingredient)',
         checked: checked,
-        totals: totals,
-        measureTotal: measureTotal,
-        pieceTotal: pieceTotal,
+        totals: shown.totals,
+        measureTotal: shown.measureTotal,
+        pieceTotal: shown.pieceTotal,
         contributions: contributions,
-        wholeUnitHint: m == null || measureTotal != null || pieceTotal != null
+        wholeUnitHint:
+            m == null || shown.measureTotal != null || shown.pieceTotal != null
             ? null
-            : wholeUnitHintFor(totals: totals, measures: m.measures),
+            : wholeUnitHintFor(totals: shown.totals, measures: m.measures),
+        atHome: home,
       ),
     );
   }

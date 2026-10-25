@@ -107,3 +107,73 @@ final class ShopTripCostProvider
 }
 
 String _$shopTripCostHash() => r'd70bb11f5c5ff8f4a7b36fc0a6ac9052be9d8b8d';
+
+/// Whether this phone's Shop is in its checking pass — *what's already at
+/// home?*. The tick turns into a house and the total into the door
+/// to an amount. This phone's alone and never synced: **Done** ends it, and so
+/// does leaving the Shop tab.
+
+@ProviderFor(ShopChecking)
+const shopCheckingProvider = ShopCheckingProvider._();
+
+/// Whether this phone's Shop is in its checking pass — *what's already at
+/// home?*. The tick turns into a house and the total into the door
+/// to an amount. This phone's alone and never synced: **Done** ends it, and so
+/// does leaving the Shop tab.
+final class ShopCheckingProvider extends $NotifierProvider<ShopChecking, bool> {
+  /// Whether this phone's Shop is in its checking pass — *what's already at
+  /// home?*. The tick turns into a house and the total into the door
+  /// to an amount. This phone's alone and never synced: **Done** ends it, and so
+  /// does leaving the Shop tab.
+  const ShopCheckingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'shopCheckingProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$shopCheckingHash();
+
+  @$internal
+  @override
+  ShopChecking create() => ShopChecking();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$shopCheckingHash() => r'8c60efbfef48adcac90569e40b63473df9116262';
+
+/// Whether this phone's Shop is in its checking pass — *what's already at
+/// home?*. The tick turns into a house and the total into the door
+/// to an amount. This phone's alone and never synced: **Done** ends it, and so
+/// does leaving the Shop tab.
+
+abstract class _$ShopChecking extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}

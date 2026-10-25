@@ -225,6 +225,57 @@ void main() {
       );
       expect(json['ticked'], 1);
     });
+
+    test('what is at home is said: a part on its row, a whole by name', () {
+      ShoppingItem withHome(ShoppingItem i, double qty, {required bool all}) =>
+          i.copyWith(
+            atHome: (
+              quantity: qty,
+              unit: tbsp,
+              measure: null,
+              measureId: null,
+              need: (
+                totals: [Quantity(3, tbsp)],
+                measureTotal: null,
+                pieceTotal: null,
+              ),
+              all: all,
+              refusal: null,
+            ),
+          );
+      final tamari = list.groups.single.items.first;
+      final partly = ShoppingList(
+        groups: [
+          ShoppingGroup(
+            label: 'Pantry',
+            items: [withHome(tamari, 1, all: false)],
+          ),
+        ],
+      );
+      final asked = _json(
+        shoppingResult(
+          partly,
+          weekStart: _thisWeek,
+          total: total,
+          ingredient: 'tamari',
+        ),
+      );
+      expect(((asked['rows']! as List).single as Map)['at_home'], '1 tbsp');
+
+      final wholly = ShoppingList(
+        groups: [
+          ShoppingGroup(
+            label: 'Pantry',
+            items: [withHome(tamari, 3, all: true)],
+          ),
+        ],
+      );
+      final left = _json(
+        shoppingResult(wholly, weekStart: _thisWeek, total: total),
+      );
+      expect(left['left_to_buy'], isEmpty);
+      expect(left['at_home'], ['Tamari']);
+    });
   });
 
   group('the runner', () {

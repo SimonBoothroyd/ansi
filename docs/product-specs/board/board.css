@@ -2114,7 +2114,7 @@
     .hm-band{display:flex;align-items:center;gap:8px;padding:9px 20px;border-bottom:1px solid var(--line);background:var(--herb-soft);}
     .hm-band .hq{flex:1;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb-deep);}
     .hm-band .dn{font-size:12.5px;font-weight:600;color:var(--frame);background:var(--herb);border-radius:9px;padding:6px 13px;}
-    .box.home{border:1.6px dashed var(--line);color:var(--muted);font-size:12px;}
+    .box.home{border:1.6px solid var(--line);color:var(--muted);font-size:12px;}
     .box.home.on{border:1.6px solid var(--herb);background:var(--herb-soft);color:var(--herb-deep);}
     .item.home .item-name,.item.home .item-total{color:var(--muted);}
     .item-total.amt{border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--paper);}

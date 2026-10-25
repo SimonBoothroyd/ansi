@@ -106,6 +106,10 @@ class QuantityUnitEditor extends HookConsumerWidget {
     this.initialOptional,
     this.confirmLabel = 'Done',
     this.onRemove,
+    this.removeLabel = 'Remove top-up',
+    this.summary,
+    this.autofocus = true,
+    this.onDismiss,
     super.key,
   });
 
@@ -128,6 +132,22 @@ class QuantityUnitEditor extends HookConsumerWidget {
   final String confirmLabel;
   final ValueChanged<QuantitySaved> onDone;
   final VoidCallback? onRemove;
+
+  /// The remove affordance's words — a top-up's by default.
+  final String removeLabel;
+
+  /// Lines drawn between the chips and the confirm button, rebuilt as the
+  /// amount and the unit change: the Shop's amount at home says what is
+  /// still to buy there.
+  final Widget Function(double? quantity, UnitChoice choice)? summary;
+
+  /// Whether the amount field takes focus on open. A pane that opens beside a
+  /// list (the wide Shop) leaves the keyboard down until it is tapped.
+  final bool autofocus;
+
+  /// What the X does; null pops the sheet's route. A pane that is not a
+  /// route passes its own.
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -211,7 +231,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
       title: managing.value ? 'Measures' : null,
       subtitle: managing.value ? live.value.canonicalName : null,
       dismiss: managing.value ? AnsiSheetDismiss.back : AnsiSheetDismiss.x,
-      onDismiss: managing.value ? () => managing.value = false : null,
+      onDismiss: managing.value ? () => managing.value = false : onDismiss,
       children: [
         if (managing.value)
           _MeasureManager(
@@ -238,6 +258,9 @@ class QuantityUnitEditor extends HookConsumerWidget {
             requireQuantity: requireQuantity,
             optional: initialOptional == null ? null : optional,
             confirmLabel: confirmLabel,
+            removeLabel: removeLabel,
+            summary: summary,
+            autofocus: autofocus,
             onManage: () => managing.value = true,
             onDone: () => onDone(
               QuantitySaved(
@@ -269,6 +292,9 @@ class _QuantitySurface extends StatelessWidget {
     required this.requireQuantity,
     required this.optional,
     required this.confirmLabel,
+    required this.removeLabel,
+    required this.summary,
+    required this.autofocus,
     required this.onManage,
     required this.onDone,
     required this.onRemove,
@@ -293,6 +319,9 @@ class _QuantitySurface extends StatelessWidget {
   /// (see [QuantityUnitEditor.initialOptional]).
   final ValueNotifier<bool>? optional;
   final String confirmLabel;
+  final String removeLabel;
+  final Widget Function(double? quantity, UnitChoice choice)? summary;
+  final bool autofocus;
   final VoidCallback onManage;
   final VoidCallback onDone;
   final VoidCallback? onRemove;
@@ -349,7 +378,7 @@ class _QuantitySurface extends StatelessWidget {
             SizedBox(
               width: 132,
               child: FTextField(
-                autofocus: true,
+                autofocus: autofocus,
                 hint: 'qty',
                 // A text keyboard: iOS's numeric pads have no `/`, so `1/2`
                 // could not be typed.
@@ -432,6 +461,10 @@ class _QuantitySurface extends StatelessWidget {
             style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
         ],
+        if (summary != null) ...[
+          const SizedBox(height: 14),
+          summary!(quantity.value, choice.value),
+        ],
         const SizedBox(height: 14),
         FButton(onPress: canConfirm ? onDone : null, child: Text(confirmLabel)),
         if (onRemove != null) ...[
@@ -440,7 +473,7 @@ class _QuantitySurface extends StatelessWidget {
             variant: FButtonVariant.ghost,
             onPress: onRemove,
             child: Text(
-              'Remove top-up',
+              removeLabel,
               style: ansiSans(size: 15, color: AnsiColors.gone),
             ),
           ),

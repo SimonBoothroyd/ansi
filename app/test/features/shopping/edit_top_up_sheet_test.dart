@@ -17,6 +17,21 @@ import '../../helpers/forui_semantics.dart';
 
 /// Records the edit call so the test can assert what the sheet saved.
 class _RecordingShoppingRepo implements ShoppingRepository {
+  @override
+  Future<void> setAtHome({
+    required String ingredientId,
+    required double quantity,
+    required Unit unit,
+    required DateTime weekStart,
+    String? measureId,
+  }) async {}
+
+  @override
+  Future<void> clearAtHome({
+    required String ingredientId,
+    required DateTime weekStart,
+  }) async {}
+
   ({double quantity, Unit unit, String? measureId})? edited;
 
   @override
