@@ -2108,22 +2108,20 @@
     .asheet .as-ok{background:var(--herb);border-color:var(--herb);color:#fff;}
     .asheet .ts-x{color:var(--muted);font-family:'Inter',sans-serif;font-size:18px;margin-right:10px;}
 
-    /* Shop · already got it (proposed) — a row swiped open shows its two
-       answers; a row the household already has wears a house in its box and
-       sits in its own section, never struck through, because nothing was bought */
-    .sw-row{position:relative;margin:0 20px;overflow:hidden;border-bottom:1px solid var(--line);}
-    .sw-row .item{margin:0;border-bottom:none;background:var(--frame);transform:translateX(-150px);}
-    .sw-acts{position:absolute;right:0;top:0;bottom:0;display:flex;}
-    .sw-a{width:75px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.2;}
-    .sw-a .g{font-size:15px;font-weight:400;}
-    .sw-a.some{background:var(--herb-soft);color:var(--herb-deep);}
-    .sw-a.all{background:var(--herb);color:#fff;}
-    .box.home{border:1.6px dashed var(--herb);color:var(--herb);font-size:12px;}
+    /* Shop · already got it (proposed) — a pass made at home before the trip:
+       the row's tick becomes a house, its total becomes the door to an amount.
+       A row you have is never struck through, because nothing was bought */
+    .hm-band{display:flex;align-items:center;gap:8px;padding:9px 20px;border-bottom:1px solid var(--line);background:var(--herb-soft);}
+    .hm-band .hq{flex:1;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--herb-deep);}
+    .hm-band .dn{font-size:12.5px;font-weight:600;color:var(--frame);background:var(--herb);border-radius:9px;padding:6px 13px;}
+    .box.home{border:1.6px dashed var(--line);color:var(--muted);font-size:12px;}
+    .box.home.on{border:1.6px solid var(--herb);background:var(--herb-soft);color:var(--herb-deep);}
     .item.home .item-name,.item.home .item-total{color:var(--muted);}
+    .item-total.amt{border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--paper);}
+    .item-total.amt.on{border-color:var(--herb);color:var(--herb-deep);background:var(--herb-soft);}
+    .item-total.amt .of{color:var(--muted);font-weight:400;}
     .prov-line.home .src{color:var(--muted);font-style:italic;}
-    .prov-line.home span:last-child{color:var(--herb-deep);}
+    .prov-line.home .pen{color:var(--herb);margin-right:6px;}
     .hv-need{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0 0 10px;}
     .hv-buy{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:13px;}
     .hv-buy b{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;color:var(--herb-deep);}
-    .cupboard{margin:14px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);}
-    .cupboard .dr{color:var(--herb-deep);font-weight:500;}
