@@ -28,7 +28,6 @@ import '../../account/data/household_providers.dart';
 import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
-import '../../ingredients/data/ingredient_providers.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
@@ -141,9 +140,10 @@ class _ReceiptsDoor extends ConsumerWidget {
       : const SizedBox.shrink();
 }
 
-/// `≈ $58 still to buy` on the sync line, at the latest prices (ADR-0017); `at
-/// least $58 still to buy · 2 rows unpriced` where a row has no price. Draws
-/// nothing when no open row can be priced, since `≈ $0` would read as free.
+/// `≈ $58 at the cheapest` on the sync line, the sum of the rows' figures at
+/// the Shop's prices (ADR-0017); `at least $58 at the cheapest · 2 rows
+/// unpriced` where a row has no price. Draws nothing when no open row can be
+/// priced, since `≈ $0` would read as free.
 class _TripEstimate extends StatelessWidget {
   const _TripEstimate({required this.trip});
 
@@ -894,14 +894,13 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
   Widget _rowBody() {
     // A ticked row carries no estimate: it is in the basket, and the figure
     // on the sync line is about what is left to buy.
+    final pricing = ref.watch(shopPricingProvider)[item.ingredientId];
     final secondary = item.checked
         ? ''
         : itemSecondaryWithCost(
             item,
-            cents: shoppingItemCostCents(
-              item,
-              ref.watch(ingredientPricingProvider)[item.ingredientId],
-            ),
+            cents: shoppingItemCostCents(item, pricing),
+            price: pricing?.price,
             // A blank row is a gap only once something on this trip has a
             // price; before that the household simply has not started.
             anyPriced: ref.watch(shopTripCostProvider).cents != null,

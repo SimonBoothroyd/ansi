@@ -49,10 +49,12 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
   word for one, else one piece), and the card says which. With neither, the
   call is refused with a sentence telling the model to ask how much.
 - **Figures are the screens' own.** `nutrition` and `cost` call the same
-  summations the recipe panel, the Week band and the Shop do
-  (`sumPlannedMacros`, `sumPlannedCost`, `tripCostCents`) and write them with
-  the same words (`incompleteNote`, `excludedLine`, `weekCostLine`,
-  `costFloor`), so an answer cannot disagree with a screen. A day or a week
+  summations the recipe panel and the Week band do (`sumPlannedMacros`,
+  `sumPlannedCost`) and write them with the same words (`incompleteNote`,
+  `excludedLine`, `weekCostLine`, `costFloor`), so an answer cannot disagree
+  with a screen. Those read the latest price; the trip is the Shop's own
+  figure (`readShopTripCost`), at the cheapest price seen in 90 days, so it
+  always agrees with the sync line. A day or a week
   is the speaker's unless `everyone` or a member is named; money and macros
   never share a result.
 - **"I" is the member signed in**, matched by the account's own name or email
@@ -82,7 +84,7 @@ the sheet ──question + <screen>──▶ AskController ──conversation─
 | `shopping` | one ingredient's rows with the meals that ask for it, or what is left to buy by aisle and what is all at home; totals as the Shop prints them, with a row's `at_home` amount when one was said |
 | `find_ingredient` | the vocabulary's best matches, each with the unit ids and measure names an amount may use and its usual amount |
 | `nutrition` | a recipe's per-serving macros (and at the servings on screen), or a day's or a week's under a member's lens — the speaker's by default — with a week's per-day average; incomplete and left-out named |
-| `cost` | a recipe per serving and whole, a day's or a week's cost to cook beside the week's receipts, or the Shop's trip estimate; a gap reads `at least` |
+| `cost` | a recipe per serving and whole, a day's or a week's cost to cook beside the week's receipts, or the Shop's trip estimate at its cheapest prices; a gap reads `at least` |
 | `prices` | an ingredient's latest three purchases and the price its costs read |
 | `propose_plan_changes` | add, remove, move, set eaters — checked, drawn as a card, written on Confirm |
 | `propose_copy_last_week` | the Week's own copy, as a card |

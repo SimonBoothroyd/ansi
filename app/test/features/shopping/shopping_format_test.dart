@@ -1,7 +1,11 @@
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/cost_price.dart';
+import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/presentation/shopping_format.dart';
+import 'package:ansi/shared/cost_words.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _can = Measure(id: 'ml', label: 'can (400 g), drained', amount: 240);
@@ -158,6 +162,95 @@ void main() {
           ),
         ),
         '200 g',
+      );
+    });
+  });
+
+  /// The Shop's price, as a row and the sync line print it (ADR-0017 rules 7
+  /// and 8): one price read plain to the cent with where it was seen, and a
+  /// sum that keeps `at the cheapest` whichever price each row fell back to.
+  group("the Shop's price words", () {
+    final onion = ShoppingItem(
+      name: 'Yellow onion',
+      ingredientId: 'onion',
+      totals: [Quantity(550, g)],
+      pieceTotal: const (count: 5, approx: true),
+    );
+    PriceObservation paid({String store = 'Aldi', DateTime? on}) =>
+        PriceObservation(
+          lineId: 'rl',
+          receiptId: 'r',
+          cents: 180,
+          packBasisAmount: 550,
+          basis: MacrosBasis.perG,
+          store: store,
+          purchasedAt: on ?? DateTime.utc(2026, 10, 20),
+        );
+    BasePrice base({String? store}) => BasePrice(
+      ingredientId: 'onion',
+      cents: 242,
+      packBasisAmount: 550,
+      basis: MacrosBasis.perG,
+      setAt: DateTime.utc(2026, 9, 2),
+      store: store,
+    );
+    String row(double cents, ShopPrice price) =>
+        itemSecondaryWithCost(onion, cents: cents, price: price);
+
+    test('the cheapest seen names its store and no month', () {
+      expect(
+        row(180, ShopPrice(paid(), ShopPriceChoice.cheapestSeen)),
+        r'550 g · $1.80 at Aldi',
+      );
+    });
+
+    test('an older receipt carries its month', () {
+      expect(
+        row(
+          242,
+          ShopPrice(
+            paid(store: "TJ's", on: DateTime.utc(2026, 6, 14)),
+            ShopPriceChoice.costPrice,
+          ),
+        ),
+        r"550 g · $2.42 at TJ's, Jun",
+      );
+    });
+
+    test('a base price names its store and month, or says what it is', () {
+      expect(
+        row(242, ShopPrice(base(store: 'Aldi'), ShopPriceChoice.costPrice)),
+        r'550 g · $2.42 at Aldi, Sep',
+      );
+      expect(
+        row(242, ShopPrice(base(), ShopPriceChoice.costPrice)),
+        r'550 g · $2.42 · base price, Sep',
+      );
+    });
+
+    test('no store word on the paper makes none up', () {
+      expect(
+        row(180, ShopPrice(paid(store: ' '), ShopPriceChoice.cheapestSeen)),
+        r'550 g · $1.80',
+      );
+    });
+
+    test('unpriced says so only once something on the trip is priced', () {
+      expect(
+        itemSecondaryWithCost(onion, anyPriced: true),
+        '550 g · no price yet',
+      );
+      expect(itemSecondaryWithCost(onion), '550 g');
+    });
+
+    test('the trip keeps its words whichever price each row read', () {
+      expect(
+        tripEstimate((cents: 5100, unpriced: 0)),
+        r'≈ $51 at the cheapest',
+      );
+      expect(
+        tripEstimate((cents: 5100, unpriced: 1)),
+        r'at least $51 at the cheapest · 1 row unpriced',
       );
     });
   });

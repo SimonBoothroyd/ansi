@@ -4,8 +4,9 @@ library;
 
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
-import '../../../shared/cost_words.dart' show approxMoney;
+import '../../../shared/cost_words.dart' show shopRowCost;
 import '../../../shared/format.dart' show formatQuantity, formatQuantityIn;
+import '../../ingredients/domain/cost_price.dart';
 import '../domain/shopping.dart';
 
 /// Formats one [Quantity] for the list, e.g. "500 g", "1.5 kg", "5 piece".
@@ -61,9 +62,9 @@ String itemSecondary(ShoppingItem item) {
   return hint == null ? '' : wholeUnitHintText(hint);
 }
 
-/// [itemSecondary] with the row's cost on the end: `550 g · ≈ $2.42`, or `350 g
-/// · no price yet` (ADR-0017). `≈` because a price is the latest seen, not a
-/// quote.
+/// [itemSecondary] with the row's cost on the end: `550 g · $1.80 at Aldi`,
+/// or `350 g · no price yet` (ADR-0017). [cents] is the row's figure and
+/// [price] the price it was read at ([shopRowCost] says which).
 ///
 /// `no price yet` appears only when [anyPriced]: a household with no prices at
 /// all is not nagged row by row. A free-text item and a numberless staple say
@@ -71,12 +72,13 @@ String itemSecondary(ShoppingItem item) {
 String itemSecondaryWithCost(
   ShoppingItem item, {
   double? cents,
+  ShopPrice? price,
   bool anyPriced = false,
 }) {
   final base = itemSecondary(item);
   final missing = anyPriced && !item.isFreeText && item.hasTotal;
-  final money = cents != null
-      ? approxMoney(cents)
+  final money = cents != null && price != null
+      ? shopRowCost(cents, price)
       : (missing ? 'no price yet' : '');
   return [if (base.isNotEmpty) base, if (money.isNotEmpty) money].join(' · ');
 }

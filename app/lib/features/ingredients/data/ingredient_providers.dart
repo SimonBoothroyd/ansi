@@ -7,7 +7,6 @@ import '../../../core/config/env.dart';
 import '../../../core/sync/database.dart';
 import '../../../core/sync/session.dart';
 import '../../../core/units/measure.dart';
-import '../../recipes/domain/recipe_cost.dart';
 import '../domain/ingredient.dart';
 import '../domain/ingredient_repository.dart';
 import '../domain/measure_repository.dart';
@@ -116,25 +115,3 @@ Stream<BasePrice?> ingredientBasePrice(Ref ref, String ingredientId) =>
 @riverpod
 Stream<Map<String, UnitPrice>> costPriceMap(Ref ref) =>
     ref.watch(priceRepositoryProvider).watchCostPrices();
-
-/// What every vocabulary row costs and how its amounts convert, for a surface
-/// holding amounts rather than recipe lines (the Shop). Assembled from the
-/// vocabulary and cost-price watches; a row the vocabulary has not synced is
-/// absent.
-@riverpod
-Map<String, IngredientPricing> ingredientPricing(Ref ref) {
-  final prices = ref.watch(costPriceMapProvider).asData?.value ?? const {};
-  final rows =
-      ref.watch(vocabularyProvider).asData?.value ?? const <Ingredient>[];
-  return {
-    for (final row in rows)
-      row.id: (
-        row: (
-          basis: row.macrosBasis,
-          densityGPerMl: row.densityGPerMl,
-          pieceBasisAmount: row.pieceBasisAmount,
-        ),
-        price: prices[row.id],
-      ),
-  };
-}

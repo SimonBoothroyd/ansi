@@ -1,10 +1,10 @@
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/cost_price.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
-import 'package:ansi/features/recipes/domain/recipe_cost.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_cost.dart';
-import 'package:ansi/features/shopping/presentation/shopping_format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 PriceObservation _price({
@@ -21,7 +21,7 @@ PriceObservation _price({
   purchasedAt: DateTime.utc(2026, 9, 3),
 );
 
-IngredientPricing _pricing({
+ShopPricing _pricing({
   MacrosBasis basis = MacrosBasis.perG,
   double? density,
   double? pieceBasisAmount,
@@ -32,7 +32,7 @@ IngredientPricing _pricing({
     densityGPerMl: density,
     pieceBasisAmount: pieceBasisAmount,
   ),
-  price: price,
+  price: price == null ? null : ShopPrice(price, ShopPriceChoice.cheapestSeen),
 );
 
 ShoppingItem _item({
@@ -49,7 +49,7 @@ ShoppingItem _item({
 
 void main() {
   group('one row', () {
-    test('costs its total at the latest price', () {
+    test("costs its total at the Shop's price", () {
       // 44¢ / 100 g × 550 g = $2.42.
       expect(
         shoppingItemCostCents(_item(), _pricing(price: _price())),
@@ -134,59 +134,123 @@ void main() {
     });
   });
 
-  group('the row line', () {
-    test('the estimate rides under the grams', () {
+  /// A row that rounds up is bought whole, so it is priced whole: the figure
+  /// is for what goes in the basket, which is what the headline says.
+  group('a rounded row is priced on what you buy', () {
+    // 67 g a lime at 44¢ / 100 g.
+    const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+    const threeLimes = 0.44 * 67 * 3;
+
+    test('a fractional measure count: 3 limes, not 2½', () {
+      final lime = _item(
+        name: 'Lime',
+        totals: [Quantity(167.5, g)],
+      ).copyWith(measureTotal: (amount: 2.5, measure: whole));
       expect(
-        itemSecondaryWithCost(
-          ShoppingItem(
-            name: 'Yellow onion',
-            ingredientId: 'i1',
-            totals: [Quantity(550, g)],
-            pieceTotal: const (count: 5, approx: true),
-          ),
-          cents: 242,
-        ),
-        r'550 g · ≈ $2.42',
+        shoppingItemCostCents(lime, _pricing(price: _price())),
+        closeTo(threeLimes, 1e-9),
       );
     });
 
-    test('a row with no price says so rather than leaving a gap', () {
+    test('a fractional piece count', () {
+      final lime = _item(
+        name: 'Lime',
+        totals: [Quantity(167.5, g)],
+      ).copyWith(pieceTotal: (count: 2.5, approx: true));
       expect(
-        itemSecondaryWithCost(
-          ShoppingItem(
-            name: 'Charred broccoli',
-            ingredientId: 'i2',
-            totals: [Quantity(350, g)],
-            pieceTotal: const (count: 1, approx: true),
-          ),
-          anyPriced: true,
+        shoppingItemCostCents(
+          lime,
+          _pricing(pieceBasisAmount: 67, price: _price()),
         ),
-        '350 g · no price yet',
+        closeTo(threeLimes, 1e-9),
       );
     });
 
-    test('a free-text item says nothing about money', () {
-      expect(
-        itemSecondaryWithCost(
-          const ShoppingItem(name: 'Paper towels'),
-          anyPriced: true,
+    test('a whole-unit hint on a mass total', () {
+      final potato = _item(name: 'Potato', totals: [Quantity(600, g)]).copyWith(
+        wholeUnitHint: (
+          count: 2.25,
+          buy: 3,
+          unitLabel: 'potato, large',
+          approx: true,
         ),
-        '',
+      );
+      // Three potatoes at 600 g / 2.25 each.
+      expect(
+        shoppingItemCostCents(potato, _pricing(price: _price())),
+        closeTo(0.44 * 800, 1e-9),
       );
     });
 
-    test('a household that has priced nothing is not nagged', () {
-      expect(
-        itemSecondaryWithCost(
-          ShoppingItem(
-            name: 'Charred broccoli',
-            ingredientId: 'i2',
-            totals: [Quantity(350, g)],
-            pieceTotal: const (count: 1, approx: true),
-          ),
-        ),
-        '350 g',
+    test('a whole-unit hint on a count total', () {
+      final egg = _item(name: 'Egg', totals: [Quantity(2.5, pieces)]).copyWith(
+        wholeUnitHint: (count: 2.5, buy: 3, unitLabel: 'piece', approx: false),
       );
+      expect(
+        shoppingItemCostCents(
+          egg,
+          _pricing(pieceBasisAmount: 50, price: _price()),
+        ),
+        closeTo(0.44 * 150, 1e-9),
+      );
+    });
+
+    test('a whole count is priced as it stands', () {
+      final lime = _item(
+        name: 'Lime',
+        totals: [Quantity(134, g)],
+      ).copyWith(measureTotal: (amount: 2, measure: whole));
+      expect(roundedBuy(lime), isNull);
+      expect(
+        shoppingItemCostCents(lime, _pricing(price: _price())),
+        closeTo(0.44 * 134, 1e-9),
+      );
+    });
+
+    test('a part-have is priced on what is left, rounded the same way', () {
+      // The week needs 4½ limes and 2 are at home: 2½ are left, so 3 are
+      // bought. The totals and the count are already what is left.
+      final lime = _item(name: 'Lime', totals: [Quantity(167.5, g)]).copyWith(
+        measureTotal: (amount: 2.5, measure: whole),
+        atHome: (
+          need: (
+            totals: [Quantity(301.5, g)],
+            measureTotal: (amount: 4.5, measure: whole),
+            pieceTotal: null,
+          ),
+          quantity: 2,
+          unit: null,
+          measure: whole,
+          measureId: 'm-lime',
+          all: false,
+          refusal: null,
+        ),
+      );
+      expect(roundedBuy(lime), (need: 2.5, buy: 3));
+      expect(
+        shoppingItemCostCents(lime, _pricing(price: _price())),
+        closeTo(threeLimes, 1e-9),
+      );
+    });
+
+    test('the trip is the sum of the figures the rows print', () {
+      final lime = _item(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(167.5, g)],
+      ).copyWith(measureTotal: (amount: 2.5, measure: whole));
+      final onion = _item();
+      final pricing = _pricing(price: _price());
+      final trip = tripCostCents([lime, onion], (_) => pricing);
+      expect(
+        trip.cents,
+        closeTo(
+          shoppingItemCostCents(lime, pricing)! +
+              shoppingItemCostCents(onion, pricing)!,
+          1e-9,
+        ),
+      );
+      expect(trip.cents, closeTo(threeLimes + 242, 1e-9));
     });
   });
 }

@@ -1,8 +1,8 @@
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/ingredients/domain/cost_price.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
-import 'package:ansi/features/recipes/domain/recipe_cost.dart';
 import 'package:ansi/features/shopping/domain/at_home.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_cost.dart';
@@ -423,13 +423,13 @@ void main() {
           store: 'TJ',
           purchasedAt: DateTime.utc(2026, 9, 3),
         );
-        final IngredientPricing pricing = (
+        final ShopPricing pricing = (
           row: (
             basis: MacrosBasis.perG,
             densityGPerMl: null,
             pieceBasisAmount: null,
           ),
-          price: price,
+          price: ShopPrice(price, ShopPriceChoice.cheapestSeen),
         );
         // 300 g of flour at $1 / 100 g; the lime is at home and adds nothing.
         final trip = tripCostCents([

@@ -16,6 +16,7 @@ import '../../../core/units/number_format.dart';
 import '../../../core/words.dart';
 import '../../../shared/cost_words.dart';
 import '../../../shared/incomplete_macros.dart';
+import '../../ingredients/domain/cost_price.dart';
 import '../../ingredients/domain/price.dart';
 import '../../ingredients/presentation/macros_format.dart';
 import '../../planning/domain/week_cost.dart';
@@ -147,9 +148,14 @@ String planCostResult(
   if (!isDay) 'spent': spent ?? 'no receipts dated in this week',
 });
 
-/// `cost` with `trip`: the Shop's estimate of what is left to buy.
+/// `cost` with `trip`: the Shop's estimate of what is left to buy, the figure
+/// on its sync line, read at the Shop's prices rather than the latest.
 String tripCostResult(TripCost trip) => jsonEncode({
   'still_to_buy': tripEstimate(trip) ?? 'nothing on the list can be priced',
+  'prices':
+      'each row at the cheapest price seen on a receipt in the last '
+      '$shopPriceWindowDays days, else its latest price; a row that rounds '
+      'up is priced on the whole count bought',
   if (trip.unpriced > 0)
     'unpriced_rows': '${trip.unpriced} ${plural(trip.unpriced, 'row')}',
 });
