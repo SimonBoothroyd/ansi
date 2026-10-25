@@ -89,10 +89,40 @@ and [the Receipts board](../../product-specs/board/receipts.html).
     lines) fold to one line, `3 notes from the plan ›`, that opens them.
   - With R4 to R6, **the foot holds no doors.**
 
+Four more, taken with the owner on 2026-10-25 after he saw the renders. He
+found four things unclear: nothing showed how to open a row's breakdown; when
+the non-food add and the new-ingredient add appear; whether Flour's green
+`500 g` chip meant *editable because it has a top-up* (the at-home pass uses
+the same chip to mean *edit this amount*); and what the opened *At home*
+section looks like and whether its rows can be tapped.
+
+- **R7 The open cue is a small ▾ after the amount.** Every row that has a
+  breakdown draws it. The amount, its ▾ and the sub-line are the one target
+  that opens the breakdown, and the row's tap still ticks. The ▾ is the
+  visible cue on R2's amount target; what R2 rejected was a separate target,
+  not a cue. A row with no breakdown (a free-text item) draws no ▾.
+- **R8 No green chip in the walk.** While a row is open, the amount stays
+  plain text, the ▾ flips to ▴, and the breakdown sits under the row: the
+  recipes, the sessions, and the manual top-up as its own full-size row with
+  ✎. The herb-soft chip then means one thing, *edit this amount*, and it
+  appears only in the at-home pass.
+- **R9 Every search ends with the same two rows**, worded in parallel,
+  whatever matched: `＋ "paper towels" as a non-food item` and `＋ "paper
+  towels" as a new ingredient`. They stand after the results and after the
+  *did you mean* band. The dashed *can't find it?* wording is not used in this
+  field; the picker elsewhere keeps its own.
+- **R10 The opened sections are drawn.** Each section's chevron reads ▴ when
+  it is open.
+  - **Basket** rows are as today: struck through with a ticked box, and a tap
+    unticks.
+  - **At home** rows are as built in 0055 (`_AtHomeRow`): a filled house box,
+    the name muted but not struck through, the need total muted, and no price.
+    A tap puts the row back in its aisle.
+
 ### Rejected
 
 - **R1:** keep the need as the headline.
-- **R2:** keep the breakdown always open; a separate chevron to open it.
+- **R2:** keep the breakdown always open; a separate target to open it.
 - **R3:** the latest price plus a *cheaper at another store* clause; the
   latest price only; the total at the latest price under cheapest rows;
   30-day or all-time windows.
@@ -100,6 +130,11 @@ and [the Receipts board](../../product-specs/board/receipts.html).
 - **R5:** a house icon in the header (three header icons); keeping the door
   at the foot.
 - **R6:** a scan door in both places.
+- **R7:** an outlined chip round the amount; a count-of-sources line
+  (`from 2 recipes ▾`).
+- **R8:** keep the herb-soft chip on an opened amount.
+- **R9:** the non-food row only when nothing matches.
+- **R10:** draw the sections folded only.
 
 ## Approach
 
@@ -110,15 +145,16 @@ can run beside A: it changes only the words the sub-line and sync line print.
 
 ### Phase 0: the board
 
-1. Done: four phone frames in `cook-shop.html` (the refreshed list, adding,
-   picking an ingredient, and the at-home pass from the toggle) and two in
+1. Done: five phone frames in `cook-shop.html` (the refreshed list, adding,
+   picking an ingredient, the opened basket and *At home*, and the at-home
+   pass from the toggle) and two in
    `receipts.html` (the ledger's action, filled and empty), all `proposed`. The current frames
    stay until this ships. Then the frames these replace are deleted: the foot
    doors, the caption and the always-open provenance.
 
 ### Phase A: the walk
 
-R1, R2, the folds, the caption, and the R5 toggle.
+R1, R2, R7, R8, the folds (R10), the caption, and the R5 toggle.
 
 - **Files:**
   - `shopping/presentation/shopping_view.dart`: `_ItemRow`, `_Basket`,
@@ -143,17 +179,25 @@ R1, R2, the folds, the caption, and the R5 toggle.
 - **The sub-line's order:** at home, then need, then weight, then price, each
   only when it applies. For example, `5 at home · need 1½ · 165 g · $0.54 at
   Aldi`.
-- **R2.** On a phone `_Provenance` is not drawn until the amount is tapped.
-  - The amount is the total and its sub-line together, at least 44 px tall.
-  - The row's tap keeps ticking. The opened amount wears the herb-soft chip
-    the pass uses.
+- **R2, R7, R8.** On a phone `_Provenance` is not drawn until the amount is
+  tapped.
+  - The target is the total, its ▾ and its sub-line together, at least 44 px
+    tall. A row with no contributions (free text) draws no ▾ and has no
+    target.
+  - The row's tap keeps ticking. While open, the amount stays plain text and
+    the ▾ turns to ▴. The walk draws no chip; the herb-soft chip belongs to the
+    at-home pass alone.
   - A manual top-up in the opened breakdown is its own 44 px row with its ✎,
     opening `edit_top_up_sheet.dart` as today.
   - Opening is this phone's and lasts the visit; it is not synced. A ticked
     row folds its breakdown as today.
   - At expanded nothing changes: the row already has no inline breakdown.
-- **The folds.** `_Basket` and `_AtHomeSection` start folded to their counted
-  label. A tap opens the section in place, and the rows behave as today. The
+- **The folds (R10).** `_Basket` and `_AtHomeSection` start folded to their
+  counted label, `IN THE BASKET · 12 ›`. A tap opens the section in place,
+  where the label's chevron reads ▴. Rows behave as built today: basket rows
+  are struck through and a tap unticks; *At home* rows (`_AtHomeRow`) have a
+  filled house, a muted name that is not struck through, a muted need total
+  and no price, and a tap puts the row back in its aisle. The
   echo rows fold behind one `N notes from the plan ›`:
   - it reads amber with ⚑ when any note is a defect (unresolved or retired);
   - it reads muted when every note is an optional line;
@@ -176,10 +220,15 @@ R1, R2, the folds, the caption, and the R5 toggle.
     part-have.
   - `shopping_screen_test.dart` holds that:
     - a phone row shows no provenance until its amount is tapped;
+    - a row with a breakdown draws ▾, flipping to ▴ while open, and a
+      free-text row draws none;
+    - an opened amount is plain text (no chip);
     - the row's tap ticks and does not open the breakdown;
     - the opened top-up's target is at least 44 px and opens the edit sheet;
-    - the basket, *At home* and notes lines show their counts and open in
-      place, with amber or muted notes as above;
+    - the basket, *At home* and notes lines show their counts, open in place
+      with ▴, and show amber or muted notes as above;
+    - an opened basket row unticks on a tap, and an opened *At home* row
+      goes back to its aisle;
     - the caption is gone and the foot holds no door;
     - the toggle enters and leaves the pass;
     - leaving the tab resets it;
@@ -195,17 +244,24 @@ R1, R2, the folds, the caption, and the R5 toggle.
   - `add_shopping_item_sheet.dart`, removed, with its test reworked into
     `shop_add_field_test.dart`.
 
-  It reuses `useIngredientSearch`, `IngredientResultList` and
-  `AddNewIngredientRow` from `ingredients/presentation/ingredient_picker.dart`.
+  It reuses `useIngredientSearch` and `IngredientResultList` from
+  `ingredients/presentation/ingredient_picker.dart`. Its new-ingredient row
+  calls the same `newIngredientRoute` chain as `AddNewIngredientRow`, in this
+  field's own words.
 - **Typing.** The results replace the walk below the field until the field is
   cleared or loses focus. They are the picker's own tiers: spelled-right
   rows, else the *did you mean* band. A result already on this week's list
   says so in its category line (`Produce · on the list · 3 lime, whole`),
   because a pick tops it up.
-- **Text that matches none.** When nothing is spelled right, the first row is
-  `＋ add "paper towels"`, a non-food item, written through
-  `addFreeTextItem` with no second sheet. The new-ingredient door
-  (`AddNewIngredientRow`) stays the last row, as in every picker.
+- **The two add rows (R9).** Every search with text ends with the same two
+  rows, whatever matched, after the results and after the *did you mean*
+  band:
+  - `＋ "paper towels" as a non-food item` writes through `addFreeTextItem`,
+    with no second sheet;
+  - `＋ "paper towels" as a new ingredient` pushes the ingredient form, and
+    the new row lands on the quantity sheet.
+
+  The dashed *can't find it?* wording is not used in this field.
 - **Picking an ingredient** opens `showQuantityUnitSheet` filled by
   `usualAmountOf`, exactly as `_TopUpBody` does now. The `hostContextOf` and
   container-before-await rules carry over unchanged. The confirm label reads
@@ -216,8 +272,10 @@ R1, R2, the folds, the caption, and the R5 toggle.
   - a pick opens the sheet filled with the usual amount, and Add writes a
     top-up (unit, and a measure with `pieces`);
   - backing out writes nothing;
-  - no-match text shows `add "…"`, and a tap writes a free-text item;
-  - the new-ingredient chain still lands on the sheet;
+  - both add rows show, in that order, under spelled-right results, under the
+    *did you mean* band, and with no match at all;
+  - the non-food row writes a free-text item;
+  - the new-ingredient row's chain lands on the quantity sheet;
   - the field clears after an add.
   
   `integration_test/week_test.dart` uses today's door copy and is updated in
@@ -360,6 +418,8 @@ frame is drawn. The board's status line carries one clause instead.
 
 - 2026-10-25: Rulings R1–R6 and the rejections above, taken with the owner
   interactively after a critical review of the phone Shop.
+- 2026-10-25: R7–R10 and their rejections, from the owner's look at the
+  renders. R9 settles the old open question on when the non-food row shows.
 - 2026-10-25, design: the toggle replaces the pass's band, and `To buy` is
   **Done**. A rounded row is any row that prints `→ buy N` today, with the `≈`
   kept on the need. A row figure read off one named price drops its `≈`
@@ -368,7 +428,7 @@ frame is drawn. The board's status line carries one clause instead.
 
 ## Open questions
 
-For the owner, before Phase D (questions 1–4) and Phase B (question 5):
+For the owner, before Phase D:
 
 1. **The fallback past 90 days.** As drawn, a row with no receipt in the
    window reads the price the rest of the app reads (the newest receipt, else
@@ -385,10 +445,9 @@ For the owner, before Phase D (questions 1–4) and Phase B (question 5):
    estimate*. Under R3 as worded, Ask keeps the latest price, so its trip
    answer would differ from the sync line. Keep it at the latest, or let that
    one answer read the Shop's figure?
-5. **The `add "…"` row.** As drawn, it is offered only when nothing is spelled
-   right, which is the ruling's *matches none*. Should it also stand as the
-   last row under real results, so a non-food word that brushes an
-   ingredient is never trapped?
+5. **What the row's price prices.** With R1 the big figure is what you buy
+   (3 limes), but today the price is for the need (2½). Should the row's price
+   (and so the trip) cover the 3 you buy or the 2½ you need?
 
 ## Step-done checklist
 

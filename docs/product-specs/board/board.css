@@ -2134,12 +2134,12 @@
     .sh-add .search{padding:9px 12px;font-size:13.5px;}
     .sh-add .search .x{margin-left:auto;color:var(--muted);font-size:13px;}
     .item-sub .nd{color:var(--muted);}
-    .item-total.amt.open{border-color:var(--herb);background:var(--herb-soft);color:var(--ink);}
+    .item-total .cue{color:var(--muted);font-size:10px;margin-left:5px;}
     .prov-line.edit{align-items:center;min-height:44px;box-sizing:border-box;padding:0 10px;margin-top:3px;border:1px solid var(--line);border-radius:10px;background:var(--paper);}
     .prov-line.edit .pen{color:var(--herb);margin-left:8px;}
     .sl-group.fold{display:flex;align-items:center;justify-content:space-between;min-height:44px;margin:0 20px;border-bottom:1px solid var(--line);}
     .sl-group.fold .cv{color:var(--herb);font-size:14px;letter-spacing:0;}
     .sl-group.fold.warn{color:#7A5A16;text-transform:none;letter-spacing:0;font-size:11px;}
-    .res-row.add-free .res-nm{color:var(--herb-deep);}
+    .res-row.add-row .res-nm{color:var(--herb-deep);}
     .btn.scan{display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 20px 4px;}
     .btn.scan svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
