@@ -88,6 +88,20 @@ class FakePriceRepo implements PriceRepository {
   );
 
   @override
+  Stream<Map<String, ShopPrice>> watchShopPrices({
+    required DateTime today,
+  }) async* {
+    yield shopPrices(today);
+    yield* _changes.stream.map((_) => shopPrices(today));
+  }
+
+  Map<String, ShopPrice> shopPrices(DateTime today) => {
+    if (shopPriceOf(paid: rows, basis: basis, today: today, base: base)
+        case final price?)
+      ingredientId: price,
+  };
+
+  @override
   Stream<BasePrice?> watchBasePrice(String ingredientId) async* {
     yield base;
     yield* _changes.stream.map((_) => base);

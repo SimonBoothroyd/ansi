@@ -1,4 +1,5 @@
 import 'package:ansi/core/units/macros.dart';
+import 'package:ansi/features/ingredients/domain/cost_price.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/recipes/domain/recipe_cost.dart';
 import 'package:ansi/shared/cost_words.dart';
@@ -24,16 +25,21 @@ PriceObservation _price({
 void main() {
   group('the two spellings', () {
     test('a summed estimate wears the ≈, a read figure does not', () {
-      expect(approxMoney(242), r'≈ $2.42');
+      expect(approxMoneyWhole(7123), r'≈ $71');
       expect(
         lineCostText(CostLine(cents: 658, price: _price())),
         startsWith(r'$6.58 ·'),
       );
+      expect(
+        shopRowCost(242, ShopPrice(_price(), ShopPriceChoice.cheapestSeen)),
+        r"$2.42 at TJ's",
+      );
     });
 
     test('a derived figure rounds once, at the edge', () {
-      expect(approxMoney(241.6), r'≈ $2.42');
-      expect(approxMoney(76.4), '≈ 76¢');
+      final shop = ShopPrice(_price(), ShopPriceChoice.cheapestSeen);
+      expect(shopRowCost(241.6, shop), r"$2.42 at TJ's");
+      expect(shopRowCost(76.4, shop), "76¢ at TJ's");
     });
   });
 
@@ -209,18 +215,21 @@ void main() {
     });
 
     test('the trip estimate says nothing when nothing can be priced', () {
-      expect(tripEstimate((cents: 5800, unpriced: 0)), r'≈ $58 still to buy');
+      expect(
+        tripEstimate((cents: 5800, unpriced: 0)),
+        r'≈ $58 at the cheapest',
+      );
       expect(tripEstimate((cents: null, unpriced: 3)), isNull);
     });
 
     test('a walk with a row nothing can price is a floor too (owner)', () {
       expect(
         tripEstimate((cents: 5800, unpriced: 2)),
-        r'at least $58 still to buy · 2 rows unpriced',
+        r'at least $58 at the cheapest · 2 rows unpriced',
       );
       expect(
         tripEstimate((cents: 5800, unpriced: 1)),
-        r'at least $58 still to buy · 1 row unpriced',
+        r'at least $58 at the cheapest · 1 row unpriced',
       );
     });
   });

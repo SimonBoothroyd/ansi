@@ -16,8 +16,9 @@ Shared, offline-capable recipe + meal-planning app for a two-person household. B
 - **Shopping list generated from the batch cook plan**, auto-aggregated, with per-ingredient provenance
 - AI/deterministic import from webpage + photo, with ingredient matching
 - **Food cost** — a price is an event (cents for a stated pack, at a store, on
-  a date), and a recipe, a week and a trip read what their lines cost at the
-  latest one; an unpriced line is named, never zeroed
+  a date), and a recipe and a week read what their lines cost at the latest
+  one, while the Shop reads the cheapest seen in 90 days; an unpriced line is
+  named, never zeroed
 - **Receipts** — the till strip is photographed, confirmed line by line and
   kept whole, so what was spent reads off the paper itself and every line on
   one is a price
@@ -899,6 +900,16 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   cost, receipts and the tick are untouched, and a row moving to *At home*
   never plays the last tick. With nothing open and nothing ticked the list
   closes on *everything's at home*.
+- **Priced at the cheapest seen** ([ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
+  rule 1): an open row prints its figure plain and to the cent with where the
+  price was seen, `550 g · $1.80 at Aldi`, because the cheapest seen may send
+  you to another store. A row with no receipt in the last 90 days reads the
+  latest price and says its month (`$2.42 at TJ's, Jun`, `$2.42 at Aldi,
+  Sep` or `$2.42 · base price, Sep` off a base price). A row that rounds up
+  is priced on the whole count bought (three limes, not two and a half), a
+  part-have on what is left. The sync line sums the same figures, `≈ $51 at
+  the cheapest`, or `at least $51 at the cheapest · 1 row unpriced`, and
+  keeps those words when some rows fell back.
 - **Scoped to a week** (migrations 0019 and 0036): every entry carries the first day of the week it was made against, so a tick made while looking at next week belongs to next week's list. That includes a *free-text non-food item* — you wrote "paper towels" while shopping for one week, and it is bought on that trip, so it does not follow you onto every future list. A contribution rides its entry and stores no week of its own. `week_start_date` stays nullable for the rows older clients wrote; a week-less free-text row is backfilled onto the start of the week its `created_at` falls in. There is still **no unique index** on an entry (0006's reasoning is unchanged: two offline devices must each be able to create one and converge later); convergence simply happens within a week.
 - **Storage rule:** only what cannot be re-derived is stored (check-off, manual top-ups, free-text items, the amount at home) → nothing to reconcile between devices when the week or a recipe changes. An ingredient entry is displayed only while it has at least one live contribution (derived or manual); when its last one vanishes it drops off the list, its checked row staying inert. (`supabase/migrations/0006_shopping.sql`.)
 - Batching is resolved in the cook plan, so each dish is bought once at its batch size (no double-buying, no manual leftover bookkeeping).
@@ -932,9 +943,14 @@ in the app derived from them at read time
   from the same chips a receipt's store is picked from), typed on the ingredient page and on no receipt, so it never
   reaches the ledger or a week's *spent*. The pack is kept in the same two
   denominations a line keeps it in. Whole or absent (a constraint).
-- **Which price a cost reads** is one rule, `costPriceOf`: the newest price
-  paid on a live receipt, else the base price, else unpriced. A base price set
-  after a receipt does not outrank it.
+- **Which price a cost reads** is one of two rules. Every cost but the
+  Shop's reads `costPriceOf`: the newest price paid on a live receipt, else
+  the base price, else unpriced. A base price set after a receipt does not
+  outrank it. The Shop (its rows, its trip, and Ask's answer about the trip)
+  reads `shopPriceOf`: the cheapest per-100 figure paid on a receipt dated in
+  the 90 days up to today, in the row's basis and after the printed discount,
+  a tie going to the newest; with nothing paid in that window, exactly what
+  `costPriceOf` reads.
 
 **What is load-bearing:**
 - **The pack is kept twice.** `pack_basis_amount` is what the cents bought in
@@ -1509,11 +1525,12 @@ less any discount. The doctrine is
   cost to cook nor a gap in one. A meal with an unpriced line drops out
   whole, so the band says `at least $71 to cook · 3 lines unpriced` whenever
   anything was left out and `≈ $71 to cook` when the week is whole.
-- **A shop costs what is left to buy:** the trip figure on the sync line,
-  each open row carrying its own under the grams and `no price yet` where
-  there is none. The basket's rows carry none — the line answers what is
-  still ahead — and a walk holding a row nothing can price reads `at least
-  $58 still to buy · 2 rows unpriced`.
+- **A shop costs what is left to buy, at the cheapest seen:** the trip
+  figure on the sync line, each open row carrying its own under the grams
+  with where its price was seen (`$1.80 at Aldi`) and `no price yet` where
+  there is none (see *Shopping list*). The basket's rows carry none — the
+  line answers what is still ahead — and a walk holding a row nothing can
+  price reads `at least $58 at the cheapest · 2 rows unpriced`.
 - **`≈` means a summed estimate** and reads to the dollar; a figure read off
   ONE price prints to the cent with its chain behind it (`$6.58 · $1.10 /
   100 g · TJ's, Sep`). A floor wears neither: it says `at least` in words.

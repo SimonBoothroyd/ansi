@@ -392,11 +392,12 @@ export const ASK_TOOLS: AskTool[] = [
   {
     name: "cost",
     description:
-      "Money written by the app at the latest prices, as the recipe page, " +
-      "the Week band and the Shop show it. Either `recipe_id` (per serving " +
-      "and whole), or a day or week of the plan as in nutrition (a week " +
-      "also says what its receipts show was spent), or `trip: true` for " +
-      "what is left to buy on the week's list. A figure with a gap reads " +
+      "Money written by the app, as the recipe page, the Week band and the " +
+      "Shop show it. Either `recipe_id` (per serving and whole), or a day " +
+      "or week of the plan as in nutrition (a week also says what its " +
+      "receipts show was spent), both at the latest prices, or " +
+      "`trip: true` for what is left to buy on the week's list, at the " +
+      "Shop's cheapest prices seen. A figure with a gap reads " +
       '"at least" and names what has no price.',
     input_schema: {
       type: "object",

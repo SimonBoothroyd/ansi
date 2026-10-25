@@ -192,6 +192,71 @@ class SqlitePriceRepository implements PriceRepository {
     return costPrices(latestPaid: paid, base: base);
   }
 
+  /// [watchCostPrices]'s query, folded by [shopPricesFrom] instead. A full
+  /// literal with a column selected from every joined table, as in
+  /// [watchPrices].
+  @override
+  Stream<Map<String, ShopPrice>> watchShopPrices({required DateTime today}) {
+    return _db
+        .watch(
+          'SELECT i.id AS row_id, i.macros_basis, i.base_price_cents, '
+          'i.base_price_pack_basis_amount, i.base_price_pack_amount, '
+          'i.base_price_pack_unit, i.base_price_measure_id, '
+          'i.base_price_set_at, i.base_price_store, '
+          'bm.label AS base_measure_label, '
+          'l.id, l.receipt_id, l.ingredient_id, l.printed_text, '
+          'l.cents, l.discount_cents, l.count, l.kind, l.pack_basis_amount, '
+          'l.pack_amount, l.pack_unit, l.measure_id, l.sort_order, '
+          'r.id AS receipt_row, r.store, r.purchased_at, r.source, '
+          'm.label AS measure_label '
+          'FROM ingredient i '
+          'LEFT JOIN receipt_line l ON l.ingredient_id = i.id '
+          'AND l.deleted_at IS NULL '
+          'LEFT JOIN receipt r ON r.id = l.receipt_id AND r.deleted_at IS NULL '
+          'LEFT JOIN ingredient_measure m ON m.id = l.measure_id '
+          'AND m.deleted_at IS NULL '
+          'LEFT JOIN ingredient_measure bm ON bm.id = i.base_price_measure_id '
+          'AND bm.deleted_at IS NULL '
+          'ORDER BY i.id, r.purchased_at DESC, l.created_at DESC, l.id DESC',
+        )
+        .map((rows) => shopPricesFrom(rows, today: today));
+  }
+
+  /// The price the Shop reads for each row, from [watchShopPrices]'s rows:
+  /// per row, every line that is a price on a live receipt, newest first, and
+  /// the row's base price, resolved by [shopPriceOf].
+  static Map<String, ShopPrice> shopPricesFrom(
+    Iterable<Map<String, dynamic>> rows, {
+    required DateTime today,
+  }) {
+    final paid = <String, List<PriceObservation>>{};
+    final base = <String, BasePrice>{};
+    final basis = <String, MacrosBasis>{};
+    for (final r in rows) {
+      final id = r['row_id'] as String;
+      if (!basis.containsKey(id)) {
+        basis[id] = MacrosBasis.fromDb(r['macros_basis'] as String?);
+        if (_basePriceFromRow(r) case final price?) base[id] = price;
+      }
+      // No line, or a line whose receipt was deleted: nothing paid here.
+      if (r['id'] == null || r['receipt_row'] == null) continue;
+      if (_observationFromRow(r) case final price?) {
+        (paid[id] ??= []).add(price);
+      }
+    }
+    return {
+      for (final MapEntry(key: id, value: rowBasis) in basis.entries)
+        if (shopPriceOf(
+              paid: paid[id] ?? const [],
+              basis: rowBasis,
+              today: today,
+              base: base[id],
+            )
+            case final price?)
+          id: price,
+    };
+  }
+
   @override
   Stream<BasePrice?> watchBasePrice(String ingredientId) {
     return _db

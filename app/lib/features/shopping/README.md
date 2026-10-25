@@ -13,7 +13,8 @@ shopping/
     shopping.dart             the inputs, ShoppingItem / ShoppingGroup /
                               ShoppingList, aggregateQuantities,
                               buildShoppingList, completesTheList
-    shopping_cost.dart        a row's estimate and the trip's (ADR-0017)
+    shopping_cost.dart        a row's figure and the trip's, at the Shop's
+                              price, a rounded row on what you buy
     at_home.dart              what is already at home: leftToBuy,
                               amountForAll, whyNotAtHome
     shopping_repository.dart  read/write contract
@@ -66,7 +67,7 @@ hands them with the overlay to `buildShoppingList` (pure).
   sheet and the *At home* section print the need unrounded (`itemAmount`,
   `needTotal`), because they weigh what is here against what the week asks.
 - **The sub-line's order** is at home, need, weight, price, each only when it
-  applies: `5 at home · need 1½ · 165 g · ≈ $1.54` (`itemSubLine`).
+  applies: `5 at home · need 1½ · 165 g · $1.54 at Aldi` (`itemSubLine`).
 - **A piece-weighted row is bought in pieces**
   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
   A row whose default unit is `piece` and whose contributions fold into one
@@ -118,13 +119,24 @@ hands them with the overlay to `buildShoppingList` (pure).
 - **Removing.** A user-added line (`isUserAdded`) is swiped or long-pressed
   away through `removeEntry`. A cook-derived line is changed on the Week; its
   top-up is edited or removed by `contributionId` in the edit sheet.
-- **Cost.** A row is priced like a recipe line: its total in the ingredient's
-  basis (`quantityInBasis`) times the latest price
+- **Cost.** A row is priced like a recipe line: what it buys in the
+  ingredient's basis (`quantityInBasis`) times the Shop's price
   ([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
-  The trip's estimate rides the sync line and sums only the rows it can price:
-  it reads `at least …` when a row has none, and a trip with no priced row has
-  no figure. Open rows carry their own estimate,
-  and `no price yet` prints only once something on the trip has a price.
+  The Shop's price is its own rule, `shopPriceOf`: the cheapest per-100
+  figure paid on a receipt in the 90 days up to today (a sale counts; a tie
+  goes to the newest), else the price every other cost reads (newest
+  receipt, else base price). It comes from `shopPriceMapProvider`, re-keyed
+  by `todayProvider`, and reaches no other cost; the recipe page, the Week
+  and Ask's other figures read the latest. A row that rounds up (`→ buy 3`)
+  is priced on the whole count bought (`roundedBuy`), a part-have on what is
+  left. Open rows print the figure plain to the cent with where it was seen
+  (`$1.80 at Aldi`; `$2.42 at TJ's, Jun` for an older receipt; `$2.42 at
+  Aldi, Sep` or `$2.42 · base price, Sep` for a base price), and `no price
+  yet` prints only once something on the trip has a price. The trip sums the
+  same figures on the sync line, `≈ $51 at the cheapest`, or `at least $51 at
+  the cheapest · 1 row unpriced` when a row has none, and a trip with no
+  priced row has no figure. Ask's trip answer is this figure
+  (`readShopTripCost`).
 - **Two empty states**, told apart by the derived cook plan: nothing planned,
   or meals planned whose recipes have no ingredients.
 - **Already at home.** The `To buy · At home?` toggle under the sync line

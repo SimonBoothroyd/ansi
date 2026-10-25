@@ -9,6 +9,7 @@ import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/cost_price.dart';
 import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
@@ -1833,21 +1834,24 @@ void main() {
 
     List<Override> costOverrides(ShoppingList list) => [
       shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
-      ingredientPricingProvider.overrideWithValue({
+      shopPricingProvider.overrideWithValue({
         'i1': (
           row: (
             basis: MacrosBasis.perG,
             densityGPerMl: null,
             pieceBasisAmount: null,
           ),
-          price: PriceObservation(
-            lineId: 'rl-1',
-            receiptId: 'r-1',
-            cents: 440,
-            packBasisAmount: 1000,
-            basis: MacrosBasis.perG,
-            store: "TJ's",
-            purchasedAt: DateTime.utc(2026, 9, 3),
+          price: ShopPrice(
+            PriceObservation(
+              lineId: 'rl-1',
+              receiptId: 'r-1',
+              cents: 440,
+              packBasisAmount: 1000,
+              basis: MacrosBasis.perG,
+              store: "TJ's",
+              purchasedAt: DateTime.utc(2026, 9, 3),
+            ),
+            ShopPriceChoice.cheapestSeen,
           ),
         ),
       }),
@@ -1863,10 +1867,10 @@ void main() {
       // the figure says as much rather than reading as the whole walk
       // (owner).
       expect(
-        find.text(r'at least $2 still to buy · 1 row unpriced'),
+        find.text(r'at least $2 at the cheapest · 1 row unpriced'),
         findsOneWidget,
       );
-      expect(find.text(r'550 g · ≈ $2.42'), findsOneWidget);
+      expect(find.text(r"550 g · $2.42 at TJ's"), findsOneWidget);
       // A row with no price says so rather than leaving a gap.
       expect(find.text('350 g · no price yet'), findsOneWidget);
     });
@@ -1878,7 +1882,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text(r'≈ $2 still to buy'), findsOneWidget);
+      expect(find.text(r'≈ $2 at the cheapest'), findsOneWidget);
     });
 
     testWidgets('a ticked row carries no estimate — it is in the basket', (
@@ -1887,9 +1891,9 @@ void main() {
       await tester.pumpWidget(_host(costOverrides(costList(checked: true))));
       await tester.pump();
 
-      expect(find.text(r'550 g · ≈ $2.42'), findsNothing);
+      expect(find.text(r"550 g · $2.42 at TJ's"), findsNothing);
       // And it is out of the trip figure, which answers what is LEFT.
-      expect(find.textContaining('still to buy'), findsNothing);
+      expect(find.textContaining('at the cheapest'), findsNothing);
     });
   });
 

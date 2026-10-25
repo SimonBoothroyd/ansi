@@ -4,7 +4,9 @@
   rule 4 amended 2026-09-19 with the floor a partly priced recipe prints, and
   rule 8 added the same day for the aggregates that leave a meal or a row out;
   rule 1 amended with the row's base price (migration 0051, owner-ruled: a
-  price typed on an ingredient must not make a receipt)
+  price typed on an ingredient must not make a receipt); rules 1, 7 and 8
+  amended for the Shop's cheapest price
+  ([plan 0056](../exec-plans/active/0056-shop-refresh.md), owner-ruled)
 - **Rests on:** [ADR-0007](./0007-shopping-list-thin-overlay.md) (the app keeps
   no inventory), [ADR-0008](./0008-unit-admission-model.md) and
   [ADR-0009](./0009-density-unlocks-both-families.md) (which amounts may reach
@@ -61,10 +63,26 @@ a receipt to a meal.**
    the ledger or the week's *spent* — and it never outranks a price paid,
    however recently it was set: what was paid is the better fact, and the base
    price is what stands in until something has been. The choice is made in one
-   function (`costPriceOf`) that every cost reads through. A base price may
-   name the store it is paid at (migration 0052), and a figure read off it then
-   names that store exactly as a paid one names its shop (`TJ's, Sep`); one
-   that names none says `base price, Sep`.
+   function (`costPriceOf`) that every cost but the Shop's reads through. A
+   base price may name the store it is paid at (migration 0052), and a figure
+   read off it then names that store exactly as a paid one names its shop
+   (`TJ's, Sep`); one that names none says `base price, Sep`.
+
+   **The Shop reads the cheapest price seen.** Its rows, its trip and Ask's
+   answer about the trip read `shopPriceOf`: the lowest per-100 figure paid on
+   a receipt dated in the 90 days up to and including today, in the row's
+   current basis. It is compared per 100 of the basis, never by the pack's
+   cents, so a 1 kg bag and a 500 g bag compare honestly; what was paid is
+   after the printed discount, so a sale counts; a tie goes to the newest. A
+   row with no receipt in the window reads exactly what `costPriceOf` reads
+   (the newest receipt, else the base price), which keeps this rule's order
+   that a price paid outranks a base price. The reason is the owner's: the
+   cheapest seen is what may send a person to another store, and a list is
+   where that choice is made. Everywhere else — the recipe page, the Week, the
+   ingredient page and every other Ask figure — a cost is what cooking it
+   costs now, so it keeps the latest. Each rule is chosen in one function, and
+   `test/structure/cost_reads_one_price_test.dart` fails if the Shop's map
+   reaches any other cost.
 
 2. **A recipe costs its lines.** Each line's amount is converted to the
    ingredient's basis unit through **the same conversion the macros use**
@@ -116,10 +134,15 @@ a receipt to a meal.**
    `test/structure/cost_and_macros_stay_apart_test.dart`.
 
 7. **`≈` marks a summed estimate**, and such an estimate reads to the dollar
-   (`≈ $71 to cook`, `≈ $58 still to buy`). A figure read off ONE price prints
+   (`≈ $71 to cook`, `≈ $58 at the cheapest`). A figure read off ONE price prints
    plain and to the cent, with the chain behind it (`$6.58 · $1.10 / 100 g ·
    TJ's, Sep`), because a reader can follow it to the receipt line that made
-   it. The recipe panel's cells wear neither: their third cell says
+   it. A Shop row is one too, and names where its price was seen: `$1.80 at
+   Aldi` for the cheapest in the window, whose date is the window itself, and
+   the month as well where it fell back (`$2.42 at TJ's, Jun`; off a base
+   price, `$2.42 at Aldi, Sep` or `$2.42 · base price, Sep`). A row that
+   rounds up is priced on the whole count it buys, the figure its headline
+   prints. The recipe panel's cells wear neither: their third cell says
    `prices from Sep` outright, which is the same caveat in words.
 
 8. **A sum that left something out says `at least`, and drops the `≈`.** The
@@ -128,8 +151,10 @@ a receipt to a meal.**
    could not adds nothing. Both therefore understate, by meals and by rows
    rather than by rounding — so both print the floor's own words the moment
    anything is missing (`at least $71 to cook · 3 lines unpriced`, `at least
-   $58 still to buy · 2 rows unpriced`) and keep the plain `≈` reading for a
-   week or a walk that is whole. The two glyphs never ride together: `≈`
+   $58 at the cheapest · 2 rows unpriced`) and keep the plain `≈` reading for a
+   week or a walk that is whole. The trip's `at the cheapest` stands when some
+   rows fell back to an older price, because each row says which price it
+   read. The two glyphs never ride together: `≈`
    hedges the arithmetic, and the arithmetic is the exact part (rule 4's
    wording, applied to the aggregates).
 
@@ -179,6 +204,12 @@ a receipt to a meal.**
   one thing a person wants to see — that the olive oil went up — and it makes
   every figure unfollowable: no receipt line is behind it. Latest wins, and the
   panel says which month "latest" is.
+- **The Shop at the latest price**, alone or with a *cheaper at another
+  store* clause, or its total at the latest under cheapest rows; and a 30-day
+  or all-time window. The latest hides the store worth walking to, a clause
+  doubles every row, a total that disagrees with its rows reads as an error,
+  and a month misses the staples bought quarterly while all-time keeps a
+  price nobody will see again.
 - **A hand-typed price as a one-line receipt.** How typed prices were first
   kept: one fact, one ledger. It put every herb and cupboard staple priced by
   hand into the receipts list and the week's spend as a "shop" that never

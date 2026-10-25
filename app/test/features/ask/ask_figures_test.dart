@@ -183,7 +183,13 @@ void main() {
     test('the trip: what is still to buy', () {
       expect(
         _json(tripCostResult((cents: 5800, unpriced: 2)))['still_to_buy'],
-        r'at least $58 still to buy · 2 rows unpriced',
+        r'at least $58 at the cheapest · 2 rows unpriced',
+      );
+      // Ansi is told which price the trip reads, since every other cost
+      // reads the latest.
+      expect(
+        _json(tripCostResult((cents: 5800, unpriced: 0)))['prices'],
+        contains('cheapest price seen on a receipt in the last 90 days'),
       );
       expect(
         _json(tripCostResult((cents: null, unpriced: 3)))['still_to_buy'],

@@ -9,12 +9,10 @@ library;
 import '../core/money.dart';
 import '../core/result/result.dart';
 import '../core/words.dart';
+import '../features/ingredients/domain/cost_price.dart';
 import '../features/ingredients/domain/price.dart';
 import '../features/recipes/domain/recipe_cost.dart';
 import '../features/shopping/domain/shopping_cost.dart';
-
-/// `≈ $2.42`: one row's estimate.
-String approxMoney(double cents) => '≈ ${formatMoneyRounded(cents)}';
 
 /// `≈ $71`: a whole list's estimate, to the dollar ([formatMoneyWhole]).
 String approxMoneyWhole(double cents) => '≈ ${formatMoneyWhole(cents)}';
@@ -150,16 +148,45 @@ String? weekCostLine({double? cents, int unpriced = 0}) {
   return parts.isEmpty ? null : parts.join(' · ');
 }
 
-/// The shop's trip estimate: `≈ $58 still to buy`, or `at least $58 still to
-/// buy · 2 rows unpriced`.
+/// The shop's trip estimate: `≈ $58 at the cheapest`, or `at least $58 at
+/// the cheapest · 2 rows unpriced`.
 ///
-/// Counts unticked rows only. Null when nothing on the list can be priced,
-/// because `≈ $0` would read as a free trip.
+/// Sums the figures the rows print, each at the Shop's price (`shopPriceOf`).
+/// The words stand when some rows fell back to an older price, because each
+/// row says which price it read ([shopRowCost]). Counts unticked rows only.
+/// Null when nothing on the list can be priced, because `≈ $0` would read as a
+/// free trip.
 String? tripEstimate(TripCost trip) {
   final cents = trip.cents;
   if (cents == null) return null;
   final unpriced = trip.unpriced;
-  if (unpriced == 0) return '${approxMoneyWhole(cents)} still to buy';
-  return '${atLeastMoneyWhole(cents)} still to buy · $unpriced '
+  if (unpriced == 0) return '${approxMoneyWhole(cents)} at the cheapest';
+  return '${atLeastMoneyWhole(cents)} at the cheapest · $unpriced '
       '${plural(unpriced, 'row')} unpriced';
+}
+
+/// A Shop row's figure, plain and to the cent because it is read off one
+/// price, with where that price was seen:
+///
+/// - the cheapest in the window names its store: `$1.80 at Aldi`;
+/// - an older receipt adds its month, because it is not the window's:
+///   `$2.42 at TJ's, Jun`;
+/// - a base price names its store and month, `$2.42 at Aldi, Sep`, or says
+///   what it is where it names none: `$2.42 · base price, Sep`.
+///
+/// A receipt that kept no store word names none; no store is made up.
+String shopRowCost(double cents, ShopPrice shop) {
+  final money = formatMoneyRounded(cents);
+  final price = shop.price;
+  final month = formatMonthShort(price.asOf);
+  String at(String store) =>
+      store.trim().isEmpty ? money : '$money at ${store.trim()}';
+  return switch (price) {
+    PriceObservation(:final store) =>
+      shop.choice == ShopPriceChoice.cheapestSeen
+          ? at(store)
+          : '${at(store)}, $month',
+    BasePrice(:final store) =>
+      store == null ? '$money · base price, $month' : '${at(store)}, $month',
+  };
 }

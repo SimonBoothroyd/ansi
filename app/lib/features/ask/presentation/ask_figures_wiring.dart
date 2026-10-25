@@ -20,8 +20,7 @@ import '../../receipts/domain/receipt_ledger.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
-import '../../shopping/data/shopping_providers.dart';
-import '../../shopping/domain/shopping_cost.dart';
+import '../../shopping/presentation/shopping_view_models.dart';
 import '../domain/ask_proposal.dart';
 import '../domain/ask_tool_runner.dart';
 import '../domain/ask_tools.dart';
@@ -187,32 +186,9 @@ Future<String> askCost(ProviderContainer c, AskFigureScope scope) async {
         isDay: scope.date != null,
       );
     case AskTripFigures(:final weekStart):
-      final list = await c
-          .read(shoppingRepositoryProvider)
-          .watchShoppingList(weekStart)
-          .first;
-      final costPrices = await prices.watchCostPrices().first;
-      final rows = await c
-          .read(ingredientRepositoryProvider)
-          .watchVocabulary()
-          .first;
-      // The Shop's own pricing (`ingredientPricing`), read for this week.
-      final pricing = <String, IngredientPricing>{
-        for (final row in rows)
-          row.id: (
-            row: (
-              basis: row.macrosBasis,
-              densityGPerMl: row.densityGPerMl,
-              pieceBasisAmount: row.pieceBasisAmount,
-            ),
-            price: costPrices[row.id],
-          ),
-      };
-      return tripCostResult(
-        tripCostCents([
-          for (final group in list.openGroups) ...group.items,
-        ], (id) => pricing[id]),
-      );
+      // The Shop's own figure, at its prices rather than the latest, so the
+      // answer always agrees with the sync line.
+      return tripCostResult(await readShopTripCost(c, weekStart));
   }
 }
 

@@ -27,6 +27,14 @@ abstract interface class PriceRepository {
   /// Watched, so a synced shop or a new base price moves every figure.
   Stream<Map<String, UnitPrice>> watchCostPrices();
 
+  /// The price the Shop reads, for every row that has one, keyed by ingredient
+  /// id: [shopPriceOf] over each row's receipt prices and its base price, with
+  /// the window ending on [today] (the app's local day). Only the Shop's rows,
+  /// its trip and Ask's answer about the trip read this; every other cost
+  /// reads [watchCostPrices]. Watched, so a synced shop moves the Shop's
+  /// figures.
+  Stream<Map<String, ShopPrice>> watchShopPrices({required DateTime today});
+
   /// [ingredientId]'s base price, or null when it states none. Watched.
   Stream<BasePrice?> watchBasePrice(String ingredientId);
 
