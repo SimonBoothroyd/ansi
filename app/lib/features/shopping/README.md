@@ -160,9 +160,9 @@ hands them with the overlay to `buildShoppingList` (pure).
 
 ## Doors to receipts
 
-`ScanReceiptDoor` at the foot opens `/receipts/review`
-([receipts](../receipts/README.md)). The ledger's door is a header action
-opening `/receipts`, drawn only once the household has kept a receipt.
+One door: the header's receipts icon opens `/receipts`, always drawn, with or
+without a receipt kept. Scanning lives there, on the ledger's **Scan a
+receipt** ([receipts](../receipts/README.md)); the walk's foot holds no door.
 
 ## Not built
 

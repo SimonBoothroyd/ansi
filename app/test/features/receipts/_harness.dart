@@ -235,15 +235,16 @@ List<Override> receiptOverrides({
   ),
 ];
 
-/// The scan route under a real router, with the ledger's two destinations
-/// standing in — Save REPLACES its page, and a replacement cannot be observed
-/// without one.
+/// The scan route under a real router, with the real ledger it comes back to
+/// on Save. [at] `/receipts` starts on the ledger, as the scan is reached; the
+/// default is a cold link to the scan, with nothing under it.
 Widget scanHost({
   required List<Override> overrides,
   void Function(GoRouter router)? expose,
+  String at = '/receipts/review',
 }) {
   final router = GoRouter(
-    initialLocation: '/receipts/review',
+    initialLocation: at,
     routes: [
       GoRoute(
         path: '/receipts/review',
@@ -270,30 +271,38 @@ Widget scanHost({
   );
 }
 
-/// The ledger under a router, so a row can be tapped.
-Widget ledgerHost({required List<Override> overrides}) => ProviderScope(
-  overrides: overrides,
-  child: MaterialApp.router(
-    theme: ansiHostTheme(),
-    routerConfig: GoRouter(
-      initialLocation: '/receipts',
-      routes: [
-        GoRoute(
-          path: '/receipts',
-          builder: (_, _) => const ReceiptLedgerView(),
+/// The ledger under a router, so a row or the scan action can be tapped.
+/// [web] says which platform's words the action carries.
+Widget ledgerHost({required List<Override> overrides, bool web = false}) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp.router(
+        theme: ansiHostTheme(),
+        routerConfig: GoRouter(
+          initialLocation: '/receipts',
+          routes: [
+            GoRoute(
+              path: '/receipts',
+              builder: (_, _) => ReceiptLedgerView(web: web),
+            ),
+            // Declared before `:id`, as the app's router declares it.
+            GoRoute(
+              path: '/receipts/review',
+              builder: (_, _) => const Text('the scan'),
+            ),
+            GoRoute(
+              path: '/receipts/:id',
+              builder: (_, state) =>
+                  Text('receipt ${state.pathParameters['id']}'),
+            ),
+          ],
         ),
-        GoRoute(
-          path: '/receipts/:id',
-          builder: (_, state) => Text('receipt ${state.pathParameters['id']}'),
+        builder: (context, child) => FTheme(
+          data: ansiThemeData(),
+          child: FToaster(child: child!),
         ),
-      ],
-    ),
-    builder: (context, child) => FTheme(
-      data: ansiThemeData(),
-      child: FToaster(child: child!),
-    ),
-  ),
-);
+      ),
+    );
 
 /// One saved receipt on its own page — the review, open on the rows.
 Widget storedReceiptHost({

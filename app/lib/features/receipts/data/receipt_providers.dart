@@ -78,9 +78,3 @@ List<ReceiptSummary> receiptsForWeek(Ref ref, DateTime weekStart) {
   if (all == null) return const [];
   return receiptsInWeek(all, weekStart, ref.watch(weekShapeProvider));
 }
-
-/// Whether the household has kept any receipt, which decides whether the Shop
-/// shows the ledger door.
-@riverpod
-bool hasAnyReceipt(Ref ref) =>
-    (ref.watch(receiptSummariesProvider).asData?.value ?? const []).isNotEmpty;

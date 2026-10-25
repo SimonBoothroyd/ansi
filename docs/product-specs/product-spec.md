@@ -1568,8 +1568,10 @@ and a printed weight or rate where there was one.
   [import-and-matching.md §12.4.1](./import-and-matching.md#1241-what-the-household-itself-remembers).
 - **The ledger** (`/receipts`) files kept receipts by the household's week and
   by store, spent against planned per week with a month line on top. Its door
-  is in the **Shop's header**, beside the week switcher, drawn once the
-  household has kept a receipt; the scan door sits at the foot of the walk.
+  is in the **Shop's header**, beside the week switcher, always drawn. The
+  ledger **scans**: **Scan a receipt** heads it, filled or empty, and Save
+  comes back to it, where the new receipt has just filed under its week
+  ([plan 0056](../exec-plans/active/0056-shop-refresh.md) R6).
 - **The week band's second figure** — `$84.12 spent · 1 receipt · TJ's, Sun` —
   appears only when a receipt is dated inside the week on screen, and is a
   door onto the ledger. **Planned and spent are never reconciled:** the gap

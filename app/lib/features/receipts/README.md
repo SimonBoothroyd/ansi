@@ -15,6 +15,15 @@ an ordinary one.
 
 ## The rules
 
+- **The ledger scans.** `/receipts` opens on a full-width **Scan a receipt**
+  (Forui button, camera icon) under the header and above the month band, in
+  the empty ledger too, where it stands over *no receipts yet — a scanned shop
+  files here by week; a price typed on an ingredient stays on the
+  ingredient*. It pushes `/receipts/review`; in a browser a line under it says
+  there is no camera there (`photo_intake.dart`). Save comes back to the
+  ledger it was started from, where the receipt has just filed; a cold link
+  to the scan goes to the ledger instead, and its back goes home there too.
+  The ledger's door is the Shop header's receipts icon, always drawn.
 - **Nothing is written until Save.** The review is controller state, so an
   abandoned scan leaves the ledger as it was. Save writes the receipt and every
   kept line in one transaction.
@@ -81,7 +90,8 @@ presentation/
   receipt_line_card.dart     one line, money first
   receipt_pack_sheet.dart    *Say what the pack is*, + *keep as a measure*
   receipt_date_sheet.dart    *When was this shop* — a day and a 24-hour clock, never later than now
-  receipt_ledger_view.dart   `/receipts`, and `/receipts/:id` hosting the review
+  receipt_ledger_view.dart   `/receipts` with its scan action, and
+                             `/receipts/:id` hosting the review
 ```
 
 ## The one place a measure is minted

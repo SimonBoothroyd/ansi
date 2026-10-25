@@ -5,7 +5,6 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -20,7 +19,6 @@ import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_scroll.dart';
 import '../../../shared/cost_words.dart';
-import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
@@ -34,7 +32,6 @@ import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
-import '../../receipts/data/receipt_providers.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
 import '../domain/at_home.dart';
@@ -130,22 +127,19 @@ class ShoppingView extends ConsumerWidget {
   }
 }
 
-/// The receipts ledger's door in the header, drawn only once the household has
-/// kept a receipt. [FHeader.nested] keeps the week switcher centred, so no
-/// balancing spacer is needed. [ScanReceiptDoor] is what introduces the
-/// feature.
-class _ReceiptsDoor extends ConsumerWidget {
+/// The receipts ledger's door in the header, always drawn: the ledger is where
+/// a receipt is scanned, so the door cannot wait for the first one.
+/// [FHeader.nested] keeps the week switcher centred, so no balancing spacer is
+/// needed.
+class _ReceiptsDoor extends StatelessWidget {
   const _ReceiptsDoor();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      ref.watch(hasAnyReceiptProvider)
-      ? FHeaderAction(
-          icon: const Icon(FLucideIcons.receipt),
-          semanticsLabel: 'Receipts',
-          onPress: () => context.pushOnce('/receipts'),
-        )
-      : const SizedBox.shrink();
+  Widget build(BuildContext context) => FHeaderAction(
+    icon: const Icon(FLucideIcons.receipt),
+    semanticsLabel: 'Receipts',
+    onPress: () => context.pushOnce('/receipts'),
+  );
 }
 
 /// `≈ $58 still to buy` on the sync line, at the latest prices (ADR-0017); `at
@@ -213,7 +207,6 @@ Widget _shoppingList(
             if (data.atHome.isNotEmpty)
               _AtHomeSection(items: data.atHome, selection: selection),
             if (_noteCount(data) > 0) _PlanNotes(list: data),
-            const ScanReceiptDoor(),
           ],
         ),
 );
@@ -1397,64 +1390,6 @@ class _CheckBox extends StatelessWidget {
       child: checked
           ? const Icon(FLucideIcons.check, size: 13, color: AnsiColors.surface)
           : null,
-    );
-  }
-}
-
-/// The scan-receipt door at the foot of the list. On
-/// the web the photo import is gated (`photo_intake.dart`), so the door says
-/// what it can do there. The ledger's door is [_ReceiptsDoor] in the header.
-class ScanReceiptDoor extends StatelessWidget {
-  const ScanReceiptDoor({this.web = kIsWeb, super.key});
-
-  /// The platform, injectable so both sets of words are testable on a VM that
-  /// is never `kIsWeb`.
-  final bool web;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.pushOnce('/receipts/review'),
-            child: DashedBorderBox(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    FLucideIcons.camera,
-                    size: 12,
-                    color: AnsiColors.herb,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'scan a receipt',
-                    textAlign: TextAlign.center,
-                    style: ansiMono(
-                      size: 11,
-                      color: AnsiColors.herb,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (web)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'in a browser there is no camera and no crop step — shoot the '
-                'receipt on the phone, and review it anywhere',
-                style: ansiMono(size: 10.5, color: AnsiColors.muted),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

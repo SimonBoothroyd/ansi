@@ -16,11 +16,14 @@ import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
 import 'package:ansi/features/receipts/domain/receipt_repository.dart';
 import 'package:ansi/features/receipts/domain/receipt_review.dart';
 import 'package:ansi/features/receipts/presentation/receipt_date_sheet.dart';
+import 'package:ansi/features/receipts/presentation/receipt_ledger_view.dart';
 import 'package:ansi/features/receipts/presentation/receipt_review_body.dart';
+import 'package:ansi/features/receipts/presentation/receipt_scan_view.dart';
 import 'package:ansi/features/receipts/presentation/receipt_view_models.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
@@ -918,9 +921,8 @@ void main() {
   });
 
   group('Save', () {
-    testWidgets('writes the receipt and opens the ledger on it', (
-      tester,
-    ) async {
+    testWidgets('writes the receipt and, from a cold link, goes to the '
+        'ledger', (tester) async {
       final ledger = FakeReceiptRepo();
       tallSurface(tester);
       await tester.pumpWidget(
@@ -941,7 +943,41 @@ void main() {
       expect(write.subtotalCents, 2846);
       expect(write.totalCents, 2928);
       expect(write.lines, hasLength(9), reason: 'the paper is kept whole');
-      expect(find.text('receipt r-1'), findsOneWidget);
+      // Nothing was under the scan, so it goes to the ledger it files into.
+      expect(find.byType(ReceiptLedgerView), findsOneWidget);
+      expect(find.byType(ReceiptScanView), findsNothing);
+    });
+
+    testWidgets('a scan started from the ledger comes back to it on Save', (
+      tester,
+    ) async {
+      final ledger = FakeReceiptRepo();
+      tallSurface(tester);
+      late GoRouter router;
+      await tester.pumpWidget(
+        scanHost(
+          overrides: receiptOverrides(ledger: ledger),
+          at: '/receipts',
+          expose: (r) => router = r,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(kReceiptScanActionKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(ReceiptScanView), findsOneWidget);
+      final container = containerOf(tester);
+      await runTheScan(tester, container);
+      await answerEveryLine(tester, container);
+
+      await tester.tap(find.byKey(kReceiptSaveKey));
+      await tester.pumpAndSettle();
+
+      expect(ledger.saved, hasLength(1));
+      expect(find.byType(ReceiptScanView), findsNothing);
+      expect(find.byType(ReceiptLedgerView), findsOneWidget);
+      // Popped, not pushed again: the ledger is the one it was started from,
+      // with nothing left under it to go back to.
+      expect(router.canPop(), isFalse);
     });
 
     testWidgets('writes nothing while a line still needs somebody', (

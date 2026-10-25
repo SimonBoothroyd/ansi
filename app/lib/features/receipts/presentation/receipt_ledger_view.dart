@@ -2,10 +2,12 @@
 ///
 /// Receipts file under the household week their date falls in. Each week shows
 /// what was spent beside what it plans to cook, never reconciled (ADR-0017),
-/// and a month line sums the receipts by store. A saved receipt opens on the
-/// same review a scan does.
+/// and a month line sums the receipts by store. **Scan a receipt** heads it,
+/// filled or empty, because the scan lives with what it makes. A saved
+/// receipt opens on the same review a scan does.
 library;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -30,8 +32,15 @@ import 'receipt_view_models.dart';
 /// The ledger's list root, so the tests name it rather than a title.
 const kReceiptLedgerKey = ValueKey('receipts-ledger');
 
+/// The ledger's main action, **Scan a receipt**.
+const kReceiptScanActionKey = ValueKey('receipts-scan');
+
 class ReceiptLedgerView extends ConsumerWidget {
-  const ReceiptLedgerView({super.key});
+  const ReceiptLedgerView({this.web = kIsWeb, super.key});
+
+  /// The platform, injectable so both sets of words under the action are
+  /// testable on a VM that is never `kIsWeb`.
+  final bool web;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,27 +64,39 @@ class ReceiptLedgerView extends ConsumerWidget {
           stackTrace: st,
           onRetry: () => ref.invalidate(receiptSummariesProvider),
         ),
-        data: (all) => _Ledger(receipts: all, shape: shape),
+        data: (all) => _Ledger(receipts: all, shape: shape, web: web),
       ),
     );
   }
 }
 
 class _Ledger extends ConsumerWidget {
-  const _Ledger({required this.receipts, required this.shape});
+  const _Ledger({
+    required this.receipts,
+    required this.shape,
+    required this.web,
+  });
 
   final List<ReceiptSummary> receipts;
   final WeekShape shape;
+  final bool web;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (receipts.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-        child: Text(
-          'no receipts yet — scan one from the Shop, or type a price on an '
-          'ingredient',
-          style: ansiMono(size: 11.5, color: AnsiColors.muted),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ScanAction(web: web),
+            const SizedBox(height: 12),
+            Text(
+              'no receipts yet — a scanned shop files here by week; a price '
+              'typed on an ingredient stays on the ingredient',
+              style: ansiMono(size: 11.5, color: AnsiColors.muted),
+            ),
+          ],
         ),
       );
     }
@@ -88,7 +109,11 @@ class _Ledger extends ConsumerWidget {
         const EdgeInsets.fromLTRB(20, 8, 20, 28),
       ),
       children: [
-        if (month != null) _MonthBand(month: month),
+        _ScanAction(web: web),
+        if (month != null) ...[
+          const SizedBox(height: 10),
+          _MonthBand(month: month),
+        ],
         for (final week in weeks) ...[
           const SizedBox(height: 16),
           Text(
@@ -103,6 +128,38 @@ class _Ledger extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// **Scan a receipt**: the camera, the crop and the reading checklist at
+/// `/receipts/review`, whose Save comes back here. In a browser the photo
+/// import is gated (`photo_intake.dart`), so a line under it says what it can
+/// do there.
+class _ScanAction extends StatelessWidget {
+  const _ScanAction({required this.web});
+
+  final bool web;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      FButton(
+        key: kReceiptScanActionKey,
+        prefix: const Icon(FLucideIcons.camera),
+        onPress: () => context.pushOnce('/receipts/review'),
+        child: const Text('Scan a receipt'),
+      ),
+      if (web)
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            'in a browser there is no camera and no crop step — shoot the '
+            'receipt on the phone, and review it anywhere',
+            style: ansiMono(size: 10.5, color: AnsiColors.muted),
+          ),
+        ),
+    ],
+  );
 }
 
 /// The month at the top — what has been spent so far, and where.
