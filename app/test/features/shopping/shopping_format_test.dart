@@ -50,8 +50,11 @@ void main() {
           approx: true,
         ),
       );
-      expect(itemTotal(item), '674 g');
-      expect(itemSecondary(item), '≈ 2¼ potato, large → buy 3');
+      // What you buy leads; the need, still approximate, sits under it with
+      // the weight it was read from.
+      expect(itemTotal(item), '3 potato, large');
+      expect(itemAmount(item), '674 g');
+      expect(itemSecondary(item), 'need ≈ 2¼ · 674 g');
     });
 
     test('a fractional gram total is a scale reading, its measure count is '
@@ -63,10 +66,10 @@ void main() {
         totals: [Quantity(672.75, g)],
         measureTotal: (amount: 2.25, measure: large),
       );
-      expect(itemTotal(item), '2¼ potato, large');
-      // A fractional measure count gets the same round-up a piece count
-      // does — you buy whole potatoes.
-      expect(itemSecondary(item), '672.75 g → buy 3');
+      // A fractional measure count leads with the same whole count a piece
+      // count does — you buy whole potatoes.
+      expect(itemTotal(item), '3 potato, large');
+      expect(itemSecondary(item), 'need 2¼ · 672.75 g');
     });
 
     test('a measure-counted lime rounds up like a piece-counted one, and a '
@@ -78,8 +81,11 @@ void main() {
         totals: [Quantity(167.5, g)],
         measureTotal: (amount: 2.5, measure: whole),
       );
-      expect(itemTotal(lime), '2½ lime, whole');
-      expect(itemSecondary(lime), '167.5 g → buy 3');
+      expect(itemTotal(lime), '3 lime, whole');
+      expect(itemSecondary(lime), 'need 2½ · 167.5 g');
+      // The amount as summed keeps the fraction: the at-home pass asks
+      // against it.
+      expect(itemAmount(lime), '2½ lime, whole');
 
       final three = ShoppingItem(
         name: 'Lime',
@@ -87,6 +93,7 @@ void main() {
         totals: [Quantity(201, g)],
         measureTotal: (amount: 3, measure: whole),
       );
+      expect(itemTotal(three), '3 lime, whole');
       expect(itemSecondary(three), '201 g');
     });
 
@@ -98,9 +105,10 @@ void main() {
         totals: [Quantity(167.5, g)],
         pieceTotal: (count: 2.5, approx: false),
       );
-      expect(itemTotal(lime), '2½ piece');
-      // The weight beside it, and the round-up after — the count is fractional.
-      expect(itemSecondary(lime), '167.5 g → buy 3');
+      // The count is fractional, so the whole count leads and the need and
+      // the weight sit under it.
+      expect(itemTotal(lime), '3 piece');
+      expect(itemSecondary(lime), 'need 2½ · 167.5 g');
     });
 
     test('a count read back from a weight says so, and a whole one needs no '
@@ -111,8 +119,9 @@ void main() {
         totals: [Quantity(160.8, g)],
         pieceTotal: (count: 2.4, approx: true),
       );
-      expect(itemTotal(approx), '≈ 2.4 piece');
-      expect(itemSecondary(approx), '160.8 g → buy 3');
+      // What you buy is a whole number; the `≈` belongs to the need.
+      expect(itemTotal(approx), '3 piece');
+      expect(itemSecondary(approx), 'need ≈ 2.4 · 160.8 g');
 
       final whole = ShoppingItem(
         name: 'Lime',
@@ -132,6 +141,77 @@ void main() {
       );
       expect(itemTotal(split), '200 g + 100 ml');
       expect(itemTotal(const ShoppingItem(name: 'Paper towels')), '—');
+    });
+  });
+
+  group('the rounded headline', () {
+    test('a fractional plain count leads with what is bought and says only '
+        'its need under it', () {
+      final item = ShoppingItem(
+        name: 'Avocado',
+        ingredientId: 'avocado',
+        totals: [Quantity(1.5, pieces)],
+        wholeUnitHint: (count: 1.5, buy: 2, unitLabel: 'piece', approx: false),
+      );
+      expect(itemTotal(item), '2 piece');
+      expect(itemSecondary(item), 'need 1½');
+    });
+
+    test('an unrounded row is unchanged: its amount is its headline', () {
+      final item = ShoppingItem(
+        name: 'Flour',
+        ingredientId: 'flour',
+        totals: [Quantity(500, g)],
+      );
+      expect(itemTotal(item), '500 g');
+      expect(itemNeed(item), '');
+      expect(itemSecondary(item), '');
+    });
+
+    test('a sum that lands a hair off a whole number does not round up', () {
+      const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
+      final item = ShoppingItem(
+        name: 'Lime',
+        ingredientId: 'lime',
+        totals: [Quantity(201, g)],
+        measureTotal: (amount: 2.9999999999, measure: whole),
+      );
+      expect(itemRoundUp(item), isNull);
+      expect(itemSecondary(item), '201 g');
+    });
+
+    test('the sub-line reads at home, then need, then weight, then price', () {
+      const medium = Measure(
+        id: 'm-onion',
+        label: 'onion, medium',
+        amount: 110,
+      );
+      // Five at home of 6½ asked for: 1½ left, so the row buys 2.
+      final item = ShoppingItem(
+        name: 'Yellow Onion',
+        ingredientId: 'onion',
+        totals: [Quantity(165, g)],
+        measureTotal: (amount: 1.5, measure: medium),
+        atHome: (
+          quantity: 5,
+          unit: pieces,
+          measure: medium,
+          measureId: medium.id,
+          need: (
+            totals: [Quantity(715, g)],
+            measureTotal: (amount: 6.5, measure: medium),
+            pieceTotal: null,
+          ),
+          all: false,
+          refusal: null,
+        ),
+      );
+      expect(itemTotal(item), '2 onion, medium');
+      final line = itemSubLine(item, cents: 154, anyPriced: true);
+      expect(line, startsWith('5 at home · need 1½ · 165 g · '));
+      expect(line, contains('1.54'));
+      // With no price yet and nothing at home, only the need and the weight.
+      expect(itemSubLine(item.copyWith(atHome: null)), 'need 1½ · 165 g');
     });
   });
 

@@ -62,8 +62,11 @@ measure**, and it is *found*, never stored:
    an unweighed row keeps the unsupported-unit gate; a unit somebody chose or
    a word the page printed is never overruled. The server's extraction still
    prints `piece`; the review decides.
-4. **The shop's named-measure count rounds up** — `2½ lime, whole · 167.5 g
-   → buy 3` — the shape the piece count already had.
+4. **The shop leads a named-measure count with what is bought.** A
+   fractional count prints the whole number in the measure's word, `3 lime,
+   whole`, over its need and what it weighs, `need 2½ · 167.5 g` — the shape a
+   fractional piece count and a whole-unit hint take too. The measure's word
+   is the same in both lines; only the number rounds.
 5. **Existing lines are re-pointed once**, by the owner, after the app change
    ships: every `piece` line and planned snack on a row with a whole measure
    moves to that measure's id, so no phone sees a word its sheet cannot yet

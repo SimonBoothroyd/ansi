@@ -327,9 +327,11 @@ mixin _$ShoppingItem {
 /// total. `approx` is true when a plain mass/volume line joined or a
 /// measure is not a whole number of pieces. Null when [measureTotal] is
 /// set.
- PieceTotal? get pieceTotal;/// A round-up hint ("2.25 → buy 3") beside the total, never replacing it
-/// (invariant 3). Null when the item does not qualify ([wholeUnitHintFor])
-/// or when [measureTotal] or [pieceTotal] is set.
+ PieceTotal? get pieceTotal;/// A round-up hint: the whole count a fractional single total is bought
+/// as (2¼ potato, large → 3). The row leads with the whole count and keeps
+/// the total beside it, never replacing it (invariant 3). Null when the
+/// item does not qualify ([wholeUnitHintFor]) or when [measureTotal] or
+/// [pieceTotal] is set.
  WholeUnitHint? get wholeUnitHint;/// What is already at home, or null when nothing was said.
 /// When set, [totals], [measureTotal], [pieceTotal] and [wholeUnitHint]
 /// are what is LEFT to buy, and `atHome.need` is what the week asked for;
@@ -570,9 +572,11 @@ class _ShoppingItem extends ShoppingItem {
 /// measure is not a whole number of pieces. Null when [measureTotal] is
 /// set.
 @override final  PieceTotal? pieceTotal;
-/// A round-up hint ("2.25 → buy 3") beside the total, never replacing it
-/// (invariant 3). Null when the item does not qualify ([wholeUnitHintFor])
-/// or when [measureTotal] or [pieceTotal] is set.
+/// A round-up hint: the whole count a fractional single total is bought
+/// as (2¼ potato, large → 3). The row leads with the whole count and keeps
+/// the total beside it, never replacing it (invariant 3). Null when the
+/// item does not qualify ([wholeUnitHintFor]) or when [measureTotal] or
+/// [pieceTotal] is set.
 @override final  WholeUnitHint? wholeUnitHint;
 /// What is already at home, or null when nothing was said.
 /// When set, [totals], [measureTotal], [pieceTotal] and [wholeUnitHint]

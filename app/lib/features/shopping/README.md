@@ -53,8 +53,19 @@ hands them with the overlay to `buildShoppingList` (pure).
   sum.
 - **Asked for in one measure, bought in that measure.** When every quantified
   contribution names the same measure the item carries a `measureTotal` and
-  reads `2 cans`, with the mass beside it and a round-up when fractional
-  (`2½ lime, whole · 167.5 g → buy 3`).
+  reads `2 cans`, with the mass beside it.
+- **A row that rounds leads with what you buy**
+  ([ADR-0016](../../../../docs/decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)
+  point 4). A fractional measure count, a fractional piece count and a
+  whole-unit hint on a mass total all print the whole count bought as the
+  headline (`3 lime, whole`, `3 piece`, `3 potato, large`), and the sub-line
+  opens with the need: `need 2½ · 167.5 g`, or `need ≈ 2¼ · 600 g` when the
+  count was read from a weight — the `≈` stays on the need (`itemTotal`,
+  `itemNeed`). The basket prints the same headline. The at-home pass, its
+  sheet and the *At home* section print the need unrounded (`itemAmount`,
+  `needTotal`), because they weigh what is here against what the week asks.
+- **The sub-line's order** is at home, need, weight, price, each only when it
+  applies: `5 at home · need 1½ · 165 g · ≈ $1.54` (`itemSubLine`).
 - **A piece-weighted row is bought in pieces**
   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
   A row whose default unit is `piece` and whose contributions fold into one

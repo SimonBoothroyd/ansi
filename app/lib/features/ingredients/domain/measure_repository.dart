@@ -59,9 +59,9 @@ abstract interface class MeasureRepository {
   /// [ids] gives.
   ///
   /// The first measure is the ingredient's typical one: it fronts the picker's
-  /// chips, and the shop's whole-unit hint rounds to it ("674 g ≈ 3 × potato,
-  /// large → buy 3"). Ids that do not belong to the ingredient, or name no live
-  /// row, are ignored.
+  /// chips, and the shop's whole-unit hint rounds to it (674 g is bought as
+  /// "3 potato, large"). Ids that do not belong to the ingredient, or name no
+  /// live row, are ignored.
   Future<void> reorderMeasures(String ingredientId, List<String> ids);
 
   /// What still uses this measure: how many live rows point at it, and which

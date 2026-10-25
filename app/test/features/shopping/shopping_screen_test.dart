@@ -442,8 +442,8 @@ void main() {
     expect(find.textContaining('oz'), findsNothing);
   });
 
-  testWidgets('a row counted in its whole measure rounds up under the count, '
-      'as a piece row does', (tester) async {
+  testWidgets('a row counted in its whole measure leads with the whole count '
+      'bought, as a piece row does', (tester) async {
     const whole = Measure(id: 'm-lime', label: 'lime, whole', amount: 67);
     final list = ShoppingList(
       groups: [
@@ -484,8 +484,10 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('2½ lime, whole'), findsOneWidget);
-    expect(find.text('167.5 g → buy 3'), findsOneWidget);
+    // What you buy leads, and the need sits under it with what it weighs.
+    expect(find.text('3 lime, whole'), findsOneWidget);
+    expect(find.text('need 2½ · 167.5 g'), findsOneWidget);
+    expect(find.text('2½ lime, whole'), findsNothing);
     expect(find.text('1 lime, whole'), findsOneWidget);
     expect(find.text('1½ lime, whole'), findsOneWidget);
   });
@@ -532,9 +534,9 @@ void main() {
     );
     await tester.pump();
 
-    // A count of limes — never "67 g + 1½ piece".
-    expect(find.text('2½ piece'), findsOneWidget);
-    expect(find.text('167.5 g → buy 3'), findsOneWidget);
+    // A count of limes — never "67 g + 1½ piece" — bought whole.
+    expect(find.text('3 piece'), findsOneWidget);
+    expect(find.text('need 2½ · 167.5 g'), findsOneWidget);
     expect(find.textContaining(' + '), findsNothing);
     // …and each line behind it keeps its own words.
     expect(find.text('1 lime, whole'), findsOneWidget);

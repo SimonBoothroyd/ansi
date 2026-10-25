@@ -197,7 +197,7 @@ class AtHomeSummary extends StatelessWidget {
     return switch (result) {
       AllAtHome() => 'nothing — it’s all at home',
       NotCounted(:final reason) => 'not counted ($reason)',
-      SomeLeft(:final left) => itemTotal(
+      SomeLeft(:final left) => itemAmount(
         item.copyWith(
           totals: left.totals,
           measureTotal: left.measureTotal,
