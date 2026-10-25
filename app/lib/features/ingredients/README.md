@@ -50,7 +50,8 @@ ingredients/
     serving_measure.dart        the label's serving, kept as one measure
     price.dart                  receipt, lines, UnitPrice (PriceObservation,
                                 BasePrice), pricePer100, packInBasis
-    cost_price.dart             costPriceOf — the one rule a cost reads by
+    cost_price.dart             costPriceOf and shopPriceOf — the two rules
+                                a cost reads by
     price_repository.dart       the price reads, the base price's writes,
                                 ReceiptName
     usda_probe.dart             the probe interface
@@ -62,7 +63,7 @@ ingredients/
     ingredient_repository_impl.dart  SqliteIngredientRepository
     measure_repository_impl.dart     measures, merge-on-read for duplicate labels
     price_repository_impl.dart       the watched price reads, loadCostPrices,
-                                     the base price's writes
+                                     watchShopPrices, the base price's writes
     name_holder.dart                 nameHolderFor — the namespace question as SQL
     usda_probe_impl.dart             the `probe_usda` RPC
     remote_label_repository.dart     the `read-label` edge function
@@ -266,13 +267,17 @@ Doctrine is
   `UnitPrice`, and the per-basis figure of either is derived at read time by
   `pricePer100` — paid over `count × pack_basis_amount` (a base price is one
   pack) — and never stored.
-- **A cost reads one price per row, chosen in one place.** `costPriceOf`
-  (`domain/cost_price.dart`): the newest receipt-line price, else the base
-  price, else unpriced. A base price set after a receipt does not outrank it.
-  Every cost surface — a recipe, the week, a planned snack, the shop — reads
-  the resolved map (`watchCostPrices` / `costPriceMapProvider`, or
-  `loadCostPrices` in a repository load). `watchLatestPrices` is paid-only and
-  is the receipt review's pack memory, never a cost. Held by
+- **A cost reads by one of two rules, each chosen in one place**
+  (`domain/cost_price.dart`). `costPriceOf`: the newest receipt-line price,
+  else the base price, else unpriced; a base price set after a receipt does
+  not outrank it. Every cost but the Shop's — a recipe, the week, a planned
+  snack, Ask's figures — reads that resolved map (`watchCostPrices` /
+  `costPriceMapProvider`, or `loadCostPrices` in a repository load).
+  `shopPriceOf` is the Shop's: the cheapest per-100 figure paid in the 90
+  days up to today in the row's basis, else exactly `costPriceOf`'s answer;
+  it is read through `watchShopPrices` by the Shop's rows, its trip and Ask's
+  trip answer alone. `watchLatestPrices` is paid-only and is the receipt
+  review's pack memory, never a cost. Held by
   `test/structure/cost_reads_one_price_test.dart`.
 - **The pack is kept twice**, on a line and on a base price alike.
   `pack_basis_amount` is what a figure is derived from. `pack_amount` +

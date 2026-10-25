@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/data/price_repository_impl.dart';
+import 'package:ansi/features/ingredients/domain/cost_price.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
@@ -909,6 +910,113 @@ void main() {
       );
       expect(emissions.first, isEmpty);
       expect(emissions.last['banana'], isA<BasePrice>());
+    });
+  });
+
+  /// What the Shop reads: the cheapest paid in the 90 days up to today, else
+  /// what every other cost reads. One query over the real schema.
+  group('the price the Shop reads', () {
+    final today = DateTime(2026, 10, 25);
+
+    Future<void> shop(
+      String id, {
+      required String store,
+      required String on,
+      required int cents,
+      double pack = 1000,
+      int discount = 0,
+      String? receiptDeletedAt,
+      String? lineDeletedAt,
+    }) async {
+      await _seedReceipt(
+        db,
+        id: 'r-$id',
+        store: store,
+        purchasedAt: on,
+        deletedAt: receiptDeletedAt,
+      );
+      await _seedLine(
+        db,
+        id: id,
+        receiptId: 'r-$id',
+        cents: cents,
+        packBasisAmount: pack,
+        discountCents: discount,
+        deletedAt: lineDeletedAt,
+      );
+    }
+
+    Future<Map<String, ShopPrice>> read() =>
+        repo.watchShopPrices(today: today).first;
+
+    test('the cheapest in the window, with its store', () async {
+      await shop('aldi', store: 'Aldi', on: '2026-08-10T10:00:00Z', cents: 180);
+      await shop('tjs', store: "TJ's", on: '2026-10-20T10:00:00Z', cents: 242);
+      // Cheaper still, but 91 days back: out of the window.
+      await shop('old', store: 'Aldi', on: '2026-07-26T10:00:00Z', cents: 100);
+      final price = (await read())['banana']!;
+      expect(price.choice, ShopPriceChoice.cheapestSeen);
+      expect(price.price.key, 'aldi');
+      expect((price.price as PriceObservation).store, 'Aldi');
+      // Every other cost still reads the newest.
+      expect((await repo.watchCostPrices().first)['banana']!.key, 'tjs');
+    });
+
+    test('a sale counts, and a taken-back line or receipt does not', () async {
+      await shop('full', store: "TJ's", on: '2026-10-20T10:00:00Z', cents: 300);
+      await shop(
+        'sale',
+        store: 'Aldi',
+        on: '2026-10-01T10:00:00Z',
+        cents: 300,
+        discount: 100,
+      );
+      await shop(
+        'gone-line',
+        store: 'Aldi',
+        on: '2026-10-02T10:00:00Z',
+        cents: 50,
+        lineDeletedAt: '2026-10-03T00:00:00Z',
+      );
+      await shop(
+        'gone-receipt',
+        store: 'Aldi',
+        on: '2026-10-02T10:00:00Z',
+        cents: 50,
+        receiptDeletedAt: '2026-10-03T00:00:00Z',
+      );
+      expect((await read())['banana']!.price.key, 'sale');
+    });
+
+    test('nothing in the window: the newest receipt, as every cost', () async {
+      await shop('jun', store: "TJ's", on: '2026-06-14T10:00:00Z', cents: 242);
+      await shop('may', store: 'Aldi', on: '2026-05-14T10:00:00Z', cents: 100);
+      final price = (await read())['banana']!;
+      expect(price.choice, ShopPriceChoice.costPrice);
+      expect(price.price.key, 'jun');
+    });
+
+    test('nothing paid: the base price; neither: absent', () async {
+      await _seedIngredient(db, id: 'apple');
+      await repo.setBasePrice(
+        ingredientId: 'banana',
+        cents: 349,
+        packBasisAmount: 454,
+        store: 'Aldi',
+      );
+      final prices = await read();
+      expect(prices['banana']!.price, isA<BasePrice>());
+      expect(prices['banana']!.choice, ShopPriceChoice.costPrice);
+      expect(prices.containsKey('apple'), isFalse);
+    });
+
+    test('a synced shop reaches a watcher without a refresh', () async {
+      final emissions = await twoEmissions(
+        repo.watchShopPrices(today: today),
+        () => shop('new', store: 'Aldi', on: '2026-10-24T10:00:00Z', cents: 1),
+      );
+      expect(emissions.first, isEmpty);
+      expect(emissions.last['banana']!.price.key, 'new');
     });
   });
 
