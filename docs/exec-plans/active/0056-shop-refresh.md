@@ -1,6 +1,6 @@
 # Exec plan: Shop refresh
 
-- **Status:** design — frames drawn as `proposed` on the board; nothing built
+- **Status:** building — rulings settled, frames drawn as `proposed`
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 8, from the owner's ask
 - **Created:** 2026-10-25
@@ -55,7 +55,8 @@ and [the Receipts board](../../product-specs/board/receipts.html).
   to know the expected cheapest price, as that may motivate buying in another
   store."* The trip total on the sync line sums the same cheapest figures, so
   the rows and the total agree: `≈ $51 at the cheapest`. **This applies to the
-  Shop only.** Recipe costs, the Week's cost and Ask keep the latest price
+  Shop only.** Recipe costs, the Week's cost and Ask (except its trip
+  answer, R12) keep the latest price
   (ADR-0017), so
   [ADR-0017](../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
   is amended for the Shop. The fallbacks are in Phase D, and what is not
@@ -358,8 +359,13 @@ The domain is pure Dart and is built first.
    - `shopTripCostProvider` and the row's `itemSecondaryWithCost` read it.
    - `shoppingItemCostCents` and `tripCostCents` are unchanged: they take an
      `IngredientPricing`, now fed from the Shop's map.
-   - The recipe page, the Week's band, Ask's figures and the ingredient page
-     stay on `costPriceMap`.
+   - The recipe page, the Week's band, the ingredient page and every Ask
+     figure except the trip stay on `costPriceMap`. Ask's `cost` tool with
+     `trip` reads the Shop's figure (R12.4), the same total as the sync line.
+   - **A rounded row is priced on what you buy** (R12.5): the whole count the
+     headline prints, weighed through the same piece or measure weight that
+     reads the need. A part-have prices what is left to buy, rounded the same
+     way. A row that does not round is priced on its total, as today.
 4. **The structural test.** `test/structure/cost_reads_one_price_test.dart`
    becomes *two rules, each chosen in one place*. It allows `shopPriceOf(`
    in the price repository and `cost_price.dart` alone, and it fails if the
@@ -373,8 +379,10 @@ The domain is pure Dart and is built first.
      - a tie goes to the newest;
      - each fallback step, and the store or month each prints with.
    - `shopping_cost_test.dart` holds that the trip equals the sum of the
-     rows' figures, and that a part-have is priced on what is left (0055,
-     unchanged).
+     rows' figures, that a rounded row is priced on the whole count bought
+     (3 limes, not 2½), and that a part-have is priced on what is left.
+   - An Ask test holds that the trip answer equals the Shop's sync-line
+     figure, and that a recipe cost answer still reads the latest price.
    - `shopping_format_test.dart` holds the four row words.
    - A test pins that `recipe_cost` and the Week's figure still read the
      latest price.
@@ -421,8 +429,9 @@ frame is drawn. The board's status line carries one clause instead.
       otherwise unchanged.
 - [ ] The receipts icon is always in the Shop's header; the ledger scans.
 - [ ] Each priced row shows the cheapest price in 90 days with its store, or
-      its fallback with its month; the sync line sums the same figures; the
-      recipe page, the Week and Ask are unchanged.
+      its fallback with its month; a rounded row is priced on what is
+      bought; the sync line and Ask's trip answer sum the same figures; the
+      recipe page, the Week and Ask's other costs are unchanged.
 - [ ] Tests above; `flutter analyze`, `custom_lint` and `flutter test` pass;
       `make docs-check` passes.
 - [ ] ADR-0016 and ADR-0017 amended, docs above updated in the same commits.
@@ -434,34 +443,32 @@ frame is drawn. The board's status line carries one clause instead.
 - 2026-10-25: R11, one arrow convention taken from the Library's folds.
 - 2026-10-25: R7–R10 and their rejections, from the owner's look at the
   renders. R9 settles the old open question on when the non-food row shows.
+- 2026-10-25: R12, the five cheapest-price questions, before the build.
 - 2026-10-25, design: the toggle replaces the pass's band, and `To buy` is
   **Done**. A rounded row is any row that prints `→ buy N` today, with the `≈`
   kept on the need. A row figure read off one named price drops its `≈`
   (ADR-0017 rule 7). With no receipt in 90 days, the Shop falls back to the
   price every other cost reads, which keeps ADR-0017 rule 1's order.
 
-## Open questions
+## The cheapest price, settled (R12)
 
-For the owner, before Phase D:
+Five questions the owner answered interactively, 2026-10-25, before the build:
 
-1. **The fallback past 90 days.** As drawn, a row with no receipt in the
-   window reads the price the rest of the app reads (the newest receipt, else
-   the base price), printed with its month. The alternative is to print *no
-   price yet* on the Shop past 90 days, so every figure on it is
-   window-honest, and the trip becomes a floor sooner.
-2. **The trip's words when rows fell back.** `≈ $51 at the cheapest` is loose
-   when some rows read an older or base price. Keep the words, since each row
-   says which it read, or count them: `· 2 rows older`?
-3. **A sale price.** A discounted line is what was paid, so as drawn it can be
-   the cheapest seen for 90 days. Is that the price you want to chase, or
-   should a printed discount be left out of *cheapest*?
-4. **Ask's trip figure.** Ask's `cost` with `trip` is described as *the Shop's
-   estimate*. Under R3 as worded, Ask keeps the latest price, so its trip
-   answer would differ from the sync line. Keep it at the latest, or let that
-   one answer read the Shop's figure?
-5. **What the row's price prices.** With R1 the big figure is what you buy
-   (3 limes), but today the price is for the need (2½). Should the row's price
-   (and so the trip) cover the 3 you buy or the 2½ you need?
+1. **Past 90 days, the row falls back.** A row with no receipt in the window
+   reads the price every other cost reads (the newest receipt, else the base
+   price), printed with its month. Rejected: *no price yet* past 90 days.
+2. **The trip keeps its words.** `≈ $51 at the cheapest` stands when some rows
+   fell back, because each row says which price it read. Rejected: counting
+   them (`· 2 rows older`).
+3. **A sale price counts.** What was paid, after the printed discount, can be
+   the cheapest seen. Rejected: leaving discounted lines out of *cheapest*.
+4. **Ask's trip answer reads the Shop's figure**, so it always agrees with the
+   sync line. Every other Ask cost keeps the latest price. Rejected: Ask's
+   trip on the latest price.
+5. **The row's price covers what you buy.** A rounded row is priced on the
+   whole count bought (3 limes), the figure its headline prints, and the trip
+   sums those. A row that does not round is priced as today. Rejected: the
+   need (2½).
 
 ## Step-done checklist
 
