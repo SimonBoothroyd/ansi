@@ -28,9 +28,9 @@ The detail is in the plan; the landing dates are in the
 6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
    first slice.
 7. [Plan 0055](./active/0055-already-got-it.md), already got it — say on the
-   Shop list what is already at home, all of a row or an amount. Built and
-   tested on branch `ccr-e2788faa-k9cnvl`, not yet on `main`; migration
-   `0058` is not on cloud, and the phone check (two phones, one pass) is owed.
+   Shop list what is already at home, all of a row or an amount. On main,
+   untagged; migration `0058` is not on cloud yet, and the phone check (two
+   phones, one pass) is owed.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
@@ -41,6 +41,7 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
+| Already got it — a *check what's at home* pass from the Shop's foot (a house where the tick was; the row says all of it, its amount asks how much, the pane at expanded), an amount stored as said and taken off the need honestly, a part-have on the row's sub-line and an *At home* section under the basket; Ask's `shopping` tool names it. Migration `0058`, **pending cloud push** | [0055](./active/0055-already-got-it.md) |
 | Eaten vs planned, from the owner's look at `v0.32.0` — the tick (and your swap) replaces the avatar's initial, where it can no longer be covered; Cook's Kept · Binned · Eaten are the app's pills; Account's row reads *Send my meals*; *Had instead* always offers the typed words, so an ad-hoc lunch can be said; and a Health Connect pass that does not get through says so under the switch with *Try again*, is retried on returning to the app, sends a refused batch one meal at a time, and waits for the recipes' figures. No migrations, no deploy | [0054](./active/0054-eaten-vs-planned.md) |
 
 ## Shipped

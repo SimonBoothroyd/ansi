@@ -1,6 +1,6 @@
 # Exec plan: Already got it
 
-- **Status:** built on branch `ccr-e2788faa-k9cnvl`, not yet on `main` — every phase in code with tests; migration `0058` not on cloud; the phone check (two phones, one pass) is still owed
+- **Status:** on main, untagged — every phase in code with tests; migration `0058` not on cloud; the phone check (two phones, one pass) is still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 7, from the owner's ask
 - **Created:** 2026-10-25
@@ -298,7 +298,7 @@ None open. Resolved 2026-10-25:
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what
+- [x] Roadmap row updated: status flipped, one line on what shipped and what
       was deliberately deferred.
 - [x] `ARCHITECTURE.md`'s standing table matches reality for Shop.
 - [x] `app/AGENTS.md` "Current focus" and command list still true.
