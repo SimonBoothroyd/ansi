@@ -84,9 +84,9 @@ and [the Receipts board](../../product-specs/board/receipts.html).
 - **Also in the refresh** (part of the proposal, no ruling needed):
   - The caption goes.
   - The basket and *At home* sections each fold to one counted line,
-    `IN THE BASKET · 12 ›` and `AT HOME · 3 ›`.
+    `IN THE BASKET · 12` and `AT HOME · 3`, each with R11's chevron.
   - The echo rows (unresolved components, retired ingredients, optional
-    lines) fold to one line, `3 notes from the plan ›`, that opens them.
+    lines) fold to one line, `3 notes from the plan`, that opens them.
   - With R4 to R6, **the foot holds no doors.**
 
 Four more, taken with the owner on 2026-10-25 after he saw the renders. He
@@ -96,13 +96,14 @@ the non-food add and the new-ingredient add appear; whether Flour's green
 the same chip to mean *edit this amount*); and what the opened *At home*
 section looks like and whether its rows can be tapped.
 
-- **R7 The open cue is a small ▾ after the amount.** Every row that has a
-  breakdown draws it. The amount, its ▾ and the sub-line are the one target
-  that opens the breakdown, and the row's tap still ticks. The ▾ is the
-  visible cue on R2's amount target; what R2 rejected was a separate target,
-  not a cue. A row with no breakdown (a free-text item) draws no ▾.
+- **R7 The open cue is a chevron after the amount** (R11's pair). Every row
+  that has a breakdown draws one. The amount, its chevron and the sub-line
+  are the one target that opens the breakdown, and the row's tap still ticks.
+  The chevron is the visible cue on R2's amount target; what R2 rejected was
+  a separate target, not a cue. A row with no breakdown (a free-text item)
+  draws no chevron.
 - **R8 No green chip in the walk.** While a row is open, the amount stays
-  plain text, the ▾ flips to ▴, and the breakdown sits under the row: the
+  plain text, its chevron turns down (R11), and the breakdown sits under the row: the
   recipes, the sessions, and the manual top-up as its own full-size row with
   ✎. The herb-soft chip then means one thing, *edit this amount*, and it
   appears only in the at-home pass.
@@ -111,13 +112,22 @@ section looks like and whether its rows can be tapped.
   towels" as a new ingredient`. They stand after the results and after the
   *did you mean* band. The dashed *can't find it?* wording is not used in this
   field; the picker elsewhere keeps its own.
-- **R10 The opened sections are drawn.** Each section's chevron reads ▴ when
-  it is open.
+- **R10 The opened sections are drawn.** Each section's chevron points down
+  while it is open (R11).
   - **Basket** rows are as today: struck through with a ticked box, and a tap
     unticks.
   - **At home** rows are as built in 0055 (`_AtHomeRow`): a filled house box,
     the name muted but not struck through, the need total muted, and no price.
     A tap puts the row back in its aisle.
+
+- **R11 One arrow convention: the arrow shows state, not action.** It
+  follows the Library's folds (`library_view.dart`):
+  `FLucideIcons.chevronRight` while closed, `FLucideIcons.chevronDown` once
+  open, in herb green and sized to read beside the 13 px amount. It is never
+  a unicode glyph. It applies to the rows (R7, R8) and to the three folded
+  lines (*In the basket*, *At home*, the notes). The owner found a mix of
+  ▾, ▴ and › confusing: it was not clear whether an arrow said *tap to open*
+  or *is open*.
 
 ### Rejected
 
@@ -131,10 +141,11 @@ section looks like and whether its rows can be tapped.
   at the foot.
 - **R6:** a scan door in both places.
 - **R7:** an outlined chip round the amount; a count-of-sources line
-  (`from 2 recipes ▾`).
+  (`from 2 recipes`, with a chevron).
 - **R8:** keep the herb-soft chip on an opened amount.
 - **R9:** the non-food row only when nothing matches.
 - **R10:** draw the sections folded only.
+- **R11:** the Forui accordion's ⌄ then ⌃ (the action convention).
 
 ## Approach
 
@@ -181,11 +192,11 @@ R1, R2, R7, R8, the folds (R10), the caption, and the R5 toggle.
   Aldi`.
 - **R2, R7, R8.** On a phone `_Provenance` is not drawn until the amount is
   tapped.
-  - The target is the total, its ▾ and its sub-line together, at least 44 px
-    tall. A row with no contributions (free text) draws no ▾ and has no
-    target.
+  - The target is the total, its chevron and its sub-line together, at least
+    44 px tall. A row with no contributions (free text) draws no chevron and
+    has no target.
   - The row's tap keeps ticking. While open, the amount stays plain text and
-    the ▾ turns to ▴. The walk draws no chip; the herb-soft chip belongs to the
+    the chevron turns from right to down (R11). The walk draws no chip; the herb-soft chip belongs to the
     at-home pass alone.
   - A manual top-up in the opened breakdown is its own 44 px row with its ✎,
     opening `edit_top_up_sheet.dart` as today.
@@ -193,12 +204,12 @@ R1, R2, R7, R8, the folds (R10), the caption, and the R5 toggle.
     row folds its breakdown as today.
   - At expanded nothing changes: the row already has no inline breakdown.
 - **The folds (R10).** `_Basket` and `_AtHomeSection` start folded to their
-  counted label, `IN THE BASKET · 12 ›`. A tap opens the section in place,
-  where the label's chevron reads ▴. Rows behave as built today: basket rows
+  counted label, `IN THE BASKET · 12`, with a right chevron. A tap opens the
+  section in place, and the chevron turns down (R11). Rows behave as built today: basket rows
   are struck through and a tap unticks; *At home* rows (`_AtHomeRow`) have a
   filled house, a muted name that is not struck through, a muted need total
   and no price, and a tap puts the row back in its aisle. The
-  echo rows fold behind one `N notes from the plan ›`:
+  echo rows fold behind one `N notes from the plan`, with the same chevron:
   - it reads amber with ⚑ when any note is a defect (unresolved or retired);
   - it reads muted when every note is an optional line;
   - opened, it shows today's rows with the optional names still doors.
@@ -220,13 +231,15 @@ R1, R2, R7, R8, the folds (R10), the caption, and the R5 toggle.
     part-have.
   - `shopping_screen_test.dart` holds that:
     - a phone row shows no provenance until its amount is tapped;
-    - a row with a breakdown draws ▾, flipping to ▴ while open, and a
-      free-text row draws none;
+    - a row with a breakdown draws `FLucideIcons.chevronRight` while closed
+      and `FLucideIcons.chevronDown` while open, and a free-text row draws
+      neither;
     - an opened amount is plain text (no chip);
     - the row's tap ticks and does not open the breakdown;
     - the opened top-up's target is at least 44 px and opens the edit sheet;
     - the basket, *At home* and notes lines show their counts, open in place
-      with ▴, and show amber or muted notes as above;
+      with `chevronRight` folded and `chevronDown` open, and show amber or
+      muted notes as above;
     - an opened basket row unticks on a tap, and an opened *At home* row
       goes back to its aisle;
     - the caption is gone and the foot holds no door;
@@ -418,6 +431,7 @@ frame is drawn. The board's status line carries one clause instead.
 
 - 2026-10-25: Rulings R1–R6 and the rejections above, taken with the owner
   interactively after a critical review of the phone Shop.
+- 2026-10-25: R11, one arrow convention taken from the Library's folds.
 - 2026-10-25: R7–R10 and their rejections, from the owner's look at the
   renders. R9 settles the old open question on when the non-food row shows.
 - 2026-10-25, design: the toggle replaces the pass's band, and `To buy` is
