@@ -516,21 +516,24 @@ class _DishRow extends ConsumerWidget {
                       mealTitleText(entry),
                       // A recipe reads emphasised, a bare ingredient at
                       // ordinary weight, a meal out plain italic.
-                      style: entry.title == null
-                          ? ansiSans(size: 15, color: AnsiColors.muted)
-                          : ansiSans(
-                              size: snack || out ? 14 : 15,
-                              color: snack || out
-                                  ? AnsiColors.ink
-                                  : AnsiColors.herbDeep,
-                              weight: snack || out
-                                  ? FontWeight.w400
-                                  : FontWeight.w600,
-                            ).copyWith(
-                              fontStyle: out
-                                  ? FontStyle.italic
-                                  : FontStyle.normal,
-                            ),
+                      style: mealTitleStyleHere(
+                        entry.title == null
+                            ? ansiSans(size: 15, color: AnsiColors.muted)
+                            : ansiSans(
+                                size: snack || out ? 14 : 15,
+                                color: snack || out
+                                    ? AnsiColors.ink
+                                    : AnsiColors.herbDeep,
+                                weight: snack || out
+                                    ? FontWeight.w400
+                                    : FontWeight.w600,
+                              ).copyWith(
+                                fontStyle: out
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                              ),
+                        hadInstead: hadInsteadHere(ref, entry),
+                      ),
                     ),
                   ),
                 ),

@@ -111,7 +111,11 @@ class SqlitePlanningRepository implements PlanningRepository {
           // Oldest wins, as for ticks: rows come in creation order.
           (had[insteadOf] ??= {}).putIfAbsent(
             m,
-            () => entry.copyWith(insteadOf: insteadOf),
+            // A substitute's own time, once its member gave one.
+            () => entry.copyWith(
+              insteadOf: insteadOf,
+              eatenAt: eaten[entry.id] ?? const {},
+            ),
           );
         }
       }

@@ -260,6 +260,60 @@ void main() {
     });
   });
 
+  group('defaultEatenAt', () {
+    final thursday = DateTime(2026, 8, 27);
+
+    test('a tick on the meal’s day is the moment of the tick', () {
+      final now = DateTime(2026, 8, 27, 19, 42, 10);
+      expect(defaultEatenAt(mealDay: thursday, now: now), now);
+    });
+
+    test('a later tick keeps the meal’s day at the tick’s clock', () {
+      expect(
+        defaultEatenAt(mealDay: thursday, now: DateTime(2026, 8, 29, 9, 15)),
+        DateTime(2026, 8, 27, 9, 15),
+      );
+    });
+  });
+
+  group('PlanEntry.hadAt', () {
+    final thursday = DateTime(2026, 8, 27);
+    PlanEntry planned({Map<String, DateTime> eatenAt = const {}}) => PlanEntry(
+      id: 'e1',
+      dayOfWeek: 3,
+      mealSlot: 'Dinner',
+      eaterIds: const ['m1', 'm2'],
+      had: {
+        'm1': PlanEntry(
+          id: 's1',
+          dayOfWeek: 3,
+          mealSlot: 'Dinner',
+          label: 'Pizza',
+          eaterIds: const ['m1'],
+          insteadOf: 'e1',
+          eatenAt: eatenAt,
+          createdAt: DateTime(2026, 8, 28, 8, 30),
+        ),
+      },
+    );
+
+    test('null for someone who had nothing else', () {
+      expect(planned().hadAt('m2', mealDay: thursday), isNull);
+    });
+
+    test('when it was said, kept on the meal’s day', () {
+      expect(
+        planned().hadAt('m1', mealDay: thursday),
+        DateTime(2026, 8, 27, 8, 30),
+      );
+    });
+
+    test('the time they gave, once they give one', () {
+      final at = DateTime(2026, 8, 27, 20, 10);
+      expect(planned(eatenAt: {'m1': at}).hadAt('m1', mealDay: thursday), at);
+    });
+  });
+
   group('formatWeekOf', () {
     test('renders the Monday as "Week of Mon D"', () {
       expect(formatWeekOf(DateTime.utc(2026, 8, 24)), 'Week of Aug 24');

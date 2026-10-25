@@ -168,7 +168,8 @@ abstract class PlanEntry with _$PlanEntry {
     /// member ate.
     @Default(<String, PlanEntry>{}) Map<String, PlanEntry> had,
 
-    /// When the row was written. A substitute's eaten time is read from it.
+    /// When the row was written. A substitute without a time of its own in
+    /// [eatenAt] was eaten when it was said ([hadAt]).
     DateTime? createdAt,
   }) = _PlanEntry;
 
@@ -200,11 +201,31 @@ abstract class PlanEntry with _$PlanEntry {
             if (eatenAt.containsKey(id)) id,
         };
 
+  /// When [memberId] had what they had instead of this meal, which falls on
+  /// [mealDay]: the time they gave, else when they said it, kept on the
+  /// meal's day as a tick is. Null when they had nothing else.
+  DateTime? hadAt(String memberId, {required DateTime mealDay}) {
+    final instead = had[memberId];
+    if (instead == null) return null;
+    return instead.eatenAt[memberId] ??
+        defaultEatenAt(mealDay: mealDay, now: instead.createdAt ?? mealDay);
+  }
+
   /// The local calendar day this meal falls on in the week beginning
   /// [weekStart].
   DateTime dateIn(DateTime weekStart) =>
       DateTime(weekStart.year, weekStart.month, weekStart.day + dayOfWeek);
 }
+
+/// When something said at [now] to be eaten, for a meal on [mealDay], was
+/// eaten: now, on the meal's day; otherwise the meal's day at now's clock
+/// time, so a late tick never lands on the wrong day.
+DateTime defaultEatenAt({required DateTime mealDay, required DateTime now}) =>
+    now.year == mealDay.year &&
+        now.month == mealDay.month &&
+        now.day == mealDay.day
+    ? now
+    : DateTime(mealDay.year, mealDay.month, mealDay.day, now.hour, now.minute);
 
 /// What a member had instead of a planned meal: one of the three kinds a meal
 /// can be, said for that member alone.

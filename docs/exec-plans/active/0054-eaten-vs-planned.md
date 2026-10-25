@@ -29,14 +29,21 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
 - **A tick is on your own avatar.** The row is today's row — title,
   avatars, `−` — unchanged. A ticked avatar shows a tick in place of its
   initial, in the member's colour; a person who had something else shows a
-  swap there, and only on their own phone does a line under the title name what
-  (`Pizza with work`). Another person's avatar shows a tick or nothing.
+  swap there, and only on their own phone is the title crossed out and a
+  line under it names what (`Pizza with work`). The strike is a cue to that
+  person that they did not eat it, not a claim that it was never cooked —
+  Cook and Shop say what was. Another person's avatar shows a tick or
+  nothing, and their phone shows the title plain.
 - **You can only tick yourself.** No phone sets another member's tick, and
   the server refuses it (RLS on `auth.uid()`), not only the UI.
 - **The tick lives in today's meal sheet.** The avatars already open the
   meal editor (slot · who's eating · portions · ingredients). It is kept as
-  it is, with **one block on top**: an *I ate this* switch and, while that is
-  off, *Had something else ›*. The block appears from the meal's own day on;
+  it is, with **one block on top**: one question with two answers, **✓ Ate
+  this** and **⇄ Something else**. Once answered, the block is one line
+  saying which — `✓ Ate this`, or the plan crossed out and what was had
+  (`~~Ragù~~ → Pizza with work`) — with its time and a `×` back to the
+  question; tapping what was had changes it. The block appears from the
+  meal's own day on;
   a future meal's sheet is unchanged. The sheet says nothing about anyone
   else's eating.
 - **Two taps, not one.** Your own avatar is not a separate one-tap toggle: at
@@ -63,8 +70,10 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
   not resolve is not sent and is named under the switch (`Office lunch has
   no macros · add ›`) — invariant 3; nothing is sent as a zero.
 - **A tick's time is when you ticked, and you can change it.** No meal times
-  to configure. With *I ate this* on, the sheet shows the time beside it
-  (`19:42 ›`); tapping it opens a date-and-time picker. A tick made after the
+  to configure. Either answer shows its time (`19:42 ›`); tapping it opens a
+  date-and-time picker. Something else is timed when it was said until it is
+  changed, and a changed time is a `meal_eaten` row on the substitute. A
+  tick made after the
   meal's day defaults to that day at the tick's clock time, so a late tick
   never lands on the wrong day. Health Connect gets this time.
 - **Your share is your usual portion.** The same rule the lens already uses
@@ -127,6 +136,12 @@ Each ruling replaced an earlier proposal; the rejected ones are listed under
   evening reminder.** Ticks are already the right moment; settings were
   too much choice.
 - **A recipe / ingredient / eaten-out switch in the instead picker.**
+- **An *I ate this* switch with *Had something else ›* under it.** Two
+  controls for one question: it read as "say what, then tick", but ticking
+  took the substitute back, and a said substitute left the switch off as if
+  nothing was eaten.
+- **Crossing out the sheet's title.** The fields under it still edit the
+  planned meal; the eaten block crosses the plan out where it is answered.
 
 ## Approach
 
@@ -169,7 +184,7 @@ Phases land in order; each is shippable alone.
 6. **One choke point excludes substitutes** from the cook plan, the shop and
    the cost (`instead_of is null` where the week's entries are read for
    derivation), pinned by a test per derivation. Eaten macros include them.
-7. The sheet's *Had something else ›* opens the planning picker with the
+7. The sheet's *Something else* opens the planning picker with the
    eaten-out row always offered (today it appears only when nothing matches —
    see *Open questions*). Setting a substitute clears that member's tick, and
    ticking clears the substitute.
@@ -373,6 +388,16 @@ Append-only.
   Later the same day: the meals were in Health Connect all along; it was
   Fitbit that did not show them. Whether Fitbit reads nutrition from Health
   Connect is Fitbit's to say (its read permissions there), not Ansi's.
+
+- 2026-10-25 — **The eaten block is one question, then its answer**
+  (owner: the switch with *Had something else* under it read as "set it,
+  then tick"). Two equal answers, *Ate this* and *Something else*; once
+  given, one line with its time and a `×`. Something else gets a time too,
+  so a changed one is stored as the substitute's own `meal_eaten` row (no
+  migration). And on the owner's phone the planned title is crossed out when
+  they had something else — a personal cue, since Cook and Shop already say
+  what was cooked and bought. The cheaper fix (rename the switch, hide it
+  once something else is said) was declined.
 
 ## Phase 4 — the phone checklist
 

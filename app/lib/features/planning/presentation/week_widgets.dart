@@ -304,8 +304,27 @@ class EatersTarget extends ConsumerWidget {
   }
 }
 
-/// What the person on this phone had instead of a meal, under its title:
-/// `⇄ Pizza with work`. Nobody else's is shown.
+/// Whether the person on this phone had something else instead of [entry].
+bool hadInsteadHere(WidgetRef ref, PlanEntry entry) {
+  final me = ref.watch(currentMemberIdProvider);
+  return me != null && entry.had.containsKey(me);
+}
+
+/// A planned meal's title [style], crossed out where [hadInsteadHere]: a cue
+/// to the person on this phone that they did not eat it, not a claim that it
+/// was never cooked — Cook and Shop still say what was.
+TextStyle mealTitleStyleHere(TextStyle style, {required bool hadInstead}) =>
+    hadInstead
+    ? style.copyWith(
+        color: AnsiColors.muted,
+        decoration: TextDecoration.lineThrough,
+        decorationColor: AnsiColors.muted,
+      )
+    : style;
+
+/// What the person on this phone had instead of a meal, under its crossed-out
+/// title: `⇄ Pizza with work`, the row's stronger line. Nobody else's is
+/// shown.
 class HadInsteadLine extends ConsumerWidget {
   const HadInsteadLine({required this.entry, this.size = 11.5, super.key});
 
@@ -331,7 +350,7 @@ class HadInsteadLine extends ConsumerWidget {
             child: Text(
               mealTitleText(had),
               overflow: TextOverflow.ellipsis,
-              style: ansiSans(size: size, color: AnsiColors.cautionInk),
+              style: ansiSans(size: size + 1, weight: FontWeight.w500),
             ),
           ),
         ],

@@ -759,7 +759,9 @@ go. There is no re-chip — tokenization happens only inside the import call.
   listing it, so macros, cost, the picker, Ask and a copy all pass over it,
   and the cook plan and the shop read `instead_of is null`. It counts only in
   what its member ate. A member either ate the meal or had something else:
-  setting one takes back the other.
+  setting one takes back the other. A substitute is timed by its
+  `created_at` on the meal's day until its member changes the time, which
+  writes a `meal_eaten` row on the substitute itself.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
@@ -1371,21 +1373,25 @@ say what each tap means without one.
   unchanged; a member who said they ate the meal has a tick in place of their
   initial, in their own colour, visible to the whole household. The avatars still
   open the meal sheet, which — from the meal's own day on, for the member
-  signed in on this phone, on a meal they are eating — leads with one row:
-  **I ate this**, a switch, and once on the time (`19:42 ›`, or `Thu 19:42`
-  on another day) that opens a date-and-time wheel. A tick is when it was
+  signed in on this phone, on a meal they are eating — leads with one
+  question and two answers: **✓ Ate this** and **⇄ Something else**. Once
+  answered it is one line saying which, with its time (`19:42 ›`, or `Thu
+  19:42` on another day) that opens a date-and-time wheel, and a `×` back to
+  the question. A tick is when it was
   made; one made after the meal's day defaults to that day at the tick's
   clock time. Nobody can tick for anyone else. A future meal's sheet is
   unchanged, and so is the sheet of a phone that does not yet know who it is
   (a token from before the claim, until it refreshes).
-- **Had something else** sits under *I ate this* while it is off: the
-  planning picker (recipes, bare items and a meal eaten out in one search),
-  then a bare item's amount or a meal out's optional figures. Here the
-  typed words can always be noted as they are, whatever they also match. Once said, the
-  row reads `Instead: Pizza with work ›` with a `×` to take it back; on the
-  week, a swap in place of that person's initial and `⇄ Pizza with work`
-  under the title — **on their own phone only**. Anyone else sees a tick or
-  nothing.
+- **Something else** opens the planning picker (recipes, bare items and a
+  meal eaten out in one search), then a bare item's amount or a meal out's
+  optional figures. Here the typed words can always be noted as they are,
+  whatever they also match. Once said, the line reads `~~Ragù~~ → Pizza with
+  work`, timed when it was said until changed, with a `×` to take it back;
+  tapping it picks again. On the week, a swap in place of that person's
+  initial, the title crossed out and `⇄ Pizza with work` under it — **on
+  their own phone only**. The strike says *you* did not eat it; Cook and
+  Shop still say what was cooked and bought. Anyone else sees a tick or
+  nothing, and a plain title.
 - **What was eaten sits above what was planned.** Once anybody ticks a meal,
   the week band (and the wide foot) leads with `EATEN · 2 940 kcal · 3
   meals` under the same lens, the sum of the ticked people's shares; a meal
@@ -1605,7 +1611,7 @@ the list*.
   removed, as the card says. For a meal today or earlier, *I'm eating out* or
   *I had something else* says what **they** had instead (plan 0054): the
   plan is left as it is, the card reads *Simon had Pizza (eaten out)
-  instead*, and Confirm writes it as the Week's own *Had something else*
+  instead*, and Confirm writes it as the Week's own *Something else*
   does. Ansi never says it for another member. An ingredient meal
   or a top-up carries the amount said, else the ingredient's usual one — the
   same the Week's and the Shop's sheets open on — and the card says which

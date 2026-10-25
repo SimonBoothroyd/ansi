@@ -1127,6 +1127,18 @@ void main() {
       expect(meal.eatenBy, {'m1'});
     });
 
+    test('its time is moved like a tick, on the substitute, and leaves the '
+        'planned meal unticked', () async {
+      final id = await plannedDinner();
+      await repo.setInstead(id, memberId: 'm1', meal: const InsteadOut('A'));
+      var meal = (await theWeek()).entries.single;
+      await repo.setMealEaten(meal.had['m1']!.id, memberId: 'm1', eatenAt: at);
+      meal = (await theWeek()).entries.single;
+      expect(meal.had['m1']!.eatenAt, {'m1': at.toLocal()});
+      expect(meal.eatenAt, isEmpty);
+      expect(meal.had.keys, ['m1']);
+    });
+
     test('one member\u2019s answer leaves the other\u2019s alone', () async {
       final id = await plannedDinner();
       await repo.setInstead(id, memberId: 'm1', meal: const InsteadOut('A'));

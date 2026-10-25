@@ -131,16 +131,10 @@ String healthMealId(String entryId, String memberId) =>
     }
     final had = entry.had[memberId];
     if (had != null) {
-      final said = had.createdAt ?? day;
       add(
         had,
         planned: entry,
-        at:
-            said.year == day.year &&
-                said.month == day.month &&
-                said.day == day.day
-            ? said
-            : DateTime(day.year, day.month, day.day, said.hour, said.minute),
+        at: entry.hadAt(memberId, mealDay: day)!,
       );
     }
   }

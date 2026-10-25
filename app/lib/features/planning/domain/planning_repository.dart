@@ -94,6 +94,9 @@ abstract interface class PlanningRepository {
   /// not. A second call moves the time. Only the member signed in on this
   /// phone may be named: the server refuses anyone else (0055). A tick takes
   /// back whatever they had instead.
+  ///
+  /// Named with a substitute's own id (a [PlanEntry.had] value), it sets when
+  /// they had it instead ([PlanEntry.hadAt]).
   Future<void> setMealEaten(
     String entryId, {
     required String memberId,

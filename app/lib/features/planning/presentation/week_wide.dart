@@ -456,22 +456,28 @@ class _PaneMeal extends ConsumerWidget {
                 child: Text(
                   mealTitleText(entry),
                   // No truncation in this pane: a long name wraps.
-                  style: entry.title == null
-                      ? ansiSerif(size: AnsiType.row, color: AnsiColors.muted)
-                      // A recipe reads emphasised, a snack plainer, a meal out
-                      // plain italic.
-                      : out
-                      ? ansiSerif(
-                          size: AnsiType.row,
-                          weight: FontWeight.w400,
-                        ).copyWith(fontStyle: FontStyle.italic)
-                      : snack
-                      ? ansiSerif(
-                          size: AnsiType.row,
-                          weight: FontWeight.w400,
-                          color: AnsiColors.muted,
-                        )
-                      : ansiSerif(size: AnsiType.row, weight: FontWeight.w500),
+                  style: mealTitleStyleHere(
+                    entry.title == null
+                        ? ansiSerif(size: AnsiType.row, color: AnsiColors.muted)
+                        // A recipe reads emphasised, a snack plainer, a meal
+                        // out plain italic.
+                        : out
+                        ? ansiSerif(
+                            size: AnsiType.row,
+                            weight: FontWeight.w400,
+                          ).copyWith(fontStyle: FontStyle.italic)
+                        : snack
+                        ? ansiSerif(
+                            size: AnsiType.row,
+                            weight: FontWeight.w400,
+                            color: AnsiColors.muted,
+                          )
+                        : ansiSerif(
+                            size: AnsiType.row,
+                            weight: FontWeight.w500,
+                          ),
+                    hadInstead: hadInsteadHere(ref, entry),
+                  ),
                 ),
               ),
             ),

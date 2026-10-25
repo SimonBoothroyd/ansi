@@ -1484,16 +1484,17 @@ void main() {
       expect(find.byKey(const ValueKey('ate-m1')), findsNothing);
     });
 
-    testWidgets('on the meal\u2019s day the sheet offers I ate this, and a '
-        'tick is written for this phone\u2019s member at the time', (
+    testWidgets('on the meal\u2019s day the sheet asks one question, and Ate '
+        'this is written for this phone\u2019s member at the time', (
       tester,
     ) async {
       filterForuiSemanticsAssertions();
       final planning = await pumpTickable(tester, week: _plannedWeek());
       await openSheet(tester);
-      expect(find.text('I ate this'), findsOneWidget);
+      expect(find.text('Ate this'), findsOneWidget);
+      expect(find.text('Something else'), findsOneWidget);
 
-      await tester.tap(find.byType(FSwitch));
+      await tester.tap(find.text('Ate this'));
       await tester.pumpAndSettle();
       expect(planning.eatenWrites, [('e1', 'm1', thursdayEvening)]);
     });
@@ -1508,7 +1509,7 @@ void main() {
         now: DateTime(2026, 8, 29, 9, 15),
       );
       await openSheet(tester);
-      await tester.tap(find.byType(FSwitch));
+      await tester.tap(find.text('Ate this'));
       await tester.pumpAndSettle();
       expect(planning.eatenWrites.single.$3, DateTime(2026, 8, 27, 9, 15));
     });
@@ -1520,7 +1521,7 @@ void main() {
         now: DateTime(2026, 8, 26, 12),
       );
       await openSheet(tester);
-      expect(find.text('I ate this'), findsNothing);
+      expect(find.text('Ate this'), findsNothing);
       // The rest of the sheet is as it was.
       expect(
         find.textContaining(RegExp('who.s eating', caseSensitive: false)),
@@ -1532,18 +1533,17 @@ void main() {
         'while this phone does not know who it is', (tester) async {
       await pumpTickable(tester, week: _plannedWeek(eaters: const ['m2']));
       await openSheet(tester);
-      expect(find.text('I ate this'), findsNothing);
+      expect(find.text('Ate this'), findsNothing);
     });
 
     testWidgets('an unknown member sees no tick either', (tester) async {
       await pumpTickable(tester, week: _plannedWeek(), me: null);
       await openSheet(tester);
-      expect(find.text('I ate this'), findsNothing);
+      expect(find.text('Ate this'), findsNothing);
     });
 
-    testWidgets('a ticked meal shows its time, and switching off unticks', (
-      tester,
-    ) async {
+    testWidgets('a ticked meal is one line with its time, and the cross '
+        'unticks', (tester) async {
       filterForuiSemanticsAssertions();
       final week = _plannedWeek();
       final planning = await pumpTickable(
@@ -1556,7 +1556,9 @@ void main() {
       );
       await openSheet(tester);
       expect(find.text('19:42 \u203a'), findsOneWidget);
-      await tester.tap(find.byType(FSwitch));
+      // The question is answered, so it is not asked again.
+      expect(find.text('Something else'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Not eaten'));
       await tester.pumpAndSettle();
       expect(planning.eatenWrites, [('e1', 'm1', null)]);
     });
@@ -1578,6 +1580,7 @@ void main() {
                 label: 'Pizza with work',
                 eaterIds: [had],
                 insteadOf: 'e1',
+                createdAt: DateTime(2026, 8, 27, 20, 5),
               ),
             },
           ),
@@ -1598,35 +1601,51 @@ void main() {
       return planning;
     }
 
-    testWidgets('mine shows on my avatar and under the title', (tester) async {
+    TextDecoration? titleDecoration(WidgetTester tester) => tester
+        .widget<Text>(find.text('Weeknight Chicken Curry'))
+        .style
+        ?.decoration;
+
+    testWidgets('mine shows on my avatar and under the title, which is '
+        'crossed out', (tester) async {
       await pump(tester, swappedWeek());
       expect(find.byKey(const ValueKey('swapped-m1')), findsOneWidget);
       expect(find.text('Pizza with work'), findsOneWidget);
+      expect(titleDecoration(tester), TextDecoration.lineThrough);
     });
 
     testWidgets('a partner\u2019s shows nothing at all', (tester) async {
       await pump(tester, swappedWeek(had: 'm2'));
       expect(find.byKey(const ValueKey('swapped-m2')), findsNothing);
       expect(find.text('Pizza with work'), findsNothing);
+      expect(titleDecoration(tester), isNot(TextDecoration.lineThrough));
     });
 
-    testWidgets('the sheet offers it while unticked, and the cross takes it '
-        'back', (tester) async {
+    testWidgets('the sheet says it as one line, the plan crossed out, with '
+        'its time, and the cross takes it back', (tester) async {
       filterForuiSemanticsAssertions();
       final planning = await pump(tester, swappedWeek());
       await tester.tap(find.bySemanticsLabel(RegExp('^Who is eating')));
       await tester.pumpAndSettle();
-      expect(find.text('Instead: Pizza with work'), findsOneWidget);
+      expect(
+        find.text(
+          'Weeknight Chicken Curry  \u2192  Pizza with work',
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('20:05 \u203a'), findsOneWidget);
+      expect(find.text('Ate this'), findsNothing);
       await tester.tap(find.bySemanticsLabel('Had nothing else'));
       await tester.pumpAndSettle();
       expect(planning.insteadWrites, [('e1', 'm1', null)]);
     });
 
-    testWidgets('a meal not ticked offers Had something else', (tester) async {
+    testWidgets('a meal not answered offers Something else', (tester) async {
       await pump(tester, _plannedWeek());
       await tester.tap(find.bySemanticsLabel(RegExp('^Who is eating')));
       await tester.pumpAndSettle();
-      expect(find.text('Had something else'), findsOneWidget);
+      expect(find.text('Something else'), findsOneWidget);
     });
   });
 }

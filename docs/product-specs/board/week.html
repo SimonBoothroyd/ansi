@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble</p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -113,25 +113,27 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Who ate it</b> · a tick in place of the initial of whoever said they ate it, and on Jun&rsquo;s own phone a swap in place of his and what he had instead; the avatars open the sheet, which from the meal&rsquo;s day on leads with <b>I ate this</b> or <b>Had something else</b> for the person on this phone</p>
+        <p class="frame-name"><b>Who ate it</b> · a tick in place of the initial of whoever said they ate it, and on Jun&rsquo;s own phone a swap in place of his and what he had instead; the avatars open the sheet, which from the meal&rsquo;s day on asks the person on this phone one question &mdash; <b>Ate this</b> or <b>Something else</b> &mdash; and once answered says which in one line</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="day2"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">20 Oct</span></div>
                 <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Weeknight Chicken Curry</span><span class="cookmark from">from Monday’s batch</span></div><span class="avs"><span class="av a ate">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
                 <div class="srow"><span class="slab">Lunch</span><span class="sname">Miso Salmon Rice Bowl</span><span class="avs"><span class="av j ate">J</span></span><span class="rmv">−</span></div>
             </div>
             <div class="day2"><div class="day2-head"><div class="day2-name">Wednesday</div><span class="day2-date">21 Oct</span></div>
-                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Slow-Cooker Beef Ragù</span><span class="had-line">⇄ Pizza with work</span></div><span class="avs"><span class="av a ate">A</span><span class="av j swapped">J</span></span><span class="rmv">−</span></div>
+                <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname struck">Slow-Cooker Beef Ragù</span><span class="had-line">⇄ Pizza with work</span></div><span class="avs"><span class="av a ate">A</span><span class="av j swapped">J</span></span><span class="rmv">−</span></div>
             </div>
             <div class="sheet" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
                 <div style="display:flex;align-items:baseline;gap:10px;margin:0 20px 4px"><div class="c-h" style="margin:0;flex:1">Weeknight Chicken Curry</div><span style="color:var(--herb-deep);font-size:13px">Close</span></div>
                 <p class="conv-note" style="margin-top:2px">Tuesday · dinner</p>
-                <div class="eaten-row">I ate this<span class="when">19:42 ›</span><span class="sw"></span></div>
-                <div class="eaten-row off">Had something else<span class="when">›</span></div>
+                <div class="eaten-ask"><span>✓ Ate this</span><span>⇄ Something else</span></div>
+                <p class="conv-note" style="margin:10px 20px 0">answered, the same block is one line:</p>
+                <div class="eaten-row"><span class="mark">✓</span>Ate this<span class="when">19:42 ›</span><span class="x">×</span></div>
+                <div class="eaten-row"><span class="mark swap">⇄</span><span><span class="was">Weeknight Chicken Curry</span> → Pizza with work</span><span class="when">20:05 ›</span><span class="x">×</span></div>
                 <p class="clabel">Slot</p>
                 <div class="slotchip">Dinner<span class="caret" style="margin-left:auto">▾</span></div>
             </div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">Only the person signed in on the phone, only on a meal they are eating, and only from its day on. The time opens a date-and-time wheel. The plan underneath is unchanged. <b>Had something else</b> opens the planning picker; what was had is never cooked or bought, and once said the row reads <i>Instead: …</i> with a × to take it back. This frame is Jun&rsquo;s phone; Ada&rsquo;s would show his avatar plain.</p>
+        <p class="conv-note" style="margin:10px 4px 0">Only the person signed in on the phone, only on a meal they are eating, and only from its day on. Either answer has a time, which opens a date-and-time wheel, and a × back to the question. The plan underneath is unchanged. <b>Something else</b> opens the planning picker; what was had is never cooked or bought, and once said the line crosses the plan out and names it &mdash; tapping it picks again. On the week, Jun&rsquo;s phone crosses the Ragù out: he did not eat it, though Cook still says it was cooked. This frame is Jun&rsquo;s phone; Ada&rsquo;s would show his avatar and the title plain.</p>
         <p class="conv-note" style="margin:6px 4px 0">The week band leads with <span class="eaten-line">EATEN · 2&#8201;940 kcal · 3 meals</span> once anybody ticks, under the same lens; the day lines stay the plan.</p>
     </div>
 

@@ -103,6 +103,24 @@ void main() {
       expect(meal.macros.kcal, closeTo(1150 * 0.75, 1e-9));
     });
 
+    test('what I had instead goes at the time I gave it, once I give one', () {
+      final pizza = PlanEntry(
+        id: 's1',
+        dayOfWeek: 2,
+        mealSlot: 'Dinner',
+        label: 'Pizza with work',
+        macros: const Macros(kcal: 1150, protein: 44, carb: 130, fat: 46),
+        eaterIds: const ['jun'],
+        insteadOf: 'e1',
+        eatenAt: {'jun': DateTime(2026, 10, 21, 13, 5)},
+        createdAt: DateTime(2026, 10, 22, 9, 15),
+      );
+      final meal = _for([
+        _dinner(had: {'jun': pizza}),
+      ]).meals.single;
+      expect(meal.at, DateTime(2026, 10, 21, 13, 5));
+    });
+
     test('a meal whose macros do not resolve is named, never sent', () {
       final found = _for([
         _dinner(recipeId: 'stub', eatenAt: {'jun': _wednesdayEvening}),
