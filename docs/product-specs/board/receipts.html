@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi &middot; the board</a></p>
     <h1 class="view-title">Receipts</h1>
-    <p class="view-status">built &middot; matches code 2026-09-20 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
+    <p class="view-status">built &middot; matches code 2026-09-20 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a> &middot; scan: <span class="prop">proposed</span> 2026-10-25 &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a></p>
     <p class="view-blurb">A photographed receipt reads through the recipe import&rsquo;s own pipeline, is confirmed line by line, and is kept whole &mdash; so what a week cost reads off the receipts themselves, and every matched line with a pack is a price. The scan door is on <a href="./cook-shop.html">the Shop&rsquo;s foot</a>; this ledger&rsquo;s is the receipt action in <a href="./cook-shop.html">the Shop&rsquo;s header</a>, drawn once the household has kept one. The figure it produces is <a href="./week.html">the band&rsquo;s second line</a>. <b>Nothing is written until Save.</b></p>
 </header>
 
@@ -218,6 +218,36 @@
         <p class="conv-note" style="margin:10px 4px 0"><b>The week is the unit, because the shop is.</b> A receipt files under the week its date falls in — the household’s own week start, so a Sunday shop sits inside the week it feeds. A month line at the top sums the receipts by store, and each week foots with what it cost; only the week the app is currently costing adds <i>≈ $71 to cook</i>, because no past week can be re-costed honestly. <b>A receipt opens on the review it was confirmed on</b>, titled <i>Receipt</i> — so a wrong store, date, match, pack or figure is put right where it was first said. Save reads <i>Save changes</i>, stays shut until something has moved, and <i>delete this receipt</i> sits under it behind a question. The ledger holds shops and nothing else: a price typed on an ingredient page is that row’s <i>base price</i> and never a receipt, so it adds nothing to a week’s <i>spent</i>. (A <code>manual</code> one-liner an older build wrote reads here as an ordinary receipt.)</p>
     </div>
 
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The ledger scans</b> &middot; <i>Scan a receipt</i> is the ledger&rsquo;s main action, at the top, and the Shop&rsquo;s header icon is how you get here, with or without a receipt kept</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots"></span></div>
+            <div class="btn primary scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Scan a receipt</div>
+            <div class="wkfoot" style="margin-top:10px">
+                <div class="wf-h"><span class="wf-t">September · so far</span></div>
+                <div class="dm" style="display:block"><b>$412.16</b> spent &middot; 5 receipts &middot; TJ’s $301.74 &middot; Whole Foods $110.42</div>
+            </div>
+            <p class="list-h">Week of 14 Sep</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$84.12</span></div><div class="item-sub">Sun 13 Sep · 24 lines · 2 not food</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Whole Foods</span><span class="item-total">$23.40</span></div><div class="item-sub">Wed 16 Sep · 6 lines</div></div>
+            <div class="daymac" style="margin:0 20px 8px"><span class="dm"><b>$107.52</b> spent &middot; ≈ $71 to cook</span><div class="scope" style="display:block;text-align:right;margin-top:3px">2 receipts</div></div>
+            <p class="list-h">Week of 7 Sep</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$91.06</span></div><div class="item-sub">Sun 6 Sep · 27 lines · 1 not food</div></div>
+            <div class="daymac" style="margin:0 20px 8px"><span class="dm"><b>$91.06</b> spent</span><div class="scope" style="display:block;text-align:right;margin-top:3px">1 receipt</div></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The scan lives with what it makes.</b> The action opens the same camera and checklist as before, <code>/receipts/review</code>, and Save comes back here, where the new receipt has just filed under its week. In a browser the line under the action says what it can do there: shoot the receipt on the phone, review it anywhere. The Shop keeps one receipts icon in its header and no door at its foot</p>
+    </div>
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The ledger, before the first shop</b> &middot; the same action over one muted line, in place of <i>scan one from the Shop</i></p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots"></span></div>
+            <div class="btn primary scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Scan a receipt</div>
+            <p class="conv-note" style="margin:12px 20px 0">no receipts yet — a scanned shop files here by week; a price typed on an ingredient stays on the ingredient</p>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0">The empty ledger is now reachable from the first day, because the Shop&rsquo;s receipts icon no longer waits for a receipt. So the empty state is where the feature is first met. It offers the one thing that fills it, and says where a typed price goes instead</p>
+    </div>
 
 </div>
 

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it · already got: matches code 2026-10-25 · <a href="../../exec-plans/active/0055-already-got-it.md">plan 0055</a> · wide: matches code 2026-10-25, the pane holds the amount</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it · already got: matches code 2026-10-25 · <a href="../../exec-plans/active/0055-already-got-it.md">plan 0055</a> · wide: matches code 2026-10-25, the pane holds the amount · refresh: <span class="prop">proposed</span> 2026-10-25 · <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> · wide: same, in the 640 measure beside the pane</p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -196,6 +196,123 @@
         </div>
 
 
+
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The walk, refreshed</b> · what you buy leads each row and the need sits under it; where it came from opens from the amount. The top holds the toggle and the field, the sections fold to one counted line each, and the foot holds no door</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask" style="visibility:hidden;margin:0 6px 0 0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></div>
+                <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $51 at the cheapest</span></div>
+                <div class="seg sh-tog"><span class="segopt on">To buy</span><span class="segopt">At home?</span></div>
+                <div class="sh-add"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Add to the list</span></div></div>
+                <div class="sl-group">Produce</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">3 lime, whole</span></div>
+                    <div class="item-sub"><span class="nd">need 2½</span> · 167.5 g · $1.05 at Aldi</div></div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow Onion</span><span class="item-total">2 onion, medium</span></div>
+                    <div class="item-sub"><span class="nd">5 at home</span> · 220 g · $0.72 at Aldi</div></div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Broccoli</span><span class="item-total">1 head</span></div>
+                    <div class="item-sub">350 g · $1.40 at TJ’s, May</div></div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flat-Leaf Parsley</span><span class="item-total">1 bunch</span></div>
+                    <div class="item-sub">30 g · $0.99 at TJ’s</div></div>
+                <div class="sl-group">Baking</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total amt open">500 g</span></div>
+                    <div class="item-sub">$0.95 at Aldi</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line manual edit"><span class="src">＋ manual top-up</span><span>50 g<span class="pen">✎</span></span></div></div>
+                </div>
+                <div class="sl-group">Dairy</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Halloumi</span><span class="item-total">250 g</span></div>
+                    <div class="item-sub">$4.10 at Aldi</div></div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Greek Yoghurt</span><span class="item-total">500 g</span></div>
+                    <div class="item-sub">$2.20 at Whole Foods</div></div>
+                <div class="sl-group fold" style="margin-top:14px">In the basket · 12<span class="cv">›</span></div>
+                <div class="sl-group fold">At home · 3<span class="cv">›</span></div>
+                <div class="sl-group fold warn">⚑ 3 notes from the plan<span class="cv">›</span></div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>The row is one line, or two.</b> A row that rounds leads with the whole count bought, <span style="font-family:'IBM Plex Mono',monospace">3 lime, whole</span>, and its sub-line opens with the need, muted: <span style="font-family:'IBM Plex Mono',monospace">need 2½ · 167.5 g</span>. A count read back from a weight keeps its <b>≈</b> on the need (<span style="font-family:'IBM Plex Mono',monospace">need ≈ 2¼ · 600 g</span>), because what you buy is a whole number. A row that does not round reads as it does today, and a part-have still opens its sub-line with <span style="font-family:'IBM Plex Mono',monospace">5 at home</span></p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>The row ticks; the amount opens.</b> The amount and its sub-line are one 44 px target. A tap there opens the breakdown in place, with the amount in the herb wash while it is open: the recipes, the sessions, and a manual top-up as its own full-height row whose tap opens the top-up sheet. A tap anywhere else on the row ticks it, as before. A ticked row folds its breakdown away</p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>The price is the cheapest seen in 90 days, with its shop</b>, read off one receipt line, so it prints plain and to the cent: <span style="font-family:'IBM Plex Mono',monospace">$0.95 at Aldi</span>. A row with no receipt that recent reads the price the rest of the app reads, with its month (<span style="font-family:'IBM Plex Mono',monospace">$1.40 at TJ’s, May</span>; a base price reads <span style="font-family:'IBM Plex Mono',monospace">· base price, Sep</span>). The sync line sums the same figures, <span style="font-family:'IBM Plex Mono',monospace">≈ $51 at the cheapest</span>, and becomes the floor <span style="font-family:'IBM Plex Mono',monospace">at least … · 1 row unpriced</span> when a row has none. The recipe page, the Week and Ask keep the latest price</p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>Three folded lines close the walk.</b> The basket and <i>At home</i> each fold to their counted label, and a tap opens the section in place with its rows as they are now. The echo rows fold behind <i>N notes from the plan</i>: amber with ⚑ while any note is a defect (an unresolved component, a retired ingredient), muted when every note is an optional line. Opened, they are today’s rows, with the optional names still doors. There is no caption and no foot door: the field adds, the toggle checks, and the receipts icon scans</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Adding, from the field</b> · typing finds ingredients with the picker’s own tiers; text that matches none offers itself as a non-food item</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask" style="visibility:hidden;margin:0 6px 0 0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></div>
+                <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $51 at the cheapest</span></div>
+                <div class="seg sh-tog"><span class="segopt on">To buy</span><span class="segopt">At home?</span></div>
+                <div class="sh-add"><div class="search"><span class="mag">⌕</span><span>lim</span><span class="care"></span><span class="x">✕</span></div></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Lime</div>
+                        <span class="res-cat">Produce · on the list · 3 lime, whole</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Lime Leaves, makrut</div>
+                        <span class="res-cat">Produce · 1 measure</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="res-row">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Lime Juice</div>
+                        <span class="res-cat">Pantry · has density</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="addnew">＋ can’t find it? add "lim" as a new ingredient</div>
+                <p class="flabel" style="margin-top:18px">the same field, typing <b style="text-transform:none;letter-spacing:0;color:var(--ink)">paper towels</b></p>
+                <div class="sh-add"><div class="search"><span class="mag">⌕</span><span>paper towels</span><span class="care"></span><span class="x">✕</span></div></div>
+                <div class="res-row add-free">
+                    <div style="flex:1;min-width:0"><div class="res-nm">＋ add "paper towels"</div>
+                        <span class="res-cat">a non-food item · no amount, it just gets ticked</span></div></div>
+                <p class="dym-h">did you mean</p>
+                <div class="res-row dym">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Pepper, black</div>
+                        <span class="res-cat">Spices · has density</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="addnew">＋ can’t find it? add "paper towels" as a new ingredient</div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>One field, two things it can add.</b> While it has text, its results stand where the walk was, and clearing the field brings the walk back. A result that is already on this week’s list says so (<i>on the list · 3 lime, whole</i>), because picking it adds a top-up to that row. When nothing is spelled right, the first row is the words themselves as a non-food item, and one tap adds them with no second sheet. The new-ingredient door stays last, as in every picker. The two-mode sheet and the foot’s add door are gone</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Picking an ingredient</b> · the shared quantity sheet, opened on its usual amount, before anything is added</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask" style="visibility:hidden;margin:0 6px 0 0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></div>
+                <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $51 at the cheapest</span></div>
+                <div class="seg sh-tog"><span class="segopt on">To buy</span><span class="segopt">At home?</span></div>
+                <div class="sh-add"><div class="search"><span class="mag">⌕</span><span>lim</span><span class="care"></span><span class="x">✕</span></div></div>
+                <div class="res-row" style="opacity:.45">
+                    <div style="flex:1;min-width:0"><div class="res-nm">Lime</div>
+                        <span class="res-cat">Produce · on the list · 3 lime, whole</span></div>
+                    <span class="rplus">＋</span></div>
+                <div class="asheet">
+                    <div class="grab"></div>
+                    <p class="as-h"><span class="ts-x">&times;</span>Lime</p>
+                    <p class="list-h" style="margin:4px 0 8px">Quantity</p>
+                    <div style="display:flex;align-items:center;gap:12px"><span style="width:110px;background:var(--frame);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-family:'IBM Plex Mono',monospace;font-size:15px">1</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;color:var(--herb-deep)">lime, whole</span></div>
+                    <div class="uchips" style="margin-top:10px"><span class="uchip on">lime, whole</span><span class="uchip">piece</span><span class="uchip">g</span><span class="uchip">kg</span></div>
+                    <div class="btn primary" style="margin-top:14px">Add to list</div>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>The sheet is the one every quantity uses, unchanged</b>, opened on the ingredient’s usual amount: the last top-up of it in any week, else one of its word, else one piece. <b>Add to list</b> writes the top-up, the field clears, and the row arrives in its aisle. Lime is already on the list, so its need becomes 3½, its headline 4, and its breakdown gains a manual top-up line. Closing the sheet adds nothing and leaves the results as they were</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>At home?, from the toggle</b> · the same pass, entered and left at the top; <i>To buy</i> is Done</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask" style="visibility:hidden;margin:0 6px 0 0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="wk-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><title>Ask Ansi</title><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></div>
+                <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $48 at the cheapest</span></div>
+                <div class="seg sh-tog"><span class="segopt">To buy</span><span class="segopt on">At home?</span></div>
+                <div class="sl-group">Produce</div>
+                <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Lime</span><span class="item-total amt">2½ lime, whole</span></div></div>
+                <div class="item"><div class="item-top"><span class="box home on">⌂</span><span class="item-name">Yellow Onion</span><span class="item-total amt on">all 5</span></div></div>
+                <div class="sl-group">Baking</div>
+                <div class="item"><div class="item-top"><span class="box home on">½</span><span class="item-name">Flour</span><span class="item-total amt on">200 <span class="of">of 500 g</span></span></div></div>
+                <div class="sl-group">Pantry</div>
+                <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Coconut Milk, canned</span><span class="item-total amt">400 ml</span></div></div>
+                <div class="item"><div class="item-top"><span class="box home on">⌂</span><span class="item-name">Olive Oil</span><span class="item-total amt on">all 45 ml</span></div></div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>The toggle is the band.</b> <i>At home?</i> asks the question the band used to ask, and a tap back on <i>To buy</i> leaves the pass, as <b>Done</b> did. There is no second control for the same mode. The field hides while checking, because the pass asks only <i>do we have it</i>. Inside, nothing changes: the house is the box, a tap on the row says all of it, the amount chip opens the amount sheet, and every tap writes at once. The chip still reads the need (<i>2½ lime, whole</i>), because the pass asks what is here against what the week needs. Leaving the Shop tab puts the toggle back on <i>To buy</i></p>
+            <p class="conv-note" style="margin:6px 4px 0">The toggle is drawn while the week’s list has an ingredient row. A tap on a segment is the same tap as anywhere else, with no swipe and no long-press, and the row is still the tick</p>
+        </div>
 
         <div class="frame">
             <p class="frame-name"><b>Check what’s at home</b> · a second door at the foot, beside the top-up — the pass you make in the kitchen before you leave</p>

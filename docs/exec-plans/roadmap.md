@@ -31,6 +31,12 @@ The detail is in the plan; the landing dates are in the
    Shop list what is already at home, all of a row or an amount. On main,
    untagged; migration `0058` is not on cloud yet, and the phone check (two
    phones, one pass) is owed.
+8. [Plan 0056](./active/0056-shop-refresh.md), the Shop refresh — lead each
+   row with what you buy, fold the breakdown behind the amount, add from one
+   field at the top, a `To buy · At home?` toggle, scanning on the receipts
+   page, and the cheapest price seen in 90 days. Design only: the frames are
+   proposed on the board, five questions are open for the owner, and nothing
+   is built.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
