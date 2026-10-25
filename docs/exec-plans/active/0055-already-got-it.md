@@ -79,10 +79,11 @@ Phases land in order, and each one can ship alone.
 
 ### Phase 0: the board
 
-1. The four frames are drawn as `proposed` in `cook-shop.html`. Add the wide
-   answer (board rule 6). The likely answer is *same, in the 640 measure,
-   with the provenance pane closed while checking*: draw it, or add a
-   one-clause status line saying so.
+1. Done: four phone frames and one wide frame, drawn as `proposed` in
+   `cook-shop.html`. **Wide:** the pass sits in the 640 measure. The house
+   takes the check box's 44 px target, a tap on the rest of the row points
+   the pane, and the pane holds the amount sheet in place of the provenance.
+   There is no sheet at this width.
 
 ### Phase 1: storage
 
@@ -122,11 +123,22 @@ Phases land in order, and each one can ship alone.
    - Otherwise the amount must convert into the row's single total through
      units, density or piece weight, the same bridges `aggregateQuantities`
      uses.
-   - A row with **more than one total** (families that would not merge)
-     cannot take an amount, and neither can an amount with no bridge. That row
-     prints its full need with `200 g at home · not counted (no density)`, the
-     list's existing *not counted* grammar. The amount is never guessed and
-     never silently dropped.
+   - **Imprecise words ride along.** `pinch`, `dash`, `handful` and
+     `to taste` never sum, so a row can carry one beside an amount
+     (`1 tsp + to taste` of salt). They are not amounts to buy, so an
+     amount comes off the one measurable total and the words follow it: once
+     that total is covered, the whole row is at home. A row of words only
+     (`to taste`) has no amount chip, and its row tap stores `1 to_taste`
+     as *have it*.
+   - **Two measurable totals** (mass and volume with no density between
+     them, or `piece` with no piece weight) cannot take an amount, and
+     neither can an amount with no bridge. Admission rules out both for
+     fresh lines (ADR-0009, ADR-0015). They arise only when a density or
+     piece weight was deleted after lines used it, or from foreign data.
+     Such a row prints its full need with
+     `200 g at home · not counted (no density)`, the list's existing
+     *not counted* grammar. The amount is never guessed and never silently
+     dropped.
    - Anything at or under a small epsilon left is all at home.
 7. **`ShoppingItem`** gains `atHome` (the amount as said, for the sub-line)
    and `isAtHome`. `totals` and the rest become what is left. `contributions`
@@ -160,8 +172,9 @@ refusals, the growth and shrink cases, and duplicate entries.
    - a measure total: its count, in `pieces`, with the measure id;
    - a piece total: its count in `piece`;
    - otherwise: the single total.
-   A row the domain cannot take an amount for (more than one total) has no
-   tap target in the pass; see *Open questions*.
+   A row with two measurable totals shows a muted house in the pass, and a
+   tap says why it can't take an amount (the deleted density or piece
+   weight). It is never silently left out.
    Repository tests in `shopping_repository_test.dart`: week scoping,
    find-or-create, clearing, the measure FK, and an entry carrying only an
    amount dropping off when its last derived contribution goes (the existing
@@ -178,10 +191,11 @@ refusals, the growth and shrink cases, and duplicate entries.
     - the house box: dashed when empty, filled ⌂ for all of it, **½** for some;
     - the amount chip: `all 5` or `200 of 500 g`;
     - no provenance, prices, basket or free text.
-    At ≥ 1024 the box target becomes the house, and the rest of the row
-    behaves as the phone's row does. The provenance pane closes.
+    At ≥ 1024 the box target becomes the house, the rest of the row points
+    the pane, and the pane holds the amount editor (step 12) in place of
+    the provenance. After **Done** it goes back to provenance.
 12. **The amount sheet** (`presentation/at_home_sheet.dart`) on the shared
-    `showQuantityUnitSheet`. It shows the need line, the unit chips the
+    `showQuantityUnitSheet`, with its body also usable as the wide pane. It shows the need line, the unit chips the
     ingredient admits (`allowed_units`), and *still to buy* from
     `leftToBuy`, live. An amount it cannot take is refused inline, in the
     domain's words. It has Save, plus Remove when an amount exists.
@@ -189,7 +203,8 @@ refusals, the growth and shrink cases, and duplicate entries.
     (`shopping_format.dart`: `atHomeWords`). The **At home · N** section goes
     after the basket, with its rows tapping back to their aisle. When nothing
     is open, the closing line reads *everything's at home* if nothing is in
-    the basket; otherwise it is today's *everything's in the basket*.
+    the basket; otherwise it is today's *everything's in the basket*
+    (ruled).
 
 Widget tests in `shopping_screen_test.dart` cover the door, entering and
 leaving the pass, the row tap and its second tap, the chip into the sheet,
@@ -243,18 +258,22 @@ refusal.
   `source_type` on contributions. There is one amount per entry, top-ups
   keep their table to themselves, and the week-start flip carries it for
   free.
+- 2026-10-25: Imprecise words ride along with the measurable total instead of
+  blocking an amount. Two measurable totals only come from a deleted density
+  or piece weight, so they get a muted house with the reason.
+- 2026-10-25: Owner's rulings: the closing line is *everything's at home*
+  when the basket is empty; wide gets a frame, and the pane is the amount
+  editor.
 
 ## Open questions
 
-- **A row with two totals** (say `300 g + 2 tbsp` with no density) cannot
-  take an amount. Should its house in the pass be drawn muted, with a tap
-  saying why, or should the row be left out of the pass? The recommendation
-  is muted with the reason, so it is never silently absent.
-- **The closing line** when everything is either bought or at home:
-  *everything's in the basket* (today's), or a new *nothing left to buy*.
-  The recommendation is *everything's at home* only when the basket is
-  empty, and today's line otherwise.
-- **The wide answer** (phase 0): a frame, or a status clause.
+None open. Resolved 2026-10-25:
+
+- **Rows with two measurable totals** are rare (see step 6). They get a muted
+  house that says why, rather than being left out of the pass.
+- **The closing line:** *everything's at home* when the basket is empty,
+  today's line otherwise.
+- **Wide:** a frame, with the pane as the amount editor.
 
 ## Step-done checklist
 

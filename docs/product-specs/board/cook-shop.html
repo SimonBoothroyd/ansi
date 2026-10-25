@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it · already got: <span class="prop">proposed</span> 2026-10-25 · <a href="../../exec-plans/active/0055-already-got-it.md">plan 0055</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it · already got: <span class="prop">proposed</span> 2026-10-25 · <a href="../../exec-plans/active/0055-already-got-it.md">plan 0055</a> · wide: proposed, the pane holds the amount</p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -605,6 +605,56 @@
         </div>
         <p class="conv-note" style="margin:10px 4px 0">The cost is a <b>second thing on screen</b> while you are walking a shop: the phone’s expand-in-place stays the rule under 1024, and the pane is the width’s offer, not a replacement for it.</p>
         <p class="conv-note" style="margin:6px 4px 0">One press, one answer: <b>the check box ticks, the row selects</b>. The box carries a 44 px target — the row’s own height, folded in, so nothing about the row is drawn differently — and the name is not a special door any more. Under 1024 the whole row is still the tick.</p>
+    </div>
+
+    <div class="frame wide">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>wide &middot; checking what&rsquo;s at home</b> &middot; the same pass in the 640 measure, and the pane beside it is the amount: the house ticks <i>all of it</i>, a tap anywhere else on the row points the pane, and the pane asks how much. No sheet at this width</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+            <div class="rail">
+                <div class="wm">Ansi<span class="dot">.</span></div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></span>Library</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg></span>Week</div>
+                <div class="ri"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20"/><path d="M20 12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8"/><path d="m4 8 16-4"/><path d="m8.86 6.78-.45-1.81a2 2 0 0 1 1.45-2.43l1.94-.48a2 2 0 0 1 2.43 1.46l.45 1.8"/></svg></span>Cook</div>
+                <div class="ri on"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 11-1 9"/><path d="m19 11-4-7"/><path d="M2 11h20"/><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.6-7.4"/><path d="M4.5 15.5h15"/><path d="m5 11 4-7"/><path d="m9 11 1 9"/></svg></span>Shop</div>
+                <div class="grow"></div>
+                <div class="ri quiet"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></span>Account</div>
+            </div>
+            <div class="main wpanes">
+                <div class="wsplit">
+                    <div class="wpane wlist wflat">
+                        <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+                        <div class="hm-band"><span class="hq">What’s already at home?</span><span class="dn">Done</span></div>
+                        <div class="sl-group">Produce</div>
+                        <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Lime</span><span class="item-total amt">2½ lime, whole</span></div></div>
+                        <div class="item"><div class="item-top"><span class="box home on">⌂</span><span class="item-name">Yellow onion</span><span class="item-total amt on">all 5</span></div></div>
+                        <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Charred broccoli</span><span class="item-total amt">1 head</span></div></div>
+                        <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Flat-leaf parsley</span><span class="item-total amt">1 bunch</span></div></div>
+                        <div class="sl-group">Dairy</div>
+                        <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Halloumi</span><span class="item-total amt">250 g</span></div></div>
+                        <div class="item"><div class="item-top"><span class="box home on">⌂</span><span class="item-name">Greek yoghurt</span><span class="item-total amt on">all 500 g</span></div></div>
+                        <div class="sl-group">Baking</div>
+                        <div class="item wsel"><div class="item-top"><span class="box home on">½</span><span class="item-name">Flour</span><span class="item-total amt on">200 <span class="of">of 500 g</span></span></div></div>
+                        <div class="sl-group">Pantry</div>
+                        <div class="item"><div class="item-top"><span class="box home"></span><span class="item-name">Vegetable Broth</span><span class="item-total amt">250 ml</span></div></div>
+                    </div>
+                    <div class="wpane wprov wflat">
+                        <p class="list-h" style="margin:0 0 8px">At home</p>
+                        <div class="wprov-h"><span class="n">Flour</span><span class="t">500 g</span></div>
+                        <div class="hv-need" style="margin-top:6px"><span>this week needs</span><span>500 g</span></div>
+                        <div class="pstepper" style="justify-content:space-between;background:var(--frame);border:1px solid var(--line);border-radius:12px;padding:9px 12px"><span class="s">−</span><span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500">200</span><span class="s">＋</span></div>
+                        <div class="uchips" style="margin-top:10px"><span class="uchip on">g</span><span class="uchip">kg</span><span class="uchip">cup</span><span class="uchip">oz</span><span class="uchip">lb</span></div>
+                        <div class="hv-buy"><span>still to buy</span><b>300 g</b></div>
+                        <div class="btn primary" style="margin-top:14px">Save</div>
+                        <div class="btn ghost">Remove</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The pane trades its question while checking.</b> Outside the pass it answers <i>where did this come from</i>; inside it, <i>how much is at home</i> — the phone&rsquo;s amount sheet, drawn in place, so pointing at row after row walks the cupboard without opening and closing anything. Save writes; pointing at another row with an unsaved amount keeps nothing, as closing the phone&rsquo;s sheet does</p>
+        <p class="conv-note" style="margin:6px 4px 0"><b>Same split as the list&rsquo;s:</b> the house carries the 44 px target the check box does, and the rest of the row selects. A pane pointed at a row with no amount opens on the need, with no <b>Remove</b>. After <b>Done</b>, the list and its <i>At home</i> section read exactly as the phone draws them, and the pane goes back to provenance</p>
     </div>
 
     <div class="frame wide">
