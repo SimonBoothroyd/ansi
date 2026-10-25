@@ -2120,8 +2120,6 @@
     .item-total.amt{border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--paper);}
     .item-total.amt.on{border-color:var(--herb);color:var(--herb-deep);background:var(--herb-soft);}
     .item-total.amt .of{color:var(--muted);font-weight:400;}
-    .prov-line.home .src{color:var(--muted);font-style:italic;}
-    .prov-line.home .pen{color:var(--herb);margin-right:6px;}
     .hv-need{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin:0 0 10px;}
     .hv-buy{display:flex;justify-content:space-between;align-items:baseline;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:13px;}
     .hv-buy b{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;color:var(--herb-deep);}

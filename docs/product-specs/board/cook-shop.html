@@ -239,7 +239,7 @@
                 <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
             </div></div>
             <p class="conv-note" style="margin:10px 4px 0"><b>Two targets, one row</b> — the split the wide row already makes between its box and the rest. The row toggles <i>all of it</i>; the amount opens the sheet. Provenance and prices fold away while checking: the question is only <i>do we have it</i>. Ticked rows are not shown — they are already bought</p>
-            <p class="conv-note" style="margin:6px 4px 0">A row that is already partly answered reads its amount against the need, <span style="font-family:'IBM Plex Mono',monospace">200 of 500 g</span>, and its box carries <b>½</b> so a part-have is told from a whole one at a glance. Every tap writes at once, like a tick; <b>Done</b> only leaves the mode</p>
+            <p class="conv-note" style="margin:6px 4px 0">A row that is already partly answered reads its amount against the need, <span style="font-family:'IBM Plex Mono',monospace">200 of 500 g</span>, and its box carries <b>½</b> so a part-have is told from a whole one at a glance. Every tap writes at once, like a tick; <b>Done</b> only leaves the mode. A row tap stores the need as an amount, so <span style="font-family:'IBM Plex Mono',monospace">all 5</span> is 5, not “all”; a tap on a row already answered clears it</p>
         </div>
 
         <div class="frame prop">
@@ -264,7 +264,7 @@
         </div>
 
         <div class="frame prop">
-            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The list after</b> · a part-have shortens the row and says so in its provenance; a whole-have leaves the aisles for <i>At home</i>, under the basket. The trip’s total drops with both</p>
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The list after</b> · a part-have shortens the row and says so first on its sub-line; a whole-have leaves the aisles for <i>At home</i>, under the basket. The trip’s total drops with both, and says nothing about why</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
                 <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:03</span><span class="st" style="margin-left:auto">≈ $55 still to buy</span></div>
@@ -273,22 +273,27 @@
                     <div class="item-sub">167.5 g → buy 3 · ≈ $1.24</div>
                     <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1½ lime, whole</span></div></div>
                 </div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">2 onion, medium</span></div>
+                    <div class="item-sub"><span style="color:var(--muted)">5 at home</span> · 220 g · ≈ $0.97</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>2 onion, medium</span></div><div class="prov-line"><span class="src">Shakshuka · cook Thu</span><span>2 onion, medium</span></div></div>
+                </div>
                 <div class="sl-group">Baking</div>
                 <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">300 g</span></div>
-                    <div class="item-sub">≈ $0.81</div>
-                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>200 g</span></div><div class="prov-line home"><span class="src"><span class="pen">✎</span>at home</span><span>−200 g</span></div></div>
+                    <div class="item-sub"><span style="color:var(--muted)">200 g at home</span> · ≈ $0.81</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>200 g</span></div></div>
                 </div>
                 <div class="sl-group">In the basket · 1</div>
                 <div class="sl-group sub">Produce</div>
                 <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
-                <div class="sl-group">At home · 2</div>
-                <div class="item home"><div class="item-top"><span class="box home on">⌂</span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div></div>
+                <div class="sl-group">At home · 1</div>
                 <div class="item home"><div class="item-top"><span class="box home on">⌂</span><span class="item-name">Olive oil</span><span class="item-total">45 ml</span></div></div>
                 <div class="topup">＋ add item or top up an ingredient</div>
                 <div class="topup">⌂ check what’s at home</div>
             </div></div>
-            <p class="conv-note" style="margin:10px 4px 0"><b>A part-have is a line of provenance, not a new total.</b> It sits where the manual top-up does and edits the same way — the pencil opens the amount sheet — signed the other way, so the total is still the sum of the lines above it. If the week grows past what you said you had, the row grows with it; the amount at home stays put</p>
+            <p class="conv-note" style="margin:10px 4px 0"><b>A part-have is said on the sub-line, first.</b> The total is what is left to buy, and the line under it — which already holds the grams, the round-up and the price — opens with what is at home, muted, so the reason the number is smaller is read at the same glance as the number. The provenance is untouched: it still says what the week asked for. The list itself has no edit target for it, because the row is the tick; the amount is changed back in <i>check what’s at home</i></p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>What is stored is an amount, never “all”.</b> Tapping a row in the checking pass stores the need as it stood — 5 onions. When the week then adds a Shakshuka, the onions come back out of <i>At home</i> as a part-have, <span style="font-family:'IBM Plex Mono',monospace">2 onion, medium · 5 at home</span>, rather than quietly assuming there are seven in the cupboard</p>
             <p class="conv-note" style="margin:6px 4px 0"><b>At home is not the basket.</b> Its rows are muted but never struck through, carry the house where the tick would be, and no price, so the basket stays a true count of what went in the trolley. It sits last, under the basket, because in the shop it is the least useful thing on the screen. A tap on a row puts it back in its aisle, as a tap on a basket row does</p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>The cost line stays silent.</b> <i>Still to buy</i> drops by what is at home and does not say by how much: it answers what this trip costs, and putting a price on what was not bought is the receipts’ question, not the list’s. The Week’s cost line does not move at all — the onions are still eaten</p>
         </div>
         <div class="frame">
             <p class="frame-name"><b>The last tick</b> · confetti of the food itself: thirty pieces — leaves, wheat, berries, carrots and plain strips, in a kitchen’s colours — burst from the box you just ticked, fill the width of the screen and fall past the bottom, over the list. About 1.5 s, one painter, and a light haptic at the tick</p>
