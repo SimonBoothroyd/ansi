@@ -110,9 +110,9 @@ can run beside A: it changes only the words the sub-line and sync line print.
 
 ### Phase 0: the board
 
-1. Done: three phone frames in `cook-shop.html` (the refreshed list, adding,
-   and the at-home pass from the toggle) and one in `receipts.html` (the
-   ledger's action and its empty state), all `proposed`. The current frames
+1. Done: four phone frames in `cook-shop.html` (the refreshed list, adding,
+   picking an ingredient, and the at-home pass from the toggle) and two in
+   `receipts.html` (the ledger's action, filled and empty), all `proposed`. The current frames
    stay until this ships. Then the frames these replace are deleted: the foot
    doors, the caption and the always-open provenance.
 
