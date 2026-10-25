@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/cook_plan</code> · <code>features/shopping</code> · leftovers: matches code 2026-10-21 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: differs 2026-09-20: at ≥ 1024 a row’s breakdown is drawn only in the provenance pane and the walk keeps the 640 measure beside it, and Cook is one schedule sheet rather than cards; the header, and so the receipts door in it, is one header at every width · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: differs 2026-10-19: the bar&rsquo;s speech bubble (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>) is not drawn in these frames; <a href="./week.html">week.html</a> draws it · already got: <span class="prop">proposed</span> 2026-10-25 · <a href="../../exec-plans/backlog.md">backlog</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -196,6 +196,103 @@
         </div>
 
 
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Already got it</b> · swipe a row left for its two answers — <i>Got some</i> asks how much, <i>Got it</i> takes the whole row off the trip. Nothing is ticked, because nothing was bought</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+                <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:02</span><span class="st" style="margin-left:auto">≈ $58 still to buy</span></div>
+                <div class="sl-group">Produce</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
+                    <div class="item-sub">167.5 g → buy 3 · ≈ $1.24</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1½ lime, whole</span></div></div>
+                </div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div>
+                    <div class="item-sub">550 g · ≈ $2.42</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>3 onion, medium</span></div><div class="prov-line"><span class="src">Slow-Cooker Beef Ragù · cook Tue</span><span>2 onion, medium</span></div></div>
+                </div>
+                <div class="sl-group">Baking</div>
+                <div class="sw-row">
+                    <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div>
+                        <div class="item-sub">≈ $1.35</div>
+                        <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div></div>
+                    </div>
+                    <div class="sw-acts"><span class="sw-a some"><span class="g">½</span>Got some</span><span class="sw-a all"><span class="g">⌂</span>Got it</span></div>
+                </div>
+                <div class="topup">＋ add item or top up an ingredient</div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>The box still means <i>bought</i>; the swipe means <i>don’t buy</i>.</b> The two are kept apart because the list answers <i>what is left to buy</i> and the receipts answer <i>what it cost</i> — a row you already had is neither. The same two answers sit in a long-press menu, for whoever never finds a swipe</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Got some</b> · a short sheet: what the week needs, how much is at home, and what that leaves to buy — said in the row’s own unit</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+                <div class="sl-group">Baking</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">500 g</span></div></div>
+                <div class="asheet">
+                    <div class="grab"></div>
+                    <p class="as-h"><span class="ts-x">&times;</span>Flour at home</p>
+                    <div class="hv-need"><span>this week needs</span><span>500 g</span></div>
+                    <div class="pstepper" style="justify-content:space-between;background:var(--frame);border:1px solid var(--line);border-radius:12px;padding:9px 12px"><span class="s">−</span><span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:500">200</span><span class="s">＋</span></div>
+                    <div class="uchips" style="margin-top:10px"><span class="uchip on">g</span><span class="uchip">kg</span><span class="uchip">cup</span><span class="uchip">oz</span><span class="uchip">lb</span></div>
+                    <div class="hv-buy"><span>still to buy</span><b>300 g</b></div>
+                    <div class="btn primary" style="margin-top:14px">Save</div>
+                    <div class="btn ghost">I’ve got all of it</div>
+                </div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>The amount is what you have, not what you need</b> — you look in the jar, not at the recipe. It is stored against this week’s entry, like a tick or a top-up, so the other phone sees it at once and next week starts clean. An amount at or over the need is the same as <i>Got it</i>; a unit the row can’t convert is refused with the row’s own <i>no density</i> words, never guessed</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>The list after</b> · a part-have shortens the row and says why in its provenance; a whole-have leaves the aisles for <i>At home</i>, between the aisles and the basket. The trip’s total drops with both</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+                <div class="er-shopsync"><span class="sy"></span><span class="st">Synced · 14:03</span><span class="st" style="margin-left:auto">≈ $55 still to buy</span></div>
+                <div class="sl-group">Produce</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Lime</span><span class="item-total">2½ lime, whole</span></div>
+                    <div class="item-sub">167.5 g → buy 3 · ≈ $1.24</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>1 lime, whole</span></div><div class="prov-line"><span class="src">Charred Broccoli &amp; Halloumi Salad · cook Wed</span><span>1½ lime, whole</span></div></div>
+                </div>
+                <div class="sl-group">Baking</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">300 g</span></div>
+                    <div class="item-sub">≈ $0.81</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line home"><span class="src">⌂ at home</span><span>−200 g</span></div></div>
+                </div>
+                <div class="sl-group">At home · 2</div>
+                <div class="item home"><div class="item-top"><span class="box home">⌂</span><span class="item-name">Yellow onion</span><span class="item-total">5 onion, medium</span></div></div>
+                <div class="item home"><div class="item-top"><span class="box home">⌂</span><span class="item-name">Olive oil</span><span class="item-total">45 ml</span></div></div>
+                <div class="sl-group">In the basket · 1</div>
+                <div class="sl-group sub">Produce</div>
+                <div class="item done"><div class="item-top"><span class="box on">✓</span><span class="item-name">Ginger, fresh</span><span class="item-total">30 g</span></div></div>
+                <div class="topup">＋ add item or top up an ingredient</div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>At home is not the basket.</b> Its rows keep their name in ink-muted with no strike, a dashed house where the tick would be, and no price — so the basket stays a true count of what went in the trolley. A tap on the house puts the row back in its aisle. The whole-have row folds its provenance like a ticked one: where it came from is no longer the question</p>
+            <p class="conv-note" style="margin:6px 4px 0"><b>A part-have is a line of provenance, not a new total.</b> It reads like the manual top-up does, signed the other way, so the sum on the right is still the sum of the lines under it. If the week grows past what you said you had, the row grows with it; the amount at home doesn’t change</p>
+        </div>
+
+        <div class="frame prop">
+            <p class="frame-name"><span class="proposed-tag">proposed</span><b>Always in the cupboard</b> · salt, pepper, oil — the things nobody buys for a recipe. Said once on the ingredient, they never reach the aisles again, and one line at the foot names them so nothing goes quietly</p>
+            <div class="phone"><div class="notch"></div><div class="screen">
+                <div class="wkhdr"><span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span><span class="hact" title="Receipts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+                <div class="sl-group">Baking</div>
+                <div class="item"><div class="item-top"><span class="box"></span><span class="item-name">Flour</span><span class="item-total">300 g</span></div>
+                    <div class="item-sub">≈ $0.81</div>
+                    <div class="prov"><div class="prov-line"><span class="src">Weeknight Chicken Curry · cook Mon</span><span>300 g</span></div><div class="prov-line"><span class="src">Oat Cookies</span><span>150 g</span></div><div class="prov-line home"><span class="src">⌂ at home</span><span>−200 g</span></div></div>
+                </div>
+                <p class="lib-mcap" style="margin-top:14px">long-press on <i>Salt</i></p>
+                <div class="lib-menu">
+                    <div class="mi"><span class="ic">½</span><span class="lb">Got some…</span></div>
+                    <div class="mi"><span class="ic">⌂</span><span class="lb">Got it this week</span></div>
+                    <div class="mi"><span class="ic">∞</span><span class="lb">Always have it</span></div>
+                </div>
+                <p class="cupboard">from the cupboard, not listed — <span class="dr">salt</span>, <span class="dr">black pepper</span>, <span class="dr">olive oil</span></p>
+                <div class="topup">＋ add item or top up an ingredient</div>
+                <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni on"><span class="ic">▤</span>Shop</div></div>
+            </div></div>
+            <p class="conv-note" style="margin:10px 4px 0"><b>A staple is a fact about the household, not about this week</b>, so it lives on the ingredient (its detail page carries the same switch) and outlasts the week, where <i>Got it</i> does not. The foot line is the echo-row grammar in its muted voice — a rule somebody chose — and each name is a door: a tap lists it for this week only, for the day the jar runs out</p>
+        </div>
         <div class="frame">
             <p class="frame-name"><b>The last tick</b> · confetti of the food itself: thirty pieces — leaves, wheat, berries, carrots and plain strips, in a kitchen’s colours — burst from the box you just ticked, fill the width of the screen and fall past the bottom, over the list. About 1.5 s, one painter, and a light haptic at the tick</p>
             <div class="phone"><div class="notch"></div><div class="screen cel">
