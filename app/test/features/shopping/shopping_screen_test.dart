@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
@@ -20,6 +21,7 @@ import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
 import 'package:ansi/features/shopping/presentation/confetti_burst.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart';
+import 'package:ansi/features/shopping/presentation/shopping_view_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -211,6 +213,40 @@ void deskWidth(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
+/// The screen inside a tab the shell can hide: [visible] false is how the
+/// shell keeps a tab mounted once another is chosen (its tickers off).
+Widget _tabHost(List<Override> overrides, ValueNotifier<bool> visible) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(
+        home: FTheme(
+          data: ansiThemeData(),
+          child: FToaster(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: visible,
+              builder: (_, on, _) =>
+                  TickerMode(enabled: on, child: const ShoppingView()),
+            ),
+          ),
+        ),
+      ),
+    );
+
+/// Taps a row's amount, which opens (or folds) its breakdown on a phone.
+Future<void> _openRow(WidgetTester tester, String identity) async {
+  await tester.tap(find.byKey(shopAmountTargetKey(identity)));
+  await tester.pump();
+}
+
+/// Taps a folded line open (or shut), scrolling it into view first.
+Future<void> _openFold(WidgetTester tester, ShopFold fold) async {
+  final line = find.byKey(shopFoldKey(fold));
+  await tester.ensureVisible(line);
+  await tester.pump();
+  await tester.tap(line);
+  await tester.pump();
+}
+
 /// Records every haptic the phone is asked for, by type.
 List<String> _recordHaptics(WidgetTester tester) {
   final haptics = <String>[];
@@ -304,7 +340,8 @@ void main() {
     );
   });
 
-  testWidgets('renders grouped items, totals and provenance', (tester) async {
+  testWidgets('renders grouped items and totals, with the provenance behind '
+      'the amount', (tester) async {
     final list = ShoppingList(
       groups: [
         ShoppingGroup(
@@ -349,15 +386,22 @@ void main() {
     expect(find.text('BAKING'), findsOneWidget);
     expect(find.text('Flour'), findsOneWidget);
     expect(find.text('500 g'), findsOneWidget);
-    expect(find.text('Curry · cook Mon'), findsOneWidget);
+    // Folded until its amount is tapped: one line a row, not five.
+    expect(find.text('Curry · cook Mon'), findsNothing);
     expect(find.text('NON-FOOD'), findsOneWidget);
     expect(find.text('Paper towels'), findsOneWidget);
     // A numberless non-food staple shows an em dash.
     expect(find.text('—'), findsOneWidget);
     expect(find.textContaining('add item or top up'), findsOneWidget);
+    // No caption: the list says what it is by being it.
+    expect(find.textContaining('summed from the cook plan'), findsNothing);
+
+    await _openRow(tester, 'flour');
+    expect(find.text('Curry · cook Mon'), findsOneWidget);
+    expect(find.text('Oat Cookies'), findsOneWidget);
   });
 
-  testWidgets('a single-source row still says where it came from', (
+  testWidgets('a single-source row opens to say where it came from', (
     tester,
   ) async {
     final list = ShoppingList(
@@ -391,6 +435,7 @@ void main() {
     );
     await tester.pump();
 
+    await _openRow(tester, 'halloumi');
     expect(
       find.text('Charred Broccoli & Halloumi Salad · cook Wed'),
       findsOneWidget,
@@ -433,13 +478,15 @@ void main() {
     );
     await tester.pump();
 
-    // The total is what goes in the basket, not the 8.47 oz it weighs —
-    // twice over, because the one line behind it says the same words.
-    expect(find.text('1 can (400 g), drained'), findsNWidgets(2));
+    // The total is what goes in the basket, not the 8.47 oz it weighs…
+    expect(find.text('1 can (400 g), drained'), findsOneWidget);
     // …with the honest mass beside the total, never instead of it.
     expect(find.text('240 g'), findsOneWidget);
-    expect(find.text('Dal · cook Mon'), findsOneWidget);
     expect(find.textContaining('oz'), findsNothing);
+    // Opened, twice over: the one line behind it says the same words.
+    await _openRow(tester, 'lentils');
+    expect(find.text('1 can (400 g), drained'), findsNWidgets(2));
+    expect(find.text('Dal · cook Mon'), findsOneWidget);
   });
 
   testWidgets('a row counted in its whole measure leads with the whole count '
@@ -488,6 +535,7 @@ void main() {
     expect(find.text('3 lime, whole'), findsOneWidget);
     expect(find.text('need 2½ · 167.5 g'), findsOneWidget);
     expect(find.text('2½ lime, whole'), findsNothing);
+    await _openRow(tester, 'lime');
     expect(find.text('1 lime, whole'), findsOneWidget);
     expect(find.text('1½ lime, whole'), findsOneWidget);
   });
@@ -539,8 +587,255 @@ void main() {
     expect(find.text('need 2½ · 167.5 g'), findsOneWidget);
     expect(find.textContaining(' + '), findsNothing);
     // …and each line behind it keeps its own words.
+    await _openRow(tester, 'lime');
     expect(find.text('1 lime, whole'), findsOneWidget);
     expect(find.text('1½ piece'), findsOneWidget);
+  });
+
+  group('the walk, folded', () {
+    /// Flour from a recipe and a top-up, Lime rounded up, and paper towels:
+    /// a row with a breakdown and a sub-line, one with a breakdown and none,
+    /// and one with no breakdown at all.
+    ShoppingList walk() => ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Baking',
+          items: [
+            ShoppingItem(
+              name: 'Flour',
+              ingredientId: 'flour',
+              entryId: 'e-flour',
+              totals: [Quantity(500, g)],
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Curry · cook Mon',
+                  quantity: 450,
+                  unit: g,
+                  cookDay: 0,
+                ),
+                ShoppingContribution(
+                  source: ContributionSource.manual,
+                  label: 'manual top-up',
+                  quantity: 50,
+                  unit: g,
+                  contributionId: 'c-flour',
+                ),
+              ],
+            ),
+          ],
+        ),
+        ShoppingGroup(
+          label: 'Produce',
+          items: [
+            ShoppingItem(
+              name: 'Lime',
+              ingredientId: 'lime',
+              entryId: 'e-lime',
+              totals: [Quantity(167.5, g)],
+              measureTotal: const (
+                amount: 2.5,
+                measure: Measure(
+                  id: 'm-lime',
+                  label: 'lime, whole',
+                  amount: 67,
+                ),
+              ),
+              contributions: const [
+                ShoppingContribution(
+                  source: ContributionSource.cookSession,
+                  label: 'Salad · cook Wed',
+                  quantity: 2.5,
+                  measure: Measure(
+                    id: 'm-lime',
+                    label: 'lime, whole',
+                    amount: 67,
+                  ),
+                  cookDay: 2,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const ShoppingGroup(
+          label: 'Non-food',
+          items: [ShoppingItem(name: 'Paper towels', entryId: 'e-towels')],
+        ),
+      ],
+    );
+
+    Future<_FakeShoppingRepo> pumpWalk(WidgetTester tester) async {
+      final repo = _FakeShoppingRepo(walk(), live: true);
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(repo),
+          ingredientRepositoryProvider.overrideWithValue(
+            FakeIngredientRepo([]),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+        ]),
+      );
+      await tester.pump();
+      return repo;
+    }
+
+    Finder chevronIn(String identity, IconData icon) => find.descendant(
+      of: find.byKey(shopAmountTargetKey(identity)),
+      matching: find.byIcon(icon),
+    );
+
+    testWidgets('the row tap ticks and does not open the breakdown', (
+      tester,
+    ) async {
+      final repo = await pumpWalk(tester);
+      await tester.tap(find.text('Flour'));
+      await tester.pump();
+      expect(repo.tickCalls, 1);
+      expect(repo.lastChecked, isTrue);
+      expect(find.text('Curry · cook Mon'), findsNothing);
+    });
+
+    testWidgets('the chevron points right while closed and down once open, '
+        'and a row with nothing to trace has none', (tester) async {
+      await pumpWalk(tester);
+      expect(chevronIn('flour', FLucideIcons.chevronRight), findsOneWidget);
+      expect(chevronIn('flour', FLucideIcons.chevronDown), findsNothing);
+      // Paper towels has no breakdown: no target, and no arrow on its row.
+      expect(find.byKey(shopAmountTargetKey('e-towels')), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(ListView),
+          matching: find.byIcon(FLucideIcons.chevronRight),
+        ),
+        findsNWidgets(2),
+      );
+
+      await _openRow(tester, 'flour');
+      expect(chevronIn('flour', FLucideIcons.chevronDown), findsOneWidget);
+      expect(chevronIn('flour', FLucideIcons.chevronRight), findsNothing);
+      // An opened amount stays plain text: no chip round it in the walk.
+      expect(
+        find.descendant(
+          of: find.byKey(shopAmountTargetKey('flour')),
+          matching: find.byWidgetPredicate(
+            (w) => w is Container && w.decoration != null,
+          ),
+        ),
+        findsNothing,
+      );
+      // A second tap folds it again.
+      await _openRow(tester, 'flour');
+      expect(find.text('Curry · cook Mon'), findsNothing);
+    });
+
+    testWidgets('the amount is a 44 px target, and the sub-line opens the '
+        'same breakdown', (tester) async {
+      await pumpWalk(tester);
+      expect(
+        tester.getSize(find.byKey(shopAmountTargetKey('flour'))).height,
+        greaterThanOrEqualTo(44),
+      );
+      // Lime's sub-line is under its headline, and a tap there opens too.
+      expect(find.text('3 lime, whole'), findsOneWidget);
+      await tester.tap(find.text('need 2½ · 167.5 g'));
+      await tester.pump();
+      expect(find.text('Salad · cook Wed'), findsOneWidget);
+    });
+
+    testWidgets('an opened top-up is its own 44 px row, and it opens the '
+        'edit sheet', (tester) async {
+      filterForuiSemanticsAssertions();
+      final repo = await pumpWalk(tester);
+      await _openRow(tester, 'flour');
+      final topUp = find.byKey(shopTopUpKey('c-flour'));
+      expect(topUp, findsOneWidget);
+      expect(tester.getSize(topUp).height, greaterThanOrEqualTo(44));
+      expect(
+        find.descendant(of: topUp, matching: find.byIcon(FLucideIcons.pencil)),
+        findsOneWidget,
+      );
+
+      await tester.tap(topUp);
+      await tester.pumpAndSettle();
+      expect(find.text('Save changes'), findsOneWidget);
+      expect(repo.tickCalls, 0, reason: 'editing a top-up is not a tick');
+    });
+
+    testWidgets('a ticked row folds its breakdown, and comes back closed', (
+      tester,
+    ) async {
+      await pumpWalk(tester);
+      await _openRow(tester, 'flour');
+      expect(find.text('Curry · cook Mon'), findsOneWidget);
+
+      await tester.tap(find.text('Flour'));
+      await tester.pump();
+      await tester.pump();
+      await _openFold(tester, ShopFold.basket);
+      // In the basket: no breakdown and no arrow.
+      expect(find.text('Curry · cook Mon'), findsNothing);
+      expect(find.byKey(shopAmountTargetKey('flour')), findsNothing);
+
+      await tester.tap(find.text('Flour'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Curry · cook Mon'), findsNothing);
+      expect(chevronIn('flour', FLucideIcons.chevronRight), findsOneWidget);
+    });
+
+    testWidgets('the folded lines read right while closed and down once '
+        'open', (tester) async {
+      final list = ShoppingList(
+        groups: [
+          ShoppingGroup(
+            label: 'Produce',
+            items: [
+              ShoppingItem(
+                name: 'Lime',
+                ingredientId: 'lime',
+                entryId: 'e-lime',
+                checked: true,
+                totals: [Quantity(100, g)],
+              ),
+              ShoppingItem(
+                name: 'Onion',
+                ingredientId: 'onion',
+                entryId: 'e-onion',
+                totals: [Quantity(100, g)],
+              ),
+            ],
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
+        ]),
+      );
+      await tester.pump();
+
+      Finder arrow(IconData icon) => find.descendant(
+        of: find.byKey(shopFoldKey(ShopFold.basket)),
+        matching: find.byIcon(icon),
+      );
+      final line = find.byKey(shopFoldKey(ShopFold.basket));
+      expect(tester.getSize(line).height, greaterThanOrEqualTo(44));
+      expect(arrow(FLucideIcons.chevronRight), findsOneWidget);
+      await _openFold(tester, ShopFold.basket);
+      expect(arrow(FLucideIcons.chevronDown), findsOneWidget);
+      expect(find.text('Lime'), findsOneWidget);
+      await _openFold(tester, ShopFold.basket);
+      expect(arrow(FLucideIcons.chevronRight), findsOneWidget);
+      expect(find.text('Lime'), findsNothing);
+    });
+
+    testWidgets('at a desk a row draws no arrow: the pane holds the '
+        'breakdown', (tester) async {
+      deskWidth(tester);
+      await pumpWalk(tester);
+      expect(find.byKey(shopAmountTargetKey('flour')), findsNothing);
+      expect(find.text('Curry · cook Mon'), findsOneWidget);
+    });
   });
 
   group('the basket', () {
@@ -573,10 +868,14 @@ void main() {
 
       // The aisles still stand, holding only what is left to grab…
       expect(find.text('BAKING'), findsOneWidget);
-      // …and the ticked row sits under the basket header, with the count,
-      // below every aisle — under its own aisle's label, kept inside the
-      // basket so the row is re-found where it was found.
+      // …and the ticked row is behind one counted line below every aisle,
+      // folded until it is tapped.
       expect(find.text('IN THE BASKET · 1'), findsOneWidget);
+      expect(find.text('Lime'), findsNothing);
+      expect(find.text('PRODUCE'), findsOneWidget);
+      // Opened, the row sits under its own aisle's label, kept inside the
+      // basket so the row is re-found where it was found.
+      await _openFold(tester, ShopFold.basket);
       final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 1')).dy;
       expect(find.text('PRODUCE'), findsNWidgets(2));
       final produceInBasket = find
@@ -620,6 +919,8 @@ void main() {
       // Produce is gone from the top and stands only inside the basket.
       expect(find.text('BAKING'), findsOneWidget);
       expect(find.text('IN THE BASKET · 1'), findsOneWidget);
+      expect(find.text('PRODUCE'), findsNothing);
+      await _openFold(tester, ShopFold.basket);
       final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 1')).dy;
       expect(find.text('PRODUCE'), findsOneWidget);
       expect(
@@ -659,6 +960,7 @@ void main() {
       // Arriving finished is not finishing: nothing was ticked here.
       expect(find.byType(ConfettiBurst), findsNothing);
       // Both aisles stand inside the basket, and nowhere above it.
+      await _openFold(tester, ShopFold.basket);
       final basketTop = tester.getTopLeft(find.text('IN THE BASKET · 2')).dy;
       expect(find.text('PRODUCE'), findsOneWidget);
       expect(find.text('BAKING'), findsOneWidget);
@@ -792,6 +1094,7 @@ void main() {
 
       // Untick from the basket, then tick again: the same list, finished a
       // second time, and it celebrates a second time.
+      await _openFold(tester, ShopFold.basket);
       await tester.tap(find.text('Onion'));
       await tester.pump();
       expect(find.text('everything’s in the basket'), findsNothing);
@@ -884,6 +1187,7 @@ void main() {
     );
     await tester.pump();
 
+    await _openRow(tester, 'oil');
     expect(find.text('Sausage Sliders · cook Sat'), findsOneWidget);
     expect(find.text('Romesco Aioli · for Sliders · cook Sat'), findsOneWidget);
     // Summed once, bought once.
@@ -942,6 +1246,17 @@ void main() {
     );
     await tester.pump();
 
+    // Folded behind one amber line with its flag: a defect somebody can fix.
+    expect(find.text('1 note from the plan'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(shopFoldKey(ShopFold.notes)),
+        matching: find.byIcon(FLucideIcons.flag),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('SAUSAGE SLIDERS'), findsNothing);
+    await _openFold(tester, ShopFold.notes);
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
     expect(find.text('1 component unresolved — see Cook'), findsOneWidget);
   });
@@ -982,8 +1297,11 @@ void main() {
     );
     await tester.pump();
 
-    // Neither is an aisle row; both are named, and each says where the pick
-    // is — the recipe for a recipe line, the plan for a bare-ingredient meal.
+    // Neither is an aisle row; both are named behind the notes line, and
+    // each says where the pick is — the recipe for a recipe line, the plan
+    // for a bare-ingredient meal.
+    expect(find.text('2 notes from the plan'), findsOneWidget);
+    await _openFold(tester, ShopFold.notes);
     expect(find.text('CURRY'), findsOneWidget);
     expect(
       find.text('Sauerkraut · ingredient removed · pick again in the recipe'),
@@ -1038,6 +1356,18 @@ void main() {
     );
     await tester.pump();
 
+    // Every note a choice, so the line reads muted, with no flag.
+    expect(find.text('1 note from the plan'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(shopFoldKey(ShopFold.notes)),
+        matching: find.byIcon(FLucideIcons.flag),
+      ),
+      findsNothing,
+    );
+    final line = tester.widget<Text>(find.text('1 note from the plan'));
+    expect(line.style?.color, AnsiColors.muted);
+    await _openFold(tester, ShopFold.notes);
     expect(find.text('WEEKNIGHT CHICKEN CURRY'), findsOneWidget);
     expect(
       find.textContaining('2 optional lines not listed — lime, coriander'),
@@ -1096,6 +1426,7 @@ void main() {
         ]),
       );
       await tester.pump();
+      await _openFold(tester, ShopFold.notes);
 
       await tester.tapOnText(find.textRange.ofSubstring('lime'));
       await tester.pump();
@@ -1126,6 +1457,7 @@ void main() {
         ]),
       );
       await tester.pump();
+      await _openFold(tester, ShopFold.notes);
 
       await tester.tapOnText(find.textRange.ofSubstring('wine'));
       await tester.pump();
@@ -1235,6 +1567,7 @@ void main() {
       expect(find.text('In the basket · 1'.toUpperCase()), findsOneWidget);
       // …and a ticked row is still in that section, not back in its aisle —
       // and reading one says where it is in the words the list uses.
+      await _openFold(tester, ShopFold.basket);
       expect(find.text('Coconut milk, canned'), findsOneWidget);
       await tester.tap(find.text('Coconut milk, canned'));
       await tester.pump();
@@ -1331,6 +1664,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('In the basket · 2'.toUpperCase()), findsOneWidget);
+      expect(find.text('DAIRY · IN THE BASKET'), findsOneWidget);
+      await _openFold(tester, ShopFold.basket);
       expect(
         find.descendant(
           of: find.byKey(kShopReadingRowKey),
@@ -1338,7 +1673,6 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('DAIRY · IN THE BASKET'), findsOneWidget);
     });
 
     testWidgets('below 1024 the phone rule is untouched: the whole row ticks, '
@@ -1678,38 +2012,98 @@ void main() {
       return repo;
     }
 
-    Future<void> enterThePass(WidgetTester tester) async {
-      final door = find.text('check what’s at home');
-      // The list is lazy: scroll the door into being, then fully into view.
-      await tester.scrollUntilVisible(
-        door,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.ensureVisible(door);
+    /// The toggle's segments animate their indicator; let it land.
+    Future<void> tapSegment(WidgetTester tester, String label) async {
+      await tester.tap(find.text(label));
       await tester.pump();
-      await tester.tap(door);
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
     }
 
-    testWidgets('the door at the foot opens the pass: houses and amounts, no '
-        'provenance, no free text, and Done leaves it', (tester) async {
+    Future<void> enterThePass(WidgetTester tester) =>
+        tapSegment(tester, 'At home?');
+
+    bool checking(WidgetTester tester) => ProviderScope.containerOf(
+      tester.element(find.byType(ShoppingView)),
+    ).read(shopCheckingProvider);
+
+    testWidgets('the toggle opens the pass: houses and amounts, no provenance, '
+        'no free text, and To buy leaves it', (tester) async {
       await pumpWalk(tester);
+      expect(find.byType(ShopToggle), findsOneWidget);
+      // The foot holds no door into it any more, and no band says it is on.
+      expect(find.text('check what’s at home'), findsNothing);
       expect(find.text('What’s already at home?'), findsNothing);
+      await _openRow(tester, 'flour');
       expect(find.text('Curry'), findsWidgets);
 
       await enterThePass(tester);
-      expect(find.text('What’s already at home?'), findsOneWidget);
+      expect(checking(tester), isTrue);
       expect(find.text('500 g'), findsOneWidget);
       expect(find.text('5 onion, medium'), findsOneWidget);
       // The question is only "do we have it": no breakdown, no non-food.
       expect(find.text('Curry'), findsNothing);
       expect(find.text('Paper towels'), findsNothing);
+      // The toggle is the only control for the mode: no band, no Done.
+      expect(find.text('Done'), findsNothing);
 
-      await tester.tap(find.text('Done'));
-      await tester.pump(const Duration(milliseconds: 200));
-      expect(find.text('What’s already at home?'), findsNothing);
+      await tapSegment(tester, 'To buy');
+      expect(checking(tester), isFalse);
       expect(find.text('Paper towels'), findsOneWidget);
+    });
+
+    testWidgets('a list of free text alone draws no toggle', (tester) async {
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(
+              const ShoppingList(
+                groups: [
+                  ShoppingGroup(
+                    label: 'Non-food',
+                    items: [ShoppingItem(name: 'Paper towels', entryId: 'e1')],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ]),
+      );
+      await tester.pump();
+      expect(find.text('At home?'), findsNothing);
+    });
+
+    testWidgets('leaving the tab sets the toggle back to To buy and folds '
+        'what was opened', (tester) async {
+      final visible = ValueNotifier(true);
+      addTearDown(visible.dispose);
+      await tester.pumpWidget(
+        _tabHost([
+          shoppingRepositoryProvider.overrideWithValue(
+            _FakeShoppingRepo(walk()),
+          ),
+          ingredientRepositoryProvider.overrideWithValue(
+            FakeIngredientRepo([]),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+        ], visible),
+      );
+      await tester.pump();
+      await _openRow(tester, 'flour');
+      expect(find.text('Cookies'), findsOneWidget);
+      await enterThePass(tester);
+      expect(checking(tester), isTrue);
+
+      visible.value = false;
+      await tester.pump();
+      await tester.pump();
+      visible.value = true;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(checking(tester), isFalse);
+      expect(find.text('Paper towels'), findsOneWidget);
+      // The breakdown opened on the last visit is folded again.
+      expect(find.text('Cookies'), findsNothing);
     });
 
     testWidgets('a tap on the row says all of it — the need as it stands, '
@@ -1774,9 +2168,13 @@ void main() {
       );
       expect(find.text('300 g'), findsWidgets);
       expect(find.textContaining('200 g at home'), findsOneWidget);
-      // The provenance still says what the week asked for.
+      // The provenance, opened, still says what the week asked for.
+      await _openRow(tester, 'flour');
       expect(find.text('Cookies'), findsOneWidget);
+      // The whole-have is behind one counted line until it is opened.
       expect(find.text('AT HOME · 1'), findsOneWidget);
+      expect(find.byKey(shopAtHomeRowKey('onion')), findsNothing);
+      await _openFold(tester, ShopFold.atHome);
       expect(find.byKey(shopAtHomeRowKey('onion')), findsOneWidget);
       // Never struck through: it was not bought.
       final name = tester.widget<Text>(
@@ -1831,6 +2229,26 @@ void main() {
       await tester.tap(find.byKey(shopHomeTargetKey('flour')));
       await tester.pump();
       expect(repo.atHomeSet.single.ingredientId, 'flour');
+    });
+
+    testWidgets('wide: the pane’s × ends the pass, and the toggle reads To '
+        'buy again', (tester) async {
+      filterForuiSemanticsAssertions();
+      deskWidth(tester);
+      await pumpWalk(tester);
+      await enterThePass(tester);
+      expect(checking(tester), isTrue);
+      // The toggle sits over the walk's own column, not the pane.
+      expect(
+        tester.getCenter(find.byType(ShopToggle)).dx,
+        lessThan(tester.getTopLeft(find.text('this week needs')).dx),
+      );
+
+      await tester.tap(find.byIcon(FLucideIcons.x));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(checking(tester), isFalse);
+      expect(find.text('WHERE IT CAME FROM'), findsOneWidget);
     });
   });
 }

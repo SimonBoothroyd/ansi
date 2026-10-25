@@ -42,7 +42,8 @@ import 'package:ansi/features/planning/presentation/week_widgets.dart'
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
-    show ShoppingView;
+    show ShoppingView, shopAmountTargetKey;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -470,6 +471,19 @@ void main() {
     await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     await pumpUntilFound(tester, find.text('Garlic'));
     expect(find.text('Onion'), findsOneWidget);
+    // Each row's breakdown is folded behind its amount: open both.
+    final garlic = await db.get(
+      "SELECT id FROM ingredient WHERE canonical_name = 'Garlic'",
+    );
+    final onion = await db.get(
+      "SELECT id FROM ingredient WHERE canonical_name = 'Onion'",
+    );
+    for (final id in [garlic['id'], onion['id']]) {
+      final amount = find.byKey(shopAmountTargetKey(id! as String));
+      await pumpUntilFound(tester, amount);
+      await tester.tap(amount);
+      await tester.pumpAndSettle();
+    }
     // Both cook sessions contribute, labelled per batch.
     expect(find.textContaining('Chicken Curry · cook Mon'), findsNWidgets(2));
     expect(find.textContaining('Chicken Curry · cook Sat'), findsNWidgets(2));
@@ -492,9 +506,6 @@ void main() {
     await tester.tap(find.text('Add top-up'));
     await pumpUntilFound(tester, find.textContaining('manual top-up'));
 
-    final garlic = await db.get(
-      "SELECT id FROM ingredient WHERE canonical_name = 'Garlic'",
-    );
     final entry = await db.get(
       'SELECT id, checked FROM shopping_list_entry '
       'WHERE ingredient_id = ? AND deleted_at IS NULL',
@@ -509,9 +520,6 @@ void main() {
     expect(topUp['quantity'], 2);
 
     // Check off the rolled-up Onion line (lazily creates its overlay entry).
-    final onion = await db.get(
-      "SELECT id FROM ingredient WHERE canonical_name = 'Onion'",
-    );
     await tester.tap(find.text('Onion'));
     await tester.pumpAndSettle();
     await waitForDb(tester, () async {
@@ -522,8 +530,8 @@ void main() {
       );
       return row != null && row['checked'] == 1;
     }, 'the Onion check-off overlay row');
-    // A checked line hides its provenance breakdown, so only Garlic's cook
-    // lines remain.
+    // A checked line folds its breakdown, so only Garlic's cook lines
+    // remain.
     await tester.pumpAndSettle();
     expect(find.textContaining('Chicken Curry · cook Mon'), findsOneWidget);
 

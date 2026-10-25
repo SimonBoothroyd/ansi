@@ -17,7 +17,9 @@ import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart
 import 'package:ansi/features/recipes/presentation/recipe_chip.dart'
     show RecipeChip;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
-    show ShoppingView;
+    show ShoppingView, shopAmountTargetKey, shopFoldKey;
+import 'package:ansi/features/shopping/presentation/shopping_view_models.dart'
+    show ShopFold;
 import 'package:ansi/shared/unit_chip.dart' show UnitChip;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -298,6 +300,18 @@ void main() {
     // the aioli's own lines do, through the derived session.
     await scrollTo(tester, find.text('Almonds'));
     expect(find.text('Romesco Aioli'), findsNothing);
+    // Each row's breakdown is folded behind its amount: open the two read.
+    for (final name in ['Almonds', 'Olive Oil']) {
+      final row = await db.get(
+        'SELECT id FROM ingredient WHERE canonical_name = ? '
+        'AND deleted_at IS NULL',
+        [name],
+      );
+      final amount = find.byKey(shopAmountTargetKey(row['id']! as String));
+      await scrollTo(tester, amount);
+      await tester.tap(amount);
+      await tester.pumpAndSettle();
+    }
     expect(
       find.text('Romesco Aioli · for Sausage Sliders · cook Fri'),
       findsWidgets,
@@ -380,6 +394,11 @@ void main() {
     // parent says so rather than leaving the list quietly short (D4).
     await tapTab(tester, FLucideIcons.shoppingBasket);
     await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
+    // The plan's notes are folded behind one amber line; open it.
+    final notes = find.byKey(shopFoldKey(ShopFold.notes));
+    await scrollTo(tester, notes);
+    await tester.tap(notes);
+    await tester.pumpAndSettle();
     await scrollTo(tester, find.text('1 component unresolved — see Cook'));
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
     expect(

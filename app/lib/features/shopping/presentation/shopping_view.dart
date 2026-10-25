@@ -63,13 +63,18 @@ class ShoppingView extends ConsumerWidget {
     final list = ref.watch(currentShoppingListProvider);
     final viewed = ref.watch(viewedWeekStartProvider);
     final checking = ref.watch(shopCheckingProvider);
-    // Leaving the tab ends the checking pass. The shell keeps a hidden tab
-    // mounted with its tickers off, so that is how "left" reads here.
-    if (checking && !TickerMode.valuesOf(context).enabled) {
+    final anyOpen = ref.watch(shopOpenProvider.select((o) => o.isNotEmpty));
+    // Leaving the tab ends the checking pass and folds whatever was opened.
+    // The shell keeps a hidden tab mounted with its tickers off, so that is
+    // how "left" reads here.
+    if ((checking || anyOpen) && !TickerMode.valuesOf(context).enabled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (context.mounted) ref.read(shopCheckingProvider.notifier).done();
+        if (!context.mounted) return;
+        ref.read(shopCheckingProvider.notifier).done();
+        ref.read(shopOpenProvider.notifier).reset();
       });
     }
+    final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
 
     return WeekInTheLocation(
       path: '/shop',
@@ -108,11 +113,12 @@ class ShoppingView extends ConsumerWidget {
               noun: 'tick',
               trailing: _TripEstimate(trip: ref.watch(shopTripCostProvider)),
             ),
-            if (checking) const _CheckingBand(),
+            // At expanded the toggle sits over the walk's own column instead.
+            if (!wide) const ShopToggle(),
             // At expanded width the walk stays one column; the width buys only
             // the breakdown pane beside it.
             Expanded(
-              child: AnsiLayout.of(context) == AnsiLayout.expanded
+              child: wide
                   ? const _WideShop()
                   : _shoppingList(context, ref, list),
             ),
@@ -158,8 +164,9 @@ class _TripEstimate extends StatelessWidget {
   }
 }
 
-/// The walk: aisles, basket, echo rows and the add door. [selection] is null on
-/// a phone, where each row draws its own breakdown. At [AnsiLayout.expanded] it
+/// The walk: the aisles, then three folded lines (the basket, *At home* and
+/// the plan's notes), then the add door. [selection] is null on a phone, where
+/// a row opens its own breakdown from its amount. At [AnsiLayout.expanded] it
 /// drives the pane: a tap outside a row's check box selects that row, and no
 /// row draws a breakdown.
 Widget _shoppingList(
@@ -185,7 +192,6 @@ Widget _shoppingList(
             const EdgeInsets.only(top: 6, bottom: 24),
           ),
           children: [
-            const _ListCaption(),
             if (data.isEmpty) const _NothingToBuyLine(),
             // The aisles hold only what is left to buy; when nothing is, a line
             // says why — all of it at home, or in the basket.
@@ -195,24 +201,18 @@ Widget _shoppingList(
               const _EverythingInBasketLine(),
             for (final group in data.openGroups)
               _Group(group: group, selection: selection),
+            // The folded lines close the walk, set off from the last aisle.
+            if (data.basket.isNotEmpty ||
+                data.atHome.isNotEmpty ||
+                _noteCount(data) > 0)
+              const SizedBox(height: 14),
             if (data.basket.isNotEmpty)
               _Basket(groups: data.basketGroups, selection: selection),
-            // Last: what was never on the trip.
+            // Then what was never on the trip.
             if (data.atHome.isNotEmpty)
               _AtHomeSection(items: data.atHome, selection: selection),
-            // An unresolved component contributes nothing, so its parent
-            // recipe says so and points at the Cook tab.
-            for (final note in data.unresolvedComponents)
-              _UnresolvedEcho(note: note),
-            // A line or planned meal whose vocab row was retired. Amber: it is
-            // fixable.
-            for (final note in data.retiredIngredients)
-              RetiredIngredientEcho(note: note),
-            // Optional lines left out by rule. Muted: a choice, not a defect.
-            for (final note in data.optionalLines)
-              OptionalLinesEcho(note: note),
+            if (_noteCount(data) > 0) _PlanNotes(list: data),
             const _AddItemButton(),
-            if (_hasRowsToCheck(data)) const CheckAtHomeDoor(),
             const ScanReceiptDoor(),
           ],
         ),
@@ -233,8 +233,10 @@ List<ShoppingGroup> _checkingGroups(ShoppingList data) => [
 
 bool _checkable(ShoppingItem i) => !i.isFreeText && !i.checked;
 
-bool _hasRowsToCheck(ShoppingList data) =>
-    data.groups.any((g) => g.items.any(_checkable));
+/// Whether the list holds an ingredient row, ticked or not: what the
+/// `To buy · At home?` toggle needs before it is drawn.
+bool _hasIngredientRow(ShoppingList data) =>
+    data.groups.any((g) => g.items.any((i) => !i.isFreeText));
 
 /// The checking pass: the same aisles, each row a house and an amount. No
 /// provenance, prices, basket, free text or echo rows — the only question is
@@ -331,18 +333,26 @@ class _WideShopState extends ConsumerState<_WideShop> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: _shoppingList(
-                context,
-                ref,
-                list,
-                selection: reading == null
-                    ? null
-                    : _Selection(
-                        identity: shoppingItemIdentity(reading.item),
-                        read: (item) => setState(
-                          () => _reading = shoppingItemIdentity(item),
-                        ),
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const ShopToggle(),
+                  Expanded(
+                    child: _shoppingList(
+                      context,
+                      ref,
+                      list,
+                      selection: reading == null
+                          ? null
+                          : _Selection(
+                              identity: shoppingItemIdentity(reading.item),
+                              read: (item) => setState(
+                                () => _reading = shoppingItemIdentity(item),
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
             // While checking, the pane trades its question: not where a row
@@ -467,25 +477,6 @@ class _ProvenancePane extends StatelessWidget {
   }
 }
 
-class _ListCaption extends StatelessWidget {
-  const _ListCaption();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 2),
-      child: Text(
-        'summed from the cook plan · with provenance',
-        style: ansiMono(
-          size: 10.5,
-          color: AnsiColors.muted,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
 class _Group extends StatelessWidget {
   const _Group({required this.group, this.selection});
 
@@ -505,17 +496,16 @@ class _Group extends StatelessWidget {
   }
 }
 
-/// An aisle's label over its rows (`PRODUCE`), or a section's (`AT HOME · 2`).
+/// An aisle's label over its rows (`PRODUCE`).
 class _GroupLabel extends StatelessWidget {
-  const _GroupLabel({required this.label, this.bottom = 6});
+  const _GroupLabel({required this.label});
 
   final String label;
-  final double bottom;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 14, 20, bottom),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
       child: Text(
         label.toUpperCase(),
         style: ansiMono(size: 10, color: AnsiColors.muted, letterSpacing: 1.4),
@@ -524,47 +514,175 @@ class _GroupLabel extends StatelessWidget {
   }
 }
 
-/// The section every ticked row moves to (`IN THE BASKET · 4`), keeping its
-/// aisles inside it. Tapping a row unticks it.
-class _Basket extends StatelessWidget {
+/// The section every ticked row moves to, folded to one counted line (`IN THE
+/// BASKET · 4`) until it is tapped open. Opened, it keeps its aisles inside it,
+/// and tapping a row unticks it.
+class _Basket extends ConsumerWidget {
   const _Basket({required this.groups, this.selection});
 
   final List<ShoppingGroup> groups;
   final _Selection? selection;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final count = groups.fold(0, (n, g) => n + g.items.length);
+    final open = ref.watch(
+      shopOpenProvider.select((o) => o.contains(ShopFold.basket)),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 2),
-          child: Text(
-            'In the basket · $count'.toUpperCase(),
-            style: ansiMono(
-              size: 10,
-              color: AnsiColors.muted,
-              letterSpacing: 1.4,
-            ),
-          ),
+        _FoldLine(
+          fold: ShopFold.basket,
+          open: open,
+          label: 'In the basket · $count'.toUpperCase(),
         ),
-        for (final group in groups) ...[
-          // The aisle's own label, a size down and set in from the box so it
-          // reads as a section OF the basket rather than a second aisle.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(51, 8, 20, 4),
-            child: Text(
-              group.label.toUpperCase(),
-              style: ansiMono(
-                size: 9,
-                color: AnsiColors.muted,
-                letterSpacing: 1.2,
+        if (open)
+          for (final group in groups) ...[
+            // The aisle's own label, a size down and set in from the box so it
+            // reads as a section OF the basket rather than a second aisle.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(51, 8, 20, 4),
+              child: Text(
+                group.label.toUpperCase(),
+                style: ansiMono(
+                  size: 9,
+                  color: AnsiColors.muted,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
-          ),
-          for (final item in group.items)
-            _ItemRow(item: item, selection: selection),
+            for (final item in group.items)
+              _ItemRow(item: item, selection: selection),
+          ],
+      ],
+    );
+  }
+}
+
+/// The key on a folded section's counted line.
+ValueKey<String> shopFoldKey(ShopFold fold) => ValueKey('shop-fold-$fold');
+
+/// How a folded line reads: an uppercase label, or the notes' sentence in
+/// amber with its flag, or the same sentence muted.
+enum _FoldTone { label, defect, quiet }
+
+/// One folded section's line: its words, and the chevron that says whether it
+/// is open (right) or not (down). A tap opens or folds it in place. At least
+/// 44 px tall, the whole width of the walk.
+class _FoldLine extends ConsumerWidget {
+  const _FoldLine({
+    required this.fold,
+    required this.open,
+    required this.label,
+    this.tone = _FoldTone.label,
+  });
+
+  final ShopFold fold;
+  final bool open;
+  final String label;
+  final _FoldTone tone;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final style = switch (tone) {
+      _FoldTone.label => ansiMono(
+        size: 10,
+        color: AnsiColors.muted,
+        letterSpacing: 1.4,
+      ),
+      _FoldTone.defect => ansiMono(size: 11, color: AnsiColors.cautionInk),
+      _FoldTone.quiet => ansiMono(size: 11, color: AnsiColors.muted),
+    };
+    return GestureDetector(
+      key: shopFoldKey(fold),
+      behavior: HitTestBehavior.opaque,
+      onTap: () => ref.read(shopOpenProvider.notifier).toggle(fold),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        constraints: const BoxConstraints(minHeight: 44),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AnsiColors.line)),
+        ),
+        child: Row(
+          children: [
+            if (tone == _FoldTone.defect) ...[
+              const Icon(
+                FLucideIcons.flag,
+                size: 11,
+                color: AnsiColors.cautionInk,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Expanded(child: Text(label, style: style)),
+            _Chevron(open: open),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The open cue, as the Library's folds draw it: right while closed, down once
+/// open. It says what is, not what a tap will do.
+class _Chevron extends StatelessWidget {
+  const _Chevron({required this.open});
+
+  final bool open;
+
+  @override
+  Widget build(BuildContext context) => Icon(
+    open ? FLucideIcons.chevronDown : FLucideIcons.chevronRight,
+    size: 13,
+    color: AnsiColors.herb,
+  );
+}
+
+/// How many notes the plan left: the unresolved components, the retired
+/// ingredients and the lines left out.
+int _noteCount(ShoppingList list) =>
+    list.unresolvedComponents.length +
+    list.retiredIngredients.length +
+    list.optionalLines.length;
+
+/// The plan's notes, folded behind one line: `3 notes from the plan`, amber
+/// with a flag while any of them is a defect (an unresolved component, a
+/// retired ingredient), muted when every one is a line left out. Opened, it
+/// holds today's echo rows, the optional names still doors.
+class _PlanNotes extends ConsumerWidget {
+  const _PlanNotes({required this.list});
+
+  final ShoppingList list;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = _noteCount(list);
+    final defect =
+        list.unresolvedComponents.isNotEmpty ||
+        list.retiredIngredients.isNotEmpty;
+    final open = ref.watch(
+      shopOpenProvider.select((o) => o.contains(ShopFold.notes)),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _FoldLine(
+          fold: ShopFold.notes,
+          open: open,
+          label: '$count ${plural(count, 'note')} from the plan',
+          tone: defect ? _FoldTone.defect : _FoldTone.quiet,
+        ),
+        if (open) ...[
+          // An unresolved component contributes nothing, so its parent recipe
+          // says so and points at the Cook tab.
+          for (final note in list.unresolvedComponents)
+            _UnresolvedEcho(note: note),
+          // A line or planned meal whose vocab row was retired. Amber: it is
+          // fixable.
+          for (final note in list.retiredIngredients)
+            RetiredIngredientEcho(note: note),
+          // Optional lines left out by rule. Muted: a choice, not a defect.
+          for (final note in list.optionalLines) OptionalLinesEcho(note: note),
         ],
       ],
     );
@@ -803,9 +921,10 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
   }
 }
 
-/// One shopping line: check box, name, total, and the provenance breakdown
-/// under it. On a phone a tap anywhere toggles the tick; at
-/// [AnsiLayout.expanded] only the box does. A purely user-added line can be
+/// One shopping line: check box, name, total and its sub-line. On a phone a
+/// tap on the row toggles the tick, and a tap on the amount (its chevron, its
+/// sub-line) opens the breakdown under it; at [AnsiLayout.expanded] only the
+/// box ticks, and the breakdown is the pane's. A purely user-added line can be
 /// removed by swipe or long-press; a cook-derived one cannot.
 class _ItemRow extends ConsumerStatefulWidget {
   const _ItemRow({required this.item, this.selection});
@@ -831,6 +950,10 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     final repo = ref.read(shoppingRepositoryProvider);
     final entryId = item.entryId;
     final what = item.checked ? 'untick ${item.name}' : 'tick ${item.name}';
+    // A ticked row folds its breakdown; unticked, it comes back closed.
+    if (!item.checked) {
+      ref.read(shopOpenProvider.notifier).close(shoppingItemIdentity(item));
+    }
     // Decided on the list as it stands, before the write and before any await.
     _celebrateIfLastTick();
     // A touched line (free-text, checked, or topped-up) has an entry; a purely
@@ -906,12 +1029,28 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             // price; before that the household simply has not started.
             anyPriced: ref.watch(shopTripCostProvider).cents != null,
           );
-    // A part-have opens the sub-line, muted: the reason the total is smaller
-    // is read at the same glance as the total.
+    // A part-have opens the sub-line, and a rounded row's need follows it,
+    // both muted: the reasons the headline is what it is, read at the same
+    // glance as it. The need is where [itemSecondary] starts.
     final home = item.checked ? '' : atHomeWords(item);
+    final need = item.checked ? '' : itemNeed(item);
+    final rest = need.isNotEmpty && secondary.startsWith(need)
+        ? secondary.substring(need.length).replaceFirst(' · ', '')
+        : secondary;
+    final muted = [home, need].where((w) => w.isNotEmpty).join(' · ');
+    final hasSub = muted.isNotEmpty || rest.isNotEmpty;
     final selection = widget.selection;
-    final reading =
-        selection != null && selection.identity == shoppingItemIdentity(item);
+    final identity = shoppingItemIdentity(item);
+    final reading = selection != null && selection.identity == identity;
+    // The breakdown opens on a phone only, from a row that has one and is
+    // still to grab.
+    final canOpen =
+        selection == null && !item.checked && item.contributions.isNotEmpty;
+    final open =
+        canOpen &&
+        ref.watch(shopOpenProvider.select((o) => o.contains(identity)));
+    void flip() => ref.read(shopOpenProvider.notifier).toggle(identity);
+
     final name = Text(
       item.name,
       style: ansiSans(
@@ -919,6 +1058,143 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         color: item.checked ? AnsiColors.muted : AnsiColors.ink,
       ).copyWith(decoration: item.checked ? TextDecoration.lineThrough : null),
     );
+    final total = Text(
+      itemTotal(item),
+      style: ansiMono(
+        size: 13,
+        weight: FontWeight.w500,
+        color: item.checked ? AnsiColors.muted : AnsiColors.ink,
+      ),
+    );
+    // What a counted row weighs, its need, or what is at home; always under
+    // the headline, never replacing it (invariant 3).
+    final subLine = Align(
+      alignment: Alignment.centerRight,
+      child: Text.rich(
+        TextSpan(
+          children: [
+            if (muted.isNotEmpty)
+              TextSpan(
+                text: muted,
+                style: ansiMono(size: 10.5, color: AnsiColors.muted),
+              ),
+            if (muted.isNotEmpty && rest.isNotEmpty)
+              const TextSpan(text: ' · '),
+            if (rest.isNotEmpty) TextSpan(text: rest),
+          ],
+        ),
+        style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+      ),
+    );
+
+    final Widget body;
+    if (selection != null) {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // The wide row's tick target: the box where the phone draws it,
+              // inside a 31 × 44 target spanning the row's height.
+              GestureDetector(
+                key: shopTickTargetKey(identity),
+                behavior: HitTestBehavior.opaque,
+                onTap: _toggle,
+                child: SizedBox(
+                  width: 31,
+                  height: 44,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _CheckBox(key: _box, checked: item.checked),
+                  ),
+                ),
+              ),
+              Expanded(child: name),
+              const SizedBox(width: 8),
+              total,
+            ],
+          ),
+          if (hasSub) ...[
+            const SizedBox(height: 3),
+            Padding(padding: const EdgeInsets.only(left: 31), child: subLine),
+            // The bottom half of the padding the tick target took, put back
+            // under a tail that would otherwise sit on the hairline.
+            const SizedBox(height: 11),
+          ],
+        ],
+      );
+    } else {
+      // On a phone each part of the top line carries the row's vertical
+      // padding itself, so the amount's target reaches the row's edge and,
+      // with the sub-line under it, is never less than 44 px tall.
+      final pad = EdgeInsets.only(top: 12, bottom: hasSub ? 3 : 12);
+      final amount = canOpen
+          ? GestureDetector(
+              key: shopAmountTargetKey(identity),
+              behavior: HitTestBehavior.opaque,
+              onTap: flip,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: 44,
+                  minHeight: hasSub ? 0 : 44,
+                ),
+                child: Padding(
+                  padding: pad.copyWith(left: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      total,
+                      const SizedBox(width: 5),
+                      _Chevron(open: open),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : Padding(padding: pad.copyWith(left: 8), child: total);
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Padding(
+                padding: pad,
+                child: _CheckBox(key: _box, checked: item.checked),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Padding(padding: pad, child: name),
+              ),
+              amount,
+            ],
+          ),
+          // The sub-line is the amount's target too: one door, under the
+          // figure it explains.
+          if (hasSub)
+            GestureDetector(
+              behavior: canOpen
+                  ? HitTestBehavior.opaque
+                  : HitTestBehavior.deferToChild,
+              onTap: canOpen ? flip : null,
+              child: Padding(
+                padding: EdgeInsets.only(left: 31, bottom: open ? 0 : 11),
+                child: subLine,
+              ),
+            ),
+          if (open)
+            Padding(
+              padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
+              child: _Provenance(
+                itemName: item.name,
+                ingredientId: item.ingredientId,
+                contributions: item.contributions,
+              ),
+            ),
+        ],
+      );
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       // On a phone the row is the tick; at expanded the row points the pane.
@@ -929,11 +1205,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
       child: Container(
         key: reading ? kShopReadingRowKey : null,
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: EdgeInsets.symmetric(
-          // At expanded the vertical padding moves into the tick target below.
-          vertical: selection == null ? 11 : 0,
-          horizontal: reading ? 11 : 0,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: reading ? 11 : 0),
         decoration: reading
             ? BoxDecoration(
                 color: AnsiColors.herbSoft,
@@ -943,96 +1215,16 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 color: AnsiColors.surface,
                 border: Border(bottom: BorderSide(color: AnsiColors.line)),
               ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (selection == null) ...[
-                  _CheckBox(key: _box, checked: item.checked),
-                  const SizedBox(width: 11),
-                ] else
-                  // The wide row's tick target: the box where the phone draws
-                  // it, inside a 31 × 44 target spanning the row's height.
-                  GestureDetector(
-                    key: shopTickTargetKey(shoppingItemIdentity(item)),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _toggle,
-                    child: SizedBox(
-                      width: 31,
-                      height: 44,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _CheckBox(key: _box, checked: item.checked),
-                      ),
-                    ),
-                  ),
-                Expanded(child: name),
-                const SizedBox(width: 8),
-                Text(
-                  itemTotal(item),
-                  style: ansiMono(
-                    size: 13,
-                    weight: FontWeight.w500,
-                    color: item.checked ? AnsiColors.muted : AnsiColors.ink,
-                  ),
-                ),
-              ],
-            ),
-            // What a measure-counted row weighs, or the whole-unit round-up;
-            // always under the total, never replacing it (invariant 3).
-            if (secondary.isNotEmpty || home.isNotEmpty) ...[
-              const SizedBox(height: 3),
-              Padding(
-                padding: const EdgeInsets.only(left: 31),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        if (home.isNotEmpty)
-                          TextSpan(
-                            text: home,
-                            style: ansiMono(
-                              size: 10.5,
-                              color: AnsiColors.muted,
-                            ),
-                          ),
-                        if (home.isNotEmpty && secondary.isNotEmpty)
-                          const TextSpan(text: ' · '),
-                        if (secondary.isNotEmpty) TextSpan(text: secondary),
-                      ],
-                    ),
-                    style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
-                  ),
-                ),
-              ),
-            ],
-            // Every row says where it came from: under the row on a phone, in
-            // the pane at expanded.
-            if (selection == null &&
-                !item.checked &&
-                item.contributions.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.only(left: 31),
-                child: _Provenance(
-                  itemName: item.name,
-                  ingredientId: item.ingredientId,
-                  contributions: item.contributions,
-                ),
-              ),
-            ],
-            // The bottom half of the padding the tick target took, put back
-            // under a tail that would otherwise sit on the hairline.
-            if (selection != null && (secondary.isNotEmpty || home.isNotEmpty))
-              const SizedBox(height: 11),
-          ],
-        ),
+        child: body,
       ),
     );
   }
 }
+
+/// The key on a phone row's amount target — the amount, its chevron and (as a
+/// second detector) its sub-line — named by [shoppingItemIdentity].
+ValueKey<String> shopAmountTargetKey(String identity) =>
+    ValueKey('shop-amount-$identity');
 
 /// The key on a wide row's tick target, named by [shoppingItemIdentity] so a
 /// test can tick a named row.
@@ -1099,50 +1291,86 @@ class _ProvenanceLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = contribution;
     final isManual = c.source == ContributionSource.manual;
-    final editable = isManual && c.contributionId != null;
-
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          if (isManual) ...[
-            const Icon(FLucideIcons.plus, size: 10, color: AnsiColors.muted),
-            const SizedBox(width: 4),
-          ],
-          Expanded(
-            child: Text(
-              c.label,
-              style: ansiMono(
-                size: 10.5,
-                color: isManual ? AnsiColors.muted : AnsiColors.herbDeep,
-              ).copyWith(fontStyle: isManual ? FontStyle.italic : null),
-            ),
-          ),
-          if (editable) ...[
-            const Icon(FLucideIcons.pencil, size: 11, color: AnsiColors.herb),
-            const SizedBox(width: 6),
-          ],
-          Text(
-            contributionQuantity(c),
-            style: ansiMono(size: 10.5, color: AnsiColors.muted),
-          ),
-        ],
-      ),
+    final id = c.contributionId;
+    final label = Text(
+      c.label,
+      style: ansiMono(
+        size: 10.5,
+        color: isManual ? AnsiColors.muted : AnsiColors.herbDeep,
+      ).copyWith(fontStyle: isManual ? FontStyle.italic : null),
+    );
+    final quantity = Text(
+      contributionQuantity(c),
+      style: ansiMono(size: 10.5, color: AnsiColors.muted),
     );
 
-    if (!editable) return row;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => showEditTopUpSheet(
-        context,
-        itemName: itemName,
-        ingredientId: ingredientId,
-        contribution: c,
+    if (!isManual || id == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            if (isManual) ...[
+              const Icon(FLucideIcons.plus, size: 10, color: AnsiColors.muted),
+              const SizedBox(width: 4),
+            ],
+            Expanded(child: label),
+            quantity,
+          ],
+        ),
+      );
+    }
+    // A manual top-up is the one editable line, so it is a full-size row of
+    // its own: a 44 px target that cannot be mistaken for the row's tick.
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: GestureDetector(
+        key: shopTopUpKey(id),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showEditTopUpSheet(
+          context,
+          itemName: itemName,
+          ingredientId: ingredientId,
+          contribution: c,
+        ),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: AnsiColors.paper,
+            border: Border.all(color: AnsiColors.line),
+            borderRadius: BorderRadius.circular(AnsiRadii.box),
+          ),
+          child: Row(
+            children: [
+              const Icon(FLucideIcons.plus, size: 10, color: AnsiColors.muted),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  c.label,
+                  style: ansiMono(
+                    size: 10.5,
+                    color: AnsiColors.muted,
+                  ).copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
+              Text(
+                contributionQuantity(c),
+                style: ansiMono(size: 10.5, color: AnsiColors.muted),
+              ),
+              const SizedBox(width: 8),
+              const Icon(FLucideIcons.pencil, size: 11, color: AnsiColors.herb),
+            ],
+          ),
+        ),
       ),
-      child: row,
     );
   }
 }
+
+/// The key on an opened breakdown's manual top-up row, named by its
+/// contribution id.
+ValueKey<String> shopTopUpKey(String contributionId) =>
+    ValueKey('shop-top-up-$contributionId');
 
 /// The check box: a rounded square, filled herb-green with a white tick when
 /// on.
@@ -1354,64 +1582,72 @@ Future<void> _confirmRemove(
 
 // --- What is already at home ----------------------------------------------
 
-/// The door into the checking pass, at the foot beside the top-up and in its
-/// dashed idiom. Drawn while any ingredient row is still to tick.
-class CheckAtHomeDoor extends ConsumerWidget {
-  const CheckAtHomeDoor({super.key});
+/// The `To buy · At home?` toggle under the sync line: the way into the
+/// checking pass and, tapped back to `To buy`, out of it. It reads and writes
+/// [shopCheckingProvider] and nothing else. Drawn while the list holds an
+/// ingredient row (and while the pass is on, so it can always be left); at
+/// expanded it sits over the walk's column. Public so the screen test can find
+/// it by type.
+class ShopToggle extends ConsumerWidget {
+  const ShopToggle({super.key});
+
+  static const _labels = ['To buy', 'At home?'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final checking = ref.watch(shopCheckingProvider);
+    final data = ref.watch(currentShoppingListProvider).asData?.value;
+    if (!checking && (data == null || !_hasIngredientRow(data))) {
+      return const SizedBox.shrink();
+    }
+    final index = checking ? 1 : 0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => ref.read(shopCheckingProvider.notifier).start(),
-        child: DashedBorderBox(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(FLucideIcons.house, size: 12, color: AnsiColors.herb),
-              const SizedBox(width: 5),
-              Text(
-                'check what’s at home',
-                textAlign: TextAlign.center,
-                style: ansiMono(
-                  size: 11,
-                  color: AnsiColors.herb,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      child: FTabs(
+        control: FTabControl.lifted(
+          index: index,
+          onChange: (i) {
+            final pass = ref.read(shopCheckingProvider.notifier);
+            i == 1 ? pass.start() : pass.done();
+          },
         ),
-      ),
-    );
-  }
-}
-
-/// The band over the list while checking: the question, and **Done**.
-class _CheckingBand extends ConsumerWidget {
-  const _CheckingBand();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      color: AnsiColors.herbSoft,
-      padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'What’s already at home?',
-              style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+        style: FTabsStyleDelta.delta(
+          decoration: DecorationDelta.value(
+            BoxDecoration(
+              color: AnsiColors.paper,
+              border: Border.all(color: AnsiColors.line),
+              borderRadius: BorderRadius.circular(11),
             ),
           ),
-          FButton(
-            size: FButtonSizeVariant.sm,
-            mainAxisSize: MainAxisSize.min,
-            onPress: () => ref.read(shopCheckingProvider.notifier).done(),
-            child: const Text('Done'),
+          indicatorDecoration: DecorationDelta.value(
+            BoxDecoration(
+              color: AnsiColors.surface,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1418211C),
+                  offset: Offset(0, 1),
+                  blurRadius: 2,
+                ),
+              ],
+            ),
           ),
+          padding: const EdgeInsetsGeometryDelta.value(EdgeInsets.all(3)),
+          height: 32,
+          spacing: 0,
+        ),
+        children: [
+          for (var i = 0; i < _labels.length; i++)
+            FTabEntry(
+              label: Text(
+                _labels[i],
+                style: ansiMono(
+                  size: 10.5,
+                  color: i == index ? AnsiColors.ink : AnsiColors.muted,
+                ),
+              ),
+              child: const SizedBox.shrink(),
+            ),
         ],
       ),
     );
@@ -1628,22 +1864,32 @@ class _HouseBox extends StatelessWidget {
   }
 }
 
-/// The *At home* section, last on the list: rows all at home, muted but never
-/// struck through, a house where the tick would be and no price. A tap puts
-/// the row back in its aisle, as a tap on a basket row unticks it.
-class _AtHomeSection extends StatelessWidget {
+/// The *At home* section, under the basket: folded to one counted line (`AT
+/// HOME · 3`) until it is tapped open. Its rows are all at home, muted but
+/// never struck through, a house where the tick would be and no price. A tap
+/// puts the row back in its aisle, as a tap on a basket row unticks it.
+class _AtHomeSection extends ConsumerWidget {
   const _AtHomeSection({required this.items, this.selection});
 
   final List<ShoppingItem> items;
   final _Selection? selection;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final open = ref.watch(
+      shopOpenProvider.select((o) => o.contains(ShopFold.atHome)),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _GroupLabel(label: 'At home · ${items.length}', bottom: 2),
-        for (final item in items) _AtHomeRow(item: item, selection: selection),
+        _FoldLine(
+          fold: ShopFold.atHome,
+          open: open,
+          label: 'At home · ${items.length}'.toUpperCase(),
+        ),
+        if (open)
+          for (final item in items)
+            _AtHomeRow(item: item, selection: selection),
       ],
     );
   }
@@ -1788,7 +2034,7 @@ class _AtHomePane extends ConsumerWidget {
                 ),
                 item: row,
                 inPane: true,
-                // The pane's X closes the pass, as Done does.
+                // The pane’s × closes the pass, as tapping back to To buy does.
                 onDismiss: () => ref.read(shopCheckingProvider.notifier).done(),
               ),
             ),

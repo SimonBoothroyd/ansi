@@ -36,7 +36,9 @@ import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart'
     show RecipeHeaderForm;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
-    show ShoppingView;
+    show ShoppingView, shopFoldKey;
+import 'package:ansi/features/shopping/presentation/shopping_view_models.dart'
+    show ShopFold;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -253,6 +255,11 @@ void main() {
     await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     await pumpUntilFound(tester, find.text('Almonds'));
     expect(find.text('All-Purpose Flour'), findsNothing);
+    // The plan's notes are folded behind one line; open it.
+    final notes = find.byKey(shopFoldKey(ShopFold.notes));
+    await scrollTo(tester, notes);
+    await tester.tap(notes);
+    await tester.pumpAndSettle();
     await scrollTo(tester, find.textContaining('left out this week'));
     expect(
       find.textContaining('1 line left out this week — All-Purpose Flour'),

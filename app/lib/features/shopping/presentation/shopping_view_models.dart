@@ -37,9 +37,10 @@ TripCost shopTripCost(Ref ref) {
 }
 
 /// Whether this phone's Shop is in its checking pass — *what's already at
-/// home?*. The tick turns into a house and the total into the door
-/// to an amount. This phone's alone and never synced: **Done** ends it, and so
-/// does leaving the Shop tab.
+/// home?*. The tick turns into a house and the total into the door to an
+/// amount. The `To buy · At home?` toggle reads and writes it. This phone's
+/// alone and never synced: tapping back to `To buy` ends it, and so do
+/// leaving the Shop tab and the wide pane's ×.
 @riverpod
 class ShopChecking extends _$ShopChecking {
   @override
@@ -50,4 +51,32 @@ class ShopChecking extends _$ShopChecking {
 
   /// Leaves the pass. Every tap in it was written as it was made.
   void done() => state = false;
+}
+
+/// The three sections at the foot of the walk that fold to one counted line.
+enum ShopFold { basket, atHome, notes }
+
+/// What is open on this phone's Shop: a row's breakdown (keyed by
+/// `shoppingItemIdentity`) or a [ShopFold]. Everything starts closed. This
+/// phone's alone, never synced, and it lasts the visit: leaving the Shop tab
+/// closes it all.
+@riverpod
+class ShopOpen extends _$ShopOpen {
+  @override
+  Set<Object> build() => const {};
+
+  /// Opens [key] if it is closed, and closes it if it is open.
+  void toggle(Object key) => state = state.contains(key)
+      ? {...state}.difference({key})
+      : {...state, key};
+
+  /// Closes [key], as a tick folds the row it ticks.
+  void close(Object key) {
+    if (state.contains(key)) state = {...state}.difference({key});
+  }
+
+  /// Closes everything.
+  void reset() {
+    if (state.isNotEmpty) state = const {};
+  }
 }

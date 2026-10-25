@@ -19,7 +19,8 @@ shopping/
     shopping_repository.dart  read/write contract
   data/           SqliteShoppingRepository (derive + overlay) + providers
   presentation/
-    shopping_view.dart            the screen: aisles, basket, echo rows, doors
+    shopping_view.dart            the screen: the toggle, aisles, the folded
+                                  basket, At home and notes, doors
     add_shopping_item_sheet.dart  add an item or a top-up
     edit_top_up_sheet.dart        edit or remove one manual top-up
     at_home_sheet.dart            how much is at home (sheet, or the wide pane)
@@ -81,9 +82,28 @@ hands them with the overlay to `buildShoppingList` (pure).
   recipe. Each optional name is a door: a tap writes this week's include
   override (`WeekVariantRepository.setLineIncluded`). A line the week left out
   is undone where it was made.
+- **The breakdown waits behind the amount.** On a phone a row is one line,
+  or two with its sub-line. A tap on the row ticks it; a tap on its amount,
+  its chevron or its sub-line (one target, at least 44 px tall) opens the
+  recipes, the sessions and the manual top-up under it. The top-up is its
+  own 44 px row with a pencil that opens `edit_top_up_sheet.dart`. The
+  chevron says what is: `chevronRight` closed, `chevronDown` open, in herb,
+  as the Library's folds draw it; a row with nothing to trace (free text)
+  has none. The amount stays plain text: the herb-soft chip belongs to the
+  at-home pass. What is open (`shopOpenProvider`) is this phone's, lasts the
+  visit and is never synced; a tick folds its row, and leaving the tab folds
+  everything. At expanded no row opens: the pane holds the breakdown.
 - **The basket.** Aisles hold what is still to grab; ticked rows move to one
-  `IN THE BASKET` section that keeps its aisles (`openGroups`, `basketGroups`,
-  `allTicked` on `ShoppingList`). `groups` stays the full list.
+  `IN THE BASKET · n` section that keeps its aisles (`openGroups`,
+  `basketGroups`, `allTicked` on `ShoppingList`). `groups` stays the full
+  list.
+- **Three folded lines close the walk**: `IN THE BASKET · n`, `AT HOME · n`
+  and `N notes from the plan`, each a 44 px line with the same chevron pair,
+  opening in place. Opened, basket rows untick on a tap and *At home* rows go
+  back to their aisle. The notes line holds the three echo rows below; it
+  reads amber with a flag while any note is a defect (an unresolved
+  component, a retired ingredient), and muted when every one is a line left
+  out. The list draws no caption.
 - **The last tick.** `completesTheList` decides, on the list as it stands
   before the write, whether this tick finishes a list of more than one item. A
   completion arriving by sync plays nothing. The view plays a haptic and the
@@ -107,9 +127,12 @@ hands them with the overlay to `buildShoppingList` (pure).
   and `no price yet` prints only once something on the trip has a price.
 - **Two empty states**, told apart by the derived cook plan: nothing planned,
   or meals planned whose recipes have no ingredients.
-- **Already at home.** The foot's *check what's at home* door opens a pass
-  (`shopCheckingProvider`, this phone's alone; **Done** or leaving the tab
-  ends it). A row tap stores `amountForAll` — the need as it stands, never a
+- **Already at home.** The `To buy · At home?` toggle under the sync line
+  (`ShopToggle`, Forui's tabs) enters a pass and, tapped back to `To buy`,
+  leaves it; it reads and writes `shopCheckingProvider`, this phone's alone.
+  Leaving the tab sets it back to `To buy`, and so does the wide pane's ×.
+  It is drawn while the list holds an ingredient row, and at expanded it sits
+  over the walk's column. A row tap stores `amountForAll` — the need as it stands, never a
   flag — or clears what was said; the amount chip opens `at_home_sheet.dart`,
   the wide pane at expanded. `leftToBuy` takes the amount off the need
   through the same bridges the sum uses, or returns `NotCounted` with the
