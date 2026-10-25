@@ -875,6 +875,7 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   and the editor's, one vocabulary for one kind of broken line (see
   *Ingredient*: a retire is refused while a live line names the row).
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
+- **Adding starts from one field at the top** ([plan 0056](../exec-plans/active/0056-shop-refresh.md) R4, R9): `Add to the list`, under the `To buy · At home?` toggle, and not drawn while `At home?` is on. Typing puts the picker's own answer where the walk was — spelled-right rows, else the *did you mean* band — until the field is cleared or left; a result already on this week's list says so, `Produce · on the list · 3 lime, whole`, because a pick tops it up. Every search with text ends with the same two rows: `＋ "paper towels" as a non-food item`, which adds the words with no second sheet, and `＋ "paper towels" as a new ingredient`, which opens the ingredient form and lands its row on the quantity sheet. Picking an ingredient opens the shared quantity sheet on its usual amount; **Add to list** writes the top-up and the field clears, and backing out adds nothing.
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
 - **Already at home** (migration 0058, [plan 0055](../exec-plans/active/0055-already-got-it.md)):
   before a trip, either of us says what is already in the cupboard, through

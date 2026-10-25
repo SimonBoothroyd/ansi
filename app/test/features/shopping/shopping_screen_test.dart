@@ -20,6 +20,7 @@ import 'package:ansi/features/shopping/domain/at_home.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
 import 'package:ansi/features/shopping/presentation/confetti_burst.dart';
+import 'package:ansi/features/shopping/presentation/shop_add_field.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view_models.dart';
 import 'package:flutter/material.dart';
@@ -289,8 +290,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('plan a meal'), findsOneWidget);
-    // The add-item door works with no plan at all, so it is never swapped away.
-    expect(find.textContaining('add item or top up'), findsOneWidget);
+    // The add field works with no plan at all, so it is never swapped away.
+    expect(find.byKey(kShopAddFieldKey), findsOneWidget);
   });
 
   testWidgets('an empty list but a live plan explains the missing '
@@ -328,13 +329,13 @@ void main() {
     await tester.pump(); // shopping list stream
     await tester.pump(); // cook plan stream
 
-    // The two causes are still told apart — and now inside the list chrome,
-    // with `Add an item` still on screen (D5b/D5c).
+    // The two causes are still told apart — inside the list chrome, with the
+    // add field still on screen.
     expect(find.textContaining('nothing to sum yet'), findsOneWidget);
     expect(find.textContaining('list no ingredients'), findsOneWidget);
     expect(find.text('add ingredients to a recipe'), findsOneWidget);
     expect(
-      find.textContaining('add item or top up'),
+      find.byKey(kShopAddFieldKey),
       findsOneWidget,
       reason: 'a staple works with no plan at all — never take that away',
     );
@@ -392,7 +393,9 @@ void main() {
     expect(find.text('Paper towels'), findsOneWidget);
     // A numberless non-food staple shows an em dash.
     expect(find.text('—'), findsOneWidget);
-    expect(find.textContaining('add item or top up'), findsOneWidget);
+    // Adding starts from the field at the top; the foot holds no add door.
+    expect(find.byKey(kShopAddFieldKey), findsOneWidget);
+    expect(find.textContaining('add item or top up'), findsNothing);
     // No caption: the list says what it is by being it.
     expect(find.textContaining('summed from the cook plan'), findsNothing);
 
@@ -971,7 +974,7 @@ void main() {
       expect(tester.getTopLeft(find.text('BAKING')).dy, greaterThan(basketTop));
       // Still a list with things in it — not the empty-list line.
       expect(find.textContaining('nothing to buy'), findsNothing);
-      expect(find.textContaining('add item or top up'), findsOneWidget);
+      expect(find.byKey(kShopAddFieldKey), findsOneWidget);
     });
   });
 
