@@ -92,7 +92,13 @@ void main() {
     tallSurface(tester);
     await tester.pumpWidget(ledgerHost(overrides: receiptOverrides()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('no receipts yet'), findsOneWidget);
+    expect(
+      find.text(
+        'no receipts yet — a scanned shop files here by week; a price typed '
+        'on an ingredient stays on the ingredient',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('receipts file by week, newest first, with a month on top', (

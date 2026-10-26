@@ -230,7 +230,7 @@ void main() {
       'lib/features/ingredients/presentation/ingredient_picker.dart',
       'lib/features/recipes/presentation/line_target_picker.dart',
       'lib/features/import/presentation/recon_resolver.dart',
-      'lib/features/shopping/presentation/add_shopping_item_sheet.dart',
+      'lib/features/shopping/presentation/shop_add_field.dart',
     ];
     for (final path in footers) {
       expect(

@@ -204,6 +204,11 @@ page over the first — `[shell, recipe, recipe]` — and cost a second back to
 get past it. (Opened from somewhere else — Cook's gap card, the "set yield"
 sub-editor — the pop returns there, which is still the right answer.)
 
+A **receipt's** Save pops the same way, through `ansiBack`: the scan is
+pushed from the ledger's **Scan a receipt**, and the ledger is a watched query
+that already shows the receipt filed under its week. A cold link to
+`/receipts/review` has nothing under it, so it goes to `/receipts`.
+
 The one exception is the **delete** case (`recipe_view.dart`), which keeps
 `context.go('/')`. That page is pushed above the whole shell and the shell is
 the bottom of the root stack, so `go('/')` lands on the Library branch exactly

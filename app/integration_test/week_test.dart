@@ -7,8 +7,8 @@
 /// flow (the recipe picker, Favorites tab included → the confirm sheet's batch
 /// prose → portions), and the `Everyone` lens DIMMING rather than removing.
 /// Then Cook: one session covering two close meals and a split for a far one.
-/// Then Shop: the rolled-up list with provenance, a manual top-up through the
-/// shared quantity sheet, and check-off.
+/// Then Shop: the rolled-up list with provenance, a manual top-up from the add
+/// field through the shared quantity sheet, and check-off.
 ///
 /// The recipe the week plans — a favourited, two-day-shelf-life "Chicken
 /// Curry" (Garlic 4 clove, Onion 1, two steps) — is SEEDED through the app's
@@ -41,6 +41,8 @@ import 'package:ansi/features/planning/presentation/week_widgets.dart'
     show EaterAvatarStack;
 import 'package:ansi/features/recipes/data/recipe_repository_impl.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/shopping/presentation/shop_add_field.dart'
+    show kShopAddFieldKey, kShopAddResultsKey;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
     show ShoppingView, shopAmountTargetKey;
 
@@ -488,22 +490,29 @@ void main() {
     expect(find.textContaining('Chicken Curry · cook Mon'), findsNWidgets(2));
     expect(find.textContaining('Chicken Curry · cook Sat'), findsNWidgets(2));
 
-    // Manual top-up: +2 piece of Garlic through the add-item sheet.
-    await scrollTo(tester, find.textContaining('add item or top up'));
-    await tester.tap(find.textContaining('add item or top up'));
+    // Manual top-up: +2 of Garlic through the add field at the top, whose
+    // results stand in for the walk while it is searching.
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(kShopAddFieldKey),
+        matching: find.byType(EditableText),
+      ),
+      'garlic',
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Top up an ingredient'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(EditableText).last, 'garlic');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Garlic').last);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(kShopAddResultsKey),
+        matching: find.text('Garlic'),
+      ),
+    );
     await tester.pumpAndSettle();
     // The shared quantity sheet (7.7): type into its qty field (the
     // overlay's last EditableText) and confirm — the default unit (piece)
     // stands, so no chip tap is needed.
     await tester.enterText(find.byType(EditableText).last, '2');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Add top-up'));
+    await tester.tap(find.text('Add to list'));
     await pumpUntilFound(tester, find.textContaining('manual top-up'));
 
     final entry = await db.get(

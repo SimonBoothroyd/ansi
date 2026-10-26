@@ -54,10 +54,11 @@ const pushedPages = <Pushed>[
     home: '/shop',
     view: 'receipt_ledger_view.dart',
   ),
+  // A scan is started from the ledger, so it goes back to it.
   (
     path: '/receipts/review',
     open: '/receipts/review',
-    home: '/shop',
+    home: '/receipts',
     view: 'receipt_scan_view.dart',
   ),
   // One receipt is a detail OF the ledger, so it goes back to it.

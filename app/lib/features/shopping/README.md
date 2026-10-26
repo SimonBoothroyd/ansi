@@ -21,8 +21,9 @@ shopping/
   data/           SqliteShoppingRepository (derive + overlay) + providers
   presentation/
     shopping_view.dart            the screen: the toggle, aisles, the folded
-                                  basket, At home and notes, doors
-    add_shopping_item_sheet.dart  add an item or a top-up
+                                  basket, At home and notes
+    shop_add_field.dart           the one way to add: search, then a top-up
+                                  or a non-food item
     edit_top_up_sheet.dart        edit or remove one manual top-up
     at_home_sheet.dart            how much is at home (sheet, or the wide pane)
     shopping_format.dart          totals copy, pure Dart
@@ -112,6 +113,21 @@ hands them with the overlay to `buildShoppingList` (pure).
 - **Lifecycle.** An item shows only while it has a live contribution or is
   free text. A deleted recipe's contribution vanishes; the entry row stays
   inert, and its check-off returns if the ingredient is re-planned.
+- **Adding starts from one field** (`shop_add_field.dart`), `Add to the
+  list`, under the toggle and over the walk; at expanded it tops the walk's
+  column. It is not drawn while `At home?` is on. While it holds text and has
+  focus its answer stands where the walk was: the picker's own tiers
+  (`useIngredientSearch`, `IngredientResultList`), and a result already on
+  this week's list says so after its category, `Produce · on the list · 3
+  lime, whole`. Every search with text ends with the same two rows, worded in
+  parallel: `＋ "paper towels" as a non-food item` writes `addFreeTextItem`
+  with no sheet, and `＋ "paper towels" as a new ingredient` runs the
+  picker's add-new chain (`AddNewIngredientRow`, in this field's words), so
+  the form's row lands on the quantity sheet. A pick opens the shared
+  quantity sheet, **Add to list** writes `addTopUp` (a measure stores
+  `pieces` beside its id), and the field clears; backing out writes nothing
+  and leaves the results as they were. Clearing the field, or leaving it,
+  brings the walk back.
 - **A top-up opens on its usual amount**: the last top-up of that
   ingredient in any week, else one of its word for one, else one piece
   (`defaultAmountFor`), read by `lastTopUp`. A tub with no history opens
@@ -156,9 +172,9 @@ hands them with the overlay to `buildShoppingList` (pure).
 
 ## Doors to receipts
 
-`ScanReceiptDoor` at the foot opens `/receipts/review`
-([receipts](../receipts/README.md)). The ledger's door is a header action
-opening `/receipts`, drawn only once the household has kept a receipt.
+One door: the header's receipts icon opens `/receipts`, always drawn, with or
+without a receipt kept. Scanning lives there, on the ledger's **Scan a
+receipt** ([receipts](../receipts/README.md)); the walk's foot holds no door.
 
 ## Not built
 

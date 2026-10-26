@@ -17,29 +17,44 @@ class AnsiSearchField extends StatelessWidget {
     required this.hint,
     this.controller,
     this.onChanged,
+    this.focusNode,
     this.autofocus = false,
+    this.clearable = false,
     super.key,
   });
 
   final String hint;
 
   /// For a screen that branches on what the field says rather than on a
-  /// query stored elsewhere.
+  /// query stored elsewhere, or clears it itself.
   final TextEditingController? controller;
 
   final ValueChanged<String>? onChanged;
+
+  /// For a host that acts on the field gaining or losing focus.
+  final FocusNode? focusNode;
+
   final bool autofocus;
+
+  /// Whether a clear mark stands at the end while the field holds text.
+  final bool clearable;
 
   @override
   Widget build(BuildContext context) {
-    final controller = this.controller;
     return FTextField(
       autofocus: autofocus,
+      focusNode: focusNode,
       hint: hint,
+      clearable: clearable
+          ? (value) => value.text.isNotEmpty
+          : FTextField.defaultClearable,
       style: _style(),
-      control: controller != null
-          ? FTextFieldControl.managed(controller: controller)
-          : FTextFieldControl.managed(onChange: (v) => onChanged?.call(v.text)),
+      // With a controller too, [onChanged] hears every change to it — a
+      // selection move as well as an edit, so a host compares the text.
+      control: FTextFieldControl.managed(
+        controller: controller,
+        onChange: (v) => onChanged?.call(v.text),
+      ),
       prefixBuilder: (context, style, variants) => Padding(
         // The field's content padding, so the icon starts where the text
         // would. Only the start is set; Material keeps a gap after a prefix.

@@ -7,7 +7,6 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
@@ -33,13 +32,11 @@ class ReceiptScanView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(receiptScanControllerProvider);
 
-    // A saved receipt replaces the scan with its ledger page. A replacement
-    // rather than `go`, which would flatten the stack so that back leaves the
-    // app.
+    // A saved receipt comes back to the ledger the scan was started from,
+    // where it has just filed under its week. A cold link to the scan has no
+    // ledger under it, so it goes to one.
     ref.listen(receiptScanControllerProvider, (_, next) {
-      if (next is ReceiptSaved) {
-        context.pushReplacement('/receipts/${next.receiptId}');
-      }
+      if (next is ReceiptSaved) ansiBack(context, home: '/receipts');
     });
 
     // Only a fresh scan is this screen's to review; a saved receipt opening
@@ -54,10 +51,12 @@ class ReceiptScanView extends ConsumerWidget {
           reviewing == null ? 'Scan a receipt' : 'Review receipt',
           style: ansiHeaderTitle(),
         ),
-        // A scan is always started from the Shop's foot, so a pasted link to
-        // it goes home there.
+        // A scan is started from the ledger, so a pasted link to it goes
+        // home there.
         prefixes: [
-          FHeaderAction.back(onPress: () => ansiBack(context, home: '/shop')),
+          FHeaderAction.back(
+            onPress: () => ansiBack(context, home: '/receipts'),
+          ),
         ],
         suffixes: [
           if (reviewing != null)

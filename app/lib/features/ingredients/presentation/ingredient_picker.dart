@@ -42,8 +42,12 @@ Future<Ingredient?> showIngredientPicker(
   );
 }
 
-/// The search state both hosts share: query text, results, whether they are the
-/// recents feed or a search, and whether the search had to guess.
+/// The search state every host shares: query text, results, whether they are
+/// the recents feed or a search, and whether the search had to guess.
+///
+/// [loadRecents] false is a host that shows nothing until something is typed
+/// (the Shop's field, whose empty state is the walk): an empty query then
+/// reads nothing and resolves to no rows.
 ({
   String query,
   List<Ingredient> results,
@@ -51,7 +55,11 @@ Future<Ingredient?> showIngredientPicker(
   bool guessed,
   Future<void> Function(String) run,
 })
-useIngredientSearch(WidgetRef ref, BuildContext context) {
+useIngredientSearch(
+  WidgetRef ref,
+  BuildContext context, {
+  bool loadRecents = true,
+}) {
   final query = useState('');
   final results = useState<List<Ingredient>>(const []);
   final showingRecents = useState(false);
@@ -63,6 +71,12 @@ useIngredientSearch(WidgetRef ref, BuildContext context) {
   Future<void> run(String q) async {
     query.value = q;
     final ticket = ++searchSeq.value;
+    if (!loadRecents && q.trim().isEmpty) {
+      showingRecents.value = false;
+      guessed.value = false;
+      results.value = const [];
+      return;
+    }
     final repo = ref.read(ingredientRepositoryProvider);
     // Empty query → the recents feed; an unused vocab falls back to the
     // plain alphabetical list so the picker is never blank.
@@ -85,7 +99,7 @@ useIngredientSearch(WidgetRef ref, BuildContext context) {
   }
 
   useEffect(() {
-    run('');
+    if (loadRecents) run('');
     return null;
   }, const []);
 
@@ -138,6 +152,8 @@ class IngredientResultList extends StatelessWidget {
     required this.onPick,
     this.guessed = false,
     this.trailing = const [],
+    this.noteFor,
+    this.labelIngredients = true,
     super.key,
   });
 
@@ -152,6 +168,15 @@ class IngredientResultList extends StatelessWidget {
 
   /// Extra sections below the ingredient rows.
   final List<Widget> trailing;
+
+  /// A host's own clause for a row, set after its category ([IngredientRow]'s
+  /// `note`); null for none.
+  final String? Function(Ingredient)? noteFor;
+
+  /// Whether spelled-right rows get an `INGREDIENTS` header when [trailing]
+  /// follows them. False for a host whose trailing rows are not a second
+  /// section but the end of the same answer.
+  final bool labelIngredients;
 
   @override
   Widget build(BuildContext context) {
@@ -168,14 +193,18 @@ class IngredientResultList extends StatelessWidget {
           const DidYouMeanHeader()
         // With a second section below, the ingredient rows get a header of
         // their own.
-        else if (trailing.isNotEmpty && results.isNotEmpty)
+        else if (labelIngredients && trailing.isNotEmpty && results.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('INGREDIENTS', style: ansiLabel()),
           ),
         for (final (i, ing) in results.indexed) ...[
           if (i > 0) Container(height: 1, color: AnsiColors.line),
-          IngredientRow(ingredient: ing, onPick: onPick),
+          IngredientRow(
+            ingredient: ing,
+            onPick: onPick,
+            note: noteFor?.call(ing),
+          ),
         ],
         ...trailing,
       ],
@@ -227,13 +256,16 @@ class _EmptyState extends StatelessWidget {
 ///
 /// [advisoryDensityGap] adds a clause for a missing density; only the manager
 /// list, which can fix it, passes true. [showCategory] is false under a section
-/// header that already said it.
+/// header that already said it. [note] is a host's own clause, read right after
+/// the category (`Produce · on the list · 3 lime, whole`).
 String vocabRowHints(
   Ingredient ing, {
   bool advisoryDensityGap = false,
   bool showCategory = true,
+  String? note,
 }) => [
   if (showCategory && ing.category != null) ing.category!,
+  ?note,
   if (ing.densityGPerMl != null)
     'has density'
   else if (advisoryDensityGap)
@@ -254,6 +286,7 @@ class IngredientRow extends StatelessWidget {
     this.advisoryDensityGap = false,
     this.showSource = false,
     this.showCategory = true,
+    this.note,
     super.key,
   });
 
@@ -276,6 +309,10 @@ class IngredientRow extends StatelessWidget {
   /// header that already said it.
   final bool showCategory;
 
+  /// A host's own clause on the fact line, after the category; see
+  /// [vocabRowHints].
+  final String? note;
+
   @override
   Widget build(BuildContext context) {
     final ing = ingredient;
@@ -285,6 +322,7 @@ class IngredientRow extends StatelessWidget {
       ing,
       advisoryDensityGap: advisoryDensityGap,
       showCategory: showCategory,
+      note: note,
     );
     final sourceLine = showSource ? sourceProvenanceLine(ing) : null;
 
@@ -362,12 +400,14 @@ class IngredientRow extends StatelessWidget {
 ///
 /// Tapping writes nothing here. It pushes the ingredient form with the query
 /// prefilled and waits; the created row goes to [onCreated], and backing out
-/// resolves nothing. Needs a router in scope.
+/// resolves nothing. Needs a router in scope. [builder] draws the same door in
+/// a host's own look and words; the chain it starts is this row's either way.
 class AddNewIngredientRow extends HookConsumerWidget {
   const AddNewIngredientRow({
     required this.query,
     required this.onCreated,
     this.label,
+    this.builder,
     super.key,
   });
 
@@ -380,6 +420,11 @@ class AddNewIngredientRow extends HookConsumerWidget {
   /// The row's wording for a name, when the host's voice differs from the
   /// picker footer's default ("can’t find it? add "X" as a new ingredient").
   final String Function(String name)? label;
+
+  /// Draws the door instead of the dashed footer: the trimmed name, and the
+  /// tap that starts the chain (null while nothing is typed or a chain is
+  /// already open). The tap's future ends with the chain, created or not.
+  final Widget Function(String name, Future<void> Function()? onTap)? builder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -411,6 +456,9 @@ class AddNewIngredientRow extends HookConsumerWidget {
       }
     }
 
+    if (builder case final draw?) {
+      return draw(name, enabled ? addNew : null);
+    }
     return DashedAction(
       icon: FLucideIcons.plus,
       enabled: enabled,

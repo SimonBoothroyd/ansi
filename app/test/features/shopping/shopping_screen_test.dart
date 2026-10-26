@@ -14,15 +14,16 @@ import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
-import 'package:ansi/features/receipts/data/receipt_providers.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
 import 'package:ansi/features/shopping/domain/at_home.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/domain/shopping_repository.dart';
 import 'package:ansi/features/shopping/presentation/confetti_burst.dart';
+import 'package:ansi/features/shopping/presentation/shop_add_field.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view_models.dart';
+import 'package:ansi/shared/dashed_border_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -290,8 +291,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('plan a meal'), findsOneWidget);
-    // The add-item door works with no plan at all, so it is never swapped away.
-    expect(find.textContaining('add item or top up'), findsOneWidget);
+    // The add field works with no plan at all, so it is never swapped away.
+    expect(find.byKey(kShopAddFieldKey), findsOneWidget);
   });
 
   testWidgets('an empty list but a live plan explains the missing '
@@ -329,13 +330,13 @@ void main() {
     await tester.pump(); // shopping list stream
     await tester.pump(); // cook plan stream
 
-    // The two causes are still told apart — and now inside the list chrome,
-    // with `Add an item` still on screen (D5b/D5c).
+    // The two causes are still told apart — inside the list chrome, with the
+    // add field still on screen.
     expect(find.textContaining('nothing to sum yet'), findsOneWidget);
     expect(find.textContaining('list no ingredients'), findsOneWidget);
     expect(find.text('add ingredients to a recipe'), findsOneWidget);
     expect(
-      find.textContaining('add item or top up'),
+      find.byKey(kShopAddFieldKey),
       findsOneWidget,
       reason: 'a staple works with no plan at all — never take that away',
     );
@@ -393,7 +394,9 @@ void main() {
     expect(find.text('Paper towels'), findsOneWidget);
     // A numberless non-food staple shows an em dash.
     expect(find.text('—'), findsOneWidget);
-    expect(find.textContaining('add item or top up'), findsOneWidget);
+    // Adding starts from the field at the top; the foot holds no add door.
+    expect(find.byKey(kShopAddFieldKey), findsOneWidget);
+    expect(find.textContaining('add item or top up'), findsNothing);
     // No caption: the list says what it is by being it.
     expect(find.textContaining('summed from the cook plan'), findsNothing);
 
@@ -972,7 +975,7 @@ void main() {
       expect(tester.getTopLeft(find.text('BAKING')).dy, greaterThan(basketTop));
       // Still a list with things in it — not the empty-list line.
       expect(find.textContaining('nothing to buy'), findsNothing);
-      expect(find.textContaining('add item or top up'), findsOneWidget);
+      expect(find.byKey(kShopAddFieldKey), findsOneWidget);
     });
   });
 
@@ -1712,9 +1715,9 @@ void main() {
       ],
     );
 
-    List<Override> doorOverrides({required bool kept}) => [
+    // No receipt is kept in any of these: the door does not wait for one.
+    List<Override> doorOverrides() => [
       shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(aisle())),
-      hasAnyReceiptProvider.overrideWithValue(kept),
     ];
 
     /// Where the switcher sits, and where the header it sits in sits.
@@ -1723,23 +1726,10 @@ void main() {
       tester.getCenter(find.byWidgetPredicate((w) => w is FHeader).first).dx,
     );
 
-    testWidgets('with nothing kept the header holds the week alone', (
+    testWidgets('with no receipt kept, the header still opens the ledger', (
       tester,
     ) async {
-      await tester.pumpWidget(_routerHost(doorOverrides(kept: false)));
-      await tester.pump();
-
-      expect(
-        find.byIcon(FLucideIcons.receipt),
-        findsNothing,
-        reason: 'a door onto an empty page is furniture',
-      );
-    });
-
-    testWidgets('once a receipt is kept, the header opens the ledger', (
-      tester,
-    ) async {
-      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+      await tester.pumpWidget(_routerHost(doorOverrides()));
       await tester.pump();
 
       expect(find.byIcon(FLucideIcons.receipt), findsOneWidget);
@@ -1753,24 +1743,17 @@ void main() {
     testWidgets('the switcher stays centred with the action beside it', (
       tester,
     ) async {
-      await tester.pumpWidget(_routerHost(doorOverrides(kept: false)));
+      await tester.pumpWidget(_routerHost(doorOverrides()));
       await tester.pump();
-      final (bare, bareHeader) = centres(tester);
+      final (switcher, header) = centres(tester);
 
-      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
-      await tester.pump();
-      final (withDoor, withDoorHeader) = centres(tester);
-
-      // The action changes nothing about where the week reads: a nested
-      // header centres its title in the WHOLE width and moves it only when
-      // the two would collide.
-      expect(withDoor, closeTo(bare, 0.5));
-      expect(withDoor, closeTo(withDoorHeader, 0.5));
-      expect(bare, closeTo(bareHeader, 0.5));
+      // A nested header centres its title in the WHOLE width and moves it
+      // only when the two would collide…
+      expect(switcher, closeTo(header, 0.5));
       // …and the action is to the right of it, where a suffix belongs.
       expect(
         tester.getCenter(find.byIcon(FLucideIcons.receipt)).dx,
-        greaterThan(withDoor),
+        greaterThan(switcher),
       );
     });
 
@@ -1778,7 +1761,7 @@ void main() {
       tester,
     ) async {
       deskWidth(tester);
-      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+      await tester.pumpWidget(_routerHost(doorOverrides()));
       await tester.pump();
 
       expect(find.byIcon(FLucideIcons.receipt), findsOneWidget);
@@ -1786,15 +1769,21 @@ void main() {
       expect(switcher, closeTo(header, 0.5));
     });
 
-    testWidgets('the foot carries the scan and nothing else', (tester) async {
-      await tester.pumpWidget(_routerHost(doorOverrides(kept: true)));
+    testWidgets('the foot holds no scan door and no add door', (tester) async {
+      await tester.pumpWidget(_routerHost(doorOverrides()));
       await tester.pump();
 
-      expect(find.text('scan a receipt'), findsOneWidget);
       expect(
-        find.text('receipts'),
+        find.text('scan a receipt'),
         findsNothing,
-        reason: 'one door, in the chrome — not a second link at the foot',
+        reason: 'the scan lives on the ledger, with what it makes',
+      );
+      expect(find.byIcon(FLucideIcons.camera), findsNothing);
+      expect(find.textContaining('add item or top up'), findsNothing);
+      expect(
+        find.byType(DashedBorderBox),
+        findsNothing,
+        reason: 'the walk ends on its last line, with no door under it',
       );
     });
   });

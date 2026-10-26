@@ -5,7 +5,6 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -20,7 +19,6 @@ import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_scroll.dart';
 import '../../../shared/cost_words.dart';
-import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
@@ -33,16 +31,15 @@ import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
-import '../../receipts/data/receipt_providers.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../data/shopping_providers.dart';
 import '../domain/at_home.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_cost.dart';
-import 'add_shopping_item_sheet.dart';
 import 'at_home_sheet.dart';
 import 'confetti_burst.dart';
 import 'edit_top_up_sheet.dart';
+import 'shop_add_field.dart';
 import 'shopping_format.dart';
 import 'shopping_view_models.dart';
 
@@ -112,14 +109,15 @@ class ShoppingView extends ConsumerWidget {
               noun: 'tick',
               trailing: _TripEstimate(trip: ref.watch(shopTripCostProvider)),
             ),
-            // At expanded the toggle sits over the walk's own column instead.
+            // At expanded the toggle and the add field sit over the walk's
+            // own column instead.
             if (!wide) const ShopToggle(),
             // At expanded width the walk stays one column; the width buys only
             // the breakdown pane beside it.
             Expanded(
               child: wide
                   ? const _WideShop()
-                  : _shoppingList(context, ref, list),
+                  : ShopAddField(walk: _shoppingList(context, ref, list)),
             ),
           ],
         ),
@@ -128,22 +126,19 @@ class ShoppingView extends ConsumerWidget {
   }
 }
 
-/// The receipts ledger's door in the header, drawn only once the household has
-/// kept a receipt. [FHeader.nested] keeps the week switcher centred, so no
-/// balancing spacer is needed. [ScanReceiptDoor] is what introduces the
-/// feature.
-class _ReceiptsDoor extends ConsumerWidget {
+/// The receipts ledger's door in the header, always drawn: the ledger is where
+/// a receipt is scanned, so the door cannot wait for the first one.
+/// [FHeader.nested] keeps the week switcher centred, so no balancing spacer is
+/// needed.
+class _ReceiptsDoor extends StatelessWidget {
   const _ReceiptsDoor();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) =>
-      ref.watch(hasAnyReceiptProvider)
-      ? FHeaderAction(
-          icon: const Icon(FLucideIcons.receipt),
-          semanticsLabel: 'Receipts',
-          onPress: () => context.pushOnce('/receipts'),
-        )
-      : const SizedBox.shrink();
+  Widget build(BuildContext context) => FHeaderAction(
+    icon: const Icon(FLucideIcons.receipt),
+    semanticsLabel: 'Receipts',
+    onPress: () => context.pushOnce('/receipts'),
+  );
 }
 
 /// `≈ $58 at the cheapest` on the sync line, the sum of the rows' figures at
@@ -165,7 +160,7 @@ class _TripEstimate extends StatelessWidget {
 }
 
 /// The walk: the aisles, then three folded lines (the basket, *At home* and
-/// the plan's notes), then the add door. [selection] is null on a phone, where
+/// the plan's notes). [selection] is null on a phone, where
 /// a row opens its own breakdown from its amount. At [AnsiLayout.expanded] it
 /// drives the pane: a tap outside a row's check box selects that row, and no
 /// row draws a breakdown.
@@ -182,8 +177,8 @@ Widget _shoppingList(
     stackTrace: st,
     onRetry: () => ref.invalidate(currentShoppingListProvider),
   ),
-  // An empty list is a quiet line inside the list chrome, so the add-item door
-  // stays available with no plan at all.
+  // An empty list is a quiet line inside the list chrome, so the add field
+  // above it stays available with no plan at all.
   data: (data) => ref.watch(shopCheckingProvider)
       ? _checkingList(context, data, selection: selection)
       : ListView(
@@ -212,8 +207,6 @@ Widget _shoppingList(
             if (data.atHome.isNotEmpty)
               _AtHomeSection(items: data.atHome, selection: selection),
             if (_noteCount(data) > 0) _PlanNotes(list: data),
-            const _AddItemButton(),
-            const ScanReceiptDoor(),
           ],
         ),
 );
@@ -338,18 +331,20 @@ class _WideShopState extends ConsumerState<_WideShop> {
                 children: [
                   const ShopToggle(),
                   Expanded(
-                    child: _shoppingList(
-                      context,
-                      ref,
-                      list,
-                      selection: reading == null
-                          ? null
-                          : _Selection(
-                              identity: shoppingItemIdentity(reading.item),
-                              read: (item) => setState(
-                                () => _reading = shoppingItemIdentity(item),
+                    child: ShopAddField(
+                      walk: _shoppingList(
+                        context,
+                        ref,
+                        list,
+                        selection: reading == null
+                            ? null
+                            : _Selection(
+                                identity: shoppingItemIdentity(reading.item),
+                                read: (item) => setState(
+                                  () => _reading = shoppingItemIdentity(item),
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                 ],
@@ -1398,99 +1393,8 @@ class _CheckBox extends StatelessWidget {
   }
 }
 
-class _AddItemButton extends StatelessWidget {
-  const _AddItemButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => showAddShoppingItemSheet(context),
-        child: DashedBorderBox(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
-              const SizedBox(width: 5),
-              Text(
-                'add item or top up an ingredient',
-                textAlign: TextAlign.center,
-                style: ansiMono(
-                  size: 11,
-                  color: AnsiColors.herb,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The scan-receipt door at the foot of the list, beside the top-up door. On
-/// the web the photo import is gated (`photo_intake.dart`), so the door says
-/// what it can do there. The ledger's door is [_ReceiptsDoor] in the header.
-class ScanReceiptDoor extends StatelessWidget {
-  const ScanReceiptDoor({this.web = kIsWeb, super.key});
-
-  /// The platform, injectable so both sets of words are testable on a VM that
-  /// is never `kIsWeb`.
-  final bool web;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.pushOnce('/receipts/review'),
-            child: DashedBorderBox(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    FLucideIcons.camera,
-                    size: 12,
-                    color: AnsiColors.herb,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'scan a receipt',
-                    textAlign: TextAlign.center,
-                    style: ansiMono(
-                      size: 11,
-                      color: AnsiColors.herb,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (web)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'in a browser there is no camera and no crop step — shoot the '
-                'receipt on the phone, and review it anywhere',
-                style: ansiMono(size: 10.5, color: AnsiColors.muted),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Nothing to buy, said inside the list chrome; the [_AddItemButton] below
-/// stays on screen.
+/// Nothing to buy, said inside the list chrome; the add field above stays on
+/// screen.
 class _NothingToBuyLine extends ConsumerWidget {
   const _NothingToBuyLine();
 
