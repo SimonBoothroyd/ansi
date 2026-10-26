@@ -1,6 +1,6 @@
 # Exec plan: Shop refresh
 
-- **Status:** building — rulings settled, frames drawn as `proposed`
+- **Status:** built on `lane/shop-refresh`, not landed; the phone check (`make test-sim`) is owed; `ask.ts`'s cost tool description needs a `deploy-supabase` by hand
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 8, from the owner's ask
 - **Created:** 2026-10-25
@@ -157,12 +157,14 @@ can run beside A: it changes only the words the sub-line and sync line print.
 
 ### Phase 0: the board
 
-1. Done: five phone frames in `cook-shop.html` (the refreshed list, adding,
-   picking an ingredient, the opened basket and *At home*, and the at-home
-   pass from the toggle) and two in
-   `receipts.html` (the ledger's action, filled and empty), all `proposed`. The current frames
-   stay until this ships. Then the frames these replace are deleted: the foot
-   doors, the caption and the always-open provenance.
+1. Done. Five phone frames in `cook-shop.html` (the walk, adding, picking an
+   ingredient, the opened basket and *At home*, and the at-home pass from the
+   toggle) and two in `receipts.html` (the ledger's action, filled and
+   empty), drawn as `proposed` and then read against the build. The frames
+   they replace are deleted: the foot doors, the caption, the always-open
+   provenance, the pass's band and the receipts door drawn only once a
+   receipt was kept. Every other Shop frame is redrawn to the walk, and the
+   wide list and the wide pass carry the toggle and the field.
 
 ### Phase A: the walk
 
@@ -398,7 +400,7 @@ frame is drawn. The board's status line carries one clause instead.
 
 ### Docs, with the code
 
-- **ADR amendments owed at build time.** The ADRs are not edited now.
+- **ADR amendments, made with the build.**
   - [ADR-0016](../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md)
     point 4: the shop prints `3 lime, whole` over `need 2½ · 167.5 g`. The
     measure's word is unchanged. (Phase A.)
@@ -412,29 +414,29 @@ frame is drawn. The board's status line carries one clause instead.
 - `features/shopping/README.md`: *Rules* (the R1 shape, the folds, the
   toggle, adding, cost) and *Doors to receipts*.
 - `features/receipts/README.md`: the ledger's action.
-- The board: the `proposed` frames become the frames, the frames they replace
-  are deleted, and the index status lines follow.
+- The board: done. The `proposed` frames became the frames, the frames they
+  replaced are deleted, and the index status lines follow.
 
 ## Acceptance criteria
 
-- [ ] A rounded row leads with what is bought and says the need under it; an
+- [x] A rounded row leads with what is bought and says the need under it; an
       unrounded row reads as today.
-- [ ] On a phone a row is one or two lines until its amount is tapped; the row
+- [x] On a phone a row is one or two lines until its amount is tapped; the row
       tap still ticks.
-- [ ] Basket, *At home* and the plan's notes are one line each until opened.
-- [ ] The foot holds no door; the caption is gone.
-- [ ] One field at the top adds an ingredient (through the quantity sheet, at
+- [x] Basket, *At home* and the plan's notes are one line each until opened.
+- [x] The foot holds no door; the caption is gone.
+- [x] One field at the top adds an ingredient (through the quantity sheet, at
       its usual amount) or a non-food item.
-- [ ] `To buy · At home?` enters and leaves the at-home pass; the pass is
+- [x] `To buy · At home?` enters and leaves the at-home pass; the pass is
       otherwise unchanged.
-- [ ] The receipts icon is always in the Shop's header; the ledger scans.
-- [ ] Each priced row shows the cheapest price in 90 days with its store, or
+- [x] The receipts icon is always in the Shop's header; the ledger scans.
+- [x] Each priced row shows the cheapest price in 90 days with its store, or
       its fallback with its month; a rounded row is priced on what is
       bought; the sync line and Ask's trip answer sum the same figures; the
       recipe page, the Week and Ask's other costs are unchanged.
-- [ ] Tests above; `flutter analyze`, `custom_lint` and `flutter test` pass;
+- [x] Tests above; `flutter analyze`, `custom_lint` and `flutter test` pass;
       `make docs-check` passes.
-- [ ] ADR-0016 and ADR-0017 amended, docs above updated in the same commits.
+- [x] ADR-0016 and ADR-0017 amended, docs above updated in the same commits.
 
 ## Decision log
 
@@ -472,9 +474,9 @@ Five questions the owner answered interactively, 2026-10-25, before the build:
 
 ## Step-done checklist
 
-- [ ] Roadmap row updated: status flipped, one line on what shipped and what
+- [x] Roadmap row updated: status flipped, one line on what shipped and what
       was deliberately deferred.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for Shop.
+- [x] `ARCHITECTURE.md`'s standing table matches reality for Shop.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] `make test-sim` run once on a booted simulator, and the result recorded
       here.
