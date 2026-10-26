@@ -1176,13 +1176,22 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 child: subLine,
               ),
             ),
+          // The opened breakdown is read, not tapped: it swallows a tap or a
+          // long-press so neither reaches the row's tick or its remove. Only
+          // the top-up row inside it, whose own detector is deeper, acts.
           if (open)
-            Padding(
-              padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
-              child: _Provenance(
-                itemName: item.name,
-                ingredientId: item.ingredientId,
-                contributions: item.contributions,
+            GestureDetector(
+              key: shopBreakdownKey(identity),
+              behavior: HitTestBehavior.opaque,
+              onTap: () {},
+              onLongPress: () {},
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
+                child: _Provenance(
+                  itemName: item.name,
+                  ingredientId: item.ingredientId,
+                  contributions: item.contributions,
+                ),
               ),
             ),
         ],
@@ -1214,6 +1223,11 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     );
   }
 }
+
+/// The key on a phone row's opened breakdown, named by
+/// [shoppingItemIdentity].
+ValueKey<String> shopBreakdownKey(String identity) =>
+    ValueKey('shop-breakdown-$identity');
 
 /// The key on a phone row's amount target — the amount, its chevron and (as a
 /// second detector) its sub-line — named by [shoppingItemIdentity].

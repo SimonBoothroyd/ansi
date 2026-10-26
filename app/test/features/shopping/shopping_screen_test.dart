@@ -765,6 +765,37 @@ void main() {
       expect(repo.tickCalls, 0, reason: 'editing a top-up is not a tick');
     });
 
+    testWidgets('a tap on an opened breakdown does nothing, and its top-up '
+        'still opens the edit sheet', (tester) async {
+      filterForuiSemanticsAssertions();
+      final repo = await pumpWalk(tester);
+      await _openRow(tester, 'flour');
+
+      await tester.tap(find.text('Curry · cook Mon'));
+      await tester.pump();
+      expect(
+        repo.tickCalls,
+        0,
+        reason:
+            'reading where it came from is not a '
+            'tick',
+      );
+      expect(find.text('Curry · cook Mon'), findsOneWidget);
+      // The space between the lines is the breakdown's too.
+      await tester.tapAt(
+        tester.getTopLeft(find.byKey(shopBreakdownKey('flour'))) +
+            const Offset(2, 2),
+      );
+      await tester.pump();
+      expect(repo.tickCalls, 0);
+      expect(find.text('Curry · cook Mon'), findsOneWidget);
+
+      await tester.tap(find.byKey(shopTopUpKey('c-flour')));
+      await tester.pumpAndSettle();
+      expect(find.text('Save changes'), findsOneWidget);
+      expect(repo.tickCalls, 0);
+    });
+
     testWidgets('a ticked row folds its breakdown, and comes back closed', (
       tester,
     ) async {
