@@ -563,7 +563,7 @@ ValueKey<String> shopFoldKey(ShopFold fold) => ValueKey('shop-fold-$fold');
 enum _FoldTone { label, defect, quiet }
 
 /// One folded section's line: its words, and the chevron that says whether it
-/// is open (right) or not (down). A tap opens or folds it in place. At least
+/// is open (down) or not (right). A tap opens or folds it in place. At least
 /// 44 px tall, the whole width of the walk.
 class _FoldLine extends ConsumerWidget {
   const _FoldLine({
