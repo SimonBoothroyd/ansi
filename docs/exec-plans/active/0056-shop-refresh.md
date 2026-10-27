@@ -1,6 +1,6 @@
 # Exec plan: Shop refresh
 
-- **Status:** built on `lane/shop-refresh`, not landed; the phone check (`make test-sim`) is owed; `ask.ts`'s cost tool description needs a `deploy-supabase` by hand
+- **Status:** on main, untagged; `ask.ts`'s cost tool description needs a `deploy-supabase` by hand
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 8, from the owner's ask
 - **Created:** 2026-10-25
@@ -478,8 +478,10 @@ Five questions the owner answered interactively, 2026-10-25, before the build:
       was deliberately deferred.
 - [x] `ARCHITECTURE.md`'s standing table matches reality for Shop.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] `make test-sim` run once on a booted simulator, and the result recorded
-      here.
+- [x] `make test-sim` run once on a booted simulator, and the result recorded
+      here: all nine files pass on the iPhone 17 against the local stack
+      (2026-10-26). `ingredients_test` first failed on main as well; its fix
+      landed beside this plan.
 - [ ] Tech-debt rows added for corners knowingly cut, and retired or narrowed
       for debt this plan paid off.
-- [ ] `make ci` green.
+- [x] `make ci` green.

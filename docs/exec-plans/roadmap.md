@@ -34,9 +34,9 @@ The detail is in the plan; the landing dates are in the
 8. [Plan 0056](./active/0056-shop-refresh.md), the Shop refresh — each row
    leads with what you buy and opens its breakdown from the amount, one field
    at the top adds, a `To buy · At home?` toggle, scanning on the receipts
-   ledger, and the cheapest price seen in 90 days. Built on
-   `lane/shop-refresh`, not landed: the phone check (`make test-sim`) is owed,
-   and `ask.ts`'s cost tool description needs a `deploy-supabase` by hand.
+   ledger, and the cheapest price seen in 90 days. On main, untagged; the
+   sim smoke passes, and `ask.ts`'s cost tool description needs a
+   `deploy-supabase` by hand.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
