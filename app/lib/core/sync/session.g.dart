@@ -178,7 +178,7 @@ final class SessionControllerProvider
   }
 }
 
-String _$sessionControllerHash() => r'44bd736789f5d4a3c129b419bf83351c8fab2732';
+String _$sessionControllerHash() => r'738bb25a4d76efca367b7ff182e0f8e95d87f9eb';
 
 abstract class _$SessionController extends $Notifier<SessionState> {
   SessionState build();
@@ -292,7 +292,7 @@ final class CurrentMemberIdStreamProvider
 }
 
 String _$currentMemberIdStreamHash() =>
-    r'a590f108dee8665511bde650b4bbe97833f74094';
+    r'4cdd8aa607ea5733968fb612410d08bb92da2faa';
 
 /// [currentMemberIdStream] as a plain value: who "I" am on this phone, or null
 /// while that is not known — then nothing offers to tick for anyone.

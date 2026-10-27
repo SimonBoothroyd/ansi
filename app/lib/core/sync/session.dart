@@ -16,6 +16,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/books/data/book_repository_impl.dart';
 import '../config/env.dart';
+import '../observability/crash_sink.dart';
+import 'auth_events.dart';
 import 'connector.dart';
 import 'database.dart';
 import 'device_prefs.dart';
@@ -145,9 +147,10 @@ class SessionController extends _$SessionController {
   @override
   SessionState build() {
     final supabase = ref.watch(supabaseClientProvider);
-    _sub = supabase.auth.onAuthStateChange.listen(
-      (data) => _handle(data.session),
-    );
+    _sub = authEvents(
+      supabase.auth,
+      ref.read(crashSinkProvider),
+    ).listen((data) => _handle(data.session));
     ref.onDispose(() => _sub?.cancel());
     // A restored session does not re-emit, so handle the current one after
     // build returns. Read at execution time so a stale snapshot cannot
@@ -335,11 +338,24 @@ Stream<String?> currentMemberIdStream(Ref ref) async* {
     yield null;
     return;
   }
-  final auth = ref.watch(supabaseClientProvider).auth;
-  yield memberIdFromAccessToken(auth.currentSession?.accessToken);
-  yield* auth.onAuthStateChange.map(
-    (e) => memberIdFromAccessToken(e.session?.accessToken),
+  yield* watchCurrentMemberId(
+    ref.watch(supabaseClientProvider).auth,
+    ref.read(crashSinkProvider),
   );
+}
+
+/// [currentMemberIdStreamProvider]'s body, with the auth client passed in for
+/// tests. An auth error ([authEvents]) emits nothing, so the last member id
+/// stands through a refresh that could not reach the server.
+Stream<String?> watchCurrentMemberId(
+  GoTrueClient auth,
+  CrashSink crashes,
+) async* {
+  yield memberIdFromAccessToken(auth.currentSession?.accessToken);
+  yield* authEvents(
+    auth,
+    crashes,
+  ).map((e) => memberIdFromAccessToken(e.session?.accessToken));
 }
 
 /// [currentMemberIdStream] as a plain value: who "I" am on this phone, or null

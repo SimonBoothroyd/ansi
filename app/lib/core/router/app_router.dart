@@ -31,6 +31,8 @@ import '../../features/timers/presentation/timer_chrome.dart';
 import '../../shared/ansi_layout.dart';
 import '../../shared/ansi_tab_shell.dart';
 import '../../shared/ansi_wide_shell.dart';
+import '../observability/crash_sink.dart';
+import '../sync/auth_events.dart';
 import '../sync/session.dart';
 
 part 'app_router.g.dart';
@@ -150,9 +152,10 @@ GoRouter router(Ref ref) {
   ansiUrlFollowsEveryPush();
   // Re-runs the redirect on auth and on session-readiness changes.
   final refresh = ValueNotifier<int>(0);
-  final sub = Supabase.instance.client.auth.onAuthStateChange.listen(
-    (_) => refresh.value++,
-  );
+  final sub = authEvents(
+    Supabase.instance.client.auth,
+    ref.read(crashSinkProvider),
+  ).listen((_) => refresh.value++);
   ref
     ..onDispose(sub.cancel)
     ..onDispose(refresh.dispose)

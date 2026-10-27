@@ -9,10 +9,16 @@
 ///   server-side-deleted account ([SessionError.accountMissing]) told apart
 ///   from every other server error;
 /// - auth events arriving mid-handle are queued (latest wins), so a sign-out
-///   during onboarding still clears local data.
+///   during onboarding still clears local data;
+/// - an offline refresh error on the auth stream is noted, never reported:
+///   no uncaught error, the session and the member id stand, and an expired
+///   session still signs out.
 library;
 
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:ansi/core/observability/crash_sink.dart';
 
 import 'package:ansi/core/sync/database.dart';
 import 'package:ansi/core/sync/session.dart';
@@ -106,6 +112,32 @@ Session _session(String userId) => Session(
   ),
 );
 
+/// A session whose access token carries the `member_id` claim.
+Session _memberSession(String userId, String memberId) {
+  String part(Map<String, Object> json) =>
+      base64Url.encode(utf8.encode(jsonEncode(json))).replaceAll('=', '');
+  final token =
+      '${part({'alg': 'none'})}.'
+      '${part({'sub': userId, 'member_id': memberId})}.sig';
+  return Session(
+    accessToken: token,
+    tokenType: 'bearer',
+    user: _session(userId).user,
+  );
+}
+
+/// Keeps what the controller hands the crash sink, split by channel.
+class _RecordingCrashSink implements CrashSink {
+  final reported = <Object>[];
+  final noted = <Object>[];
+
+  @override
+  void report(Object error, StackTrace stack) => reported.add(error);
+
+  @override
+  void note(Object error, StackTrace stack) => noted.add(error);
+}
+
 /// Drains the microtask/event queue so the controller's async pipeline runs to
 /// completion.
 Future<void> _settle() async {
@@ -122,8 +154,10 @@ void main() {
   late _MemoryCache cache;
   late List<String> log;
   late Future<String> Function() onboard;
+  late _RecordingCrashSink crashes;
 
   setUp(() {
+    crashes = _RecordingCrashSink();
     supabase = _MockSupabase();
     auth = _MockAuth();
     authEvents = StreamController<AuthState>.broadcast(sync: true);
@@ -153,6 +187,12 @@ void main() {
         powerSyncDatabaseProvider.overrideWithValue(db),
         householdCacheProvider.overrideWithValue(cache),
         ensureOnboardedProvider.overrideWithValue(() => onboard()),
+        crashSinkProvider.overrideWithValue(crashes),
+        // Env is unconfigured under test, so the provider's own body yields
+        // null; drive the real stream over the fake auth instead.
+        currentMemberIdStreamProvider.overrideWith(
+          (ref) => watchCurrentMemberId(auth, crashes),
+        ),
       ],
     );
     addTearDown(c.dispose);
@@ -362,6 +402,126 @@ void main() {
       expect(c.read(sessionControllerProvider), isA<SessionSignedOut>());
       expect(log, contains('disconnectAndClear'));
       expect(cache.values, isEmpty);
+    });
+  });
+
+  group('auth stream errors (offline refresh)', () {
+    /// Runs [body] in a guarded zone, as `bootstrap.dart` runs the app, and
+    /// returns what escaped to the zone's handler.
+    Future<List<Object>> inGuardedZone(Future<void> Function() body) async {
+      final uncaught = <Object>[];
+      final done = Completer<void>();
+      unawaited(
+        runZonedGuarded(() async {
+          await body();
+          done.complete();
+        }, (error, _) => uncaught.add(error)),
+      );
+      await done.future;
+      return uncaught;
+    }
+
+    AuthRetryableFetchException offline() => AuthRetryableFetchException(
+      message:
+          'ClientException with SocketException: Failed host lookup, '
+          'uri=https://example.supabase.co/auth/v1/token'
+          '?grant_type=refresh_token',
+    );
+
+    test('a retryable refresh error is noted: nothing escapes, the session '
+        'and the member id stand', () async {
+      cache.values['u1'] = 'hh-1';
+      late ProviderContainer c;
+      late SessionState before;
+      late String? memberBefore;
+
+      final uncaught = await inGuardedZone(() async {
+        c = container()..listen(currentMemberIdProvider, (_, _) {});
+        final session = _memberSession('u1', 'm1');
+        when(() => auth.currentSession).thenReturn(session);
+        authEvents.add(AuthState(AuthChangeEvent.signedIn, session));
+        await _settle();
+        before = c.read(sessionControllerProvider);
+        memberBefore = c.read(currentMemberIdProvider);
+
+        // What gotrue's `_doRefresh` does offline: keep the session, put the
+        // failure on the stream.
+        authEvents
+          ..addError(offline())
+          ..addError(offline());
+        await _settle();
+      });
+
+      expect(before, isA<SessionReady>());
+      expect(memberBefore, 'm1');
+      expect(uncaught, isEmpty, reason: 'offline must not reach the zone');
+      expect(crashes.reported, isEmpty, reason: 'offline is not a crash');
+      expect(crashes.noted, isNotEmpty);
+      expect(crashes.noted, everyElement(isA<AuthRetryableFetchException>()));
+      expect(
+        c.read(sessionControllerProvider),
+        isA<SessionReady>().having((s) => s.session, 'session', (
+          userId: 'u1',
+          householdId: 'hh-1',
+        )),
+      );
+      expect(
+        c.read(currentMemberIdProvider),
+        'm1',
+        reason: 'a dropped error must not reset who "I" am on this phone',
+      );
+      expect(log, isNot(contains('disconnectAndClear')));
+    });
+
+    test('a non-retryable error is still reported', () async {
+      cache.values['u1'] = 'hh-1';
+      late ProviderContainer c;
+      final uncaught = await inGuardedZone(() async {
+        c = container();
+        signIn('u1');
+        await _settle();
+        authEvents.addError(const AuthException('an actual bug'));
+        await _settle();
+      });
+
+      expect(uncaught, isEmpty);
+      expect(
+        crashes.reported,
+        contains(
+          isA<AuthException>().having(
+            (e) => e.message,
+            'message',
+            'an '
+                'actual bug',
+          ),
+        ),
+      );
+      expect(crashes.noted, isEmpty);
+      expect(c.read(sessionControllerProvider), isA<SessionReady>());
+    });
+
+    test('an expired session still signs out, after offline errors', () async {
+      cache.values['u1'] = 'hh-1';
+      late ProviderContainer c;
+      final uncaught = await inGuardedZone(() async {
+        c = container()..listen(currentMemberIdProvider, (_, _) {});
+        final session = _memberSession('u1', 'm1');
+        when(() => auth.currentSession).thenReturn(session);
+        authEvents.add(AuthState(AuthChangeEvent.signedIn, session));
+        await _settle();
+        authEvents.addError(offline());
+        await _settle();
+        // gotrue on a revoked or expired refresh token: the session goes and
+        // a signedOut EVENT, not an error, says so.
+        signOutEvent();
+        await _settle();
+      });
+
+      expect(uncaught, isEmpty);
+      expect(c.read(sessionControllerProvider), isA<SessionSignedOut>());
+      expect(log, contains('disconnectAndClear'));
+      expect(cache.values, isEmpty);
+      expect(c.read(currentMemberIdProvider), isNull);
     });
   });
 }

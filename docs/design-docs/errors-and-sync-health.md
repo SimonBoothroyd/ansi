@@ -207,6 +207,16 @@ details]"* — rate-limited to one per ten seconds. The *reports* are not
 limited, only the toasts: Copy details is read when it is tapped, so one toast
 carries a whole burst.
 
+**A token refresh that could not reach the server is not a crash.** gotrue
+reports it as an *error* on `onAuthStateChange`, not an event — it keeps the
+session and retries later — and replays it to late listeners, so offline it
+would toast on every resume. `core/sync/auth_events.dart` is the one reader of
+that stream: it notes an `AuthRetryableFetchException`, reports any other error,
+and passes events through, so the session stands and the signed-in member id
+keeps its value. A revoked or expired session still signs out, because gotrue
+says that with a `signedOut` event. `structure/one_auth_stream_test.dart` bans a
+raw read of the stream anywhere else.
+
 **No reporting service, deliberately.** Sentry or Crashlytics is a network
 dependency, a privacy surface, a build-time key and a vendor, for a two-person
 household where the two people can text each other. Adding one later is a third
@@ -233,7 +243,9 @@ Written down so the next sweep doesn't over-correct into a nagging app.
 4. **PowerSync's reconnect chatter.** `connecting`, a transient `downloadError`
    during a token refresh, the isolate's routine warnings. Only the thresholds
    above escalate, and only for *upload*: a download hiccup in an app whose reads
-   all come from local SQLite is not a user's problem.
+   all come from local SQLite is not a user's problem. gotrue's equivalent, a
+   token refresh that could not reach the server, is noted and never shown
+   (see "Unhandled exceptions").
 5. **A probe or lookup that found nothing.** The USDA probe answering null, an
    enrichment returning "no answer". The app already has honest sentences for
    these and they are not errors.
@@ -258,6 +270,7 @@ app/lib/
     sync/sync_health.dart           the four states, derived
     sync/dropped_write.dart         the record of a discarded write
     sync/connector.dart             reports a drop beside the debugPrint
+    sync/auth_events.dart           the auth stream, offline refresh errors noted
   shared/
     write.dart                      guardedWrite + ref.write / ref.writeOk
     ansi_toast.dart                 the toasts, and the zone's anchor
@@ -269,5 +282,6 @@ app/lib/
     sync_status_line.dart           the Shop list's line
 app/test/
   structure/no_bare_repo_write_test.dart   the invariant, mechanically
+  structure/one_auth_stream_test.dart      one reader of the auth stream
   shared/sync_readouts_test.dart           the words, pinned
 ```
