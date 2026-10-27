@@ -234,9 +234,23 @@ Widget _tabHost(List<Override> overrides, ValueNotifier<bool> visible) =>
       ),
     );
 
-/// Taps a row's amount, which opens (or folds) its breakdown on a phone.
+/// Taps a row's check box, the one thing on it that ticks.
+Future<void> _tick(WidgetTester tester, String identity) async {
+  await tester.tap(find.byKey(shopTickTargetKey(identity)));
+  await tester.pump();
+}
+
+/// A phone row, found by its box's target, for looking inside it.
+Finder _phoneRow(String identity) => find
+    .ancestor(
+      of: find.byKey(shopTickTargetKey(identity)),
+      matching: find.byType(Stack),
+    )
+    .first;
+
+/// Taps a row's chevron, which opens (or folds) its breakdown on a phone.
 Future<void> _openRow(WidgetTester tester, String identity) async {
-  await tester.tap(find.byKey(shopAmountTargetKey(identity)));
+  await tester.tap(find.byKey(shopChevronTargetKey(identity)));
   await tester.pump();
 }
 
@@ -683,17 +697,42 @@ void main() {
       return repo;
     }
 
-    Finder chevronIn(String identity, IconData icon) => find.descendant(
-      of: find.byKey(shopAmountTargetKey(identity)),
-      matching: find.byIcon(icon),
-    );
+    Finder chevronIn(String identity, IconData icon) =>
+        find.descendant(of: _phoneRow(identity), matching: find.byIcon(icon));
 
-    testWidgets('the row tap ticks and does not open the breakdown', (
-      tester,
-    ) async {
+    testWidgets('only the box ticks: the name, the amount, the sub-line and '
+        'the gaps do nothing', (tester) async {
       final repo = await pumpWalk(tester);
       await tester.tap(find.text('Flour'));
+      await tester.tap(find.text('500 g'));
+      await tester.tap(find.text('3 lime, whole'));
+      await tester.tap(find.text('need 2½ · 167.5 g'));
+      // The gap between the name and the amount.
+      final name = tester.getTopRight(find.text('Lime'));
+      await tester.tapAt(name + const Offset(30, 8));
+      await tester.tap(find.text('Paper towels'));
       await tester.pump();
+      expect(repo.tickCalls, 0);
+      expect(find.text('Curry · cook Mon'), findsNothing);
+      expect(find.text('Salad · cook Wed'), findsNothing);
+
+      final box = find.byKey(shopTickTargetKey('flour'));
+      expect(tester.getSize(box), const Size(44, 44));
+      // Centred on the 20 px box it draws.
+      final drawn = find.descendant(
+        of: _phoneRow('flour'),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.constraints ==
+                  const BoxConstraints.tightFor(width: 20, height: 20),
+        ),
+      );
+      expect(
+        (tester.getCenter(box) - tester.getCenter(drawn.first)).distance,
+        lessThan(3),
+      );
+      await _tick(tester, 'flour');
       expect(repo.tickCalls, 1);
       expect(repo.lastChecked, isTrue);
       expect(find.text('Curry · cook Mon'), findsNothing);
@@ -701,11 +740,11 @@ void main() {
 
     testWidgets('the chevron points right while closed and down once open, '
         'and a row with nothing to trace has none', (tester) async {
-      await pumpWalk(tester);
+      final repo = await pumpWalk(tester);
       expect(chevronIn('flour', FLucideIcons.chevronRight), findsOneWidget);
       expect(chevronIn('flour', FLucideIcons.chevronDown), findsNothing);
       // Paper towels has no breakdown: no target, and no arrow on its row.
-      expect(find.byKey(shopAmountTargetKey('e-towels')), findsNothing);
+      expect(find.byKey(shopChevronTargetKey('e-towels')), findsNothing);
       expect(
         find.descendant(
           of: find.byType(ListView),
@@ -715,35 +754,48 @@ void main() {
       );
 
       await _openRow(tester, 'flour');
+      expect(find.text('Curry · cook Mon'), findsOneWidget);
       expect(chevronIn('flour', FLucideIcons.chevronDown), findsOneWidget);
       expect(chevronIn('flour', FLucideIcons.chevronRight), findsNothing);
       // An opened amount stays plain text: no chip round it in the walk.
+      final amount = tester.widget<Text>(find.text('500 g'));
+      expect(amount.style?.backgroundColor, isNull);
       expect(
-        find.descendant(
-          of: find.byKey(shopAmountTargetKey('flour')),
+        find.ancestor(
+          of: find.text('500 g'),
           matching: find.byWidgetPredicate(
-            (w) => w is Container && w.decoration != null,
+            (w) =>
+                w is Container &&
+                w.decoration is BoxDecoration &&
+                (w.decoration! as BoxDecoration).color == AnsiColors.herbSoft,
           ),
         ),
         findsNothing,
       );
-      // A second tap folds it again.
+      // A second tap folds it again, and neither tap ticked.
       await _openRow(tester, 'flour');
       expect(find.text('Curry · cook Mon'), findsNothing);
+      expect(repo.tickCalls, 0);
     });
 
-    testWidgets('the amount is a 44 px target, and the sub-line opens the '
-        'same breakdown', (tester) async {
+    testWidgets('the chevron’s target is 48 px, centred on it and reaching '
+        'the row’s right edge', (tester) async {
       await pumpWalk(tester);
-      expect(
-        tester.getSize(find.byKey(shopAmountTargetKey('flour'))).height,
-        greaterThanOrEqualTo(44),
-      );
-      // Lime's sub-line is under its headline, and a tap there opens too.
-      expect(find.text('3 lime, whole'), findsOneWidget);
-      await tester.tap(find.text('need 2½ · 167.5 g'));
-      await tester.pump();
-      expect(find.text('Salad · cook Wed'), findsOneWidget);
+      for (final id in ['flour', 'lime']) {
+        final target = find.byKey(shopChevronTargetKey(id));
+        final size = tester.getSize(target);
+        expect(size.width, greaterThanOrEqualTo(48));
+        expect(size.height, greaterThanOrEqualTo(48));
+        final chevron = chevronIn(id, FLucideIcons.chevronRight);
+        expect(
+          (tester.getCenter(target) - tester.getCenter(chevron)).distance,
+          lessThan(3),
+        );
+        expect(
+          tester.getTopRight(target).dx,
+          tester.getTopRight(_phoneRow(id)).dx,
+        );
+      }
     });
 
     testWidgets('an opened top-up is its own 44 px row, and it opens the '
@@ -803,16 +855,14 @@ void main() {
       await _openRow(tester, 'flour');
       expect(find.text('Curry · cook Mon'), findsOneWidget);
 
-      await tester.tap(find.text('Flour'));
-      await tester.pump();
+      await _tick(tester, 'flour');
       await tester.pump();
       await _openFold(tester, ShopFold.basket);
       // In the basket: no breakdown and no arrow.
       expect(find.text('Curry · cook Mon'), findsNothing);
-      expect(find.byKey(shopAmountTargetKey('flour')), findsNothing);
+      expect(find.byKey(shopChevronTargetKey('flour')), findsNothing);
 
-      await tester.tap(find.text('Flour'));
-      await tester.pump();
+      await _tick(tester, 'flour');
       await tester.pump();
       expect(find.text('Curry · cook Mon'), findsNothing);
       expect(chevronIn('flour', FLucideIcons.chevronRight), findsOneWidget);
@@ -868,7 +918,7 @@ void main() {
         'breakdown', (tester) async {
       deskWidth(tester);
       await pumpWalk(tester);
-      expect(find.byKey(shopAmountTargetKey('flour')), findsNothing);
+      expect(find.byKey(shopChevronTargetKey('flour')), findsNothing);
       expect(find.text('Curry · cook Mon'), findsOneWidget);
     });
   });
@@ -922,9 +972,13 @@ void main() {
       expect(tester.getTopLeft(find.text('Lime')).dy, greaterThan(basketTop));
       expect(tester.getTopLeft(find.text('Onion')).dy, lessThan(basketTop));
       expect(tester.getTopLeft(find.text('Flour')).dy, lessThan(basketTop));
-      // The row keeps its tap: from the basket, a tap unticks it.
+      // From the basket only the box unticks: the name and the amount do
+      // nothing.
       await tester.tap(find.text('Lime'));
+      await tester.tap(find.text('100 g').last);
       await tester.pump();
+      expect(repo.tickCalls, 0);
+      await _tick(tester, 'lime');
       expect(repo.tickCalls, 1);
       expect(repo.lastChecked, isFalse);
     });
@@ -1044,7 +1098,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Onion'));
+      await _tick(tester, 'onion');
       await tester.pump();
 
       expect(find.byType(ConfettiBurst), findsOneWidget);
@@ -1075,7 +1129,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Onion'));
+      await _tick(tester, 'onion');
       await tester.pump();
 
       expect(find.byType(ConfettiBurst), findsNothing);
@@ -1122,7 +1176,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Onion'));
+      await _tick(tester, 'onion');
       await tester.pump();
       expect(find.byType(ConfettiBurst), findsOneWidget);
       await settleBurst(tester);
@@ -1130,10 +1184,10 @@ void main() {
       // Untick from the basket, then tick again: the same list, finished a
       // second time, and it celebrates a second time.
       await _openFold(tester, ShopFold.basket);
-      await tester.tap(find.text('Onion'));
+      await _tick(tester, 'onion');
       await tester.pump();
       expect(find.text('everything’s in the basket'), findsNothing);
-      await tester.tap(find.text('Onion'));
+      await _tick(tester, 'onion');
       await tester.pump();
       expect(find.text('everything’s in the basket'), findsOneWidget);
       expect(find.byType(ConfettiBurst), findsOneWidget);
@@ -1153,7 +1207,7 @@ void main() {
       // next.
       await tester.pump();
       await tester.pump();
-      await tester.tap(find.text('Flour'));
+      await _tick(tester, 'flour');
       await tester.pump();
       expect(find.byType(ConfettiBurst), findsOneWidget);
       expect(haptics, hasLength(3));
@@ -1171,7 +1225,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.text('Onion'));
+      await _tick(tester, 'onion');
       await tester.pump();
 
       expect(find.byType(ConfettiBurst), findsNothing);
@@ -1247,7 +1301,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.text('Paper towels'));
+    await _tick(tester, 'e1');
     await tester.pumpAndSettle();
 
     expect(repo.tickCalls, 1);
@@ -1710,8 +1764,8 @@ void main() {
       );
     });
 
-    testWidgets('below 1024 the phone rule is untouched: the whole row ticks, '
-        'and there is no pane to point at', (tester) async {
+    testWidgets('below 1024 there is no pane to point at: a tap on the name '
+        'does nothing, and the box ticks', (tester) async {
       final repo = _FakeShoppingRepo(listWithBasket());
       await tester.pumpWidget(
         _host([shoppingRepositoryProvider.overrideWithValue(repo)]),
@@ -1719,11 +1773,12 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(kShopReadingRowKey), findsNothing);
-      expect(find.byKey(shopTickTargetKey('halloumi')), findsNothing);
 
       await tester.tap(find.text('Halloumi'));
       await tester.pump();
+      expect(repo.tickCalls, 0);
 
+      await _tick(tester, 'halloumi');
       expect(repo.tickCalls, 1);
       expect(repo.lastChecked, isTrue);
     });
@@ -2209,8 +2264,15 @@ void main() {
       );
       expect(name.style?.decoration, isNot(TextDecoration.lineThrough));
 
-      // A tap puts it back in its aisle.
-      await tester.tap(find.byKey(shopAtHomeRowKey('onion')));
+      // Only the house puts it back in its aisle: the name and the need do
+      // nothing.
+      await tester.tap(find.text('Yellow onion'));
+      await tester.tap(find.text('5 onion, medium'));
+      await tester.pump();
+      expect(repo.atHomeCleared, isEmpty);
+      final house = find.byKey(shopHomeTargetKey('onion'));
+      expect(tester.getSize(house), const Size(44, 44));
+      await tester.tap(house);
       await tester.pump();
       expect(repo.atHomeCleared, ['onion']);
     });

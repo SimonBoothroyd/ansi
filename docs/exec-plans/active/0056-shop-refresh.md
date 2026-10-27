@@ -130,6 +130,26 @@ section looks like and whether its rows can be tapped.
   ▾, ▴ and › confusing: it was not clear whether an arrow said *tap to open*
   or *is open*.
 
+R13 was taken with the owner on 2026-10-27, after he used v0.35.0 on his
+phone and found the row hard to use because the whole of it was tappable.
+
+- **R13 On a phone, a row acts only from its box and its chevron.** It
+  replaces the tap clauses of R2, R7 and R10.
+  - **Only the check box ticks**, on a 44 × 44 target centred on the 20 px
+    box.
+  - **Only the chevron opens and folds the breakdown**, on a target at least
+    48 × 48, centred on the chevron and reaching the row's right edge.
+  - **Everything else on the row does nothing on a tap**: the name, the
+    amount, the sub-line and the gaps between them.
+  - Long-press and swipe still remove a user-added row. The opened
+    breakdown's top-up row still opens its edit sheet.
+  - **Basket and *At home* rows follow the same rule**: only the box unticks,
+    and only the house puts a row back.
+  - **Unchanged:** the at-home pass's rows (a row tap there still says all of
+    it, and the chip opens the sheet), the three fold lines (they still open
+    from anywhere on the line), and the wide layout (the box ticks, and a tap
+    elsewhere selects the row for the pane).
+
 ### Rejected
 
 - **R1:** keep the need as the headline.
@@ -147,6 +167,8 @@ section looks like and whether its rows can be tapped.
 - **R9:** the non-food row only when nothing matches.
 - **R10:** draw the sections folded only.
 - **R11:** the Forui accordion's ⌄ then ⌃ (the action convention).
+- **R13:** the whole row ticks, and the amount and the sub-line open the
+  breakdown (what v0.35.0 shipped).
 
 ## Approach
 
@@ -446,6 +468,7 @@ frame is drawn. The board's status line carries one clause instead.
 - 2026-10-25: R7–R10 and their rejections, from the owner's look at the
   renders. R9 settles the old open question on when the non-food row shows.
 - 2026-10-25: R12, the five cheapest-price questions, before the build.
+- 2026-10-27: R13, from the owner's use of v0.35.0 on his phone.
 - 2026-10-25, design: the toggle replaces the pass's band, and `To buy` is
   **Done**. A rounded row is any row that prints `→ buy N` today, with the `≈`
   kept on the need. A row figure read off one named price drops its `≈`

@@ -17,7 +17,7 @@ import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart
 import 'package:ansi/features/recipes/presentation/recipe_chip.dart'
     show RecipeChip;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
-    show ShoppingView, shopAmountTargetKey, shopFoldKey;
+    show ShoppingView, shopChevronTargetKey, shopFoldKey;
 import 'package:ansi/features/shopping/presentation/shopping_view_models.dart'
     show ShopFold;
 import 'package:ansi/shared/unit_chip.dart' show UnitChip;
@@ -300,16 +300,16 @@ void main() {
     // the aioli's own lines do, through the derived session.
     await scrollTo(tester, find.text('Almonds'));
     expect(find.text('Romesco Aioli'), findsNothing);
-    // Each row's breakdown is folded behind its amount: open the two read.
+    // Each row's breakdown is folded behind its chevron: open the two read.
     for (final name in ['Almonds', 'Olive Oil']) {
       final row = await db.get(
         'SELECT id FROM ingredient WHERE canonical_name = ? '
         'AND deleted_at IS NULL',
         [name],
       );
-      final amount = find.byKey(shopAmountTargetKey(row['id']! as String));
-      await scrollTo(tester, amount);
-      await tester.tap(amount);
+      final chevron = find.byKey(shopChevronTargetKey(row['id']! as String));
+      await scrollTo(tester, chevron);
+      await tester.tap(chevron);
       await tester.pumpAndSettle();
     }
     expect(

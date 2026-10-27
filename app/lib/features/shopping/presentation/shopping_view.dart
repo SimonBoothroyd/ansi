@@ -511,7 +511,7 @@ class _GroupLabel extends StatelessWidget {
 
 /// The section every ticked row moves to, folded to one counted line (`IN THE
 /// BASKET · 4`) until it is tapped open. Opened, it keeps its aisles inside it,
-/// and tapping a row unticks it.
+/// and a tap on a row's box unticks it.
 class _Basket extends ConsumerWidget {
   const _Basket({required this.groups, this.selection});
 
@@ -916,11 +916,12 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
   }
 }
 
-/// One shopping line: check box, name, total and its sub-line. On a phone a
-/// tap on the row toggles the tick, and a tap on the amount (its chevron, its
-/// sub-line) opens the breakdown under it; at [AnsiLayout.expanded] only the
-/// box ticks, and the breakdown is the pane's. A purely user-added line can be
-/// removed by swipe or long-press; a cook-derived one cannot.
+/// One shopping line: check box, name, total and its sub-line. Only the box
+/// ticks, at every width. On a phone only the chevron opens the breakdown
+/// under it, and the rest of the row does nothing; at [AnsiLayout.expanded]
+/// the rest of the row points the pane, which holds the breakdown. A purely
+/// user-added line can be removed by swipe or long-press; a cook-derived one
+/// cannot.
 class _ItemRow extends ConsumerStatefulWidget {
   const _ItemRow({required this.item, this.selection});
 
@@ -1118,90 +1119,21 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         ],
       );
     } else {
-      // On a phone each part of the top line carries the row's vertical
-      // padding itself, so the amount's target reaches the row's edge and,
-      // with the sub-line under it, is never less than 44 px tall.
-      final pad = EdgeInsets.only(top: 12, bottom: hasSub ? 3 : 12);
-      final amount = canOpen
-          ? GestureDetector(
-              key: shopAmountTargetKey(identity),
-              behavior: HitTestBehavior.opaque,
-              onTap: flip,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: 44,
-                  minHeight: hasSub ? 0 : 44,
-                ),
-                child: Padding(
-                  padding: pad.copyWith(left: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      total,
-                      const SizedBox(width: 5),
-                      _Chevron(open: open),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          : Padding(padding: pad.copyWith(left: 8), child: total);
-      body = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Padding(
-                padding: pad,
-                child: _CheckBox(key: _box, checked: item.checked),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Padding(padding: pad, child: name),
-              ),
-              amount,
-            ],
-          ),
-          // The sub-line is the amount's target too: one door, under the
-          // figure it explains.
-          if (hasSub)
-            GestureDetector(
-              behavior: canOpen
-                  ? HitTestBehavior.opaque
-                  : HitTestBehavior.deferToChild,
-              onTap: canOpen ? flip : null,
-              child: Padding(
-                padding: EdgeInsets.only(left: 31, bottom: open ? 0 : 11),
-                child: subLine,
-              ),
-            ),
-          // The opened breakdown is read, not tapped: it swallows a tap or a
-          // long-press so neither reaches the row's tick or its remove. Only
-          // the top-up row inside it, whose own detector is deeper, acts.
-          if (open)
-            GestureDetector(
-              key: shopBreakdownKey(identity),
-              behavior: HitTestBehavior.opaque,
-              onTap: () {},
-              onLongPress: () {},
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
-                child: _Provenance(
-                  itemName: item.name,
-                  ingredientId: item.ingredientId,
-                  contributions: item.contributions,
-                ),
-              ),
-            ),
-        ],
+      return _phoneRow(
+        identity: identity,
+        name: name,
+        total: total,
+        subLine: hasSub ? subLine : null,
+        canOpen: canOpen,
+        open: open,
+        flip: flip,
       );
     }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      // On a phone the row is the tick; at expanded the row points the pane.
-      onTap: selection == null ? _toggle : () => selection.read(item),
+      // At expanded the box ticks and the rest of the row points the pane.
+      onTap: () => selection.read(item),
       onLongPress: item.isUserAdded
           ? () => _confirmRemove(context, ref, item)
           : null,
@@ -1222,6 +1154,129 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
       ),
     );
   }
+
+  /// The phone row. Two things on it act, each on a target of its own laid
+  /// over what it draws: the box ticks (44 × 44, centred on the 20 px box),
+  /// and the chevron opens and folds the breakdown (48 × 48, centred on the
+  /// chevron and reaching the row's right edge). The name, the amount, the
+  /// sub-line and the gaps between them do nothing, so a thumb that lands
+  /// anywhere else on a walking shopper's list changes nothing. A user-added
+  /// row still removes on a long-press.
+  Widget _phoneRow({
+    required String identity,
+    required Widget name,
+    required Widget total,
+    required Widget? subLine,
+    required bool canOpen,
+    required bool open,
+    required VoidCallback flip,
+  }) {
+    final hasSub = subLine != null;
+    // Each part of the top line carries the row's vertical padding itself.
+    final pad = EdgeInsets.only(top: 12, bottom: hasSub ? 3 : 12);
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ConstrainedBox(
+          // Tall enough for the chevron's target to sit inside the row.
+          constraints: BoxConstraints(minHeight: hasSub ? 0 : 48),
+          child: Row(
+            children: [
+              Padding(
+                padding: pad,
+                child: _CheckBox(key: _box, checked: item.checked),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Padding(padding: pad, child: name),
+              ),
+              const SizedBox(width: 8),
+              Padding(padding: pad, child: total),
+              if (canOpen) ...[
+                const SizedBox(width: 5),
+                Padding(
+                  padding: pad,
+                  child: _Chevron(open: open),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (subLine != null)
+          Padding(
+            padding: EdgeInsets.only(left: 31, bottom: open ? 0 : 11),
+            child: subLine,
+          ),
+        // The opened breakdown is read, not tapped: it swallows a long-press
+        // so it never reaches the row's remove. Only the top-up row inside
+        // it, whose own detector is deeper, acts.
+        if (open)
+          GestureDetector(
+            key: shopBreakdownKey(identity),
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            onLongPress: () {},
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
+              child: _Provenance(
+                itemName: item.name,
+                ingredientId: item.ingredientId,
+                contributions: item.contributions,
+              ),
+            ),
+          ),
+      ],
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: item.isUserAdded
+          ? () => _confirmRemove(context, ref, item)
+          : null,
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              Padding(
+                // The chevron's right edge sits 17.5 px in, so its 48 px
+                // target, which ends at the row's edge, is centred on it.
+                padding: EdgeInsets.fromLTRB(20, 0, canOpen ? 17.5 : 20, 0),
+                child: content,
+              ),
+              Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                color: AnsiColors.line,
+              ),
+            ],
+          ),
+          Positioned(
+            left: 8,
+            top: hasSub ? 0 : 2,
+            width: 44,
+            height: 44,
+            child: GestureDetector(
+              key: shopTickTargetKey(identity),
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggle,
+            ),
+          ),
+          if (canOpen)
+            Positioned(
+              right: 0,
+              top: 0,
+              width: 48,
+              height: 48,
+              child: GestureDetector(
+                key: shopChevronTargetKey(identity),
+                behavior: HitTestBehavior.opaque,
+                onTap: flip,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// The key on a phone row's opened breakdown, named by
@@ -1229,13 +1284,13 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
 ValueKey<String> shopBreakdownKey(String identity) =>
     ValueKey('shop-breakdown-$identity');
 
-/// The key on a phone row's amount target — the amount, its chevron and (as a
-/// second detector) its sub-line — named by [shoppingItemIdentity].
-ValueKey<String> shopAmountTargetKey(String identity) =>
-    ValueKey('shop-amount-$identity');
+/// The key on a phone row's chevron target, the one door to its breakdown,
+/// named by [shoppingItemIdentity].
+ValueKey<String> shopChevronTargetKey(String identity) =>
+    ValueKey('shop-chevron-$identity');
 
-/// The key on a wide row's tick target, named by [shoppingItemIdentity] so a
-/// test can tick a named row.
+/// The key on a row's tick target (the box, at every width), named by
+/// [shoppingItemIdentity] so a test can tick a named row.
 ValueKey<String> shopTickTargetKey(String identity) =>
     ValueKey('shop-tick-$identity');
 
@@ -1784,7 +1839,8 @@ class _HouseBox extends StatelessWidget {
 /// The *At home* section, under the basket: folded to one counted line (`AT
 /// HOME · 3`) until it is tapped open. Its rows are all at home, muted but
 /// never struck through, a house where the tick would be and no price. A tap
-/// puts the row back in its aisle, as a tap on a basket row unticks it.
+/// on the house puts the row back in its aisle, as a tap on a basket row's
+/// box unticks it.
 class _AtHomeSection extends ConsumerWidget {
   const _AtHomeSection({required this.items, this.selection});
 
@@ -1836,17 +1892,60 @@ class _AtHomeRow extends ConsumerWidget {
     }
 
     const house = _HouseBox(state: _HouseState.all);
+    final name = Text(
+      item.name,
+      style: ansiSans(size: 14, color: AnsiColors.muted),
+    );
+    final need = Text(
+      needTotal(item),
+      style: ansiMono(
+        size: 13,
+        weight: FontWeight.w500,
+        color: AnsiColors.muted,
+      ),
+    );
+    if (selection == null) {
+      // On a phone only the house puts the row back: a 44 × 44 target
+      // centred on it. The name and the need do nothing.
+      return Column(
+        key: shopAtHomeRowKey(identity),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 8, right: 20),
+            child: Row(
+              children: [
+                GestureDetector(
+                  key: shopHomeTargetKey(identity),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: putBack,
+                  child: const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(child: house),
+                  ),
+                ),
+                Expanded(child: name),
+                const SizedBox(width: 8),
+                need,
+              ],
+            ),
+          ),
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            color: AnsiColors.line,
+          ),
+        ],
+      );
+    }
     return GestureDetector(
       key: shopAtHomeRowKey(identity),
       behavior: HitTestBehavior.opaque,
-      onTap: selection == null ? putBack : () => selection.read(item),
+      onTap: () => selection.read(item),
       child: Container(
         key: reading ? kShopReadingRowKey : null,
         margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: EdgeInsets.symmetric(
-          vertical: selection == null ? 11 : 0,
-          horizontal: reading ? 11 : 0,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: reading ? 11 : 0),
         decoration: reading
             ? BoxDecoration(
                 color: AnsiColors.herbSoft,
@@ -1858,35 +1957,19 @@ class _AtHomeRow extends ConsumerWidget {
               ),
         child: Row(
           children: [
-            if (selection == null) ...[
-              house,
-              const SizedBox(width: 11),
-            ] else
-              GestureDetector(
-                key: shopHomeTargetKey(identity),
-                behavior: HitTestBehavior.opaque,
-                onTap: putBack,
-                child: const SizedBox(
-                  width: 31,
-                  height: 44,
-                  child: Align(alignment: Alignment.centerLeft, child: house),
-                ),
-              ),
-            Expanded(
-              child: Text(
-                item.name,
-                style: ansiSans(size: 14, color: AnsiColors.muted),
+            GestureDetector(
+              key: shopHomeTargetKey(identity),
+              behavior: HitTestBehavior.opaque,
+              onTap: putBack,
+              child: const SizedBox(
+                width: 31,
+                height: 44,
+                child: Align(alignment: Alignment.centerLeft, child: house),
               ),
             ),
+            Expanded(child: name),
             const SizedBox(width: 8),
-            Text(
-              needTotal(item),
-              style: ansiMono(
-                size: 13,
-                weight: FontWeight.w500,
-                color: AnsiColors.muted,
-              ),
-            ),
+            need,
           ],
         ),
       ),

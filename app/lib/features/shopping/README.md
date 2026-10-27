@@ -84,25 +84,32 @@ hands them with the overlay to `buildShoppingList` (pure).
   recipe. Each optional name is a door: a tap writes this week's include
   override (`WeekVariantRepository.setLineIncluded`). A line the week left out
   is undone where it was made.
-- **The breakdown waits behind the amount.** On a phone a row is one line,
-  or two with its sub-line. A tap on the row ticks it; a tap on its amount,
-  its chevron or its sub-line (one target, at least 44 px tall) opens the
-  recipes, the sessions and the manual top-up under it. The top-up is its
-  own 44 px row with a pencil that opens `edit_top_up_sheet.dart`. The
+- **A row acts from its box and its chevron, and nowhere else.** On a phone
+  a row is one line, or two with its sub-line. Only the check box ticks, on
+  a 44 × 44 target centred on it (`shopTickTargetKey`). Only the chevron
+  after the amount opens and folds the recipes, the sessions and the manual
+  top-up under it, on a 48 × 48 target centred on it and reaching the row's
+  right edge (`shopChevronTargetKey`). The name, the amount, the sub-line and
+  the gaps do nothing on a tap; long-press and swipe still remove a
+  user-added row. The opened breakdown takes no tap either, except its
+  top-up, which is its own 44 px row with a pencil that opens
+  `edit_top_up_sheet.dart`. The
   chevron says what is: `chevronRight` closed, `chevronDown` open, in herb,
   as the Library's folds draw it; a row with nothing to trace (free text)
   has none. The amount stays plain text: the herb-soft chip belongs to the
   at-home pass. What is open (`shopOpenProvider`) is this phone's, lasts the
   visit and is never synced; a tick folds its row, and leaving the tab folds
-  everything. At expanded no row opens: the pane holds the breakdown.
+  everything. At expanded no row opens: the box ticks, and a tap anywhere
+  else on the row points the pane, which holds the breakdown.
 - **The basket.** Aisles hold what is still to grab; ticked rows move to one
   `IN THE BASKET · n` section that keeps its aisles (`openGroups`,
   `basketGroups`, `allTicked` on `ShoppingList`). `groups` stays the full
   list.
 - **Three folded lines close the walk**: `IN THE BASKET · n`, `AT HOME · n`
   and `N notes from the plan`, each a 44 px line with the same chevron pair,
-  opening in place. Opened, basket rows untick on a tap and *At home* rows go
-  back to their aisle. The notes line holds the three echo rows below; it
+  opening from anywhere on the line. Opened, a basket row unticks only from
+  its box, and an *At home* row goes back to its aisle only from its house
+  (a 44 × 44 target, `shopHomeTargetKey`). The notes line holds the three echo rows below; it
   reads amber with a flag while any note is a defect (an unresolved
   component, a retired ingredient), and muted when every one is a line left
   out. The list draws no caption.

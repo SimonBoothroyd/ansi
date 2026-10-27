@@ -44,7 +44,7 @@ import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/shopping/presentation/shop_add_field.dart'
     show kShopAddFieldKey, kShopAddResultsKey;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
-    show ShoppingView, shopAmountTargetKey;
+    show ShoppingView, shopChevronTargetKey, shopTickTargetKey;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -473,7 +473,7 @@ void main() {
     await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
     await pumpUntilFound(tester, find.text('Garlic'));
     expect(find.text('Onion'), findsOneWidget);
-    // Each row's breakdown is folded behind its amount: open both.
+    // Each row's breakdown is folded behind its chevron: open both.
     final garlic = await db.get(
       "SELECT id FROM ingredient WHERE canonical_name = 'Garlic'",
     );
@@ -481,9 +481,9 @@ void main() {
       "SELECT id FROM ingredient WHERE canonical_name = 'Onion'",
     );
     for (final id in [garlic['id'], onion['id']]) {
-      final amount = find.byKey(shopAmountTargetKey(id! as String));
-      await pumpUntilFound(tester, amount);
-      await tester.tap(amount);
+      final chevron = find.byKey(shopChevronTargetKey(id! as String));
+      await pumpUntilFound(tester, chevron);
+      await tester.tap(chevron);
       await tester.pumpAndSettle();
     }
     // Both cook sessions contribute, labelled per batch.
@@ -529,7 +529,8 @@ void main() {
     expect(topUp['quantity'], 2);
 
     // Check off the rolled-up Onion line (lazily creates its overlay entry).
-    await tester.tap(find.text('Onion'));
+    // Only the box ticks.
+    await tester.tap(find.byKey(shopTickTargetKey(onion['id']! as String)));
     await tester.pumpAndSettle();
     await waitForDb(tester, () async {
       final row = await db.getOptional(
