@@ -906,18 +906,10 @@ void main() {
         isNull,
         reason: 'a new row with no category is not saveable',
       );
-      await tester.tap(find.widgetWithText(FButton, 'New'));
-      await pumpUntilFound(tester, find.text('New category'));
-      await tester.enterText(
-        find.descendant(
-          of: find.byType(FDialog),
-          matching: find.byType(EditableText),
-        ),
-        'pantry',
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FButton, 'Use it'));
-      await tester.pumpAndSettle();
+      // Through the harness door, which scrolls the picker into view first:
+      // the prefilled draft is long, and its pinned Save dock (carrying the
+      // "filled in, not saved" line) covers a picker left where it was.
+      await coinCategory(tester, 'pantry');
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
 
