@@ -1,6 +1,6 @@
 # Exec plan: Shop refresh
 
-- **Status:** shipped in `v0.35.0` (deploy 40430955103 went first); the phone check is owed
+- **Status:** shipped in `v0.35.0` (deploy 40430955103 went first), R13 in `v0.35.1`; the phone check is owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 8, from the owner's ask
 - **Created:** 2026-10-25
