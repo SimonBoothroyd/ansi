@@ -231,9 +231,14 @@ The loop (agents drive it with the iOS Simulator tools; humans use `flutter run`
    > `xcrun simctl uninstall booted com.example.mise || true`.
 2. **Attach** the live panel (agent tool `control{action:"attach"}`) so the
    change is watchable.
-3. **Build + launch.** iOS builds via **Swift Package Manager** (no CocoaPods /
-   Podfile) — first build ~2 min, incremental ~15 s. Either `flutter run -d
-   <sim-udid>` (hot reload with `r`) or `flutter build ios` then the sim
+3. **Build + launch.** iOS builds via **Swift Package Manager plus CocoaPods**:
+   most plugins come in as Swift packages, but `flutter_tts` has no SwiftPM
+   support, so the build also runs `pod install` against the committed
+   `ios/Podfile` + `Podfile.lock` (`ios/Pods/` is generated and ignored).
+   CocoaPods comes from Homebrew (`brew install cocoapods`) and needs a UTF-8
+   locale — run builds with `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` (`make
+   test-sim` sets it). First build ~2 min, incremental ~15 s. Either `flutter
+   run -d <sim-udid>` (hot reload with `r`) or `flutter build ios` then the sim
    launch tool.
 4. **Observe** (`control{action:"screenshot"}`) → compare to the design →
    **edit** the Forui/theme code → rebuild → screenshot again. Repeat.

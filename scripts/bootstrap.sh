@@ -18,6 +18,9 @@ need dart    "dart --version"    "comes with Flutter"
 need supabase "supabase --version" "brew install supabase/tap/supabase"
 need deno    "deno --version"    "https://deno.land"
 need docker  "docker --version"  "https://docs.docker.com/get-docker"
+if [ "$(uname -s)" = Darwin ]; then
+  need pod   "pod --version"     "brew install cocoapods  (iOS builds; flutter_tts has no SwiftPM)"
+fi
 
 echo
 if [ ! -f .env.local ]; then

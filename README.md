@@ -54,8 +54,9 @@ make db-up                    # supabase start + local PowerSync service
 make run                      # launch the Flutter app
 ```
 
-Prerequisites: Flutter 3.44+, Dart 3.8+, the Supabase CLI, Deno, and Docker.
-`scripts/bootstrap.sh` checks these and tells you what's missing.
+Prerequisites: Flutter 3.44+, Dart 3.8+, the Supabase CLI, Deno, and Docker,
+plus CocoaPods on macOS for iOS builds (`brew install cocoapods`; run it under a
+UTF-8 locale). `scripts/bootstrap.sh` checks these and tells you what's missing.
 
 Those are floors; **CI pins exact versions, and local should match them** —
 Flutter `3.47.1` (`.github/workflows/app.yml`; 3.47.2's Dart adds an analyze
