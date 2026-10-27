@@ -1,6 +1,6 @@
 # Exec plan: Already got it
 
-- **Status:** on main, untagged — every phase in code with tests; migration `0058` not on cloud; the phone check (two phones, one pass) is still owed
+- **Status:** shipped in `v0.34.0` (migration `0058`, deploy 40217682623); the phone check (two phones, one pass) is owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 7, from the owner's ask
 - **Created:** 2026-10-25

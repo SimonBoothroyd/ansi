@@ -27,16 +27,9 @@ The detail is in the plan; the landing dates are in the
    (`run_ask_live.ts`).
 6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
    first slice.
-7. [Plan 0055](./active/0055-already-got-it.md), already got it — say on the
-   Shop list what is already at home, all of a row or an amount. On main,
-   untagged; migration `0058` is not on cloud yet, and the phone check (two
-   phones, one pass) is owed.
-8. [Plan 0056](./active/0056-shop-refresh.md), the Shop refresh — each row
-   leads with what you buy and opens its breakdown from the amount, one field
-   at the top adds, a `To buy · At home?` toggle, scanning on the receipts
-   ledger, and the cheapest price seen in 90 days. On main, untagged; the
-   sim smoke passes, and `ask.ts`'s cost tool description needs a
-   `deploy-supabase` by hand.
+7. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
+   phones, one pass) and plan 0056's refreshed list, search field and
+   cheapest prices.
 
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
@@ -130,6 +123,8 @@ rows below, in that order.)
 | — | Ask Ansi, slice 2 — the door on the Library, Week, Cook and Shop tabs too; questions about the week, the cook plan and the list (*what's for dinner tonight?*, *what am I cooking on Sunday?*, *do we need tamari?*); and changes to the plan or the list — set a week's dinners, move a meal, *I'm eating out Friday*, copy last week, add to the list — each a card the member confirms, written in one transaction that refuses a meal edited meanwhile. The `ask` function redeployed first. No migrations | `v0.31.0` | [0053](./active/0053-ask-ansi.md) |
 | — | Ask Ansi's figures — calories and macros for a recipe, a day or a week (the speaker's by default, a week as its per-day average), the cost of a recipe, a day or a week beside what its receipts say was spent, the Shop's trip estimate, and an ingredient's latest purchases; each the screens' own figure in their words. The `ask` function deployed first. No migrations | `v0.32.0` | [0053](./active/0053-ask-ansi.md) |
 | — | Eaten vs planned — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, shown on your own phone only), in the sheet or to Ask (*I ate out last night*); once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten); and on Android, one switch in Account sends what you ate to Health Connect (write-only, not yet tried on a phone). Undo after `−` restores the same meal. Migrations `0055`–`0057`, on cloud | `v0.32.0` | [0054](./active/0054-eaten-vs-planned.md) |
+| — | Already got it — a pass at home says what is already in the cupboard, all of a row or an amount; a part-have shortens the row, a whole-have moves to *At home*. Migration `0058` | `v0.34.0` | [0055](./active/0055-already-got-it.md) |
+| — | The Shop refresh — a row leads with what you buy and opens its breakdown from the amount; the basket, *At home* and the plan's notes fold; a `To buy · At home?` toggle and one search field at the top; scanning on the receipts ledger; a row priced at the cheapest seen in 90 days, by store. Also an offline token refresh kept off the crash toast | `v0.35.0` | [0056](./active/0056-shop-refresh.md) |
 
 ## Stretch
 

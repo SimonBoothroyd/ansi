@@ -1,6 +1,6 @@
 # Exec plan: Shop refresh
 
-- **Status:** on main, untagged; `ask.ts`'s cost tool description needs a `deploy-supabase` by hand
+- **Status:** shipped in `v0.35.0` (deploy 40430955103 went first); the phone check is owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** Next 8, from the owner's ask
 - **Created:** 2026-10-25
