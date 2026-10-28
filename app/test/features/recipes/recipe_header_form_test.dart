@@ -129,6 +129,63 @@ void main() {
     }
   });
 
+  testWidgets('both MAKES amounts sit on one row, joined by =', (tester) async {
+    filterForuiSemanticsAssertions();
+    tallSurface(tester);
+    final container = _container();
+    final host = await _editorHost(container);
+    host
+      ..setYield(250, g)
+      ..setSecondYield(16, tbsp);
+    await tester.pumpWidget(_form(container, host));
+    await tester.pumpAndSettle();
+
+    final first = tester.getCenter(find.byKey(const ValueKey('yield-1')));
+    final second = tester.getCenter(find.byKey(const ValueKey('yield-2')));
+    final equals = tester.getCenter(find.text('='));
+    expect(second.dy, first.dy);
+    expect(equals.dy, first.dy);
+    expect(equals.dx, inExclusiveRange(first.dx, second.dx));
+  });
+
+  group('the empty second slot names only the kinds the first is not', () {
+    for (final (unit, label) in [
+      (g, 'cups, pieces…'),
+      (cup, 'grams, pieces…'),
+      (pieces, 'grams, cups…'),
+    ]) {
+      testWidgets('beside ${unit.label}', (tester) async {
+        filterForuiSemanticsAssertions();
+        tallSurface(tester);
+        final container = _container();
+        final host = await _editorHost(container);
+        host.setYield(2, unit);
+        await tester.pumpWidget(_form(container, host));
+        await tester.pumpAndSettle();
+
+        expect(find.text(label), findsOneWidget);
+        expect(find.byKey(const ValueKey('yield-2')), findsNothing);
+
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('yield-2')), findsOneWidget);
+        expect(find.text(label), findsNothing);
+      });
+    }
+
+    testWidgets('and is not drawn before the first is stated', (tester) async {
+      filterForuiSemanticsAssertions();
+      tallSurface(tester);
+      final container = _container();
+      final host = await _editorHost(container);
+      await tester.pumpWidget(_form(container, host));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('yield-2-add')), findsNothing);
+      expect(find.text('='), findsNothing);
+    });
+  });
+
   group('every section in kRecipeHeaderSections renders under', () {
     for (final MapEntry(key: name, value: hostOf) in _hosts.entries) {
       testWidgets(name, (tester) async {

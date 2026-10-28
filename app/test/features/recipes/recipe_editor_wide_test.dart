@@ -281,7 +281,7 @@ void main() {
     // The second denomination's door and the freezer window both appear only
     // once the fact before them is stated — the cells that overflow if the
     // wide header restates the phone's one-column form.
-    expect(find.text('Another'), findsOneWidget);
+    expect(find.byKey(const ValueKey('yield-2-add')), findsOneWidget);
     expect(find.text('FREEZER'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -344,18 +344,9 @@ void main() {
         }
       }
 
-      // MAKES keeps its shape too: the qualifier beside the eyebrow on its
-      // line, and the amount still one row with its unit chip.
+      // MAKES keeps its shape too: the eyebrow on one line, and the amount
+      // still one row with its unit chip.
       expect(_lines(tester, find.text('MAKES')), 1);
-      expect(_lines(tester, find.text('· optional')), 1);
-      expect(
-        _top(tester, find.text('· optional')),
-        _top(tester, find.text('MAKES')),
-      );
-      expect(
-        _left(tester, find.text('· optional')),
-        greaterThan(_left(tester, find.text('MAKES'))),
-      );
       // Scoped to the yield row: the MEASURES band under these cells states an
       // amount with the same control, so the cap now draws two of them.
       final yieldAmount = find.descendant(
@@ -390,7 +381,6 @@ void main() {
       'Keeps in the fridge',
       'Keeps in the freezer',
       'Freezes',
-      'Another denomination',
     ]) {
       expect(find.text(label), findsOneWidget, reason: '$label is the phone’s');
     }

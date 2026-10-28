@@ -107,14 +107,11 @@ void main() {
     await pickYieldUnit(tester, 'yield-1', 'cup');
 
     // The second denomination, and the other-family lock on its selector: two
-    // ways of saying ONE batch, never two numbers in one family (D2).
-    await scrollTo(tester, find.text('Another denomination'));
-    await tester.tap(find.text('Another denomination'));
+    // ways of saying ONE batch, never two numbers in one family (D2). The
+    // empty slot names only the kinds of unit a cup is not.
+    await scrollTo(tester, find.text('grams, pieces…'));
+    await tester.tap(find.text('grams, pieces…'));
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('never two numbers in one family'),
-      findsOneWidget,
-    );
     await openYieldUnits(tester, 'yield-2');
     expect(
       find.text('ml'),
