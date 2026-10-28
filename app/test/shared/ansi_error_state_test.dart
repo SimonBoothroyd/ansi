@@ -68,7 +68,14 @@ void main() {
     test('a local database failure says it is the phone, not the network', () {
       expect(
         describeFailure(SqliteException(1, 'disk I/O error')),
-        contains('this is on the phone, not the network'),
+        'phone storage error',
+      );
+    });
+
+    test('a reply in the wrong shape blames the reply', () {
+      expect(
+        describeFailure(const FormatException('bad')),
+        'unexpected reply from the server',
       );
     });
 

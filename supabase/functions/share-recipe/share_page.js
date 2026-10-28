@@ -2556,7 +2556,7 @@ g.a=q}g.a=q+"</ul>"}s=g.a+="</section>"
 return s.charCodeAt(0)==0?s:s},
 k8(a){var s,r,q,p,o,n,m,l,k,j,i=a.a
 if(i==null){if(a.Q)return""
-return'<section class="macros"><h2>Per serving</h2><p class="none">No nutrition total: some ingredients in this recipe have no nutrition data yet, and a partial sum would mislead.</p></section>'}s=A.k([new A.a7(B.b.i(B.f.af(i.a)),"kcal"),new A.a7(A.b0(i.b)+" g","protein"),new A.a7(A.b0(i.c)+" g","carb"),new A.a7(A.b0(i.d)+" g","fat")],t.eZ)
+return'<section class="macros"><h2>Per serving</h2><p class="none">No nutrition total. Some ingredients have no data.</p></section>'}s=A.k([new A.a7(B.b.i(B.f.af(i.a)),"kcal"),new A.a7(A.b0(i.b)+" g","protein"),new A.a7(A.b0(i.c)+" g","carb"),new A.a7(A.b0(i.d)+" g","fat")],t.eZ)
 r=i.e
 if(r!=null)s.push(new A.a7(A.b0(r)+" g","fibre"))
 q=A.k([],t.s)

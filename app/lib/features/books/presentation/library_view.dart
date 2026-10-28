@@ -935,12 +935,6 @@ class _EmptyState extends ConsumerWidget {
             const Icon(FLucideIcons.library, size: 44, color: AnsiColors.herb),
             const SizedBox(height: 14),
             Text('No books yet', style: ansiSerif(size: AnsiType.heading)),
-            const SizedBox(height: 6),
-            Text(
-              'A book is a shelf — name it whatever you call it out loud.',
-              textAlign: TextAlign.center,
-              style: ansiMono(size: 12, color: AnsiColors.muted),
-            ),
             const SizedBox(height: 18),
             DashedAction(
               icon: FLucideIcons.bookPlus,

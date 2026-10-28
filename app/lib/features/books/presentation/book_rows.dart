@@ -218,7 +218,7 @@ Future<void> confirmDeleteBook(
     await refuseAnsi(
       host.context,
       title: 'Can’t delete “${book.name}”',
-      body: 'This is your only book — every recipe needs a shelf.',
+      body: 'Can’t delete your only book.',
     );
     return;
   }
@@ -263,7 +263,6 @@ Future<void> confirmDeleteBook(
     // ignore: use_build_context_synchronously
     host.context,
     title: 'Delete “${book.name}”?',
-    body: 'The shelf is empty, so nothing goes with it.',
     confirm: 'Delete',
   );
   if (!confirmed) return;

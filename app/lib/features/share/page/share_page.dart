@@ -250,8 +250,8 @@ String _macros(RecipeMacroSummary? summary) {
   if (total == null) {
     if (summary.noLines) return '';
     return '<section class="macros"><h2>Per serving</h2>'
-        '<p class="none">No nutrition total: some ingredients in this recipe '
-        'have no nutrition data yet, and a partial sum would mislead.</p>'
+        '<p class="none">No nutrition total. Some ingredients have no '
+        'data.</p>'
         '</section>';
   }
   final cells = [

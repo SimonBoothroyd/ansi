@@ -135,7 +135,9 @@ void main() {
     // Its ✕ asks from nowhere instead.
     await tester.tap(find.bySemanticsLabel('Ask without this screen'));
     await tester.pump();
-    expect(find.text('Asking about nothing on screen'), findsOneWidget);
+    // The chip goes, and nothing stands in its place.
+    expect(find.text('On: Ragù · serves 4'), findsNothing);
+    expect(find.text('Asking about nothing on screen'), findsNothing);
     await tester.pumpAndSettle();
   });
 

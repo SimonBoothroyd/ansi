@@ -64,20 +64,19 @@ void main() {
     expect(find.text('USUAL PORTION'), findsOneWidget);
     expect(find.text('Ada'), findsOneWidget);
     expect(find.text('Jun'), findsOneWidget);
-    expect(find.textContaining('counts as 1¾ portions'), findsOneWidget);
+    expect(find.text('×¾'), findsWidgets);
   });
 
-  testWidgets('Sign out asks first, and says what it removes', (tester) async {
+  testWidgets('Sign out asks first, and says the data comes back', (
+    tester,
+  ) async {
     await _pump(tester);
 
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sign out?'), findsOneWidget);
-    expect(
-      find.textContaining('removes the synced data from this device'),
-      findsOneWidget,
-    );
+    expect(find.text('Your data comes back when you sign in.'), findsOneWidget);
 
     // Cancelling leaves the session alone — the page is still here.
     await tester.tap(find.text('Cancel'));

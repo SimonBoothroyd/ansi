@@ -97,7 +97,10 @@ void main() {
         (lines[2] as Map)['ingredient_status'] = 'stub';
       });
       final body = renderShareBody(tree, 2);
-      expect(body, contains('No nutrition total'));
+      expect(
+        body,
+        contains('No nutrition total. Some ingredients have no data.'),
+      );
       expect(body, isNot(contains('<dt>kcal</dt>')));
       expect(shareJsonLd(tree, url: 'u'), isNot(contains('nutrition')));
     });

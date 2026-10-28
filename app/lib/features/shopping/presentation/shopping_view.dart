@@ -22,12 +22,10 @@ import '../../../shared/cost_words.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/sync_status_line.dart';
 import '../../../shared/write.dart';
-import '../../account/data/household_providers.dart';
 import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../planning/data/planning_providers.dart';
-import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -457,7 +455,7 @@ class _ProvenancePane extends StatelessWidget {
                 const SizedBox(height: 12),
                 if (row.contributions.isEmpty)
                   Text(
-                    'nothing to trace — an item you added by hand',
+                    'added by hand',
                     style: ansiMono(size: 10.5, color: AnsiColors.muted),
                   )
                 else
@@ -1469,17 +1467,11 @@ class _NothingToBuyLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Two causes, told apart: nothing planned at all, versus meals planned
-    // whose recipes have no ingredients to sum.
+    // Two causes, told apart by the way out: nothing planned at all, versus
+    // meals planned whose recipes have no ingredients to sum.
     final plannedButNoIngredients = ref
         .watch(currentCookPlanProvider)
         .maybeWhen(data: (plan) => !plan.isEmpty, orElse: () => false);
-    final suffix = formatDerivedWeekSuffix(
-      ref.watch(viewedWeekStartProvider),
-      ref.watch(currentWeekStartProvider),
-      ref.watch(weekShapeProvider),
-    );
-    final week = suffix ?? 'this week';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
@@ -1487,11 +1479,7 @@ class _NothingToBuyLine extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            plannedButNoIngredients
-                ? 'nothing to sum yet — $week has meals, but their recipes '
-                      'list no ingredients'
-                : 'nothing to buy for $week yet — the list is summed from the '
-                      'cook plan',
+            'nothing to buy yet',
             style: ansiMono(size: 11.5, color: AnsiColors.muted),
           ),
           const SizedBox(height: 10),
@@ -1539,9 +1527,6 @@ Future<void> _confirmRemove(
   final remove = await askAnsi(
     context,
     title: 'Remove ${item.name}?',
-    body: item.isFreeText
-        ? 'This non-food item will be removed from the list.'
-        : 'This removes ${item.name} and your top-up from the list.',
     confirm: 'Remove',
   );
   if (!remove || entryId == null) return;

@@ -113,13 +113,14 @@ Future<T?> showAnsiDialog<T>({
 /// Asks a yes/no question: true when the reader took [confirm], false on
 /// [cancel] or a dismissal.
 ///
-/// [destructive] paints the confirm red. [caveat] is a mono aside under the
-/// prose, with [caveatLabel] naming it.
+/// [body] is null when the title is the whole question. [destructive] paints
+/// the confirm red. [caveat] is a mono aside under the prose, with
+/// [caveatLabel] naming it.
 Future<bool> askAnsi(
   BuildContext context, {
   required String title,
-  required String body,
   required String confirm,
+  String? body,
   String cancel = 'Cancel',
   bool destructive = false,
   String? caveat,
@@ -181,28 +182,31 @@ Future<bool> refuseAnsi(
   return took ?? false;
 }
 
-Widget _dialogBody(String body, {String? caveat, String? caveatLabel}) =>
-    Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(body, style: ansiSans(size: 13, color: AnsiColors.muted)),
-          if (caveatLabel != null) ...[
-            const SizedBox(height: 12),
-            Text(caveatLabel, style: ansiLabel()),
+Widget? _dialogBody(String? body, {String? caveat, String? caveatLabel}) =>
+    body == null && caveat == null && caveatLabel == null
+    ? null
+    : Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (body != null)
+              Text(body, style: ansiSans(size: 13, color: AnsiColors.muted)),
+            if (caveatLabel != null) ...[
+              const SizedBox(height: 12),
+              Text(caveatLabel, style: ansiLabel()),
+            ],
+            if (caveat != null) ...[
+              SizedBox(height: caveatLabel == null ? 10 : 4),
+              Text(
+                caveat,
+                style: ansiMono(
+                  size: 11,
+                  color: AnsiColors.muted,
+                ).copyWith(height: 1.5),
+              ),
+            ],
           ],
-          if (caveat != null) ...[
-            SizedBox(height: caveatLabel == null ? 10 : 4),
-            Text(
-              caveat,
-              style: ansiMono(
-                size: 11,
-                color: AnsiColors.muted,
-              ).copyWith(height: 1.5),
-            ),
-          ],
-        ],
-      ),
-    );
+        ),
+      );

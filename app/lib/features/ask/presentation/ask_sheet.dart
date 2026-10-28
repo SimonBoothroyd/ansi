@@ -171,21 +171,15 @@ class AskSheet extends HookConsumerWidget {
         const SizedBox(height: 10),
         Row(
           children: [
-            if (label != null)
+            if (label != null) ...[
               Flexible(
                 child: _SeesChip(
                   label: label,
                   onDismiss: () => chipOff.value = true,
                 ),
-              )
-            else
-              Flexible(
-                child: Text(
-                  'Asking about nothing on screen',
-                  style: ansiMono(size: 11, color: AnsiColors.muted),
-                ),
               ),
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
+            ],
             AnsiTap(
               onTap: () =>
                   ref.read(askReadAloudSettingProvider.notifier).cycle(),

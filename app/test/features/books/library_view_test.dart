@@ -608,10 +608,7 @@ void main() {
 
       // ensureDefaultBook() would re-mint one on the next launch, and a book
       // that reappears is worse than being told no.
-      expect(
-        find.text('This is your only book — every recipe needs a shelf.'),
-        findsOneWidget,
-      );
+      expect(find.text('Can’t delete your only book.'), findsOneWidget);
       expect(find.text('Move them to…'), findsNothing);
       expect(repo.deleted, isNull);
     });
@@ -633,6 +630,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Delete “Our Cookbook”?'), findsOneWidget);
+      expect(find.textContaining('nothing goes with it'), findsNothing);
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
@@ -1141,10 +1139,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No books yet'), findsOneWidget);
-    expect(
-      find.text('A book is a shelf — name it whatever you call it out loud.'),
-      findsOneWidget,
-    );
     // The old copy pointed at the ＋, which after D1 no longer makes books.
     expect(find.textContaining('with the + above'), findsNothing);
     expect(find.text('new book'), findsOneWidget);

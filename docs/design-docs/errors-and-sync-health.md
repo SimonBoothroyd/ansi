@@ -125,9 +125,15 @@ lost** — the row is on this phone, on no server and on no other device — and
 used to be a `debugPrint` beside a comment reading *"never let it be silent"*.
 
 It now also reports to a `DroppedWriteSink`, persisted, because a divergence
-that vanishes when you close the app is still silent. The banner's *What
-happened* names the table, the operation and the server's code: the same string
-the console line carries, shown to the person it happened to.
+that vanishes when you close the app is still silent. The banner's *Show me*
+opens *Didn't sync*, which names each refused write by the thing it changed
+(*Weeknight Chicken Curry* over *recipe edit · 14:02*) and opens it, since
+saving it there again is the only retry. The row is still in the local
+database, so the name and the page are a local read
+(`shared/dropped_write_subject.dart`); a row that is gone falls back to a plain
+noun for its kind and opens nothing. The table, the operation and the server's
+code, the same string the console line carries, sit behind *Copy details*, and
+*Done* retires the notice.
 
 ### Three readouts, one provider
 

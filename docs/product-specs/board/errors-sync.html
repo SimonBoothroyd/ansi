@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Errors &amp; sync health</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>shared/</code> · <code>core/sync</code> · <a href="../../design-docs/errors-and-sync-health.md">errors-and-sync-health.md</a> · wide: same — the banner in the measure, the toast capped at 640</p>
+    <p class="view-status">built · matches code 2026-10-28 · <code>shared/</code> · <code>core/sync</code> · <a href="../../design-docs/errors-and-sync-health.md">errors-and-sync-health.md</a> · wide: same — the banner in the measure, the toast capped at 640</p>
     <p class="view-blurb">A toast reports an act · a banner reports a state · the Shop list says where you stand. Nothing ever announces being offline — a queue is the app working.</p>
 </header>
 
@@ -64,7 +64,7 @@
             <div class="er-banner">
                 <span class="bi">⚠</span>
                 <div class="bb"><div class="bt">Changes aren't reaching the other phone.</div>
-                    <div class="bd">7 changes have been waiting since 14:02. Ansi keeps trying.</div></div>
+                    <div class="bd">7 changes not synced since 14:02</div></div>
                 <span class="ba">Try now</span>
             </div>
             <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
@@ -80,12 +80,34 @@
             <p class="conv-note" style="margin-top:14px">— the second cause, on the same strip —</p>
             <div class="er-banner lost" style="border-top:1px solid #E7C3BA;margin-top:8px">
                 <span class="bi">⚠</span>
-                <div class="bb"><div class="bt">One change couldn't be saved to the server.</div>
-                    <div class="bd">A recipe edit from 14:02 was refused and won't sync. It's still on this phone.</div></div>
-                <span class="ba">What happened</span>
+                <div class="bb"><div class="bt">2 changes didn’t sync.</div>
+                    <div class="bd">They’re only on this phone.</div></div>
+                <span class="ba">Show me</span>
             </div>
         </div></div>
-        <p class="er-no"><b>Never</b> says “offline”, and <b>never</b> appears for a non-empty queue on its own. A queue is the app working. The <b>What happened</b> door opens a sheet listing each refused write — its time, its table, the server's own code — and an <b>I’ve seen this</b> button that clears the banner.</p>
+        <p class="er-no"><b>Never</b> says “offline”, and <b>never</b> appears for a non-empty queue on its own. A queue is the app working. One refused change reads <i>1 change didn’t sync.</i> over <i>It’s only on this phone.</i></p>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Didn’t sync</b> · behind <b>Show me</b>: each refused change by the thing it changed, newest first</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="er-banner lost" style="border-top:1px solid #E7C3BA">
+                <span class="bi">⚠</span>
+                <div class="bb"><div class="bt">2 changes didn’t sync.</div>
+                    <div class="bd">They’re only on this phone.</div></div>
+                <span class="ba">Show me</span>
+            </div>
+            <div style="padding:16px 20px 0">
+                <div class="c-h" style="margin:0 0 4px">Didn’t sync</div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)"><div style="flex:1;min-width:0"><div style="font-family:'Spectral',serif;font-size:15px">Weeknight Chicken Curry</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px">recipe edit · 14:02</div></div><span style="color:var(--muted);font-size:16px">›</span></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)"><div style="flex:1;min-width:0"><div style="font-family:'Spectral',serif;font-size:15px">Tuesday dinner</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px">meal change · 13:58</div></div><span style="color:var(--muted);font-size:16px">›</span></div>
+                <div style="display:flex;gap:8px;margin-top:14px">
+                    <div class="ghostbtn" style="flex:1;justify-content:center;margin-top:0">Copy details</div>
+                    <div class="ghostbtn" style="flex:1;justify-content:center;margin-top:0;background:var(--herb);border-color:var(--herb);color:#fff">Done</div>
+                </div>
+            </div>
+        </div></div>
+        <p class="er-no">A row opens the thing it changed: the recipe, the meal’s week on its day, the ingredient, the list. Saving it there is the retry. A row that is gone reads as its kind (<i>A recipe</i>, <i>A meal</i>, <i>A change</i>) with no ›. <b>Copy details</b> puts each write’s time, table, operation, row and the server’s code on the clipboard. <b>Done</b> clears the banner.</p>
     </div>
 
     <div class="frame">
@@ -94,7 +116,7 @@
             <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">▾</span></span><span class="chev">›</span></div>
             <div class="er-state">
                 <div class="eh">Couldn't load the week.</div>
-                <div class="er">the local database didn't answer — this is on the phone, not the network</div>
+                <div class="er">phone storage error</div>
                 <div class="eb">Try again</div>
                 <div class="ed">Copy details</div>
             </div>
