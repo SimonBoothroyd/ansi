@@ -428,9 +428,11 @@ build is what shipped:
   to that case).
 - **F2**: the note under the week chips shows only while a move runs, fails or
   is offline.
-- **F5**: both buttons open the recipe editor at the top. Landing on the MAKES
-  field or the exact line needs a route parameter in `features/recipes`, and
-  is not built.
+- **F5**: the buttons land on the fix through `/recipes/:id/edit?focus=makes`
+  and `?line={id}` (a follow-up, 2026-10-28). Below depth one, “Fix the line
+  in …” names and opens the recipe that holds the line, not the planned one. A
+  line added only for one week has no recipe line id, so its button opens the
+  editor at the top.
 - **F6**: the session’s own scale line is gone where the switch shows.
 - **Beyond the table**: the Cook gap card’s subtitle is just the short
   reason; the add rows on the Shop grew 3 px of padding to keep their tap
@@ -470,3 +472,6 @@ build is what shipped:
   the merged checks once.
 - 2026-10-28 — Two board views were edited but not re-dated, because no lane
   re-read the whole view: `ingredient-picker.html` and `quantity-measures.html`.
+- 2026-10-28 — Follow-ups the owner asked for: F5's deep links (built), a
+  structural test against the copy rules, and *Foods, not ingredients*
+  ([plan 0058](./0058-foods-not-ingredients.md)).
