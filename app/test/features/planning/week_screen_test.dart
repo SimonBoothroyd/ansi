@@ -549,13 +549,13 @@ void main() {
     ) async {
       await _pumpWeek(tester, planning: _FakePlanningRepo());
       await tester.dragUntilVisible(
-        find.text('no meals yet — nothing to add up'),
+        find.text('no meals yet'),
         find.byType(Scrollable).first,
         const Offset(0, -300),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('no meals yet — nothing to add up'), findsOneWidget);
+      expect(find.text('no meals yet'), findsOneWidget);
       expect(macroTextContaining('kcal'), findsNothing);
     });
 
@@ -656,11 +656,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('1 of 7 days'), findsOneWidget);
-      expect(
-        find.textContaining('over the 1 day that counted'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('not a daily target'), findsOneWidget);
+      expect(find.textContaining('kcal/day (1 day)'), findsOneWidget);
+      expect(find.textContaining('not a daily target'), findsNothing);
     });
 
     testWidgets('an empty week says so rather than adding up to zero', (

@@ -128,14 +128,9 @@ String copiedMealsLine(int meals) =>
 
 /// The recipes whose this-week changes did not follow, named and counted.
 String variantsLeftBehindLine(List<VariantLeftBehind> left) {
-  final n = left.length;
   final named = [
     for (final v in left)
       '${v.recipeTitle} (${v.changes} ${plural(v.changes, 'change')})',
   ].join(', ');
-  final subject = n == 1
-      ? "One recipe's this-week changes were left behind"
-      : "$n recipes' this-week changes were left behind";
-  return "$subject — $named. Last week's meals came over; last week's "
-      'changes did not. Open one and edit for this week if you want it again.';
+  return 'This-week edits not copied: $named';
 }

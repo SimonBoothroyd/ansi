@@ -408,9 +408,8 @@ class EatenLine extends StatelessWidget {
   }
 }
 
-/// The band at the foot of the phone's list: the week's total, its per-day
-/// average over the days that counted, and a label saying what the total is
-/// not.
+/// The band at the foot of the phone's list: the week's total and its per-day
+/// average over the days that counted.
 class WeekMacroBand extends StatelessWidget {
   const WeekMacroBand({
     required this.macros,
@@ -443,11 +442,11 @@ class WeekMacroBand extends StatelessWidget {
   /// Never reconciled with [spent]. See ADR-0017.
   final PlannedCost? cost;
 
-  /// `avg 1 425 kcal/day over the 6 days that counted`.
+  /// `avg 1 425 kcal/day (6 days)`: averaged over the days that counted.
   static String _averageLine(Macros average, MealSetMacros macros) {
     final days = macros.daysContributing;
-    return 'avg ${formatMacroNumber(average.kcal)} kcal/day over the $days '
-        '${plural(days, 'day')} that counted';
+    return 'avg ${formatMacroNumber(average.kcal)} kcal/day '
+        '($days ${plural(days, 'day')})';
   }
 
   @override
@@ -491,7 +490,7 @@ class WeekMacroBand extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'no meals yet — nothing to add up',
+                  'no meals yet',
                   style: ansiMono(size: 11.5, color: AnsiColors.muted),
                 ),
                 _SpentLine(spent: spent, shape: shape),
@@ -539,16 +538,6 @@ class WeekMacroBand extends StatelessWidget {
                   style: ansiMono(size: 10, color: AnsiColors.muted),
                 ),
               ),
-            const SizedBox(height: 8),
-            Text(
-              'This is the sum of what is planned, not a daily target — a '
-              'week that only plans dinners averages a dinner.',
-              style: ansiSans(
-                size: 11.5,
-                color: AnsiColors.muted,
-                height: 1.35,
-              ),
-            ),
           ],
         ],
       ),

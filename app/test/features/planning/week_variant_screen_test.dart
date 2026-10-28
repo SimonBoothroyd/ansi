@@ -575,10 +575,7 @@ void main() {
         variantsLeftBehindLine(const [
           (recipeTitle: 'Slow-Cooker Beef Ragù', changes: 5),
         ]),
-        startsWith(
-          "One recipe's this-week changes were left behind — "
-          'Slow-Cooker Beef Ragù (5 changes).',
-        ),
+        'This-week edits not copied: Slow-Cooker Beef Ragù (5 changes)',
       );
     });
 
@@ -588,10 +585,7 @@ void main() {
           (recipeTitle: 'Ragù', changes: 5),
           (recipeTitle: 'Curry', changes: 1),
         ]),
-        startsWith(
-          "2 recipes' this-week changes were left behind — "
-          'Ragù (5 changes), Curry (1 change).',
-        ),
+        'This-week edits not copied: Ragù (5 changes), Curry (1 change)',
       );
     });
 

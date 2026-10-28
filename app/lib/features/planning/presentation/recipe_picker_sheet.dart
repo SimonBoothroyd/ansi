@@ -300,7 +300,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      'new recipe — build it from scratch',
+                      'new recipe',
                       textAlign: TextAlign.center,
                       style: ansiMono(
                         size: 11,
@@ -403,7 +403,7 @@ class _AlreadyThisWeek extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Already this week — cook it in the same batch',
+            'Already this week',
             style: ansiMono(
               size: 10,
               color: AnsiColors.herbDeep,
