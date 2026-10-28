@@ -13,8 +13,9 @@ a person wrote it. Errors, refusals and the honest-number words (`incomplete`,
 
 ## The rules the table applies
 
-1. **Drop first.** If the layout, the title or the button already says it, the
-   string goes.
+1. **Drop unless obviously needed.** What stays: an error, a refusal that says
+   why a button is off, an empty state, an honest-number word, and a
+   consequence the user can't see coming. Everything else goes.
 2. **A fragment, not a sentence.** `No ingredients yet`, not `A cost arrives
    once this recipe has ingredients.`
 3. **No em dashes, no semicolons, no "X, so Y".** One thought per string. If a
@@ -23,11 +24,15 @@ a person wrote it. Errors, refusals and the honest-number words (`incomplete`,
 5. **No words from the code.** *row*, *door*, *basis*, *denomination*, *family*.
 6. **No tap hints or reassurance.** "tap to include", "nothing is saved until
    you tap Save".
+7. **Flag, don't explain.** A string that was propping up a confusing screen is
+   dropped and the screen is flagged ⚑ for a redesign (see *Redesign flags*).
+   More words were not fixing it.
 
 ## The table
 
 `{x}` is an interpolated value. **drop** means the string goes and nothing
-replaces it. Strings not listed stay as they are.
+replaces it. ⚑ F*n* points at a redesign flag. Strings not listed stay as they
+are.
 
 ### App-wide
 
@@ -36,7 +41,7 @@ replaces it. Strings not listed stay as they are.
 | 1 | `shared/sync_banner.dart:37` | {n} changes have been waiting since {time}. Ansi keeps trying. | {n} changes not synced since {time} |
 | 2 | `shared/sync_banner.dart:61` | A {thing} was refused and won’t sync. It’s still on this phone. | A {thing} didn’t sync. It’s only on this phone. |
 | 3 | `shared/sync_banner.dart:62` | The oldest was a {thing}. They’re still on this phone. | They’re only on this phone. |
-| 4 | `shared/sync_banner.dart:101` | The server refused these writes outright, so Ansi stopped trying rather than wedge everything behind them. They are still on this phone, and they are not on the other one. Re-saving what they changed is what puts them back. | Save them again to retry. |
+| 4 | `shared/sync_banner.dart:101` | The server refused these writes outright, so Ansi stopped trying rather than wedge everything behind them. They are still on this phone, and they are not on the other one. Re-saving what they changed is what puts them back. | Save them again to retry. ⚑ F1 |
 | 5 | `shared/describe_failure.dart:26` | the local database didn’t answer — this is on the phone, not the network | phone storage error |
 | 6 | `shared/describe_failure.dart:28` | the data came back in a shape Ansi didn’t expect | unexpected reply from the server |
 | 7 | `shared/incomplete_macros.dart:123` | Imprecise and optional lines are left out by rule, not by failure. | **drop** |
@@ -46,11 +51,11 @@ replaces it. Strings not listed stay as they are.
 | # | Where | Old | New |
 |---|---|---|---|
 | 8 | `shopping_view.dart:460` | nothing to trace — an item you added by hand | added by hand |
-| 9 | `shopping_view.dart:1491` | nothing to sum yet — {week} has meals, but their recipes list no ingredients | these recipes have no ingredients |
+| 9 | `shopping_view.dart:1491` | nothing to sum yet — {week} has meals, but their recipes list no ingredients | nothing to buy yet |
 | 10 | `shopping_view.dart:1493` | nothing to buy for {week} yet — the list is summed from the cook plan | nothing to buy yet |
 | 11 | `shopping_view.dart:1543` | This non-food item will be removed from the list. | **drop** |
-| 12 | `shopping_view.dart:1544` | This removes {item} and your top-up from the list. | Your top-up goes too. |
-| 13 | `shop_add_field.dart:231` | no amount · it just gets ticked | no amount |
+| 12 | `shopping_view.dart:1544` | This removes {item} and your top-up from the list. | **drop** |
+| 13 | `shop_add_field.dart:231` | no amount · it just gets ticked | **drop** |
 | 14 | `shop_add_field.dart:245` | opens the ingredient form, then its amount | **drop** |
 | 15 | `shopping/domain/shopping.dart:565–797` | not counted (measure beside non-count unit "{unit}") | not counted (bad unit) |
 
@@ -61,24 +66,24 @@ replaces it. Strings not listed stay as they are.
 | 16 | `copy_last_week.dart:137–139` | {n} recipes' this-week changes were left behind — {named}. Last week's meals came over; last week's changes did not. Open one and edit for this week if you want it again. | This-week edits not copied: {named} |
 | 17 | `household_section.dart:126` | Every week you have planned moves to match. A {day} meal joins the week that starts on it, and the rest of the week keeps its days. Nothing is deleted. | Your planned weeks will shift to match. |
 | 18 | `household_section.dart:197` | needs a connection · it moves weeks on both phones at once | needs a connection |
-| 19 | `household_section.dart:199` | the week you plan, cook and shop — a {day} shop covers that {day}’s dinner | **drop** |
-| 20 | `household_section.dart:214` | a meal for {who} counts as {n} — the cook plan, the shop and the macro lens all read it that way | {who} eats {n} |
-| 21 | `meal_fields.dart:336` | left empty — the meal fills its slot, and the day says it was not counted | optional |
+| 19 | `household_section.dart:199` | the week you plan, cook and shop — a {day} shop covers that {day}’s dinner | **drop** ⚑ F2 |
+| 20 | `household_section.dart:214` | a meal for {who} counts as {n} — the cook plan, the shop and the macro lens all read it that way | **drop** |
+| 21 | `meal_fields.dart:336` | left empty — the meal fills its slot, and the day says it was not counted | **drop** |
 | 22 | `meal_fields.dart:340` | kcal, protein, carb and fat are one panel — a partial one is not stated, and will not be saved | fill in all four or none |
 | 23 | `meal_fields.dart:343` | counted in the day and the week, as stated | **drop** |
 | 24 | `meal_fields.dart:484` | defaults to eaters — bump up for big appetites | **drop** |
-| 25 | `meal_fields.dart:573` | {recipe} already cooks {day}; {target} is past the fridge window ({n} days), but it freezes — a share goes to the freezer, so it still joins {day}’s batch instead of a second cook. | Cooked {day}, then frozen. |
-| 26 | `meal_fields.dart:578` | {recipe} already cooks {target} — this meal joins that batch instead of a second cook. | Cooked with {target}’s batch. |
-| 27 | `meal_fields.dart:580` | {recipe} already cooks {day} and keeps {n} days — {target} is inside that window, so this joins {day}’s batch instead of a second cook. | Cooked with {day}’s batch. |
+| 25 | `meal_fields.dart:573` | {recipe} already cooks {day}; {target} is past the fridge window ({n} days), but it freezes — a share goes to the freezer, so it still joins {day}’s batch instead of a second cook. | **drop** ⚑ F3 |
+| 26 | `meal_fields.dart:578` | {recipe} already cooks {target} — this meal joins that batch instead of a second cook. | **drop** ⚑ F3 |
+| 27 | `meal_fields.dart:580` | {recipe} already cooks {day} and keeps {n} days — {target} is inside that window, so this joins {day}’s batch instead of a second cook. | **drop** ⚑ F3 |
 | 28 | `recipe_picker_sheet.dart:303` | new recipe — build it from scratch | new recipe |
 | 29 | `recipe_picker_sheet.dart:406` | Already this week — cook it in the same batch | Already this week |
 | 30 | `week_macro_widgets.dart:449` | avg {kcal} kcal/day over the {n} days that counted | avg {kcal} kcal/day ({n} days) |
 | 31 | `week_macro_widgets.dart:494` | no meals yet — nothing to add up | no meals yet |
 | 32 | `week_macro_widgets.dart:544` | This is the sum of what is planned, not a daily target — a week that only plans dinners averages a dinner. | **drop** |
-| 33 | `week_variant_format.dart:21–22` | a change covers every day this week[ — {named}] | every day this week |
-| 34 | `week_variant_format.dart:34` | {week} · every day that plans it cooks these lines | {week} · every day |
+| 33 | `week_variant_format.dart:21–22` | a change covers every day this week[ — {named}] | **drop** ⚑ F4 |
+| 34 | `week_variant_format.dart:34` | {week} · every day that plans it cooks these lines | {week} |
 | 35 | `week_variant_format.dart:35` | {week} · {named} both cook these lines | {week} · {named} |
-| 36 | `week_variant_format.dart:85` | from the recipe · not edited here: serves {n} · … | from the recipe: serves {n} · … |
+| 36 | `week_variant_format.dart:85` | from the recipe · not edited here: serves {n} · … | **drop** ⚑ F4 |
 | 37 | `week_variant_editor.dart:225` | The recipe is not changed. | **drop** |
 | 38 | `week_variant_editor.dart:547` + `ingredient_line.dart:447–448` (screen reader) | optional · tap to include this week / included this week · tap to leave it out | optional / included |
 
@@ -89,14 +94,14 @@ replaces it. Strings not listed stay as they are.
 | 39 | `cook_view.dart:148` | grouped by recipe · split by shelf life | **drop** |
 | 40 | `cook_view.dart:736` | nothing planned for {week} yet — the batches are worked out from the meals you put on the week | nothing planned yet |
 | 41 | `cook_format.dart:34` | cook ×{f} instead — covers {n} · {m} left over · shopping still buys ×{r} | cook ×{f} · {m} spare |
-| 42 | `cook_format.dart:134` | A batch makes {x} and {day} needs {y} — the rest is yours. Nothing here tracks the leftover. | Makes {x}. {day} needs {y}. |
-| 43 | `cook_format.dart:202` | Set its yield and this session gets a scale. Until then there is no honest number to put here. | Set its yield. |
-| 44 | `cook_format.dart:205` | The line is in {volume} and the yield only says {weight}. State a second denomination in that family — two stated facts, not an invented bridge. | Add a {volume} yield. |
-| 45 | `cook_format.dart:210` | Set an amount on that line and this session gets a scale. Until then there is no honest number to put here. | Add an amount to that line. |
-| 46 | `cook_format.dart:213` | The number is kept; what it counted is not. Say that line’s amount again, in a measure {recipe} still has. | Pick another measure for that line. |
-| 47 | `cook_format.dart:216` | A recipe cannot be built from itself. Change one of the links and the plan can derive it again. | Remove one of the links. |
-| 48 | `cook_format.dart:231` | A later meal falls past the {n} window — cook it again, fresh. | Too far apart. Cooked twice. |
-| 49 | `cook_format.dart:390` | showing the whole batch — tap for the honest ×{f} | whole batch · tap for ×{f} |
+| 42 | `cook_format.dart:134` | A batch makes {x} and {day} needs {y} — the rest is yours. Nothing here tracks the leftover. | **drop** |
+| 43 | `cook_format.dart:202` | Set its yield and this session gets a scale. Until then there is no honest number to put here. | **drop** ⚑ F5 |
+| 44 | `cook_format.dart:205` | The line is in {volume} and the yield only says {weight}. State a second denomination in that family — two stated facts, not an invented bridge. | **drop** ⚑ F5 |
+| 45 | `cook_format.dart:210` | Set an amount on that line and this session gets a scale. Until then there is no honest number to put here. | **drop** ⚑ F5 |
+| 46 | `cook_format.dart:213` | The number is kept; what it counted is not. Say that line’s amount again, in a measure {recipe} still has. | **drop** ⚑ F5 |
+| 47 | `cook_format.dart:216` | A recipe cannot be built from itself. Change one of the links and the plan can derive it again. | **drop** ⚑ F5 |
+| 48 | `cook_format.dart:231` | A later meal falls past the {n} window — cook it again, fresh. | **drop** |
+| 49 | `cook_format.dart:390` | showing the whole batch — tap for the honest ×{f} | **drop** ⚑ F6 |
 
 ### Recipe page and editor
 
@@ -110,12 +115,12 @@ replaces it. Strings not listed stay as they are.
 | 55 | `recipe_macro_panel.dart:394` | Every line is imprecise, so nothing was weighed — a total here would be a fabrication, not a number. | Every line is imprecise |
 | 56 | `recipe_macro_panel.dart:396` | Left out of the total until every line resolves — a partial number would not be this recipe. | Some lines can’t be counted |
 | 57 | `recipe_view.dart:871` | This removes it from your recipes. | **drop** |
-| 58 | `recipe_header_form.dart:196` | · optional · what you call one of these | · optional |
+| 58 | `recipe_header_form.dart:196` | · optional · what you call one of these | **drop** |
 | 59 | `recipe_header_form.dart:226` | hands-on and on the heat | **drop** |
-| 60 | `recipe_header_form.dart:337` | the second slot only offers the other families — two ways of saying one batch, never two numbers in one family | **drop** |
-| 61 | `recipe_header_form.dart:552` | Drives the batch cook plan — how far apart the same dish can be planned before it becomes two things to cook. | **drop** |
+| 60 | `recipe_header_form.dart:337` | the second slot only offers the other families — two ways of saying one batch, never two numbers in one family | **drop** ⚑ F7 |
+| 61 | `recipe_header_form.dart:552` | Drives the batch cook plan — how far apart the same dish can be planned before it becomes two things to cook. | **drop** ⚑ F7 |
 | 62 | `recipe_measures_editor.dart:172` | No measures yet — a component line can still say “0.5 batch”. | No measures yet |
-| 63 | `recipe_measures_editor.dart:233` | one of them, weighed — another recipe can then say “3 blob” of this one | e.g. 1 blob = 30 g |
+| 63 | `recipe_measures_editor.dart:233` | one of them, weighed — another recipe can then say “3 blob” of this one | **drop** ⚑ F8 |
 | 64 | `recipe_editor_view.dart:163` | That Save didn’t land | Couldn’t save |
 | 65 | `recipe_editor_view.dart:1173` | Remove those chips too? Their words stay in the sentences — only the links go. | Remove their chips too? |
 | 66 | `method_chip_sheet.dart:153` | The first time a step calls for something, its chip shows the amount. After that it’s the same stuff, so the chip just names it. | **drop** |
@@ -144,10 +149,10 @@ replaces it. Strings not listed stay as they are.
 
 | # | Where | Old | New |
 |---|---|---|---|
-| 87 | `import_view.dart:197` | Paste a recipe link, or import from photos. We read the ingredients and steps, then you confirm each match — nothing is guessed for you. | Paste a link or add photos. |
-| 88 | `photo_doors.dart:40` | In a browser the pages go up as they are — cropping and rotating is a phone job. Photograph the page there, or choose a file here. | Cropping only works on the phone. |
-| 89 | `reconciliation_view.dart:121` | the page didn’t say a number — set one, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales; only the derived numbers wait. | not on the page |
-| 90 | `reconciliation_view.dart:125` | the page didn’t say what this makes — set it, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales. | not on the page |
+| 87 | `import_view.dart:197` | Paste a recipe link, or import from photos. We read the ingredients and steps, then you confirm each match — nothing is guessed for you. | **drop** |
+| 88 | `photo_doors.dart:40` | In a browser the pages go up as they are — cropping and rotating is a phone job. Photograph the page there, or choose a file here. | **drop** |
+| 89 | `reconciliation_view.dart:121` | the page didn’t say a number — set one, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales; only the derived numbers wait. | **drop** |
+| 90 | `reconciliation_view.dart:125` | the page didn’t say what this makes — set it, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales. | **drop** |
 | 91 | `recon_line_card.dart:149` | removed — this line will not be saved | removed |
 | 92 | `recon_line_card.dart:527` | Match an ingredient first — then the amount and notes unlock. | Match an ingredient first |
 | 93 | `recon_line_card.dart:537` | linked — no ingredient match needed, no allowed-units gate. Valid for Save the moment its amount is set. | linked recipe |
@@ -157,16 +162,16 @@ replaces it. Strings not listed stay as they are.
 | 97 | `wide_review_view.dart:804` | nothing here is saved until Save, exactly as on the phone | **drop** |
 | 98 | `wide_review_view.dart:869` | nothing is waiting on you — every line is matched, its amount is set and its unit is one the row can carry. | All lines ready |
 | 99 | `wide_review_view.dart:884` | {name} has no piece weight yet — that is the row’s fact, so the door goes to the row. Every other bare count of it clears with it. | {name} needs a piece weight |
-| 100 | `wide_review_view.dart:904` | it saves as it stands and is out of the count — a stub is a real, plannable line with numbers it has not got yet. It surfaces in the Ingredients manager’s stub band. | Saves as a stub |
+| 100 | `wide_review_view.dart:904` | it saves as it stands and is out of the count — a stub is a real, plannable line with numbers it has not got yet. It surfaces in the Ingredients manager’s stub band. | **drop** ⚑ F9 |
 
 ### Receipts
 
 | # | Where | Old | New |
 |---|---|---|---|
-| 101 | `receipt_scan_view.dart:25` | Photograph the receipt. A long one goes in two or three shots, top to bottom, overlapping a few lines. | Photograph the receipt. Overlap shots for a long one. |
+| 101 | `receipt_scan_view.dart:25` | Photograph the receipt. A long one goes in two or three shots, top to bottom, overlapping a few lines. | **drop** |
 | 102 | `receipt_ledger_view.dart:95` | no receipts yet — a scanned shop files here by week; a price typed on an ingredient stays on the ingredient | no receipts yet |
 | 103 | `receipt_ledger_view.dart:156` | in a browser there is no camera and no crop step — shoot the receipt on the phone, and review it anywhere | scan receipts on your phone |
-| 104 | `receipt_pack_sheet.dart:228` | The pack carries over either way. Keep one you would say on a recipe or a shopping list, with its size in it: “can (14.5 oz)”. | e.g. “can (14.5 oz)” |
+| 104 | `receipt_pack_sheet.dart:228` | The pack carries over either way. Keep one you would say on a recipe or a shopping list, with its size in it: “can (14.5 oz)”. | **drop** |
 | 105 | `receipt_pack_sheet.dart:242` | this row already says “{word}” at this weight — the line will point at it | uses “{word}” |
 | 106 | `receipt_pack_sheet.dart:278–279` | keeping the pack as a measure · tap to stop / not kept as a measure · tap to keep it | kept as a measure / not kept |
 | 107 | `receipt_line_card.dart:224` | low confidence — check this one against the paper | check this |
@@ -186,18 +191,18 @@ replaces it. Strings not listed stay as they are.
 | 116 | `ingredient_detail_view.dart:401, 1249` | ALLOWED UNITS — what a line may say | ALLOWED UNITS (hint **drop**) |
 | 117 | `ingredient_detail_view.dart:413, 1280` | MEASURES — count-like, in the basis | MEASURES (hint **drop**) |
 | 118 | `ingredient_detail_view.dart:485–488` | Price — after the first save / A price is an event on a row, and this one does not exist yet. | Price / Save first to add a price. |
-| 119 | `ingredient_detail_view.dart:505` | a price is written as you enter it; Save below is for the fields | prices save right away |
-| 120 | `ingredient_detail_view.dart:549, 584` | what a recipe reads | used for costs |
-| 121 | `ingredient_detail_view.dart:550` | read when no receipt prices it | used if no receipt |
+| 119 | `ingredient_detail_view.dart:505` | a price is written as you enter it; Save below is for the fields | **drop** ⚑ F10 |
+| 120 | `ingredient_detail_view.dart:549, 584` | what a recipe reads | **drop** ⚑ F10 |
+| 121 | `ingredient_detail_view.dart:550` | read when no receipt prices it | **drop** ⚑ F10 |
 | 122 | `ingredient_detail_view.dart:597` | a recipe reads the latest; the rest is what you paid, kept as paid | **drop** |
-| 123 | `ingredient_detail_view.dart:742` | what the receipt door remembers — not words this row is also known as; fix one on its own receipt, where the latest answer wins | names seen on receipts |
+| 123 | `ingredient_detail_view.dart:742` | what the receipt door remembers — not words this row is also known as; fix one on its own receipt, where the latest answer wins | **drop** ⚑ F10 |
 | 124 | `ingredient_detail_view.dart:190` | This ingredient is gone — it was deleted on another device. | Deleted on another device. |
 | 125 | `ingredient_detail_view.dart:929` | {name} is already in your ingredients. Nothing you have typed here is saved. | {name} already exists. |
-| 126 | `ingredient_detail_view.dart:1124` | as the label reads · fibre optional | fibre optional |
+| 126 | `ingredient_detail_view.dart:1124` | as the label reads · fibre optional | **drop** |
 | 127 | `ingredient_detail_view.dart:1557` | {fields} — the numbers on this row are no longer the source’s | {fields} edited |
 | 128 | `ingredient_detail_view.dart:1583` | renaming this row will not refill it — you said no once | **drop** |
 | 129 | `ingredient_detail_view.dart:1659` | read from a photo — check it against the label | check against the label |
-| 130 | `ingredient_detail_view.dart:1762` | filled in, not saved — Save keeps it, and nothing counts until you confirm. | not saved yet |
+| 130 | `ingredient_detail_view.dart:1762` | filled in, not saved — Save keeps it, and nothing counts until you confirm. | **drop** |
 | 131 | `ingredient_detail_view.dart:1764` | nothing to fill in — every field it could answer already had an answer. | nothing new |
 | 132 | `ingredient_detail_view.dart:1778` | pack added below — rename it or bin it there. | pack added below |
 | 133 | `ingredient_detail_view.dart:1850` | {unit} stays on — the row is bought in it | **drop** |
@@ -221,10 +226,10 @@ replaces it. Strings not listed stay as they are.
 | 151 | `ingredient_facts.dart:269` | this row has no density, so a volume pack cannot be weighed — set one on the ingredient, or say the pack in {unit} | no density. Use {unit}. |
 | 152 | `ingredient_facts.dart:272` | this row does not say what one piece weighs — set a piece weight, or say the pack in {unit} | no piece weight. Use {unit}. |
 | 153 | `ingredient_facts.dart:275` | an imprecise word cannot be priced — say the pack in {unit} | can’t price that. Use {unit}. |
-| 154 | `density_entry.dart:181` | one side is a volume and the other a weight — “1 cup weighs 240 g”, or “30 ml weighs 1 oz” | e.g. 1 cup = 240 g |
+| 154 | `density_entry.dart:181` | one side is a volume and the other a weight — “1 cup weighs 240 g”, or “30 ml weighs 1 oz” | **drop** ⚑ F11 |
 | 155 | `density_entry.dart:183` + `piece_weight_entry.dart:76` + `measures_editor.dart:155, 405` | weigh it: {x} and what it weighs must both be positive / … must be a positive number | must be above zero |
-| 156 | `density_entry.dart:323` | your serving, ready to use — type what that much weighs (the pack’s “(32 g)”) | e.g. 32 g |
-| 157 | `density_entry.dart:326, 328` | both halves come from the pack’s serving line — check them against it / then tap {Save} | from the pack, check it |
+| 156 | `density_entry.dart:323` | your serving, ready to use — type what that much weighs (the pack’s “(32 g)”) | **drop** |
+| 157 | `density_entry.dart:326, 328` | both halves come from the pack’s serving line — check them against it / then tap {Save} | check against the pack |
 | 158 | `density_entry.dart:430` + `piece_weight_entry.dart:241` | Remove it? Nothing about what a line may say changes. | Remove it? |
 | 159 | `density_entry.dart:431` + `piece_weight_entry.dart:242` | Remove it? {units} lock again[, and a count of this stops joining totals]. | Remove it? {units} will stop working. |
 | 160 | `piece_weight_entry.dart:89` + `measures_editor.dart:467` | this row has no density, so {unit} cannot become {base} — say it in {base}, or state a density first | needs a density. Use {base}. |
@@ -236,7 +241,7 @@ replaces it. Strings not listed stay as they are.
 | 166 | `price_sheet.dart:201` | A cost then reads only what a receipt says was paid. Receipts stay as they are. | Costs will use receipts only. |
 | 167 | `serving_row.dart:171` | stored per 100 {g} — once the four are in | needs all four |
 | 168 | `serving_row.dart:173` | stored per 100 {g}: needs the serving amount | needs the serving size |
-| 169 | `serving_row.dart:197` | the pack printed it per serving? switch to per serving and type it as read | label per serving? switch above |
+| 169 | `serving_row.dart:197` | the pack printed it per serving? switch to per serving and type it as read | **drop** ⚑ F11 |
 | 170 | `draft_card.dart:31` | Nothing came back for {code} — the name and the macros are all a barcode was going to fill in. Type them here. | Not found. Enter the name and macros. |
 | 171 | `draft_card.dart:69` | panel read per 100 {g} — stored as the basis, not converted | per 100 {g} |
 | 172 | `draft_card.dart:87` | No macros came with this product — fill them in on the next screen. | No macros found |
@@ -244,13 +249,13 @@ replaces it. Strings not listed stay as they are.
 | 174 | `draft_card.dart:115` | panel read per serving of {x}{says} — stored per 100 {g} | per serving of {x} |
 | 175 | `usda_pick_sheet.dart:76` | picking one fills density + macros from it and names it on the form — still a stub until you confirm | **drop** |
 | 176 | `usda_pick_sheet.dart:123` | nothing came back for “{name}” — offline, or nothing close enough. The server runs the same lookup when the row syncs up. | No match |
-| 177 | `label_photo_door.dart:28` | one photo of the nutrition panel — a screenshot counts | photo or screenshot of the label |
+| 177 | `label_photo_door.dart:28` | one photo of the nutrition panel — a screenshot counts | **drop** |
 
 ### Barcode scan
 
 | # | Where | Old | New |
 |---|---|---|---|
-| 178 | `barcode_scan_sheet.dart:139` | a barcode is 8 to 14 digits — the small ones printed beside the bars count too | 8 to 14 digits |
+| 178 | `barcode_scan_sheet.dart:139` | a barcode is 8 to 14 digits — the small ones printed beside the bars count too | **drop** |
 | 179 | `barcode_scan_sheet.dart:317` | Camera access is turned off for Ansi. Turn it on in Settings, or type the barcode below — both end in the same place. | Camera access is off. Turn it on in Settings or type the barcode. |
 | 180 | `barcode_scan_sheet.dart:320` | No camera is available here. Type the barcode below — it ends in the same place. | No camera. Type the barcode. |
 | 181 | `barcode_scan_sheet.dart:386` | Nobody has added this product yet. Add it by hand — the name and macros are the only parts a barcode was going to fill in anyway. | Add it by hand. |
@@ -273,6 +278,26 @@ replaces it. Strings not listed stay as they are.
 | 193 | `share_actions.dart:65` | Anyone who opens the link will find nothing there. Sharing again makes a new link. | The link will stop working. |
 | 194 | `share_page.dart:253` | No nutrition total: some ingredients in this recipe have no nutrition data yet, and a partial sum would mislead. | No nutrition total. Some ingredients have no data. |
 
+## Redesign flags
+
+Each of these screens needed a sentence to be understood. The sentence goes in
+this pass. The screen gets its own pass later, each a backlog row once the owner
+agrees it is real.
+
+| Flag | Screen | What the dropped text was covering for | Rows |
+|---|---|---|---|
+| F1 | Sync banner | A refused write can only be fixed by finding the thing and saving it again by hand. A link from the banner to each refused item would replace the instruction. | 4 |
+| F2 | Settings · week start | What the week-start day actually does (which shop covers which dinner) isn't visible anywhere. | 19 |
+| F3 | Meal editor | Whether a meal joins an existing batch, or is frozen from one, only shows as a sentence. The batch could be a chip on the meal, as the Cook tab shows it. | 25–27 |
+| F4 | Edit for this week | Which days a this-week edit covers, and which fields can't be edited here, needed captions. | 33, 36 |
+| F5 | Cook · sub-recipe gaps | Each gap card describes its fix in prose. The card should open the recipe or line that needs fixing. | 43–47 |
+| F6 | Cook · whole-batch toggle | Showing the whole batch or the exact scale hangs on "tap for ×1.5". It needs to look like a toggle. | 49 |
+| F7 | Recipe header · MAKES and keeps | The second yield slot's rules and the fact that *keeps in the fridge* decides batching were both explained in captions. | 60, 61 |
+| F8 | Recipe measures | A recipe's own measure ("1 blob = 30 g") needed a worked example to make sense. | 63 |
+| F9 | Import review · stubs | What happens to a line matched to a stub ingredient isn't visible. | 100 |
+| F10 | Ingredient · price | Two save models on one screen: prices save right away, but the other fields wait for Save. The base price and the receipt price also need captions to say which one wins. | 119–121, 123 |
+| F11 | Ingredient · density and serving | Density entry needed an example. The per-serving and per-100 toggle needed a "switch above" hint. | 154, 169 |
+
 ## Out of scope
 
 - **Ask Ansi's tool results** (`features/ask/domain/`) — read by the model, not
@@ -288,7 +313,8 @@ replaces it. Strings not listed stay as they are.
    structural tests move with it (`find.text` matches the exact string).
 3. Read the board's frames for the same strings; a frame that quotes an old
    string is redrawn, and its status date bumped only after re-verifying.
-4. `make analyze` + `make test` + `make docs-check` once, then `make test-sim`
+4. The redesign flags become backlog rows, if the owner agrees.
+5. `make analyze` + `make test` + `make docs-check` once, then `make test-sim`
    before landing.
 
 ## Decision log
@@ -298,4 +324,8 @@ replaces it. Strings not listed stay as they are.
   and developer messages are excluded (see *Out of scope*).
 - 2026-10-28 — The owner: the first draft's replacements *"still sound a
   little AI"*. Rewritten under rules 1–3: drop first, fragments over
-  sentences, no em dashes or semicolons. 30 rows and two labels’ hints are now drops.
+  sentences, no em dashes or semicolons. 30 rows and two labels’ hints were drops at that point.
+- 2026-10-28 — The owner: *"Drop anything non-obvious. I don't want
+  confusion, but more text doesn't always reduce that, and could hint at
+  confusing UI that needs a redesign (flag)."* Rules 1 and 7. Another 37 rows
+  dropped; 22 of the drops, and row 4, were covering for a screen and carry a flag (F1–F11).
