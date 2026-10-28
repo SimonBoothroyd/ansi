@@ -22,10 +22,9 @@ String describeFailure(Object error) => switch (error) {
   // Nothing came back. SocketException is a phone's; ClientException is a
   // browser's, where every failed fetch (DNS, offline, CORS) is reported alike.
   SocketException() || ClientException() => 'couldn’t reach the server',
-  SqliteException() =>
-    'the local database didn’t answer — this is on the phone, not the network',
+  SqliteException() => 'phone storage error',
   StateError() => 'something wasn’t ready yet',
-  FormatException() => 'the data came back in a shape Ansi didn’t expect',
+  FormatException() => 'unexpected reply from the server',
   _ => 'an unexpected problem',
 };
 
