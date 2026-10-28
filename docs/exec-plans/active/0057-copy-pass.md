@@ -226,7 +226,7 @@ are.
 | 151 | `ingredient_facts.dart:269` | this row has no density, so a volume pack cannot be weighed — set one on the ingredient, or say the pack in {unit} | no density. Use {unit}. |
 | 152 | `ingredient_facts.dart:272` | this row does not say what one piece weighs — set a piece weight, or say the pack in {unit} | no piece weight. Use {unit}. |
 | 153 | `ingredient_facts.dart:275` | an imprecise word cannot be priced — say the pack in {unit} | can’t price that. Use {unit}. |
-| 154 | `density_entry.dart:181` | one side is a volume and the other a weight — “1 cup weighs 240 g”, or “30 ml weighs 1 oz” | **drop** ⚑ F11 |
+| 154 | `density_entry.dart:181` | one side is a volume and the other a weight — “1 cup weighs 240 g”, or “30 ml weighs 1 oz” | One side must be a volume, the other a weight. |
 | 155 | `density_entry.dart:183` + `piece_weight_entry.dart:76` + `measures_editor.dart:155, 405` | weigh it: {x} and what it weighs must both be positive / … must be a positive number | must be above zero |
 | 156 | `density_entry.dart:323` | your serving, ready to use — type what that much weighs (the pack’s “(32 g)”) | **drop** |
 | 157 | `density_entry.dart:326, 328` | both halves come from the pack’s serving line — check them against it / then tap {Save} | check against the pack |
@@ -241,7 +241,7 @@ are.
 | 166 | `price_sheet.dart:201` | A cost then reads only what a receipt says was paid. Receipts stay as they are. | Costs will use receipts only. |
 | 167 | `serving_row.dart:171` | stored per 100 {g} — once the four are in | needs all four |
 | 168 | `serving_row.dart:173` | stored per 100 {g}: needs the serving amount | needs the serving size |
-| 169 | `serving_row.dart:197` | the pack printed it per serving? switch to per serving and type it as read | **drop** ⚑ F11 |
+| 169 | `serving_row.dart:197` | the pack printed it per serving? switch to per serving and type it as read | **drop** |
 | 170 | `draft_card.dart:31` | Nothing came back for {code} — the name and the macros are all a barcode was going to fill in. Type them here. | Not found. Enter the name and macros. |
 | 171 | `draft_card.dart:69` | panel read per 100 {g} — stored as the basis, not converted | per 100 {g} |
 | 172 | `draft_card.dart:87` | No macros came with this product — fill them in on the next screen. | No macros found |
@@ -284,6 +284,8 @@ Each of these screens needed a sentence to be understood. The sentence goes in
 this pass. The screen gets its own pass later, each a backlog row once the owner
 agrees it is real.
 
+Old-vs-new sketches for each flag: <https://claude.ai/artifact/T3DhqX3tnMesSknGSnnEst>. The ones the owner picks get drawn on the board as `proposed`.
+
 | Flag | Screen | What the dropped text was covering for | Rows |
 |---|---|---|---|
 | F1 | Sync banner | A refused write can only be fixed by finding the thing and saving it again by hand. A link from the banner to each refused item would replace the instruction. | 4 |
@@ -296,7 +298,6 @@ agrees it is real.
 | F8 | Recipe measures | A recipe's own measure ("1 blob = 30 g") needed a worked example to make sense. | 63 |
 | F9 | Import review · stubs | What happens to a line matched to a stub ingredient isn't visible. | 100 |
 | F10 | Ingredient · price | Two save models on one screen: prices save right away, but the other fields wait for Save. The base price and the receipt price also need captions to say which one wins. | 119–121, 123 |
-| F11 | Ingredient · density and serving | Density entry needed an example. The per-serving and per-100 toggle needed a "switch above" hint. | 154, 169 |
 
 ## Out of scope
 
@@ -328,4 +329,5 @@ agrees it is real.
 - 2026-10-28 — The owner: *"Drop anything non-obvious. I don't want
   confusion, but more text doesn't always reduce that, and could hint at
   confusing UI that needs a redesign (flag)."* Rules 1 and 7. Another 37 rows
-  dropped; 22 of the drops, and row 4, were covering for a screen and carry a flag (F1–F11).
+  dropped; 22 of the drops, and row 4, were covering for a screen and carry a flag (F1–F10).
+- 2026-10-28 — Row 154 is a refusal (both sides of a density in one family), not a hint, so it stays. F11 is retired: the per-serving switch it covered is already a visible control.
