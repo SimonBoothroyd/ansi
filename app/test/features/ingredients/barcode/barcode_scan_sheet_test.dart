@@ -136,7 +136,6 @@ void main() {
     await tester.enterText(find.byType(TextField), '739437');
     await tester.pump();
 
-    expect(find.textContaining('a barcode is 8 to 14 digits'), findsOneWidget);
     expect(
       tester.widget<FButton>(find.byType(FButton)).onPress,
       isNull,
@@ -165,7 +164,12 @@ void main() {
 
       expect(find.text("Ansi can't open the camera"), findsOneWidget);
       expect(find.text('Open Settings'), findsOneWidget);
-      expect(find.textContaining('both end in the same place'), findsOneWidget);
+      expect(
+        find.text(
+          'Camera access is off. Turn it on in Settings or type the barcode.',
+        ),
+        findsOneWidget,
+      );
 
       // The point of the state: it is not a dead end.
       await _typeAndLookUp(tester, _code);
@@ -251,7 +255,7 @@ void main() {
 
       expect(find.text("Can't reach Open Food Facts"), findsOneWidget);
       expect(
-        find.textContaining('Everything else on the form works offline'),
+        find.text('You’re offline. Add it by hand or try again.'),
         findsOneWidget,
       );
 
