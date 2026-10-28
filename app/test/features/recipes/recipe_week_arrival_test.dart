@@ -274,7 +274,7 @@ void main() {
     });
 
     testWidgets('underlines only the real cook days once the recipe keeps — '
-        'Saturday eats from Tuesday\'s batch', (tester) async {
+        "Saturday eats from Tuesday's batch", (tester) async {
       await _pumpPage(
         tester,
         week: _weekKey,
