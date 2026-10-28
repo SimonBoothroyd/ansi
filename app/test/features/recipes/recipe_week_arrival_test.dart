@@ -162,9 +162,10 @@ List<Override> _overrides({
   required FakeWeekVariantRepository variants,
   bool plansIt = true,
   Recipe? recipe,
+  List<RecipeSummary> summaries = const [],
 }) => [
   recipeRepositoryProvider.overrideWithValue(
-    FakeRecipeRepository(recipe: recipe ?? _recipe),
+    FakeRecipeRepository(recipe: recipe ?? _recipe, summaries: summaries),
   ),
   planningRepositoryProvider.overrideWithValue(_Planner(plansIt: plansIt)),
   weekVariantRepositoryProvider.overrideWithValue(variants),
@@ -178,6 +179,7 @@ Future<GoRouter> _pumpPage(
   bool plansIt = true,
   FakeWeekVariantRepository? variants,
   Recipe? recipe,
+  List<RecipeSummary> summaries = const [],
 }) async {
   filterForuiSemanticsAssertions();
   late GoRouter router;
@@ -187,6 +189,7 @@ Future<GoRouter> _pumpPage(
       overrides: _overrides(
         plansIt: plansIt,
         recipe: recipe,
+        summaries: summaries,
         variants: variants ?? FakeWeekVariantRepository(),
       ),
       expose: (r) => router = r,
@@ -268,6 +271,42 @@ void main() {
         [1, 5],
       );
       expect(find.textContaining('Planned'), findsNothing);
+    });
+
+    testWidgets('underlines only the real cook days once the recipe keeps — '
+        'Saturday eats from Tuesday\'s batch', (tester) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        summaries: const [
+          RecipeSummary(
+            id: 'r1',
+            title: 'Slow-Cooker Beef Ragù',
+            servingsBase: 4,
+            keepsForDays: 5,
+          ),
+        ],
+      );
+      final strip = tester.widget<WeekStrip>(
+        find.descendant(
+          of: find.byType(PlannedThisWeekBand),
+          matching: find.byType(WeekStrip),
+        ),
+      );
+      expect(
+        [
+          for (final (i, d) in strip.days.indexed)
+            if (d.fill == WeekStripFill.cooked) i,
+        ],
+        [1],
+      );
+      expect(
+        [
+          for (final (i, d) in strip.days.indexed)
+            if (d.eats) i,
+        ],
+        [1, 5],
+      );
     });
 
     testWidgets('the band is the line-size week strip, with no fill — the '

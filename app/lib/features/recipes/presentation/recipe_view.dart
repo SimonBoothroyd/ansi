@@ -237,7 +237,11 @@ class _RecipeBody extends HookConsumerWidget {
       // and whether the week varies it.
       band: plannedWeek == null
           ? null
-          : PlannedThisWeekBand(days: placement.days, edited: placement.edited),
+          : PlannedThisWeekBand(
+              days: placement.days,
+              edited: placement.edited,
+              recipeId: recipe.id,
+            ),
     );
     final edit = _EditDoor(
       recipe: recipe,
