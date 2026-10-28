@@ -164,7 +164,7 @@ class AskController extends _$AskController {
         start,
         question,
         spoken,
-        'Ansi took too many steps over that — try asking it more simply.',
+        'Too complicated. Try a simpler question.',
         done,
         failed: true,
       );

@@ -125,6 +125,22 @@ void main() {
     await n.ask('ok', screen: _screen, runner: _runner());
   });
 
+  test('a question still calling tools after every round asks for a '
+      'simpler one', () async {
+    final repo = ScriptedAskRepository([
+      for (var i = 0; i < kAskMaxRounds; i++)
+        (_) => askToolCall('find_recipe', {'query': 'ragu'}),
+    ]);
+    final c = containerFor(repo);
+    final said = await c
+        .read(askControllerProvider.notifier)
+        .ask('plan my month', screen: _screen, runner: _runner());
+    expect(said, isNull);
+    final exchange = c.read(askControllerProvider).thread.exchanges.single;
+    expect(exchange.failed, isTrue);
+    expect(exchange.answer, 'Too complicated. Try a simpler question.');
+  });
+
   test('a failed turn says why and leaves the thread askable', () async {
     final repo = ScriptedAskRepository([
       (_) => throw const AskException('Ansi could not be reached'),
