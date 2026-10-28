@@ -66,16 +66,16 @@ class _BookPickSheetState extends State<_BookPickSheet> {
             selected: book.id == _target?.id,
             onTap: () => setState(() => _target = book),
           ),
-        const SizedBox(height: 6),
-        // One sentence saying what the tap will do.
-        Text(
-          target == null
-              ? 'Pick a shelf. Their sections stay behind.'
-              : '${widget.moving} ${plural(widget.moving, 'recipe')} will '
-                    'move to “${target.name}”, unsectioned.',
-          textAlign: TextAlign.center,
-          style: ansiSans(size: 13, color: AnsiColors.muted),
-        ),
+        // Once a shelf is picked, one sentence saying what the tap will do.
+        if (target != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            '${widget.moving} ${plural(widget.moving, 'recipe')} will '
+            'move to “${target.name}”, unsectioned.',
+            textAlign: TextAlign.center,
+            style: ansiSans(size: 13, color: AnsiColors.muted),
+          ),
+        ],
         const SizedBox(height: 12),
         FButton(
           onPress: target == null
