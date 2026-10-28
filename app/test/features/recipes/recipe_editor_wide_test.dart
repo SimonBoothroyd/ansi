@@ -529,7 +529,6 @@ void main() {
       lessThan(_top(tester, find.text('INGREDIENTS'))),
     );
     // The shipped form, whole: a label, an amount with its chip, a button.
-    expect(find.text('ADD MEASURE'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('add-word-measure-label')),
       findsOneWidget,
@@ -546,6 +545,6 @@ void main() {
     // `importedRecipe` says nothing about what a batch makes.
     await _pumpWide(tester);
     expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
-    expect(find.text('ADD MEASURE'), findsNothing);
+    expect(find.byKey(const ValueKey('add-word-measure-label')), findsNothing);
   });
 }

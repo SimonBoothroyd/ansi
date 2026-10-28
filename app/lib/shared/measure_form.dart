@@ -18,8 +18,6 @@ import 'inline_amount_field.dart';
 
 class MeasureForm extends HookWidget {
   const MeasureForm({
-    required this.icon,
-    required this.headline,
     required this.saveLabel,
     required this.slot,
     required this.units,
@@ -31,13 +29,22 @@ class MeasureForm extends HookWidget {
     required this.onUnit,
     required this.onSave,
     required this.footer,
+    this.icon,
+    this.headline,
+    this.equation = false,
     this.hint = 'label — “half can”',
     this.labelFocus,
     super.key,
   });
 
-  final IconData icon;
-  final String headline;
+  /// The heading over the fields, with its icon. None where [equation] already
+  /// says what the form is.
+  final IconData? icon;
+  final String? headline;
+
+  /// Whether the fields read as the sentence they state: `1 [name] = [15] [g]`.
+  final bool equation;
+
   final String saveLabel;
 
   /// Names this form's fields (`add` / `edit`), since both can be on screen.
@@ -84,16 +91,24 @@ class MeasureForm extends HookWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Icon + text: the "＋" glyph is missing from the bundled fonts.
+        if (headline case final headline?) ...[
+          Row(
+            children: [
+              if (icon case final icon?) ...[
+                Icon(icon, size: 12, color: AnsiColors.herb),
+                const SizedBox(width: 5),
+              ],
+              Text(headline, style: ansiLabel(color: AnsiColors.herb)),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
         Row(
           children: [
-            Icon(icon, size: 12, color: AnsiColors.herb),
-            const SizedBox(width: 5),
-            Text(headline, style: ansiLabel(color: AnsiColors.herb)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
+            if (equation) ...[
+              Text('1', style: ansiMono(size: 14)),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               // The small variant, trimmed to the run's height.
               child: FTextField(
@@ -113,6 +128,10 @@ class MeasureForm extends HookWidget {
               ),
             ),
             const SizedBox(width: 8),
+            if (equation) ...[
+              Text('=', style: ansiMono(size: 14, color: AnsiColors.muted)),
+              const SizedBox(width: 8),
+            ],
             AmountAndUnitField(
               amountKey: ValueKey('$slot-measure-amount'),
               unitKey: ValueKey('$slot-measure-unit'),

@@ -199,6 +199,13 @@ void main() {
         find.descendant(of: _unitChip, matching: find.text('g')),
         findsOneWidget,
       );
+      // The form is the equation it states: 1 [name] = [15] [g], no heading.
+      final one = tester.getCenter(find.text('1'));
+      final equals = tester.getCenter(find.text('='));
+      expect(one.dx, lessThan(tester.getCenter(_labelField).dx));
+      expect(equals.dx, greaterThan(tester.getCenter(_labelField).dx));
+      expect(equals.dx, lessThan(tester.getCenter(_amountField).dx));
+      expect(find.text('ADD MEASURE'), findsNothing);
       await tester.enterText(_labelField, 'blob');
       await tester.enterText(_amountField, '15');
       await tester.pump();

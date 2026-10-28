@@ -213,8 +213,7 @@ class RecipeMeasuresEditor extends HookWidget {
           )
         else
           MeasureForm(
-            icon: FLucideIcons.plus,
-            headline: 'ADD MEASURE',
+            equation: true,
             saveLabel: addLabel,
             slot: 'add-word',
             hint: 'name',
@@ -389,6 +388,7 @@ class _EditRecipeMeasureForm extends HookWidget {
       child: MeasureForm(
         icon: FLucideIcons.pencil,
         headline: 'EDIT MEASURE',
+        equation: true,
         saveLabel: 'Save',
         slot: 'edit-word',
         hint: 'name',
