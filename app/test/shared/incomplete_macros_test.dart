@@ -220,13 +220,6 @@ void main() {
       expect(incompleteLineNote(MacroLineReason.optional), 'optional');
     });
 
-    test('one caption covers both rows, and says rule rather than fault', () {
-      expect(
-        notCountedCaption,
-        'Imprecise and optional lines are left out by rule, not by failure.',
-      );
-    });
-
     test('they name ONLY the by-rule exclusions — a stub is a defect, not an '
         'exclusion, and belongs in the fixable list', () {
       final notes = [

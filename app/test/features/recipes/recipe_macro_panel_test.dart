@@ -353,7 +353,6 @@ void main() {
     );
     // Nothing optional here, so no second row and no empty label.
     expect(find.text('OPTIONAL'), findsNothing);
-    expect(find.text(notCountedCaption), findsOneWidget);
   });
 
   testWidgets('the optional lines get their own labelled row', (tester) async {
@@ -382,14 +381,11 @@ void main() {
     expect(find.text('OPTIONAL'), findsOneWidget);
     expect(find.text('Lime, Coriander'), findsOneWidget);
     expect(find.text('NOT COUNTED'), findsNothing);
-    expect(find.text(notCountedCaption), findsOneWidget);
     // By rule, so never listed as something to fix.
     expect(find.textContaining('Lime · '), findsNothing);
   });
 
-  testWidgets('both kinds at once are two rows under one caption', (
-    tester,
-  ) async {
+  testWidgets('both kinds at once are two rows', (tester) async {
     const summary = RecipeMacroSummary(
       perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
       impreciseLines: 1,
@@ -415,8 +411,6 @@ void main() {
     expect(find.text('Parsley · handful'), findsOneWidget);
     expect(find.text('OPTIONAL'), findsOneWidget);
     expect(find.text('Lime'), findsOneWidget);
-    // One caption for both rows — the claim they share, said once.
-    expect(find.text(notCountedCaption), findsOneWidget);
   });
 
   testWidgets("the week's row names what came IN, beside what stayed out", (
@@ -438,7 +432,6 @@ void main() {
     expect(find.text('Lime, Coriander'), findsOneWidget);
     expect(find.text('INCLUDED'), findsOneWidget);
     expect(find.text('Pickled Red Onions · for this week'), findsOneWidget);
-    expect(find.text(notCountedCaption), findsOneWidget);
   });
 
   testWidgets('the INCLUDED label is herb — it is the one row naming lines '
@@ -456,10 +449,8 @@ void main() {
       tester.widget<Text>(find.text('INCLUDED')).style?.color,
       AnsiColors.herb,
     );
-    // Nothing stayed out, so nothing says it did — and the caption is about
-    // what was left out, which is now nothing.
+    // Nothing stayed out, so nothing says it did.
     expect(find.text('OPTIONAL'), findsNothing);
-    expect(find.text(notCountedCaption), findsNothing);
   });
 
   testWidgets('a complete recipe with nothing excluded says nothing extra', (

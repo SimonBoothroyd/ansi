@@ -194,18 +194,6 @@ class _Named extends StatelessWidget {
             PanelNoteRow(label: 'NOT COUNTED', names: imprecise),
           if (optional != null)
             PanelNoteRow(label: 'OPTIONAL', names: optional),
-          if (imprecise != null || optional != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                notCountedCaption,
-                style: ansiSans(
-                  size: 12,
-                  color: AnsiColors.muted,
-                  height: 1.35,
-                ),
-              ),
-            ),
         ],
       ),
     );

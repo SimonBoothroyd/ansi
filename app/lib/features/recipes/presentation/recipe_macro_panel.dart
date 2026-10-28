@@ -103,9 +103,8 @@ class RecipeMacroPanel extends StatelessWidget {
 /// INCLUDED      Pickled Red Onions · for this week
 /// ```
 ///
-/// One caption covers the first two. `INCLUDED` names lines the total does
-/// cover, so it wears the herb label and sits outside the caption. Missing
-/// fibre has its own row.
+/// `INCLUDED` names lines the total does cover, so it wears the herb label.
+/// Missing fibre has its own row.
 class _NotCounted extends StatelessWidget {
   const _NotCounted({
     required this.summary,
@@ -148,26 +147,8 @@ class _NotCounted extends StatelessWidget {
               names: included,
               labelColor: AnsiColors.herb,
             ),
-          if (excluded)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                notCountedCaption,
-                style: ansiSans(
-                  size: 12,
-                  color: AnsiColors.muted,
-                  height: 1.35,
-                ),
-              ),
-            ),
           if (fibre != null)
-            Padding(
-              padding: EdgeInsets.only(top: excluded ? 4 : 0),
-              child: Text(
-                fibre,
-                style: ansiMono(size: 11, color: AnsiColors.muted),
-              ),
-            ),
+            Text(fibre, style: ansiMono(size: 11, color: AnsiColors.muted)),
         ],
       ),
     );

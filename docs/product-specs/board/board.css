@@ -1067,7 +1067,6 @@
     .nc-row .nc-lab{flex:none;width:84px;letter-spacing:.08em;}
     /* the one row that names lines the total DOES cover — the week's own */
     .nc-row .nc-lab.in{color:var(--herb);}
-    .nc-cap{margin:4px 20px 0;font-size:11.5px;color:var(--muted);line-height:1.4;}
     /* the `optional` tag where it is also the SWITCH (the recipe page opened
        from a week): an empty ring before the word, and ticked, the same box
        filled with a check, reading `included` */
@@ -1555,7 +1554,7 @@
     .wr{width:100%;max-width:780px;align-self:center;}
     /* the phone's 20 px gutters belong to the phone; the column carries them */
     .wr .r-hero,.wr .grp,.wr .macro,.wr .macro-lab,.wr .macro-inc,
-    .wr .notcounted,.wr .nc-row,.wr .nc-cap,
+    .wr .notcounted,.wr .nc-row,
     .wr .conv-note{margin-left:0;margin-right:0;}
     .wr .r-hero{padding:0;}
     .wr .r-title{font-size:26px;margin:5px 0 10px;}

@@ -118,10 +118,6 @@ String? fiberNotCountedNote(RecipeMacroSummary summary) {
       '${plural(names.length, 'line')} without it: ${names.join(', ')}';
 }
 
-/// The one caption under the named rows: these lines are out by rule.
-const notCountedCaption =
-    'Imprecise and optional lines are left out by rule, not by failure.';
-
 /// The amber `incomplete` badge.
 class IncompleteBadge extends StatelessWidget {
   const IncompleteBadge({super.key});
