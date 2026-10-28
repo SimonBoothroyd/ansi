@@ -834,6 +834,13 @@ void main() {
       expect(gap.recipeId, 'a');
       expect(gap.reason, const ComponentCycle());
       expect(gap.demandedBy.single.recipeId, 'a');
+      // The line that closes the loop is B's, so that is where it is fixed.
+      final source = gap.demandedBy.single;
+      expect(source.lineId, 'li-a');
+      expect(source.viaRecipeId, 'b');
+      expect(source.via, 'B');
+      expect(source.lineRecipeId, 'b');
+      expect(source.lineRecipeTitle, 'B');
       // B still got its (one, non-looping) session.
       expect(
         plan.recipes
@@ -867,6 +874,11 @@ void main() {
       // demanding line's own amount — unscaled, un-converted.
       expect(gap.demandedBy.single.quantity, 0.25);
       expect(gap.demandedBy.single.unit, cup);
+      // At depth one the planned recipe holds the line the fix opens.
+      expect(gap.demandedBy.single.lineId, 'li-aioli');
+      expect(gap.demandedBy.single.via, isNull);
+      expect(gap.demandedBy.single.lineRecipeId, 'sliders');
+      expect(gap.demandedBy.single.lineRecipeTitle, 'Sausage Sliders');
       expect(plan.unresolvedComponentsByParent, {'sliders': 1});
     });
 

@@ -24,6 +24,7 @@ import '../../features/planning/presentation/week_variant_editor.dart';
 import '../../features/planning/presentation/week_view.dart';
 import '../../features/receipts/presentation/receipt_ledger_view.dart';
 import '../../features/receipts/presentation/receipt_scan_view.dart';
+import '../../features/recipes/presentation/recipe_editor_landing.dart';
 import '../../features/recipes/presentation/recipe_editor_view.dart';
 import '../../features/recipes/presentation/recipe_view.dart';
 import '../../features/shopping/presentation/shopping_view.dart';
@@ -353,7 +354,9 @@ GoRouter router(Ref ref) {
             ),
           ),
           // `?week=YYYY-MM-DD` opens the editor in week mode: Save writes a
-          // diff against the recipe instead of the recipe.
+          // diff against the recipe instead of the recipe. Otherwise
+          // `?focus=makes` lands on the MAKES field and `?line={id}` on that
+          // line's open card ([EditorLanding]); week mode ignores both.
           _page(
             path: '/recipes/:id/edit',
             name: 'recipe-edit',
@@ -365,7 +368,12 @@ GoRouter router(Ref ref) {
               final week = state.uri.queryParameters['week'];
               final id = state.pathParameters['id'];
               return week == null || id == null
-                  ? RecipeEditorView(recipeId: id)
+                  ? RecipeEditorView(
+                      recipeId: id,
+                      landing: EditorLanding.fromQuery(
+                        state.uri.queryParameters,
+                      ),
+                    )
                   : WeekVariantEditorView(recipeId: id, weekKey: week);
             },
           ),

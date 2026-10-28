@@ -26,6 +26,7 @@ class AmountAndUnitField extends StatelessWidget {
     this.amountWidth = 46,
     this.seed = 0,
     this.scrollController,
+    this.focusNode,
     super.key,
   });
 
@@ -59,6 +60,9 @@ class AmountAndUnitField extends StatelessWidget {
   /// See [InlineAmountField.scrollController].
   final ScrollController? scrollController;
 
+  /// The amount slot's focus. See [InlineAmountField.focusNode].
+  final FocusNode? focusNode;
+
   @override
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
@@ -71,6 +75,7 @@ class AmountAndUnitField extends StatelessWidget {
         fractions: true,
         controller: controller,
         scrollController: scrollController,
+        focusNode: focusNode,
         initial: amount,
         onChange: onAmount,
         onSubmit:

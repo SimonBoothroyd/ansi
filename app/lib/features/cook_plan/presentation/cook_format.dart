@@ -12,6 +12,7 @@ import '../../../shared/week_strip_days.dart';
 import '../../planning/presentation/week_variant_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
+import '../../recipes/presentation/recipe_editor_landing.dart';
 import '../domain/cook_plan.dart';
 
 /// The batch multiplier, e.g. `×1`, `×1.5`, `×0.75`.
@@ -179,24 +180,43 @@ String gapHeadline(ComponentGap gap) => switch (gap.reason) {
   ComponentCycle() => '${gap.title} is used inside itself',
 };
 
-/// One way to the fix for a gap: what the button says and the recipe whose
-/// editor it opens.
-typedef GapFix = ({String label, String recipeId});
+/// One way to the fix for a gap: what the button says and the editor
+/// location it opens, landed on the fix.
+typedef GapFix = ({String label, String location});
 
 /// The buttons a gap card carries, one per place its fix lives. A missing or
-/// unanswerable yield is fixed on the sub-recipe; a missing amount, a measure
-/// that has gone, or a cycle is fixed on the line in each demanding parent.
+/// unanswerable yield is fixed on the sub-recipe's MAKES; a missing amount, a
+/// measure that has gone, or a cycle is fixed on the line that names it, one
+/// button per recipe holding such a line (the first line when it holds more).
 List<GapFix> gapFixes(ComponentGap gap) => switch (gap.reason) {
   ComponentYieldMissing() || ComponentFamilyMismatch() => [
-    (label: 'Set the yield', recipeId: gap.recipeId),
+    (
+      label: 'Set the yield',
+      location: recipeEditorLocation(
+        gap.recipeId,
+        landing: const LandOnMakes(),
+      ),
+    ),
   ],
-  ComponentAmountMissing() || ComponentMeasureMissing() || ComponentCycle() => [
-    for (final parent in {
-      for (final d in gap.demandedBy) d.recipeId: d.title,
-    }.entries)
-      (label: 'Fix the line in ${parent.value}', recipeId: parent.key),
-  ],
+  ComponentAmountMissing() ||
+  ComponentMeasureMissing() ||
+  ComponentCycle() => _lineFixes(gap),
 };
+
+List<GapFix> _lineFixes(ComponentGap gap) {
+  final seen = <String>{};
+  return [
+    for (final source in gap.demandedBy)
+      if (seen.add(source.lineRecipeId))
+        (
+          label: 'Fix the line in ${source.lineRecipeTitle}',
+          location: recipeEditorLocation(
+            source.lineRecipeId,
+            landing: LandOnLine(source.lineId),
+          ),
+        ),
+  ];
+}
 
 /// The geometry of a session's freshness on the week's axis (day coordinates
 /// 0..6), which the week strip ([stripDays]) and the wide sheet's track draw.

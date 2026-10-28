@@ -9,9 +9,14 @@
 /// At [AnsiLayout.expanded] the same form is two columns. While a step has
 /// focus, the lines its chips point at are lit; this follows focus, never the
 /// pointer, and is never stored.
+///
+/// Opened by a link with an [EditorLanding] (`?focus=makes`, `?line={id}`), it
+/// scrolls to that field or line on arrival. A line the recipe no longer has
+/// leaves the editor at the top.
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -45,6 +50,7 @@ import 'line_card.dart';
 import 'line_target_picker.dart';
 import 'method_editor.dart';
 import 'recipe_chip.dart';
+import 'recipe_editor_landing.dart';
 import 'recipe_header_form.dart';
 import 'recipe_view_models.dart';
 
@@ -68,6 +74,7 @@ class RecipeEditorView extends ConsumerWidget {
     this.initialBookId,
     this.initialSectionId,
     this.handsBackTarget = false,
+    this.landing,
     super.key,
   });
 
@@ -85,6 +92,9 @@ class RecipeEditorView extends ConsumerWidget {
   /// Whether Save pops with the recipe as a [SubRecipeTarget] rather than
   /// landing on its page. True only for [newSubRecipeRoute].
   final bool handsBackTarget;
+
+  /// Where the editor lands on arrival; null is the top. See [EditorLanding].
+  final EditorLanding? landing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -197,7 +207,8 @@ class RecipeEditorView extends ConsumerWidget {
           stackTrace: st,
           onRetry: () => ref.invalidate(recipeEditorProvider(recipeId)),
         ),
-        data: (recipe) => _EditorForm(recipe: recipe, notifier: notifier),
+        data: (recipe) =>
+            _EditorForm(recipe: recipe, notifier: notifier, landing: landing),
       ),
     );
   }
@@ -237,14 +248,55 @@ const double kEditorLinesColumn = 420;
 const double kEditorColumnGap = 22;
 
 class _EditorForm extends HookWidget {
-  const _EditorForm({required this.recipe, required this.notifier});
+  const _EditorForm({
+    required this.recipe,
+    required this.notifier,
+    this.landing,
+  });
 
   final Recipe recipe;
   final RecipeEditor notifier;
+  final EditorLanding? landing;
 
   @override
   Widget build(BuildContext context) {
     final wide = AnsiLayout.of(context) == AnsiLayout.expanded;
+    final makesKey = useMemoized(GlobalKey.new);
+    final makesFocus = useFocusNode();
+    // The line a link asked for keeps this key for the form's life, so
+    // clearing [opening] never swaps the card's element.
+    final landedLineKey = useMemoized(GlobalKey.new);
+    final landedLineId = switch (landing) {
+      LandOnLine(:final lineId) => lineId,
+      _ => null,
+    };
+    // Opens that line's card as it is first built, until the landing is done:
+    // a row rebuilt after that starts closed like any other.
+    final opening = useState(landedLineId);
+    useEffect(() {
+      final asked = landing;
+      if (asked == null) return null;
+      var live = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!live) return;
+        switch (asked) {
+          case LandOnMakes():
+            final makes = makesKey.currentContext;
+            if (makes != null) unawaited(_reveal(makes));
+            makesFocus.requestFocus();
+          case LandOnLine(:final lineId):
+            if (_hasLine(recipe, lineId)) {
+              await _scrollUntilBuilt(
+                landedLineKey,
+                within: makesKey.currentContext,
+                live: () => live,
+              );
+            }
+            if (live) opening.value = null;
+        }
+      });
+      return () => live = false;
+    }, const []);
     // Bumped when a drag starts, closing every open line card so rows cross the
     // list at one height.
     final collapseEpoch = useState(0);
@@ -288,6 +340,8 @@ class _EditorForm extends HookWidget {
             dragIndex: rows.length,
             collapseEpoch: collapseEpoch.value,
             lit: lit.contains(item.id),
+            cardKey: item.id == landedLineId ? landedLineKey : null,
+            opensAtBirth: item.id == opening.value,
           ),
         );
       }
@@ -323,7 +377,13 @@ class _EditorForm extends HookWidget {
                   0,
                 ),
                 sliver: SliverList.list(
-                  children: [_WideHeader(host: notifier)],
+                  children: [
+                    _WideHeader(
+                      host: notifier,
+                      makesKey: makesKey,
+                      makesFocus: makesFocus,
+                    ),
+                  ],
                 ),
               ),
               SliverPadding(
@@ -374,7 +434,13 @@ class _EditorForm extends HookWidget {
                 // The same header the import review renders, hosted by the
                 // notifier.
                 sliver: SliverList.list(
-                  children: [RecipeHeaderForm(host: notifier)],
+                  children: [
+                    RecipeHeaderForm(
+                      host: notifier,
+                      makesKey: makesKey,
+                      makesFocus: makesFocus,
+                    ),
+                  ],
                 ),
               ),
               SliverPadding(
@@ -390,6 +456,44 @@ class _EditorForm extends HookWidget {
               ),
             ],
     );
+  }
+}
+
+/// Whether [recipe] still has the line [lineId]: a link can outlive it.
+bool _hasLine(Recipe recipe, String lineId) =>
+    recipe.groups.any((g) => g.items.any((item) => item.id == lineId));
+
+/// Scrolls [target] into view, a fifth of the way down: the step page's own
+/// landing.
+Future<void> _reveal(BuildContext target) => Scrollable.ensureVisible(
+  target,
+  alignment: 0.2,
+  duration: const Duration(milliseconds: 300),
+  curve: Curves.easeOut,
+);
+
+/// Reveals [key]'s widget, in the scroll view holding [within]. A line far down
+/// the list is not built until the list nears it, so the list moves a screen at
+/// a time until it is, and stops at the end.
+Future<void> _scrollUntilBuilt(
+  GlobalKey key, {
+  required BuildContext? within,
+  required bool Function() live,
+}) async {
+  final position = within == null ? null : Scrollable.maybeOf(within)?.position;
+  while (live()) {
+    final built = key.currentContext;
+    if (built != null && built.mounted) return _reveal(built);
+    if (position == null || position.pixels >= position.maxScrollExtent) {
+      return;
+    }
+    position.jumpTo(
+      math.min(
+        position.pixels + position.viewportDimension,
+        position.maxScrollExtent,
+      ),
+    );
+    await WidgetsBinding.instance.endOfFrame;
   }
 }
 
@@ -418,9 +522,13 @@ Set<String> _litLines(RecipeEditor notifier, String? stepId) {
 /// row two, and MEASURES takes the full width directly under the MAKES cell it
 /// depends on.
 class _WideHeader extends StatelessWidget {
-  const _WideHeader({required this.host});
+  const _WideHeader({required this.host, this.makesKey, this.makesFocus});
 
   final RecipeHeaderHost host;
+
+  /// See [RecipeHeaderForm.makesKey] and [RecipeHeaderForm.makesFocus].
+  final GlobalKey? makesKey;
+  final FocusNode? makesFocus;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -464,6 +572,8 @@ class _WideHeader extends StatelessWidget {
                 sections: [section],
                 dense: true,
                 timeCaptions: false,
+                makesKey: makesKey,
+                makesFocus: makesFocus,
               ),
             ),
           ],
@@ -650,6 +760,8 @@ class _LineItemEditor extends ConsumerWidget {
     required this.dragIndex,
     required this.collapseEpoch,
     this.lit = false,
+    this.cardKey,
+    this.opensAtBirth = false,
     super.key,
   });
 
@@ -668,6 +780,12 @@ class _LineItemEditor extends ConsumerWidget {
 
   /// Whether the step being written points at this line. See [LineCard.lit].
   final bool lit;
+
+  /// Keys the card of the line a link landed on, so the form can scroll to it.
+  final GlobalKey? cardKey;
+
+  /// Whether the card is open when first built: the line a link landed on.
+  final bool opensAtBirth;
 
   /// The amount cell's label: what the recipe page prints. An unresolved
   /// measure id falls back to the count with a note, "pending sync" for a row
@@ -697,6 +815,8 @@ class _LineItemEditor extends ConsumerWidget {
         dragIndex: dragIndex,
         collapseEpoch: collapseEpoch,
         lit: lit,
+        cardKey: cardKey,
+        opensAtBirth: opensAtBirth,
       );
     }
 
@@ -766,6 +886,8 @@ class _LineItemEditor extends ConsumerWidget {
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
       lit: lit,
+      cardKey: cardKey,
+      opensAtBirth: opensAtBirth,
       onEditAmount: editQuantity,
       rowIdentity: Text.rich(
         TextSpan(
@@ -801,6 +923,8 @@ class _ComponentLineEditor extends StatelessWidget {
     required this.dragIndex,
     required this.collapseEpoch,
     this.lit = false,
+    this.cardKey,
+    this.opensAtBirth = false,
   });
 
   final LineItem item;
@@ -809,6 +933,8 @@ class _ComponentLineEditor extends StatelessWidget {
   final int dragIndex;
   final int collapseEpoch;
   final bool lit;
+  final GlobalKey? cardKey;
+  final bool opensAtBirth;
 
   @override
   Widget build(BuildContext context) {
@@ -867,6 +993,8 @@ class _ComponentLineEditor extends StatelessWidget {
       dragIndex: dragIndex,
       collapseEpoch: collapseEpoch,
       lit: lit,
+      cardKey: cardKey,
+      opensAtBirth: opensAtBirth,
       onEditAmount: editQuantity,
       // A dangling link reads as the plain text it stored, muted, and says why
       // there is no chip — the recipe page's own degradation.
@@ -932,6 +1060,8 @@ class _EditorLine extends StatelessWidget {
     required this.collapseEpoch,
     required this.onEditAmount,
     this.lit = false,
+    this.cardKey,
+    this.opensAtBirth = false,
   });
 
   final LineItem item;
@@ -954,8 +1084,14 @@ class _EditorLine extends StatelessWidget {
   /// Whether the step being written points at this line. See [LineCard.lit].
   final bool lit;
 
+  /// See [_LineItemEditor.cardKey] and [_LineItemEditor.opensAtBirth].
+  final GlobalKey? cardKey;
+  final bool opensAtBirth;
+
   @override
   Widget build(BuildContext context) => LineCard(
+    key: cardKey,
+    initiallyOpen: opensAtBirth,
     dragIndex: dragIndex,
     collapseEpoch: collapseEpoch,
     lit: lit,

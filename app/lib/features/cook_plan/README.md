@@ -57,7 +57,12 @@ one the week excluded is not cooked at all, and a replaced line is cooked at the
 week's amount. The shop runs the same filter over the same graph, and the watch
 query joins `week_recipe_line_override` so ticking a line in re-derives the
 plan. A component the batch math cannot resolve stays a named `ComponentGap` —
-never a `1×` assumption.
+never a `1×` assumption. Each demanding source carries the line that names the
+sub-recipe (`lineId`) and, below depth one, the recipe holding it (`via`,
+`viaRecipeId`), so the card's **Fix the line in {parent} ›** opens that line in
+that recipe's editor (`?line=`) and **Set the yield ›** opens the sub-recipe at
+MAKES (`?focus=makes`), both through `gapFixes`. A line a week added (its id is
+the override row's) is not in the recipe's editor, which then opens at the top.
 
 **A line said in one of the target's own measures flows through this graph with
 its pointer**

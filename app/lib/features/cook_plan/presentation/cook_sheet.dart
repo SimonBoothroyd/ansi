@@ -377,7 +377,7 @@ class _GapRow extends ConsumerWidget {
           for (final fix in gapFixes(gap))
             _MarginDoor(
               label: fix.label,
-              onTap: () => context.pushOnce('/recipes/${fix.recipeId}/edit'),
+              onTap: () => context.pushOnce(fix.location),
             ),
         ],
       ),
@@ -527,7 +527,13 @@ class _MarginDoor extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: ansiMono(size: 9.5, color: AnsiColors.herbDeep)),
+          // A long parent's title wraps rather than running out of the margin.
+          Flexible(
+            child: Text(
+              label,
+              style: ansiMono(size: 9.5, color: AnsiColors.herbDeep),
+            ),
+          ),
           const SizedBox(width: 3),
           const Icon(
             FLucideIcons.chevronRight,
