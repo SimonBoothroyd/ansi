@@ -116,7 +116,7 @@ void main() {
     expect(find.text(r'$6.60'), findsNothing);
     expect(find.text('1 line unpriced'), findsOneWidget);
     expect(find.text('Chopped tomatoes · no price yet'), findsOneWidget);
-    expect(find.textContaining('a floor, not the cost'), findsOneWidget);
+    expect(find.text('Some lines have no price'), findsOneWidget);
   });
 
   testWidgets('a whole recipe prints its cells and no floor', (tester) async {

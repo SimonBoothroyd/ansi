@@ -868,7 +868,7 @@ Future<void> _confirmDelete(
     // ignore: use_build_context_synchronously
     host.context,
     title: 'Delete recipe?',
-    body: 'This removes it from your recipes.',
+    body: '',
     confirm: 'Delete',
     destructive: true,
   );

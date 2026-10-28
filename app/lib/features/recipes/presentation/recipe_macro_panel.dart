@@ -389,12 +389,10 @@ class _Incomplete extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             summary.noLines
-                ? 'Macros arrive once this recipe has ingredients.'
+                ? 'No ingredients yet'
                 : summary.nothingWeighable
-                ? 'Every line is imprecise, so nothing was weighed — a total '
-                      'here would be a fabrication, not a number.'
-                : 'Left out of the total until every line resolves — '
-                      'a partial number would not be this recipe.',
+                ? 'Every line is imprecise'
+                : 'Some lines can’t be counted',
             style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
           ),
           if (shown.isNotEmpty) ...[
