@@ -283,6 +283,41 @@ void main() {
     });
   });
 
+  group('askAnsi', () {
+    testWidgets('a question the title asks whole draws no body', (
+      tester,
+    ) async {
+      bool? answer;
+      final app = _shellApp(
+        open: (context) async => answer = await askAnsi(
+          context,
+          title: 'Remove Foil?',
+          confirm: 'Remove',
+        ),
+      );
+      await tester.pumpWidget(_host(app.router));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remove Foil?'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(FDialog),
+          matching: find.byWidgetPredicate(
+            (w) => w is Text && w.data != null && w.data!.isNotEmpty,
+          ),
+        ),
+        findsNWidgets(3), // the title and the two buttons
+      );
+
+      await tester.tap(find.text('Remove'));
+      await tester.pumpAndSettle();
+      expect(answer, isTrue);
+    });
+  });
+
   group('structural', () {
     /// The only file allowed to call Forui's own modal functions.
     const wrapper = 'lib/shared/ansi_modals.dart';
