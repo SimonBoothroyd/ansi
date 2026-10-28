@@ -102,9 +102,7 @@ Future<bool> confirmSignOut(BuildContext context) async {
   return askAnsi(
     context,
     title: 'Sign out?',
-    body:
-        'This removes the synced data from this device. It stays in your '
-        'household and comes back when you sign in again.',
+    body: 'Your data comes back when you sign in.',
     confirm: 'Sign out',
   );
 }

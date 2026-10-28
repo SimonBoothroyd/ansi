@@ -102,8 +102,9 @@ Finder _chip(String name, String label) => find.descendant(
 );
 
 void main() {
-  testWidgets('lists every member with their factor on file selected, and says '
-      'what a meal for both now counts as', (tester) async {
+  testWidgets('lists every member with their factor on file selected', (
+    tester,
+  ) async {
     await _open(tester);
 
     expect(find.text('USUAL PORTION'), findsOneWidget);
@@ -117,11 +118,8 @@ void main() {
       expect(find.text(label), findsAtLeast(2), reason: label);
     }
     expect(find.text('…'), findsNWidgets(2));
-    // 1 + ¾.
-    expect(
-      find.textContaining('a meal for both counts as 1¾ portions'),
-      findsOneWidget,
-    );
+    // No foot line explaining what the factors add up to.
+    expect(find.textContaining('counts as'), findsNothing);
   });
 
   testWidgets('a pick writes through for THAT member — either may set either — '
@@ -132,13 +130,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.factorWrites, [('m2', 0.5)]);
-    // The roster re-emitted; the foot line reads the new sum.
-    expect(find.textContaining('counts as 1½ portions'), findsOneWidget);
+    // The roster re-emitted; Jun's value beside the name reads the write.
+    expect(find.text('×½'), findsNWidgets(3));
 
     await tester.tap(_chip('Ada', '×1¼'));
     await tester.pumpAndSettle();
     expect(repo.factorWrites, [('m2', 0.5), ('m1', 1.25)]);
-    expect(find.textContaining('counts as 1¾ portions'), findsOneWidget);
+    expect(find.text('×1¼'), findsNWidgets(3));
   });
 
   testWidgets(
@@ -184,10 +182,6 @@ void main() {
     // The stepper is up unbidden, reading ×1¾ — and no pick is lit.
     expect(find.byIcon(FLucideIcons.plus), findsOneWidget);
     expect(find.text('×1¾'), findsNWidgets(2)); // beside the name + stepper
-    expect(
-      find.textContaining('a meal for Ada counts as 1¾ portions'),
-      findsOneWidget,
-    );
   });
 
   testWidgets('the ceiling: 3 is the last step up', (tester) async {
@@ -203,37 +197,42 @@ void main() {
     expect(repo.factorWrites, [('m1', 3.0)], reason: 'clamped at 3');
   });
 
-  group('the week starts on', () {
-    testWidgets('offers the two days, with the one on file lit, and says '
-        'what the setting means', (tester) async {
+  group('the week', () {
+    testWidgets('offers the two spans, with the one on file lit, and no note', (
+      tester,
+    ) async {
       await _openWeekControl(tester);
 
-      expect(find.text('WEEK STARTS ON'), findsOneWidget);
-      expect(find.text('Sunday'), findsOneWidget);
-      expect(find.text('Monday'), findsOneWidget);
-      expect(
-        find.textContaining('a Monday shop covers that Monday’s dinner'),
-        findsOneWidget,
-      );
+      expect(find.text('WEEK'), findsOneWidget);
+      expect(find.text('Sun – Sat'), findsOneWidget);
+      expect(find.text('Mon – Sun'), findsOneWidget);
+      expect(find.textContaining('shop covers'), findsNothing);
+    });
+
+    test('a span is named from the week shape, whatever day it starts on', () {
+      expect(weekSpanLabel(WeekShape.sunday), 'Sun – Sat');
+      expect(weekSpanLabel(WeekShape.monday), 'Mon – Sun');
+      expect(weekSpanLabel(const WeekShape(DateTime.saturday)), 'Sat – Fri');
     });
 
     testWidgets('asks before it moves the weeks, and the RPC carries the '
         'ISO weekday', (tester) async {
       final household = await _openWeekControl(tester);
 
-      await tester.tap(find.text('Sunday'));
+      await tester.tap(find.text('Sun – Sat'));
       await tester.pumpAndSettle();
 
-      // The confirm names the consequence in plain words, not in schema
-      // words — and nothing has been asked of the server yet.
-      expect(find.text('Start the week on Sunday?'), findsOneWidget);
+      // The confirm names the span picked, and nothing has been asked of the
+      // server yet.
+      expect(find.text('Run weeks Sun – Sat?'), findsOneWidget);
       expect(
-        find.textContaining('Every week you have planned moves to match'),
+        find.text('Your planned weeks will shift to match.'),
         findsOneWidget,
       );
       expect(household.flips, isEmpty);
 
-      await tester.tap(find.text('Start on Sunday'));
+      // The confirm is the span again: the chip's own words.
+      await tester.tap(find.text('Sun – Sat').last);
       await tester.pumpAndSettle();
 
       // 7 is Sunday as an ISO weekday, which is what the column stores.
@@ -243,40 +242,37 @@ void main() {
     testWidgets('cancelling asks the server for nothing', (tester) async {
       final household = await _openWeekControl(tester);
 
-      await tester.tap(find.text('Sunday'));
+      await tester.tap(find.text('Sun – Sat'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       expect(household.flips, isEmpty);
-      expect(find.text('Start the week on Sunday?'), findsNothing);
+      expect(find.text('Run weeks Sun – Sat?'), findsNothing);
     });
 
-    testWidgets('tapping the day already on file does nothing at all', (
+    testWidgets('tapping the span already on file does nothing at all', (
       tester,
     ) async {
       final household = await _openWeekControl(tester);
 
-      await tester.tap(find.text('Monday'));
+      await tester.tap(find.text('Mon – Sun'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Start the week on Monday?'), findsNothing);
+      expect(find.text('Run weeks Mon – Sun?'), findsNothing);
       expect(household.flips, isEmpty);
     });
 
     testWidgets('offline the chips are inert, and say why', (tester) async {
       final household = await _openWeekControl(tester, reachable: false);
 
-      expect(
-        find.text('needs a connection · it moves weeks on both phones at once'),
-        findsOneWidget,
-      );
+      expect(find.text('needs a connection'), findsOneWidget);
 
-      await tester.tap(find.text('Sunday'));
+      await tester.tap(find.text('Sun – Sat'));
       await tester.pumpAndSettle();
 
       // No confirm, no call: a control that cannot act does not pretend to.
-      expect(find.text('Start the week on Sunday?'), findsNothing);
+      expect(find.text('Run weeks Sun – Sat?'), findsNothing);
       expect(household.flips, isEmpty);
     });
 
@@ -285,26 +281,30 @@ void main() {
     ) async {
       final household = await _openWeekControl(tester, fails: true);
 
-      await tester.tap(find.text('Sunday'));
+      await tester.tap(find.text('Sun – Sat'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Start on Sunday'));
+      await tester.tap(find.text('Sun – Sat').last);
       await tester.pumpAndSettle();
 
       expect(household.flips, [DateTime.sunday]);
       expect(find.text('couldn’t move your weeks — try again'), findsOneWidget);
       // Still a control: the retry is the same tap.
-      await tester.tap(find.text('Sunday'));
+      await tester.tap(find.text('Sun – Sat'));
       await tester.pumpAndSettle();
-      expect(find.text('Start the week on Sunday?'), findsOneWidget);
+      expect(find.text('Run weeks Sun – Sat?'), findsOneWidget);
     });
 
-    testWidgets('a Sunday household reads its own note', (tester) async {
-      await _openWeekControl(tester, shape: WeekShape.sunday);
+    testWidgets('a Sunday household has its own span lit', (tester) async {
+      final household = await _openWeekControl(tester, shape: WeekShape.sunday);
 
-      expect(
-        find.textContaining('a Sunday shop covers that Sunday’s dinner'),
-        findsOneWidget,
-      );
+      await tester.tap(find.text('Sun – Sat'));
+      await tester.pumpAndSettle();
+      expect(find.text('Run weeks Sun – Sat?'), findsNothing);
+
+      await tester.tap(find.text('Mon – Sun'));
+      await tester.pumpAndSettle();
+      expect(find.text('Run weeks Mon – Sun?'), findsOneWidget);
+      expect(household.flips, isEmpty);
     });
   });
 }

@@ -556,12 +556,17 @@ void main() {
     await pumpUntilFound(tester, find.text('Our Cookbook'));
     await openAccount(tester);
     await pumpUntilFound(tester, find.text('USUAL PORTION'));
-    // Both at ×1: a meal for both is still two portions.
-    expect(find.textContaining('counts as 2 portions'), findsOneWidget);
     await tester.tap(_memberChip('Jun', '×¾'));
     await tester.pumpAndSettle();
-    // The write lands in the sheet's own foot line (P-D3: Ada set Jun's).
-    await pumpUntilFound(tester, find.textContaining('counts as 1¾ portions'));
+    // The write lands on this phone first (P-D3: Ada set Jun's).
+    await waitForDb(tester, () async {
+      final row = await db.getOptional(
+        'SELECT portion_factor FROM household_member WHERE id = ?',
+        [junId],
+      );
+      final factor = (row?['portion_factor'] as num?)?.toDouble();
+      return factor != null && (factor - 0.75).abs() < 1e-9;
+    }, 'Jun’s usual portion');
 
     // The RLS door `0026` added: `household_member` never took a client
     // write before this. The upload queue draining is the connector's word

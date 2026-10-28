@@ -77,13 +77,8 @@ class HouseholdSection extends ConsumerWidget {
               ],
             ),
           ),
-        if (members.isNotEmpty)
-          Text(
-            householdDemandLine(members),
-            style: ansiMono(size: 10.5, color: AnsiColors.muted),
-          ),
-        const SizedBox(height: 18),
-        const AnsiMicroLabel('Week starts on'),
+        const SizedBox(height: 4),
+        const AnsiMicroLabel('Week'),
         const SizedBox(height: 6),
         const WeekStartControl(),
       ],
@@ -91,8 +86,8 @@ class HouseholdSection extends ConsumerWidget {
   }
 }
 
-/// The household's first day of the week: two chips, a confirm, and one note
-/// line.
+/// The household's first day of the week: two chips naming each week's span,
+/// a confirm, and a note line while there is something to report.
 ///
 /// Online-only: the flip is one server transaction re-homing every planned
 /// week, so offline the chips go inert with the reason. A failure shows as the
@@ -113,7 +108,7 @@ class WeekStartControl extends HookConsumerWidget {
 
     Future<void> pick(int startsOn) async {
       if (inert || startsOn == shape.startsOn) return;
-      final day = WeekShape(startsOn).startsOnName;
+      final span = weekSpanLabel(WeekShape(startsOn));
       // Captured before the confirm: the dialog is an async gap, and the write
       // goes through these handles (`shared/write.dart`), never this `ref`.
       final container = ProviderScope.containerOf(context, listen: false);
@@ -121,12 +116,9 @@ class WeekStartControl extends HookConsumerWidget {
       final repo = ref.read(householdRepositoryProvider);
       final yes = await askAnsi(
         context,
-        title: 'Start the week on $day?',
-        body:
-            'Every week you have planned moves to match. A $day meal joins '
-            'the week that starts on it, and the rest of the week keeps its '
-            'days. Nothing is deleted.',
-        confirm: 'Start on $day',
+        title: 'Run weeks $span?',
+        body: 'Your planned weeks will shift to match.',
+        confirm: span,
       );
       if (!yes) return;
       moving.value = true;
@@ -153,7 +145,7 @@ class WeekStartControl extends HookConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: AnsiChip(
-                    label: WeekShape(day).startsOnName,
+                    label: weekSpanLabel(WeekShape(day)),
                     selected: shape.startsOn == day,
                     onTap: () => unawaited(pick(day)),
                   ),
@@ -161,58 +153,46 @@ class WeekStartControl extends HookConsumerWidget {
             ],
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          weekStartNote(
-            shape,
-            moving: moving.value,
-            reachable: reachable,
-            failed: failed.value,
+        if (weekStartNote(
+              moving: moving.value,
+              reachable: reachable,
+              failed: failed.value,
+            )
+            case final note?) ...[
+          const SizedBox(height: 6),
+          Text(
+            note,
+            style: ansiMono(
+              size: 10.5,
+              color: switch ((failed.value, reachable)) {
+                (true, _) => AnsiColors.aging,
+                (_, false) => AnsiColors.gone,
+                _ => AnsiColors.muted,
+              },
+            ),
           ),
-          style: ansiMono(
-            size: 10.5,
-            color: switch ((failed.value, reachable)) {
-              (true, _) => AnsiColors.aging,
-              (_, false) => AnsiColors.gone,
-              _ => AnsiColors.muted,
-            },
-          ),
-        ),
+        ],
       ],
     );
   }
 }
 
-/// The note under the chips: running, failed, unavailable offline, or what the
-/// setting means.
-String weekStartNote(
-  WeekShape shape, {
+/// `Sun – Sat`, `Mon – Sun`: the week's first and last day, so a chip names
+/// the whole span whichever day it starts on.
+String weekSpanLabel(WeekShape shape) =>
+    '${shape.labelShort(0)} – ${shape.labelShort(6)}';
+
+/// The note under the chips: running, failed or unavailable offline. Null
+/// when there is nothing to say.
+String? weekStartNote({
   required bool moving,
   required bool reachable,
   required bool failed,
 }) {
   if (moving) return 'moving your weeks…';
   if (failed) return 'couldn’t move your weeks — try again';
-  if (!reachable) {
-    return 'needs a connection · it moves weeks on both phones at once';
-  }
-  return 'the week you plan, cook and shop — a ${shape.startsOnName} shop '
-      'covers that ${shape.startsOnName}’s dinner';
-}
-
-/// The section's foot: "a meal for both counts as 1¾ portions — the cook plan,
-/// the shop and the macro lens all read it that way".
-String householdDemandLine(List<Member> members) {
-  final demand = eatersDemand(members.map((m) => m.id), {
-    for (final m in members) m.id: m,
-  });
-  final who = switch (members.length) {
-    1 => members.single.displayName,
-    2 => 'both',
-    _ => 'everyone',
-  };
-  return 'a meal for $who counts as ${formatPortions(demand)} — the cook '
-      'plan, the shop and the macro lens all read it that way';
+  if (!reachable) return 'needs a connection';
+  return null;
 }
 
 /// The five picks, and `…` for a custom value in quarter steps within
