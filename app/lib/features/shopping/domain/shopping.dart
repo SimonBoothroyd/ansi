@@ -570,7 +570,7 @@ ShoppingContribution _derivedContribution({
       unit != null &&
       unit.family != UnitFamily.count &&
       quantity != null) {
-    refusal = 'not counted (measure beside non-count unit "${unit.label}")';
+    refusal = 'not counted (bad unit)';
   } else {
     refusal = null;
   }
@@ -793,10 +793,7 @@ ShoppingList buildShoppingList({
             man.quantity != null)
           ShoppingContribution(
             source: ContributionSource.manual,
-            label:
-                '${man.note ?? 'manual top-up'} · '
-                'not counted (measure beside non-count unit '
-                '"${man.unit!.label}")',
+            label: '${man.note ?? 'manual top-up'} · not counted (bad unit)',
             measureId: man.measureId,
             contributionId: man.id,
           )

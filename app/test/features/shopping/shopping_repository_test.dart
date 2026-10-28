@@ -1079,9 +1079,11 @@ void main() {
     // not counted at all (not in the basis fold, not as measure counts) —
     // says why, and the user fixes the line rather than trusting a guess.
     expect(item.totals.single.amount, closeTo(75, 1e-9));
-    final labels = item.contributions.map((c) => c.label).join('\n');
-    expect(labels, contains('measure beside non-count unit "g"'));
-    expect(labels, contains('measure beside non-count unit "to taste"'));
+    final notes = item.contributions.where(
+      (c) => c.label.contains('not counted (bad unit)'),
+    );
+    // One for the grams line, one for the to-taste line.
+    expect(notes, hasLength(2));
   });
 
   group('nested recipes', () {

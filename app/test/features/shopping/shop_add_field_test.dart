@@ -314,10 +314,11 @@ void main() {
         order.indexOf('"lim" as a non-food item'),
         lessThan(order.indexOf('"lim" as a new ingredient')),
       );
-      expect(find.text('no amount · it just gets ticked'), findsOneWidget);
+      // Each row is its title alone.
+      expect(find.text('no amount · it just gets ticked'), findsNothing);
       expect(
         find.text('opens the ingredient form, then its amount'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.textContaining('can’t find it'), findsNothing);
       expect(find.text('INGREDIENTS'), findsNothing);

@@ -945,11 +945,9 @@ void main() {
       final item = list.groups.single.items.single;
       expect(item.totals.single.amount, 100); // only the honest plain line
       final notes = item.contributions
-          .where((c) => c.label.contains('measure beside non-count unit'))
+          .where((c) => c.label.contains('not counted (bad unit)'))
           .toList();
       expect(notes, hasLength(3));
-      expect(notes.map((c) => c.label).join(), contains('"g"'));
-      expect(notes.map((c) => c.label).join(), contains('"to taste"'));
       for (final n in notes) {
         expect(n.quantity, isNull); // a dash, not an invented number
         expect(n.measure, isNull); // and never fed to the mass fold

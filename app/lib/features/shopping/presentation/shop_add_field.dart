@@ -228,7 +228,6 @@ class ShopAddField extends HookConsumerWidget {
                         _AddRow(
                           key: kShopAddFreeTextKey,
                           title: '"$name" as a non-food item',
-                          detail: 'no amount · it just gets ticked',
                           onTap: () => unawaited(addFreeText(name)),
                         ),
                         Container(height: 1, color: AnsiColors.line),
@@ -241,8 +240,6 @@ class ShopAddField extends HookConsumerWidget {
                           builder: (words, start) => _AddRow(
                             key: kShopAddNewIngredientKey,
                             title: '"$words" as a new ingredient',
-                            detail:
-                                'opens the ingredient form, then its amount',
                             onTap: start == null
                                 ? null
                                 : () => unawaited(held(start)),
@@ -262,15 +259,9 @@ class ShopAddField extends HookConsumerWidget {
 /// One of the two rows every search ends with, worded in parallel: what the
 /// words become, and what happens next.
 class _AddRow extends StatelessWidget {
-  const _AddRow({
-    required this.title,
-    required this.detail,
-    required this.onTap,
-    super.key,
-  });
+  const _AddRow({required this.title, required this.onTap, super.key});
 
   final String title;
-  final String detail;
 
   /// Null while the row cannot act (a chain it started is still open).
   final VoidCallback? onTap;
@@ -281,30 +272,21 @@ class _AddRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        // A full-height tap target around one line of text.
+        padding: const EdgeInsets.symmetric(vertical: 13),
         child: Row(
           children: [
             const Icon(FLucideIcons.plus, size: 16, color: AnsiColors.herbDeep),
             const SizedBox(width: 8),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: ansiSans(
-                      size: 15,
-                      weight: FontWeight.w600,
-                      color: AnsiColors.herbDeep,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    detail,
-                    style: ansiMono(size: 10, color: AnsiColors.muted),
-                  ),
-                ],
+              child: Text(
+                title,
+                style: ansiSans(
+                  size: 15,
+                  weight: FontWeight.w600,
+                  color: AnsiColors.herbDeep,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

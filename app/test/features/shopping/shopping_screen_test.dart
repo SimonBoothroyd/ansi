@@ -300,10 +300,7 @@ void main() {
     // name (0025 D7c): the lit tab in the bar is what says "Shop".
     expect(find.byType(WeekSwitcher), findsOneWidget);
     expect(find.textContaining('Shopping list'), findsNothing);
-    expect(
-      find.textContaining('nothing to buy for this week yet'),
-      findsOneWidget,
-    );
+    expect(find.text('nothing to buy yet'), findsOneWidget);
     expect(find.text('plan a meal'), findsOneWidget);
     // The add field works with no plan at all, so it is never swapped away.
     expect(find.byKey(kShopAddFieldKey), findsOneWidget);
@@ -344,11 +341,11 @@ void main() {
     await tester.pump(); // shopping list stream
     await tester.pump(); // cook plan stream
 
-    // The two causes are still told apart — inside the list chrome, with the
-    // add field still on screen.
-    expect(find.textContaining('nothing to sum yet'), findsOneWidget);
-    expect(find.textContaining('list no ingredients'), findsOneWidget);
+    // The two causes are still told apart by the way out — inside the list
+    // chrome, with the add field still on screen.
+    expect(find.text('nothing to buy yet'), findsOneWidget);
     expect(find.text('add ingredients to a recipe'), findsOneWidget);
+    expect(find.text('plan a meal'), findsNothing);
     expect(
       find.byKey(kShopAddFieldKey),
       findsOneWidget,
@@ -1661,10 +1658,7 @@ void main() {
       await tester.tap(find.text('Coconut milk, canned'));
       await tester.pump();
       expect(find.text('PANTRY · IN THE BASKET'), findsOneWidget);
-      expect(
-        find.text('nothing to trace — an item you added by hand'),
-        findsOneWidget,
-      );
+      expect(find.text('added by hand'), findsOneWidget);
     });
 
     testWidgets('the check box ticks, and ticking says nothing about which '
