@@ -102,6 +102,8 @@ class RecipeHeaderForm extends StatelessWidget {
     this.timeCaptions = true,
     this.sections = kRecipeHeaderSections,
     this.dense = false,
+    this.makesKey,
+    this.makesFocus,
     super.key,
   });
 
@@ -118,6 +120,13 @@ class RecipeHeaderForm extends StatelessWidget {
   /// The wide header's compact cells: a short word beside (or above, see
   /// [_DenseRow]) a compact control, without the captions.
   final bool dense;
+
+  /// Keys the MAKES section, so a host can scroll to it. Used only by the
+  /// instance that draws MAKES.
+  final GlobalKey? makesKey;
+
+  /// The focus of MAKES's first amount, so a host can put the caret there.
+  final FocusNode? makesFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +166,7 @@ class RecipeHeaderForm extends StatelessWidget {
           ],
         ),
         RecipeHeaderSection.makes => Column(
+          key: makesKey,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AnsiMicroLabel(section.label),
@@ -168,7 +178,7 @@ class RecipeHeaderForm extends StatelessWidget {
                   style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
               ),
-            _MakesSection(recipe: recipe, host: host),
+            _MakesSection(recipe: recipe, host: host, focus: makesFocus),
           ],
         ),
         RecipeHeaderSection.measures => Column(
@@ -248,10 +258,13 @@ class RecipeHeaderForm extends StatelessWidget {
 /// families and can be added only once the first is stated, matching the
 /// database CHECK. The phone and the wide header draw it alike.
 class _MakesSection extends HookWidget {
-  const _MakesSection({required this.recipe, required this.host});
+  const _MakesSection({required this.recipe, required this.host, this.focus});
 
   final Recipe recipe;
   final RecipeHeaderHost host;
+
+  /// The first amount's focus. See [RecipeHeaderForm.makesFocus].
+  final FocusNode? focus;
 
   /// The units a yield may be stated in: every ingredient-line unit except the
   /// imprecise ones. `batch` is excluded too.
@@ -286,6 +299,7 @@ class _MakesSection extends HookWidget {
           quantity: recipe.yieldQty,
           unit: unit.value,
           units: _units,
+          focus: focus,
           onChanged: (qty, u) {
             unit.value = u;
             host.setYield(qty, u);
@@ -435,6 +449,7 @@ class _YieldRow extends StatelessWidget {
     required this.units,
     required this.onChanged,
     this.onRemove,
+    this.focus,
     super.key,
   });
 
@@ -443,6 +458,7 @@ class _YieldRow extends StatelessWidget {
   final List<Unit> units;
   final void Function(double? quantity, Unit unit) onChanged;
   final VoidCallback? onRemove;
+  final FocusNode? focus;
 
   @override
   Widget build(BuildContext context) {
@@ -451,6 +467,7 @@ class _YieldRow extends StatelessWidget {
       children: [
         AmountAndUnitField(
           amountWidth: 64,
+          focusNode: focus,
           amount: formatQuantityIn(quantity, unit),
           unit: unit,
           units: units,

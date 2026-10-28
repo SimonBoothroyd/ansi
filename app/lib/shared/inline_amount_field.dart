@@ -30,6 +30,7 @@ class InlineAmountField extends StatelessWidget {
     this.fieldKey,
     this.fractions = false,
     this.scrollController,
+    this.focusNode,
     super.key,
   }) : assert(
          controller == null || initial == null,
@@ -64,11 +65,16 @@ class InlineAmountField extends StatelessWidget {
   /// field leaves the tree (`shared/measure_form.dart`).
   final ScrollController? scrollController;
 
+  /// The slot's focus, for a host that puts the caret here on arrival (the
+  /// recipe editor's MAKES, opened by `?focus=makes`).
+  final FocusNode? focusNode;
+
   @override
   Widget build(BuildContext context) => SizedBox(
     width: width,
     child: FTextField(
       key: fieldKey,
+      focusNode: focusNode,
       scrollController: scrollController,
       textAlign: TextAlign.center,
       textInputAction: TextInputAction.done,

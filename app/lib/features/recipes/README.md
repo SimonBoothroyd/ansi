@@ -50,6 +50,13 @@ the Save gate; the editor adds *used in N steps*, the component variant and
 remove-with-chips. A tap anywhere on a collapsed row opens it, the head is the
 identity door, and rows are bare at rest (`LineCard.borderAtRest`).
 
+**A link can land the editor on its fix** (`presentation/recipe_editor_landing.dart`):
+`/recipes/:id/edit?focus=makes` scrolls to MAKES and focuses its first amount,
+and `?line=<line id>` opens that line's card as a tap would and scrolls it into
+view. The Cook tab's gap buttons are the links. A line deleted since, or a
+`focus` the editor does not know, opens it at the top; week mode (`?week=`)
+ignores both.
+
 - **A note is printed by one function** (`noteSpans`), held by
   `test/structure/one_note_grammar_test.dart`.
 - **`OptionalTag`** is the tag on a row and, handed an `onToggle`, week mode's

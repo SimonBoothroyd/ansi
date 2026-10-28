@@ -347,7 +347,7 @@ So the bar reads, per screen:
 |---|---|
 | the four tab roots | `#/`, `#/week?week=…`, `#/cook?week=…`, `#/shop?week=…` |
 | a recipe, and as the week plans it | `#/recipes/<id>`, `#/recipes/<id>?week=…` |
-| its editor, and week mode | `#/recipes/<id>/edit`, `#/recipes/<id>/edit?week=…` |
+| its editor, landed on a fix, and week mode | `#/recipes/<id>/edit`, `#/recipes/<id>/edit?focus=makes`, `#/recipes/<id>/edit?line=<line id>`, `#/recipes/<id>/edit?week=…` |
 | a new recipe | `#/recipes/new` (`?title=`, `?book=`, `?section=`, `?handback=1`) |
 | a book, the manager, one row, its form | `#/books/<id>`, `#/ingredients`, `#/ingredients/<id>`, `#/ingredients/<id>?edit=1` |
 | import, the household | `#/import`, `#/account` |
@@ -405,7 +405,12 @@ restatement that reloads the screen is not a restatement.
 One more parameter is a door rather than view state: **`?step=N` on
 `/recipes/:id`**, which a timer's dock row and notification use to open the
 recipe on its method, scrolled to that step. A row tapped while that very
-recipe is on screen does not push it again; it asks the page to scroll.
+recipe is on screen does not push it again; it asks the page to scroll. The
+editor has two of the same kind, which the Cook tab's gap buttons use:
+**`?focus=makes`** lands on MAKES with the caret in its first amount, and
+**`?line=<line id>`** opens that line's card, scrolled into view
+(`recipe_editor_landing.dart`). Week mode ignores both, and a line the recipe
+no longer has lands at the top.
 
 These deliberately stay out:
 
