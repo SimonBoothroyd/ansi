@@ -674,16 +674,9 @@ Future<void> _confirmFlatten(
     context,
     title: 'Convert the method to plain text?',
     body:
-        '${counts.chips} ingredient '
-        '${plural(counts.chips, 'chip')} and '
-        '${counts.timers} ${plural(counts.timers, 'timer')} '
-        'become ordinary words. Every sentence reads exactly the same — '
-        'only the links go.',
-    caveatLabel: 'This can’t be undone here',
-    caveat:
-        'Chips are written at import, or added one at a time from a '
-        'selection. Nothing on the phone can re-chip a method — matching '
-        'is online-only, and only at import.',
+        'Removes ${counts.chips} ${plural(counts.chips, 'chip')} and '
+        '${counts.timers} ${plural(counts.timers, 'timer')}.',
+    caveat: 'Can’t be undone.',
     confirm: 'Convert to plain text',
   );
   if (confirmed) notifier.convertMethodToPlainText();
@@ -730,9 +723,7 @@ class _SubstitutionNotice extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Their chips now read ${substitution.newName}. The words '
-                  'around them may need a look — we don’t rewrite your '
-                  'sentences.',
+                  'Chips renamed to ${substitution.newName}.',
                   style: ansiMono(
                     size: 11,
                     color: AnsiColors.muted,

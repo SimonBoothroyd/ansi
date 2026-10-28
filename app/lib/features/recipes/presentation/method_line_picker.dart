@@ -84,7 +84,6 @@ class _MethodLinePickerSheet extends HookWidget {
 
     return PickerShell(
       title: 'Point the chip at',
-      subtitle: 'A chip can only point at a line this recipe already has.',
       searchHint: 'Search this recipe’s lines',
       onQueryChanged: (v) => query.value = v,
       // A single match is offered by name above the list.
@@ -106,8 +105,7 @@ class _MethodLinePickerSheet extends HookWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10, bottom: 6),
               child: Text(
-                'Nothing in this recipe matches “$q”. '
-                'Add it below, or pick a line.',
+                'No match for “$q”',
                 style: ansiMono(size: 11, color: AnsiColors.muted),
               ),
             ),

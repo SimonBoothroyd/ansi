@@ -95,10 +95,7 @@ void main() {
     await substitute(tester, 'Fennel bulb');
 
     expect(find.text('1 step mentioned Fennel bulb'), findsOneWidget);
-    expect(
-      find.textContaining('we don’t rewrite your sentences'),
-      findsOneWidget,
-    );
+    expect(find.text('Chips renamed to Pork sausage.'), findsOneWidget);
     expect(find.text('Step 1 · check'), findsOneWidget);
     expect(find.text('was “fennel bulb”'), findsOneWidget);
     // The stored name is "Pork sausage", but the word it replaces sat
@@ -146,7 +143,7 @@ void main() {
     await tester.tap(removeLine());
     await tester.pumpAndSettle();
     expect(find.text('1 step mentions Fennel bulb.'), findsOneWidget);
-    expect(find.textContaining('only the links go'), findsOneWidget);
+    expect(find.text('Remove their chips too?'), findsOneWidget);
 
     await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
