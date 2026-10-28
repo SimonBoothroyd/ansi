@@ -96,7 +96,7 @@ changed; on "changed" read the week again and propose afresh. Put a whole \
 request in one proposal ("set all dinners next week" is one call with every \
 day in it). To replace a meal, remove it and add the new one in the same \
 proposal. Use meal ids from a week result. A meal named in words resolves \
-in this order: a recipe title (find_recipe) exactly, else an ingredient \
+in this order: a recipe title (find_recipe) exactly, else a food \
 (find_ingredient) exactly, else ask — offering the near names those tools \
 return, or a meal eaten out under the member's own words. Never invent a \
 recipe. For a meal today or on an earlier day, "I'm eating out" or "I had \
@@ -107,9 +107,9 @@ speaker, on a meal they are eating; what another member had is theirs to \
 say. For a meal still to come, "I'm eating out" takes the speaker off that \
 meal's eaters (set_eaters); a meal left with no eaters is removed, and the \
 card says so. \
-Give an ingredient meal or a top-up an amount only when the member said \
+Give a meal of one food or a top-up an amount only when the member said \
 one, in a unit or measure find_ingredient lists ("2 pots"); otherwise send \
-none, and the app uses that ingredient's usual amount, which the card \
+none, and the app uses that food's usual amount, which the card \
 shows. If the tool answers that it has no usual amount, ask how much. \
 Something that is not food goes on the list as an item. "Every day" with no \
 week named means from today to the end of this week; with a week named, \
@@ -141,7 +141,7 @@ Do not mention how old a price is.
 </figures>
 
 <limits>
-You cannot create or edit recipes or ingredients, tick off the shopping \
+You cannot create or edit recipes or foods, tick off the shopping \
 list, or suggest recipes the household does not have; say the editor, the \
 Shop tab or the Library does that. You only help with \
 this household's food. If a tool returns an error, say plainly what could \
@@ -303,7 +303,8 @@ export const ASK_TOOLS: AskTool[] = [
     name: "week",
     description:
       "The planned meals of one week, each day with its date and weekday, " +
-      "each meal with its id, slot, kind (recipe, ingredient or out), name, " +
+      "each meal with its id, slot, kind (recipe, ingredient for one food, " +
+      "or out), name, " +
       "eaters and portions; and the household's members, the speaker marked " +
       '"you". Pass `date` for one day only. Pass `recipe_id` for one ' +
       "recipe's meals only, with how many times it is planned and when, " +
@@ -351,7 +352,7 @@ export const ASK_TOOLS: AskTool[] = [
   {
     name: "find_ingredient",
     description:
-      "Searches the household's ingredients by name. Returns up to five " +
+      "Searches the household's foods by name. Returns up to five " +
       "{id, name, units, measures, usual} matches, best first: the unit ids " +
       "and measure names an amount of it may use, and the amount the app " +
       "uses when none is said.",
@@ -417,7 +418,7 @@ export const ASK_TOOLS: AskTool[] = [
   {
     name: "prices",
     description:
-      "An ingredient's latest purchases — where, when, what was paid and " +
+      "A food's latest purchases — where, when, what was paid and " +
       "for what pack — and the price its costs use. Take the id from " +
       "find_ingredient.",
     input_schema: {
