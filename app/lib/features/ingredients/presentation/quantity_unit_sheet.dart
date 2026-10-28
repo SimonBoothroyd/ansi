@@ -217,7 +217,7 @@ class QuantityUnitEditor extends HookConsumerWidget {
         dismiss: AnsiSheetDismiss.none,
         children: [
           AnsiErrorState(
-            what: 'this ingredient’s measures',
+            what: 'this food’s measures',
             error: measuresAsync.error!,
             stackTrace: measuresAsync.stackTrace,
             onRetry: () =>

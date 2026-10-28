@@ -48,7 +48,7 @@ label, its count, its `＋` and `⋯`) and a recipe is one line with its stats s
 in the same right-hand column. Nothing is folded away but a whole book, and the
 fold is the phone's own per-device state. The whole shelf is flattened into one
 `SliverList`, so only the lines in the window are built. Everything that is not
-a book — the `＋ new book` door, the Ingredients shelf, the ranked search column
+a book — the `＋ new book` door, the Foods shelf, the ranked search column
 — is the phone's own, in the phone's order.
 
 ## What the Library's rows say
@@ -62,7 +62,7 @@ a book — the `＋ new book` door, the Ingredients shelf, the ranked search col
   person is choosing what to cook). The row has no `›`: the whole row is the
   door, and the `⋯` owns that corner. A search result is the same row with its
   `Book · Section` filing line above the stats.
-- **The Ingredients shelf** at the foot is a **rule and a row, not a card** — a
+- **The Foods shelf** at the foot is a **rule and a row, not a card** — a
   hairline, the uppercase micro-label in herb ink, the counts, and a `›`. A
   book is a container that folds; the vocabulary is a place you go, so nothing
   about it invites the fold, the `⋯` or the reorder a book header carries. It

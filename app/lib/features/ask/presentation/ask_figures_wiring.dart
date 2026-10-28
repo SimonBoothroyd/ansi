@@ -198,7 +198,7 @@ Future<String> askPrices(ProviderContainer c, String ingredientId) async {
       .read(ingredientRepositoryProvider)
       .byId(ingredientId);
   if (ingredient == null) {
-    throw AskToolError('there is no ingredient with the id `$ingredientId`');
+    throw AskToolError('there is no food with the id `$ingredientId`');
   }
   final prices = c.read(priceRepositoryProvider);
   final costPrice = (await prices.watchCostPrices().first)[ingredientId];

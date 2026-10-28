@@ -182,7 +182,7 @@ class IngredientListView extends HookConsumerWidget {
     }, [reading, ordered.length]);
 
     final header = FHeader.nested(
-      title: Text('Ingredients', style: ansiHeaderTitle()),
+      title: Text('Foods', style: ansiHeaderTitle()),
       prefixes: [FHeaderAction.back(onPress: () => ansiBack(context))],
       suffixes: [
         FHeaderAction(icon: const Icon(FLucideIcons.plus), onPress: addNew),
@@ -310,7 +310,7 @@ class IngredientListView extends HookConsumerWidget {
     AsyncLoading() when all.isEmpty => const SizedBox.shrink(),
     _ when all.isEmpty => Center(
       child: Text(
-        'No ingredients yet',
+        'No foods yet',
         textAlign: TextAlign.center,
         style: ansiMono(size: 12, color: AnsiColors.muted),
       ),
@@ -354,7 +354,7 @@ class IngredientListView extends HookConsumerWidget {
     onTap: addNew,
     child: FCard(
       child: Text(
-        'add an ingredient',
+        'add a food',
         textAlign: TextAlign.center,
         style: ansiMono(size: 11, color: AnsiColors.herb),
       ),
@@ -538,7 +538,7 @@ class _SheetPane extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Pick an ingredient',
+                'Pick a food',
                 textAlign: TextAlign.center,
                 style: ansiMono(size: 12, color: AnsiColors.muted),
               ),

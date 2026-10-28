@@ -18,9 +18,9 @@ import 'normalize.dart';
 
 /// What the form's note and the write's refusal both open with. Exported apart
 /// from [nameTakenMessage] because a widget draws the name after it as a link.
-const kNameTakenPrefix = 'Already an ingredient: ';
+const kNameTakenPrefix = 'Already a food: ';
 
-/// The refusal in words: `Already an ingredient: Sauerkraut`.
+/// The refusal in words: `Already a food: Sauerkraut`.
 String nameTakenMessage(String existingName) =>
     '$kNameTakenPrefix$existingName';
 

@@ -18,7 +18,7 @@ read is the barcode module's Open Food Facts fetch by product code.
                                                   `?name=` prefills it
 /ingredients/:id     ingredient_detail_view.dart  a fact sheet; ⋯ ▸ Edit is the form
 
-showIngredientPicker   ingredient_picker.dart     recipe editor, shopping top-up
+showIngredientPicker   ingredient_picker.dart     a receipt line's match
 showQuantityUnitSheet  quantity_unit_sheet.dart   every quantity + unit in the app
 showUsdaPickSheet      usda_pick_sheet.dart       the USDA short-list
 showPriceSheet         price_sheet.dart           set, change or clear a base price
@@ -26,8 +26,10 @@ scanBarcodeForDraft    barcode/barcode_add.dart   the barcode module's one door
 pickLabelPhoto         label_photo_door.dart      the label door's photo intake
 ```
 
-`/ingredients` is a pushed route from the Library's ingredients shelf, not a
-tab.
+`/ingredients` is a pushed route from the Library's Foods shelf, not a tab.
+On screen a row is a **food** (the manager, the form, the vocabulary picker,
+its add-new row); a recipe's line stays an **ingredient**. The code, routes
+and tables keep `ingredient`.
 
 ## Files
 

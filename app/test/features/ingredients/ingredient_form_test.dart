@@ -380,7 +380,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await openMoreMenu(tester);
-      await tester.tap(find.text('Delete ingredient'));
+      await tester.tap(find.text('Delete food'));
       await tester.pumpAndSettle();
 
       expect(
@@ -399,7 +399,7 @@ void main() {
       await tester.pumpWidget(host(repo, at: editRoute('mango')));
       await tester.pumpAndSettle();
       await openMoreMenu(tester);
-      await tester.tap(find.text('Delete ingredient'));
+      await tester.tap(find.text('Delete food'));
       await tester.pumpAndSettle();
       expect(repo.rows, isEmpty);
     });

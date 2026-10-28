@@ -401,7 +401,7 @@ class AskToolRunner {
             id,
           }, forMeal: false))[id];
           if (ingredient == null) {
-            throw AskToolError('there is no ingredient with the id `$id`');
+            throw AskToolError('there is no food with the id `$id`');
           }
         }
         return _decided(

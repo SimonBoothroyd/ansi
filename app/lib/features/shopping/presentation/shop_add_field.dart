@@ -239,7 +239,7 @@ class ShopAddField extends HookConsumerWidget {
                           onCreated: (ing) => unawaited(pick(ing)),
                           builder: (words, start) => _AddRow(
                             key: kShopAddNewIngredientKey,
-                            title: '"$words" as a new ingredient',
+                            title: '"$words" as a new food',
                             onTap: start == null
                                 ? null
                                 : () => unawaited(held(start)),

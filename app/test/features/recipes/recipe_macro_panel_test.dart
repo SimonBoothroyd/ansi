@@ -267,7 +267,7 @@ void main() {
     expect(find.textContaining('Cucumber'), findsOneWidget);
     expect(find.textContaining('needs a piece weight'), findsWidgets);
     expect(find.textContaining('Tofu'), findsOneWidget);
-    expect(find.textContaining('stub ingredient'), findsWidgets);
+    expect(find.textContaining('·  stub'), findsWidgets);
   });
 
   testWidgets('the list caps at four with +N more', (tester) async {

@@ -41,7 +41,7 @@ enum ReceiptLineIssue {
 /// The `⚠` label a card wears, in the order the gate checks them — the same
 /// shape the recipe review's `attentionLabel` has.
 String? receiptAttentionLabel(List<ReceiptLineIssue> issues) {
-  if (issues.contains(ReceiptLineIssue.unmatched)) return 'Match an ingredient';
+  if (issues.contains(ReceiptLineIssue.unmatched)) return 'Match a food';
   if (issues.contains(ReceiptLineIssue.amountMissing)) {
     return 'Set the amount';
   }

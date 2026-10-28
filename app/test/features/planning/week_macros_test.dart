@@ -384,7 +384,7 @@ void main() {
       final left = _sum([
         _snack(id: 'a', name: null, knownRow: false),
       ]).excluded.single;
-      expect(left.label, '(deleted ingredient)');
+      expect(left.label, '(deleted food)');
       expect(left.lineReason, MacroLineReason.unknownIngredient);
     });
 

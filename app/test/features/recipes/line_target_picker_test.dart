@@ -186,7 +186,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('YOUR RECIPES'), findsNothing);
     expect(find.textContaining('as a new recipe'), findsNothing);
-    expect(find.textContaining('as a new ingredient'), findsOneWidget);
+    expect(find.textContaining('as a new food'), findsOneWidget);
   });
 
   testWidgets('the recipe being edited is never offered as its own component', (

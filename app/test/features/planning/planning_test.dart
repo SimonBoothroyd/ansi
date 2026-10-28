@@ -233,7 +233,7 @@ void main() {
       expect(deletedDish.title, isNull);
       expect(deletedTargetLabel(deletedDish), '(deleted recipe)');
       expect(unsyncedRow.title, isNull);
-      expect(deletedTargetLabel(unsyncedRow), '(deleted ingredient)');
+      expect(deletedTargetLabel(unsyncedRow), '(deleted food)');
       // Its words ARE its target, so there is nothing for it to lose.
       expect(out.title, 'Office lunch');
     });

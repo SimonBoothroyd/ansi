@@ -267,7 +267,7 @@ final class InsteadOut extends InsteadMeal {
 /// kind. A meal eaten out keeps its own label.
 String deletedTargetLabel(PlanEntry entry) => switch (entry.kind) {
   PlanEntryKind.recipe => '(deleted recipe)',
-  PlanEntryKind.ingredient => '(deleted ingredient)',
+  PlanEntryKind.ingredient => '(deleted food)',
   PlanEntryKind.out => '(that meal)',
 };
 

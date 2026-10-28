@@ -108,7 +108,7 @@ void main() {
       await tester.pumpAndSettle();
       await runTheScan(tester, containerOf(tester));
 
-      expect(find.text('Match an ingredient'), findsWidgets);
+      expect(find.text('Match a food'), findsWidgets);
       await tester.tap(find.text('TJ MED CHDR SHRD'));
       await tester.pumpAndSettle();
       expect(find.text('DID YOU MEAN'), findsOneWidget);

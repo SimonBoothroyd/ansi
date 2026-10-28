@@ -734,7 +734,7 @@ void main() {
     await tester.tap(find.text('add a meal').first);
     await tester.pumpAndSettle();
     expect(
-      find.text('Search recipes and ingredients'),
+      find.text('Search recipes and foods'),
       findsOneWidget,
       reason: 'the picker',
     );
@@ -1155,7 +1155,7 @@ void main() {
         recipes: _recipesRepo(null),
       );
       expect(macroTextContaining('0 kcal'), findsNothing);
-      expect(find.textContaining('stub ingredient'), findsWidgets);
+      expect(find.textContaining('· stub'), findsWidgets);
     });
 
     testWidgets('an amount-less snack names that state rather than nothing', (

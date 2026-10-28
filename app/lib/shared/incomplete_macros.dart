@@ -56,8 +56,8 @@ String incompleteNote(RecipeMacroSummary summary) {
 /// [MacroLineReason.imprecise] has no wording here: such a line is named by
 /// the word the source printed (see [impreciseNotCountedNames]).
 String incompleteLineNote(MacroLineReason reason) => switch (reason) {
-  MacroLineReason.stubIngredient => 'stub ingredient',
-  MacroLineReason.unknownIngredient => 'not in your ingredients yet',
+  MacroLineReason.stubIngredient => 'stub',
+  MacroLineReason.unknownIngredient => 'not in your foods yet',
   // The fix is the line, not the row.
   MacroLineReason.removedIngredient => 'ingredient removed · pick again',
   MacroLineReason.needsWeight => 'needs a piece weight',

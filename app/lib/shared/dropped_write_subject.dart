@@ -72,9 +72,7 @@ String droppedWriteKind(String table) => switch (table) {
   'shopping_list_entry' ||
   'shopping_list_contribution' => 'shopping list change',
   'receipt' || 'receipt_line' => 'receipt edit',
-  'ingredient' ||
-  'ingredient_alias' ||
-  'ingredient_measure' => 'ingredient edit',
+  'ingredient' || 'ingredient_alias' || 'ingredient_measure' => 'food edit',
   'book' || 'book_section' => 'book change',
   'household_member' => 'portion change',
   'household' => 'household change',
@@ -91,7 +89,7 @@ String _unfoundName(String table) => switch (table) {
   'week_plan' => 'A week',
   'shopping_list_entry' || 'shopping_list_contribution' => 'A shopping item',
   'receipt' || 'receipt_line' => 'A receipt',
-  'ingredient' || 'ingredient_alias' || 'ingredient_measure' => 'An ingredient',
+  'ingredient' || 'ingredient_alias' || 'ingredient_measure' => 'A food',
   'book' || 'book_section' => 'A book',
   'household_member' => 'A household member',
   'household' => 'Your household',

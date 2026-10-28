@@ -1070,7 +1070,7 @@ void main() {
           container.read(importControllerProvider) as ImportReconciling;
       expect(arrived.resolutions.single.isComponent, isFalse);
       expect(
-        find.text('Match an ingredient — or link your recipe'),
+        find.text('Match an ingredient or link your recipe'),
         findsOneWidget,
       );
 
@@ -1122,7 +1122,7 @@ void main() {
       // No ingredient prompt survives.
       expect(find.text('Match an ingredient'), findsNothing);
       expect(
-        find.text('Match an ingredient — or link your recipe'),
+        find.text('Match an ingredient or link your recipe'),
         findsNothing,
       );
     });
@@ -1149,7 +1149,7 @@ void main() {
       // The offer is on the card again, unanswered.
       expect(find.text('your recipe · Romesco Aioli'), findsOneWidget);
       expect(
-        find.text('Match an ingredient — or link your recipe'),
+        find.text('Match an ingredient or link your recipe'),
         findsOneWidget,
       );
     });

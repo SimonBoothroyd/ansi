@@ -174,7 +174,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
             top: ingredientSearch.guessed ? 0 : 14,
             bottom: 4,
           ),
-          child: Text('INGREDIENTS', style: ansiLabel()),
+          child: Text('FOODS', style: ansiLabel()),
         ),
         for (final (i, ing) in ingredientHits.indexed) ...[
           if (i > 0) Container(height: 1, color: AnsiColors.line),
@@ -220,7 +220,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
       subtitle:
           'to · ${ref.watch(weekShapeProvider).labelFull(dayOfWeek)}, $slot',
       // One field searches both corpora — that is what makes it one door.
-      searchHint: 'Search recipes and ingredients',
+      searchHint: 'Search recipes and foods',
       onQueryChanged: (q) {
         query.value = q;
         unawaited(ingredientSearch.run(q));

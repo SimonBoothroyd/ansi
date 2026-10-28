@@ -161,6 +161,11 @@ The column list is generated from the migrations —
 [`../generated/db-schema.md`](../generated/db-schema.md), kept honest by
 `make docs-check`. What the columns *mean*:
 
+- **On screen a row is a *food*; a recipe's line is an *ingredient*.** The
+  manager, a row's page and form, a planned bare item, the shop, receipts and
+  the vocabulary picker say *food*. A recipe's lines, the line picker and the
+  import review keep *ingredient*. Copy only: the table, columns, types and
+  `/ingredients` routes keep their names ([plan 0058](../exec-plans/active/0058-foods-not-ingredients.md)).
 - **Aliases are rows, not a column.** `ingredient_alias` holds the other
   names a household calls a row (`ingredient_alias`: `alias_text` as it was
   seen, `match_text` normalized, `source`; per household, soft-deleted like
@@ -203,7 +208,7 @@ The column list is generated from the migrations —
   by `match_text` (`domain/name_namespace.dart`). A name that lands on one
   already there — a canonical name or somebody's alias, `Sauerkraut`,
   `sauerkraut ` and `Sauer-Kraut` being one name here — **refuses the save**,
-  in the row's own words (*Already an ingredient: Sauerkraut*) with that row as
+  in the row's own words (*Already a food: Sauerkraut*) with that row as
   a door. A row is always saveable under the name it already has. A name that
   is merely *near* one is not refused: up to three rows surface under the
   pickers' `DID YOU MEAN` band, and on `/ingredients/new` a tap **asks** ("Use
@@ -553,7 +558,7 @@ its steps.
   - **The refusal NAMES its causes** (plan 0024 seam D5). The count line the
     picker rows print is kept verbatim, and under it the panel lists the
     lines the total is waiting on — `Dragon fruit · needs a piece weight`,
-    `Tofu · stub ingredient` — capped at four with `+N more`, each one a door
+    `Tofu · stub` — capped at four with `+N more`, each one a door
     to the fix its reason implies; `needs a piece weight` opens the
     **ingredient's** form, because the missing number is the row's, not the
     line's. The same reason is drawn **in place** on the
@@ -729,7 +734,7 @@ go. There is no re-chip — tokenization happens only inside the import call.
     - On screen it is **visibly not a recipe**: no shelf-life chip, no batch
       hint, no recipe door (its title opens the *ingredient* page), and its
       amount where a cook marker would be. The add door is **one** door — the
-      planning picker gained an Ingredients section, the way the editor's line
+      planning picker gained a Foods section, the way the editor's line
       picker gained "Your recipes" — because a cook should not have to know,
       before searching, whether the thing they want is a recipe.
   - **Demand for an entry, in three rules** (`demandPortions`): the
@@ -869,14 +874,15 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   it: the recipe line and the bare-ingredient meal both leave the aisles. They
   are not silent about it either. The list's **third echo channel** names each
   one under the row's last known name, in the unresolved echo's amber voice:
-  *"Sauerkraut · ingredient removed · pick again in the recipe"*, or *"… in the
-  plan"* for a planned meal, because that is where its pick is. The planned
+  *"Sauerkraut · ingredient removed · pick again in the recipe"*, or *"Skyr ·
+  food removed · pick again in the plan"* for a planned meal, because that is
+  where its pick is. The planned
   meal's row is kept deliberately — it used to vanish with its check-off,
   which is how a missing snack went unnoticed. The words are the recipe page's
   and the editor's, one vocabulary for one kind of broken line (see
   *Ingredient*: a retire is refused while a live line names the row).
 - **Top up** = persist a `manual` contribution against the entry (find-or-create).
-- **Adding starts from one field at the top** ([plan 0056](../exec-plans/active/0056-shop-refresh.md) R4, R9): `Add to the list`, under the `To buy · At home?` toggle, and not drawn while `At home?` is on. Typing puts the picker's own answer where the walk was — spelled-right rows, else the *did you mean* band — until the field is cleared or left; a result already on this week's list says so, `Produce · on the list · 3 lime, whole`, because a pick tops it up. Every search with text ends with the same two rows: `＋ "paper towels" as a non-food item`, which adds the words with no second sheet, and `＋ "paper towels" as a new ingredient`, which opens the ingredient form and lands its row on the quantity sheet. Picking an ingredient opens the shared quantity sheet on its usual amount; **Add to list** writes the top-up and the field clears, and backing out adds nothing.
+- **Adding starts from one field at the top** ([plan 0056](../exec-plans/active/0056-shop-refresh.md) R4, R9): `Add to the list`, under the `To buy · At home?` toggle, and not drawn while `At home?` is on. Typing puts the picker's own answer where the walk was — spelled-right rows, else the *did you mean* band — until the field is cleared or left; a result already on this week's list says so, `Produce · on the list · 3 lime, whole`, because a pick tops it up. Every search with text ends with the same two rows: `＋ "paper towels" as a non-food item`, which adds the words with no second sheet, and `＋ "paper towels" as a new food`, which opens the food form and lands its row on the quantity sheet. Picking an ingredient opens the shared quantity sheet on its usual amount; **Add to list** writes the top-up and the field clears, and backing out adds nothing.
 - **Check-off** = on the entry (rolled-up ingredient), not per contribution.
 - **Already at home** (migration 0058, [plan 0055](../exec-plans/active/0055-already-got-it.md)):
   before a trip, either of us says what is already in the cupboard, through
@@ -1123,7 +1129,7 @@ their category, because nothing else there says where they live.
 
 **Fleshing out a stub (step 8.5, shipped):** a stub needs density/macros before
 it counts toward conversions or macro totals. It surfaces as a **band pinned on
-top of the whole vocabulary** in the ingredients manager (`/ingredients`), above
+top of the whole vocabulary** in the Foods manager (`/ingredients`), above
 the aisle sections and not as a separate queue screen — a vocabulary you can
 only see when it is broken is not a vocabulary you can edit. **Nothing prefills a stub.** A row is matched to the
 USDA reference set only when a person opens the form's `Fill it in from ▸ Look
@@ -1143,7 +1149,7 @@ server function. Filling in is never promotion: **macros gate `complete`, densit
 confirming is an explicit human act** in the flesh-out form (reversible —
 a `complete` row can be un-confirmed).
 
-**The ingredient page reads before it edits (design board "Ingredient detail",
+**The ingredient page reads before it edits (design board "Food detail",
 shipped):** `/ingredients/:id` is **one route in two postures**. A row that
 exists opens as a **fact sheet** — the same four groups (Identity, Nutrition,
 Units & measures, Price) with each field's value *stated* rather than offered,
@@ -1226,9 +1232,9 @@ books, their user-named sections, and the recipes filed under each.
   `Unsectioned` label carries one too: that is the door for "this book, no
   section". An expanded card carries **no dashed rows at all** — New section is
   the book `⋯`'s item, which it always was.
-- **The vocabulary is a shelf, not a menu item.** An Ingredients card closes
+- **The vocabulary is a shelf, not a menu item.** A Foods shelf closes
   the library with the book anatomy exactly — a name, a count line
-  (`323 ingredients` on a household fresh off the seed, which carries no
+  (`323 foods` on a household fresh off the seed, which carries no
   stubs; a `· N stubs` half joins the line the moment one exists), one
   control — and a `›` rather than a fold,
   because 300 rows do not belong inside a card. It is not reference data filed
@@ -1363,9 +1369,9 @@ source-tab slot, footer slot):
   its reason; an "Eating: Ada & Jun · shared" footer. Title search is the same
   three-tier rule the ingredient picker uses — as is the editor's "Your
   recipes" section, pinned by a cross-picker test. It searches **recipes and
-  ingredients together**: under a typed query an INGREDIENTS section follows
+  foods together**: under a typed query a FOODS section follows
   the recipe rows, carrying its own `DID YOU MEAN` band, so a meal that is a
-  bare ingredient is planned through the same door and a cook never has to know
+  bare food is planned through the same door and a cook never has to know
   before searching which of the two the thing they want is. With an empty query
   there is no such section — nobody opened *add a meal* to browse the
   vocabulary.

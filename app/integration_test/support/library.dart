@@ -24,7 +24,7 @@ Finder sectionAdd(String section) => find.descendant(
 
 /// The Ingredients shelf at the foot of the library — a rule and a row under
 /// the books, not a card, so its name is the uppercase micro-label.
-Finder get ingredientsShelf => find.text('INGREDIENTS');
+Finder get ingredientsShelf => find.text('FOODS');
 
 /// Opens it. The whole row is the door.
 Future<void> openIngredientsShelf(WidgetTester tester) async {

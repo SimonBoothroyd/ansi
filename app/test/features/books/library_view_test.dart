@@ -1008,9 +1008,8 @@ void main() {
     ];
 
     /// The shelf's own row — the one the label sits in.
-    Finder shelfRow() => find
-        .ancestor(of: find.text('INGREDIENTS'), matching: find.byType(Row))
-        .first;
+    Finder shelfRow() =>
+        find.ancestor(of: find.text('FOODS'), matching: find.byType(Row)).first;
 
     testWidgets('is a rule and a row, not a card', (tester) async {
       await tester.pumpWidget(_host(withVocab(308, 3)));
@@ -1018,15 +1017,15 @@ void main() {
 
       // A book is a container that folds; the vocabulary is a place you go.
       // The serif book name is gone — this is the app's micro-label.
-      expect(find.text('INGREDIENTS'), findsOneWidget);
-      expect(find.text('Ingredients'), findsNothing);
-      expect(find.text('308 ingredients · 3 stubs'), findsOneWidget);
+      expect(find.text('FOODS'), findsOneWidget);
+      expect(find.text('Foods'), findsNothing);
+      expect(find.text('308 foods · 3 stubs'), findsOneWidget);
 
       // No filled card behind it…
       final fills = tester
           .widgetList<ColoredBox>(
             find.ancestor(
-              of: find.text('INGREDIENTS'),
+              of: find.text('FOODS'),
               matching: find.byType(ColoredBox),
             ),
           )
@@ -1037,7 +1036,7 @@ void main() {
       final decorations = tester
           .widgetList<DecoratedBox>(
             find.ancestor(
-              of: find.text('INGREDIENTS'),
+              of: find.text('FOODS'),
               matching: find.byType(DecoratedBox),
             ),
           )
@@ -1084,7 +1083,7 @@ void main() {
       );
     });
 
-    testWidgets('never says "0 ingredients", and the whole row opens it', (
+    testWidgets('never says "0 foods", and the whole row opens it', (
       tester,
     ) async {
       late GoRouter router;
@@ -1092,11 +1091,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // The stub badge's rule: a zero that renders looks like a bug.
-      expect(find.text('INGREDIENTS'), findsOneWidget);
-      expect(find.textContaining('0 ingredient'), findsNothing);
+      expect(find.text('FOODS'), findsOneWidget);
+      expect(find.textContaining('0 food'), findsNothing);
       expect(find.textContaining('0 stub'), findsNothing);
 
-      await tester.tap(find.text('INGREDIENTS'));
+      await tester.tap(find.text('FOODS'));
       await tester.pumpAndSettle();
       expect(router.state.uri.toString(), '/ingredients');
       expect(find.text('vocabulary screen'), findsOneWidget);

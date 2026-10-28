@@ -132,7 +132,7 @@ void main() {
       expect(find.text('Produce · 2'), findsOneWidget);
       expect(find.text('Pantry · 1'), findsOneWidget);
       expect(
-        find.textContaining('add an ingredient'),
+        find.textContaining('add a food'),
         findsOneWidget,
         reason: 'the add door stays at the pane’s foot',
       );
@@ -178,7 +178,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // `/ingredients` opens on no row, and says so where the sheet will be.
-      expect(find.text('Pick an ingredient'), findsOneWidget);
+      expect(find.text('Pick a food'), findsOneWidget);
       expect(find.byKey(kVocabularyReadingRowKey), findsNothing);
       final depth = router.routerDelegate.currentConfiguration.matches.length;
 
@@ -302,7 +302,7 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text('Ingredient'),
+        find.text('Food'),
         findsNothing,
         reason: 'the pane is not a page and has no title of its own',
       );
@@ -314,7 +314,7 @@ void main() {
             'here is chrome that exists for a frame and then goes',
       );
       // The list beside it still draws the page's own one way back.
-      expect(find.text('Ingredients'), findsOneWidget);
+      expect(find.text('Foods'), findsOneWidget);
       expect(find.text('…'), findsOneWidget);
     });
 
@@ -333,7 +333,7 @@ void main() {
       // the one the owner saw `Ingredient ‹` in.
       for (var i = 0; i < 4; i++) {
         await tester.pump();
-        expect(find.text('Ingredient'), findsNothing);
+        expect(find.text('Food'), findsNothing);
         expect(paneHeaderActions(tester).where((a) => !isEllipsis(a)), isEmpty);
       }
       // The list is still beside it, still itself, with the row it was asked

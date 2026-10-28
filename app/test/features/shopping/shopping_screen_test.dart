@@ -1395,7 +1395,7 @@ void main() {
     );
     expect(find.text('SNACK · TUE'), findsOneWidget);
     expect(
-      find.text('Protein bar · ingredient removed · pick again in the plan'),
+      find.text('Protein bar · food removed · pick again in the plan'),
       findsOneWidget,
     );
     // Amber, like the unresolved echo: a broken line is a defect somebody can

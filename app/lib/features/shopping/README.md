@@ -128,7 +128,7 @@ hands them with the overlay to `buildShoppingList` (pure).
   this week's list says so after its category, `Produce · on the list · 3
   lime, whole`. Every search with text ends with the same two rows, worded in
   parallel: `＋ "paper towels" as a non-food item` writes `addFreeTextItem`
-  with no sheet, and `＋ "paper towels" as a new ingredient` runs the
+  with no sheet, and `＋ "paper towels" as a new food` runs the
   picker's add-new chain (`AddNewIngredientRow`, in this field's words), so
   the form's row lands on the quantity sheet. A pick opens the shared
   quantity sheet, **Add to list** writes `addTopUp` (a measure stores

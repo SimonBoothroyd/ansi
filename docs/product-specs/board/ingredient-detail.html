@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ansi board — Ingredient detail</title>
+<title>Ansi board — Food detail</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
-    <h1 class="view-title">Ingredient detail</h1>
+    <h1 class="view-title">Food detail</h1>
     <p class="view-status">built · matches code 2026-10-28 · <code>features/ingredients</code> · <a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../exec-plans/completed/0029-one-save-one-write.md">plan 0029</a> · <a href="../../exec-plans/completed/0032-ingredient-detail-v2.md">plan 0032</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · wide: matches code 2026-09-21 — the same one column, centred at 640 and drawn beside the vocabulary in a 720 pane from 1024 up (<a href="./ingredients-manager.html">manager</a>); the price sheet is the same sheet, as a dialog from 640 · editing ⋯: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
     <p class="view-blurb"><b>One route, two postures.</b> A row that exists opens as a <b>fact sheet</b> — four groups (Identity, Nutrition, Units &amp; measures, Price), plus <b>On receipts</b> on a row a receipt has carried, with each field’s value stated instead of offered, no dock, and <code>Edit</code> in the header’s <code>⋯</code> exactly where the recipe page keeps it. <code>Edit</code> turns the first three into <b>the form</b>; Save and back turn it back. <b>Price is the fact sheet’s alone</b>: its sheet writes the row’s base price the moment Done is tapped, so the form, whose fields wait for Save, draws no Price group at all. <code>/ingredients/new</code> opens the form directly — there is nothing yet to read — and so does every door that exists to <i>change</i> a field.</p>
 </header>
@@ -303,12 +303,12 @@
             <p class="lib-mcap">and when the name is already somebody&rsquo;s</p>
             <p class="flabel" style="margin-top:8px">Canonical name</p>
             <div class="frow"><div class="fin big">Sauerkraut</div></div>
-            <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already an ingredient:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
+            <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already a food:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
 
             <p class="flabel" style="margin-top:14px">Also known as</p>
             <div class="frow"><div class="chips"><span class="chip add">&#65291; alias</span></div></div>
             <div class="frow"><div class="fin" style="color:var(--muted);font-size:12.5px">sauerkraut</div></div>
-            <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already an ingredient:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
+            <p class="conv-note" style="margin:-6px 20px 0"><span style="color:var(--gone)">Already a food:&nbsp;</span><b style="border-bottom:1px solid var(--line)">Sauerkraut</b></p>
 
             <p class="lib-mcap">and when it was NEARLY somebody&rsquo;s</p>
             <p class="flabel" style="margin-top:8px">Canonical name</p>
@@ -564,7 +564,7 @@
             <div class="lib-menu" style="margin-top:8px">
                 <div class="mi"><span class="ic">↺</span><span class="lb">Return it to a stub</span></div>
                 <div class="rule"></div>
-                <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete ingredient</span></div>
+                <div class="mi danger"><span class="ic">🗑</span><span class="lb">Delete food</span></div>
             </div>
             <p class="conv-note" style="margin-top:10px">On a stub the first item is absent — there is nothing to un-confirm. <b>Mark complete does not move here</b>: it is the page’s whole purpose and stays in the dock. Only the two acts that are <i>not</i> filling the form in go behind the menu, which is how <span style="font-family:'IBM Plex Mono',monospace">Delete ingredient</span> stops sitting one flick under the green button.</p>
             <p class="conv-note" style="margin-top:8px"><b>Save puts the form down, it does not leave the page</b> — an existing row lands back on its fact sheet, showing what was just written; so does <b>Mark complete</b>, and so does back (the form discards what it holds, exactly as it always has). <code>/ingredients/new</code> is the exception and stays as it was: it has no fact sheet behind it, so it pops with the row it made, which is what the picker that pushed it awaits.</p>

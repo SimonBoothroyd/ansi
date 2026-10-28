@@ -862,7 +862,7 @@ class _IngredientsShelf extends ConsumerWidget {
     final stubs = ref.watch(stubCountProvider).asData?.value ?? 0;
     // The count is absent, not zero, until it has loaded.
     final line = [
-      if (total != null && total > 0) '$total ${plural(total, 'ingredient')}',
+      if (total != null && total > 0) '$total ${plural(total, 'food')}',
       if (stubs > 0) '$stubs ${plural(stubs, 'stub')}',
     ].join(' · ');
 
@@ -892,7 +892,7 @@ class _IngredientsShelf extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'INGREDIENTS',
+                        'FOODS',
                         style: ansiLabel(color: AnsiColors.herbDeep),
                       ),
                       if (line.isNotEmpty) ...[

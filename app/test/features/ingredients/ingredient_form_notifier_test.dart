@@ -1085,7 +1085,7 @@ void main() {
       await form.leaveNameField();
 
       expect(at().nameCollision!.ingredientId, 'kraut');
-      expect(at().refusal, 'Already an ingredient: Sauerkraut');
+      expect(at().refusal, 'Already a food: Sauerkraut');
       expect(
         at().completable,
         isFalse,
@@ -1142,7 +1142,7 @@ void main() {
 
       expect(saved, isNull);
       expect(repo.rows, hasLength(1), reason: 'nothing was written');
-      expect(at().message, 'Already an ingredient: Sauerkraut');
+      expect(at().message, 'Already a food: Sauerkraut');
       expect(at().nameCollision!.ingredientId, 'kraut');
     });
   });

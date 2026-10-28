@@ -180,7 +180,7 @@ class IngredientDetailView extends HookConsumerWidget {
       childPad: false,
       header: _header(
         context,
-        title: embedded ? null : 'Ingredient',
+        title: embedded ? null : 'Food',
         showBack: !embedded,
       ),
       child: switch (async) {
@@ -1354,7 +1354,7 @@ class _DetailForm extends ConsumerWidget {
                     FItem(
                       variant: FItemVariant.destructive,
                       prefix: const Icon(FLucideIcons.trash2),
-                      title: const Text('Delete ingredient'),
+                      title: const Text('Delete food'),
                       onPress: () {
                         unawaited(controller.hide());
                         unawaited(deleteRow());

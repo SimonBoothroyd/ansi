@@ -480,10 +480,10 @@ void main() {
       reason: 'the column is centred in the pane, not pinned to its edge',
     );
     // The Ingredients shelf closes the ledger, under the books.
-    expect(find.text('INGREDIENTS'), findsOneWidget);
-    expect(find.text('319 ingredients · 3 stubs'), findsOneWidget);
+    expect(find.text('FOODS'), findsOneWidget);
+    expect(find.text('319 foods · 3 stubs'), findsOneWidget);
     expect(
-      tester.getRect(find.text('INGREDIENTS')).top,
+      tester.getRect(find.text('FOODS')).top,
       greaterThan(tester.getRect(find.text('Preserves')).top),
     );
   });

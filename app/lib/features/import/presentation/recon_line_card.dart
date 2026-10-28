@@ -186,8 +186,8 @@ class _PieceWeightDoor extends StatelessWidget {
       spacing: 4,
       children: [
         Text(
-          '$name has no piece weight yet — set it on the ingredient, or '
-          'pick a unit below.',
+          '$name has no piece weight yet. Set it on the food, or pick a '
+          'unit below.',
           style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
         GestureDetector(
@@ -213,7 +213,7 @@ String? attentionLabel(List<LineIssue> issues, {bool hasRecipeOffer = false}) {
   if (issues.isEmpty) return null;
   if (issues.contains(LineIssue.unmatched)) {
     return hasRecipeOffer
-        ? 'Match an ingredient — or link your recipe'
+        ? 'Match an ingredient or link your recipe'
         : 'Match an ingredient';
   }
   if (issues.contains(LineIssue.unitNotAllowed)) return 'Pick a supported unit';

@@ -739,9 +739,10 @@ class _UnresolvedEcho extends StatelessWidget {
   }
 }
 
-/// A line at a retired ingredient: "SAUERKRAUT · ingredient removed · pick
-/// again in the recipe". Amber, like the unresolved echo. Names where the pick
-/// is: the recipe for a recipe line, the plan for a bare-ingredient meal.
+/// A line at a retired row: "SAUERKRAUT · ingredient removed · pick again in
+/// the recipe". Amber, like the unresolved echo. Names where the pick is, and
+/// what was removed in that place's words: a recipe line's ingredient, or a
+/// planned meal's food.
 /// Public so the screen test can find the row by type.
 class RetiredIngredientEcho extends StatelessWidget {
   const RetiredIngredientEcho({required this.note, super.key});
@@ -750,14 +751,14 @@ class RetiredIngredientEcho extends StatelessWidget {
 
   /// `Sauerkraut · ingredient removed · pick again in the recipe`: the words of
   /// `RemovedIngredientTag`, with the surface that holds the pick named last.
-  static String text(RetiredIngredientNote note) {
-    final where = switch (note.site) {
-      RetiredIngredientSite.recipeLine => 'recipe',
-      RetiredIngredientSite.planEntry => 'plan',
-    };
-    return '${note.ingredientName} · ingredient removed · '
-        'pick again in the $where';
-  }
+  /// A planned meal's row is a food: `Skyr · food removed · pick again in the
+  /// plan`.
+  static String text(RetiredIngredientNote note) => switch (note.site) {
+    RetiredIngredientSite.recipeLine =>
+      '${note.ingredientName} · ingredient removed · pick again in the recipe',
+    RetiredIngredientSite.planEntry =>
+      '${note.ingredientName} · food removed · pick again in the plan',
+  };
 
   @override
   Widget build(BuildContext context) {

@@ -195,7 +195,7 @@ void main() {
           await describe(table, id),
           const DroppedWriteSubject(
             name: 'Onion',
-            kind: 'ingredient edit',
+            kind: 'food edit',
             route: '/ingredients/i1',
           ),
           reason: table,

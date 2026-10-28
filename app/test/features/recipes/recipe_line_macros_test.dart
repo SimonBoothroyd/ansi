@@ -168,7 +168,7 @@ void main() {
     await _pump(tester);
     await _toggle(tester, 'Show line figures');
 
-    expect(find.text('stub ingredient'), findsOneWidget);
+    expect(find.text('stub'), findsOneWidget);
   });
 
   testWidgets('a resolved line still prints while the SUMMARY refuses', (

@@ -243,7 +243,7 @@ void main() {
     ) async {
       await tester.pumpWidget(_resultsHost(results: const [], query: ''));
       await tester.pumpAndSettle();
-      expect(find.text('No ingredients yet.'), findsOneWidget);
+      expect(find.text('No foods yet.'), findsOneWidget);
     });
 
     testWidgets('with nothing typed the footer is inert and says what to do', (
@@ -298,7 +298,7 @@ void main() {
       // Still a stub — backing out unconfirmed lands the line honestly
       // badged (detail 7), and the picker itself has closed.
       expect(picked.single!.status, IngredientStatus.stub);
-      expect(find.text('Add an ingredient'), findsNothing);
+      expect(find.text('Add a food'), findsNothing);
       // No strip, no second door.
       expect(find.text('use it'), findsNothing);
       expect(find.text('flesh out now'), findsNothing);
@@ -326,7 +326,7 @@ void main() {
 
       expect(repo.rows, isEmpty);
       expect(picked, isEmpty);
-      expect(find.text('Add an ingredient'), findsOneWidget);
+      expect(find.text('Add a food'), findsOneWidget);
     });
 
     testWidgets('a create abandoned on the form hands nothing back — the '
@@ -352,7 +352,7 @@ void main() {
 
       expect(repo.rows, isEmpty);
       expect(picked, isEmpty);
-      expect(find.text('Add an ingredient'), findsOneWidget);
+      expect(find.text('Add a food'), findsOneWidget);
     });
   });
 }

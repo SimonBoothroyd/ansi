@@ -312,7 +312,7 @@ void main() {
       );
       expect(
         order.indexOf('"lim" as a non-food item'),
-        lessThan(order.indexOf('"lim" as a new ingredient')),
+        lessThan(order.indexOf('"lim" as a new food')),
       );
       // Each row is its title alone.
       expect(find.text('no amount · it just gets ticked'), findsNothing);
@@ -342,7 +342,7 @@ void main() {
       );
       expect(
         order.indexOf('"paper towels" as a non-food item'),
-        lessThan(order.indexOf('"paper towels" as a new ingredient')),
+        lessThan(order.indexOf('"paper towels" as a new food')),
       );
     });
 
@@ -356,7 +356,7 @@ void main() {
       expect(find.byKey(kShopAddFreeTextKey), findsOneWidget);
       expect(find.byKey(kShopAddNewIngredientKey), findsOneWidget);
       expect(find.text('"paper towels" as a non-food item'), findsOneWidget);
-      expect(find.text('"paper towels" as a new ingredient'), findsOneWidget);
+      expect(find.text('"paper towels" as a new food'), findsOneWidget);
     });
   });
 

@@ -51,7 +51,7 @@ void main() {
       );
       expect(json.containsKey('per_serving'), isFalse);
       expect(json['no_figure'], '1 stub line');
-      expect(json['waiting_on'], ['Skyr · stub ingredient']);
+      expect(json['waiting_on'], ['Skyr · stub']);
     });
 
     test('a week is its per-day average, and names the meals left out', () {

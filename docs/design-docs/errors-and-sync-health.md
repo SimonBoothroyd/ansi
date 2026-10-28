@@ -192,7 +192,7 @@ Copy details, where it is useful to whoever is being texted about the problem.
 
 This class has already shipped as a real bug once. Four sites were load-bearing
 and are now real error states — the "used in" back-links (whose count the delete
-refusal speaks), the stub count on the Library's Ingredients shelf, and the
+refusal speaks), the stub count on the Library's Foods shelf, and the
 per-ingredient measures in two places, where an errored stream silently narrowed
 which units a line may be written in. The rest are decorative and keep their
 fallback, each with a one-line comment saying why, so the next reader knows the

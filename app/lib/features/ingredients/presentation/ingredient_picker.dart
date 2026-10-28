@@ -34,7 +34,7 @@ import 'macros_format.dart';
 /// destination context ('Add to "for the curry"').
 Future<Ingredient?> showIngredientPicker(
   BuildContext context, {
-  String title = 'Add an ingredient',
+  String title = 'Add a food',
 }) {
   return showAnsiSheet<Ingredient>(
     context: context,
@@ -123,7 +123,7 @@ class _IngredientPickerSheet extends HookConsumerWidget {
 
     return PickerShell(
       title: title,
-      searchHint: 'Search ingredients',
+      searchHint: 'Search foods',
       searchAutofocus: true,
       onQueryChanged: search.run,
       body: IngredientResultList(
@@ -232,7 +232,7 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            query.isEmpty ? 'No ingredients yet.' : 'No match for "$query".',
+            query.isEmpty ? 'No foods yet.' : 'No match for "$query".',
             textAlign: TextAlign.center,
             style: ansiMono(size: 12, color: AnsiColors.muted),
           ),
@@ -418,7 +418,7 @@ class AddNewIngredientRow extends HookConsumerWidget {
   final ValueChanged<Ingredient> onCreated;
 
   /// The row's wording for a name, when the host's voice differs from the
-  /// picker footer's default ("can’t find it? add "X" as a new ingredient").
+  /// picker footer's default ("can’t find it? add "X" as a new food").
   final String Function(String name)? label;
 
   /// Draws the door instead of the dashed footer: the trimmed name, and the
@@ -463,8 +463,7 @@ class AddNewIngredientRow extends HookConsumerWidget {
       icon: FLucideIcons.plus,
       enabled: enabled,
       label: enabled
-          ? (label?.call(name) ??
-                'can’t find it? add "$name" as a new ingredient')
+          ? (label?.call(name) ?? 'can’t find it? add "$name" as a new food')
           : 'can’t find it? type a name to add it',
       onTap: addNew,
     );

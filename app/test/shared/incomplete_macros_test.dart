@@ -143,8 +143,8 @@ void main() {
 
     test('the wordings the board drew', () {
       const drawn = {
-        MacroLineReason.stubIngredient: 'stub ingredient',
-        MacroLineReason.unknownIngredient: 'not in your ingredients yet',
+        MacroLineReason.stubIngredient: 'stub',
+        MacroLineReason.unknownIngredient: 'not in your foods yet',
         MacroLineReason.removedIngredient: 'ingredient removed · pick again',
         MacroLineReason.needsWeight: 'needs a piece weight',
         MacroLineReason.needsDensity: 'needs a density',

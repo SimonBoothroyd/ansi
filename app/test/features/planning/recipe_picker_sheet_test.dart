@@ -310,7 +310,7 @@ void main() {
     testWidgets('is absent until something is typed — an empty query is the '
         'shipped browse surface', (tester) async {
       await _open(tester);
-      expect(find.text('INGREDIENTS'), findsNothing);
+      expect(find.text('FOODS'), findsNothing);
       expect(find.text('Protein bar'), findsNothing);
     });
 
@@ -322,7 +322,7 @@ void main() {
       await tester.enterText(find.byType(EditableText).first, 'prot');
       await tester.pumpAndSettle();
 
-      expect(find.text('INGREDIENTS'), findsOneWidget);
+      expect(find.text('FOODS'), findsOneWidget);
       expect(find.text('Protein bar'), findsOneWidget);
       // Still one door: there is no second ＋ for ingredients.
       expect(find.textContaining('new recipe'), findsOneWidget);

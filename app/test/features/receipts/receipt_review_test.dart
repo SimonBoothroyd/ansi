@@ -172,10 +172,7 @@ void main() {
   group('a line says what it still wants', () {
     test('food nobody has named wants a match', () {
       expect(receiptLineIssues(item()), [ReceiptLineIssue.unmatched]);
-      expect(
-        receiptAttentionLabel(receiptLineIssues(item())),
-        'Match an ingredient',
-      );
+      expect(receiptAttentionLabel(receiptLineIssues(item())), 'Match a food');
     });
 
     test('matched food with no pack wants one', () {

@@ -898,7 +898,7 @@ ShoppingList buildShoppingList({
       ShoppingItem(
         entryId: entry?.id,
         ingredientId: id,
-        name: m?.name ?? '(unknown ingredient)',
+        name: m?.name ?? '(unknown food)',
         checked: checked,
         totals: shown.totals,
         measureTotal: shown.measureTotal,

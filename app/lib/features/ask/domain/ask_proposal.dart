@@ -331,9 +331,7 @@ AskPlanProposal buildPlanProposal(
     if (saidIngredient case final ingredientId?) {
       final facts = context.ingredients[ingredientId];
       if (facts == null) {
-        throw AskToolError(
-          'there is no ingredient with the id `$ingredientId`',
-        );
+        throw AskToolError('there is no food with the id `$ingredientId`');
       }
       final name = facts.ingredient.canonicalName;
       final q = amountOrUsual(

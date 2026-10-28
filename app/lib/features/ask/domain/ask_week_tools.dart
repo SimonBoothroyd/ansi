@@ -258,5 +258,5 @@ String findIngredientResult(
       },
   ],
   if (found.guessed) 'note': 'no exact spelling; these are guesses',
-  if (found.rows.isEmpty) 'note': 'no ingredient matches',
+  if (found.rows.isEmpty) 'note': 'no food matches',
 });
