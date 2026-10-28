@@ -205,6 +205,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Stop sharing this recipe?'), findsOneWidget);
+    expect(find.text('The link will stop working.'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(shares.calls, isEmpty);

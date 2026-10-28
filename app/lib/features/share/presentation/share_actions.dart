@@ -61,9 +61,7 @@ Future<void> stopSharingRecipe(
   final ok = await askAnsi(
     context,
     title: 'Stop sharing this recipe?',
-    body:
-        'Anyone who opens the link will find nothing there. Sharing again '
-        'makes a new link.',
+    body: 'The link will stop working.',
     confirm: 'Stop sharing',
     destructive: true,
   );
