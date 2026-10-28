@@ -311,7 +311,11 @@ class _MakesSection extends HookWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('=', style: ansiMono(size: 14, color: AnsiColors.muted)),
+              Text(
+                '=',
+                key: const ValueKey('yield-equals'),
+                style: ansiMono(size: 14, color: AnsiColors.muted),
+              ),
               const SizedBox(width: 8),
               if (showSecond)
                 _YieldRow(

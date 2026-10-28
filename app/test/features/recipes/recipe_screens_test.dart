@@ -850,7 +850,7 @@ void main() {
     // Both denominations, one batch said two ways.
     expect(find.text('250'), findsOneWidget);
     expect(find.text('16'), findsOneWidget);
-    expect(find.text('='), findsOneWidget);
+    expect(find.byKey(const ValueKey('yield-equals')), findsOneWidget);
     // The second slot's remove affordance is the only ✕ in the numbers block.
     expect(find.byIcon(FLucideIcons.x), findsWidgets);
     // With a second denomination already stated, nothing offers to add one.

@@ -142,7 +142,7 @@ void main() {
 
     final first = tester.getCenter(find.byKey(const ValueKey('yield-1')));
     final second = tester.getCenter(find.byKey(const ValueKey('yield-2')));
-    final equals = tester.getCenter(find.text('='));
+    final equals = tester.getCenter(find.byKey(const ValueKey('yield-equals')));
     expect(second.dy, first.dy);
     expect(equals.dy, first.dy);
     expect(equals.dx, inExclusiveRange(first.dx, second.dx));
@@ -182,7 +182,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('yield-2-add')), findsNothing);
-      expect(find.text('='), findsNothing);
+      expect(find.byKey(const ValueKey('yield-equals')), findsNothing);
     });
   });
 
