@@ -14,6 +14,7 @@ import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/shared/week_strip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -130,7 +131,7 @@ void main() {
   });
 
   testWidgets('a fractional demand reads as a fraction on the session row and '
-      'in the whole-batch nudge', (tester) async {
+      'on the whole-batch switch', (tester) async {
     // A 1 and a ¾ eater of a serves-2 recipe: ×0.88 → cook ×1, ¼ over.
     await tester.pumpWidget(
       _host([
@@ -144,15 +145,18 @@ void main() {
     await tester.pump();
 
     expect(find.text('covers Mon dinner · 1¾ portions'), findsOneWidget);
-    expect(find.text('×⅞'), findsOneWidget);
-    expect(
-      find.text(
-        'cook ×1 instead — covers 2 portions · ¼ portion left over · '
-        'shopping still buys ×⅞',
-      ),
-      findsOneWidget,
-    );
+    // The switch states the scale, so the tile's head does not repeat it.
+    expect(find.text('×⅞ exact'), findsOneWidget);
+    expect(find.text('×⅞'), findsNothing);
     expect(find.textContaining('1.75'), findsNothing);
+
+    // Whole batch: the covers line says what is spare. Display only.
+    await tester.tap(find.text('×1 whole batch'));
+    await tester.pump();
+    expect(find.text('covers Mon dinner · ¼ portion spare'), findsOneWidget);
+    await tester.tap(find.text('×⅞ exact'));
+    await tester.pump();
+    expect(find.text('covers Mon dinner · 1¾ portions'), findsOneWidget);
   });
 
   testWidgets('an empty plan is a quiet line INSIDE the '
@@ -166,21 +170,14 @@ void main() {
     );
     await tester.pump();
 
-    // The chrome stays put — header and caption — and the empty body carries
-    // the door that would fill it, instead of a full-bleed page with one exit.
+    // The header stays put, and the empty body carries the door that would
+    // fill it, instead of a full-bleed page with one exit.
     expect(find.byType(WeekSwitcher), findsOneWidget);
-    expect(
-      find.text('grouped by recipe · split by shelf life'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('nothing planned for this week yet'),
-      findsOneWidget,
-    );
+    expect(find.text('nothing planned yet'), findsOneWidget);
     expect(find.text('plan a meal'), findsOneWidget);
   });
 
-  testWidgets('a split recipe renders its sessions and split note', (
+  testWidgets('a split recipe is two sessions, each with its own strip', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -198,10 +195,31 @@ void main() {
     expect(find.text('Chicken Curry'), findsOneWidget);
     expect(find.text('Cook Mon'), findsOneWidget);
     expect(find.text('Cook Sat'), findsOneWidget);
-    expect(find.textContaining('cook it again, fresh'), findsOneWidget);
+    expect(find.textContaining('cook it again, fresh'), findsNothing);
+    // Mon's batch keeps to Thu and is hatched after; Sat's is its own cook.
+    final strips = tester.widgetList<WeekStrip>(find.byType(WeekStrip));
+    expect(
+      [for (final s in strips) s.size],
+      [WeekStripSize.compact, WeekStripSize.compact],
+    );
+    expect(
+      [for (final d in strips.first.days) d.fill],
+      [
+        WeekStripFill.cooked,
+        WeekStripFill.keeps,
+        WeekStripFill.keeps,
+        WeekStripFill.keeps,
+        WeekStripFill.gone,
+        WeekStripFill.gone,
+        WeekStripFill.gone,
+      ],
+    );
+    expect(strips.last.days[5].fill, WeekStripFill.cooked);
   });
 
-  testWidgets('a freezable far meal shows the freezer note', (tester) async {
+  testWidgets('a freezable far meal is a freezer day on the strip', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _host([
         cookPlanRepositoryProvider.overrideWithValue(
@@ -215,13 +233,17 @@ void main() {
     await tester.pump();
 
     expect(find.text('Cook Tue'), findsOneWidget);
-    expect(find.textContaining('freezes'), findsOneWidget);
-    expect(find.textContaining("Saturday's share"), findsOneWidget);
+    expect(find.textContaining('freezes'), findsNothing);
+    final strip = tester.widget<WeekStrip>(find.byType(WeekStrip));
+    expect(strip.days[1].fill, WeekStripFill.cooked);
+    expect(strip.days[5].fill, WeekStripFill.frozen);
+    expect(strip.days[5].eats, isTrue);
   });
 
   group('component sessions', () {
-    testWidgets('a component card reads in batches, names its parents, and '
-        'says what is left over', (tester) async {
+    testWidgets('a component card reads in batches and names its parents', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _host([
           cookPlanRepositoryProvider.overrideWithValue(
@@ -235,10 +257,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Romesco Aioli · for Sausage Sliders'), findsOneWidget);
-      expect(
-        find.text('derived from a component line · keeps 5 d'),
-        findsOneWidget,
-      );
+      expect(find.text('keeps 5 d'), findsOneWidget);
       // Ready BY the parent's cook day, denominated in batches.
       expect(find.text('Cook by Sat'), findsOneWidget);
       expect(find.text('×¼ batch'), findsOneWidget);
@@ -248,10 +267,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('Nothing here tracks the leftover'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('the rest is yours'), findsNothing);
     });
 
     testWidgets('a component with no yield is a named gap, never a ×1', (
@@ -268,10 +284,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Romesco Aioli · for Sausage Sliders'), findsOneWidget);
-      expect(
-        find.text('derived from a component line · yield not set'),
-        findsOneWidget,
-      );
+      expect(find.text('yield not set'), findsOneWidget);
       expect(find.text('no scale'), findsOneWidget);
       expect(
         find.text('Romesco Aioli doesn’t say how much it makes'),
@@ -283,6 +296,61 @@ void main() {
       expect(find.textContaining('×'), findsOneWidget);
       expect(find.text('×1'), findsOneWidget);
       expect(find.text('×1 batch'), findsNothing);
+    });
+
+    testWidgets('each gap button opens the editor its fix lives in', (
+      tester,
+    ) async {
+      Future<GoRouter> pumpGap(UnresolvedComponentAmount reason) async {
+        late GoRouter router;
+        await tester.pumpWidget(
+          routedHost(
+            initial: '/cook',
+            overrides: [
+              cookPlanRepositoryProvider.overrideWithValue(
+                FakeCookPlanRepository(
+                  CookPlan(
+                    gaps: [
+                      ComponentGap(
+                        recipeId: 'aioli',
+                        title: 'Romesco Aioli',
+                        reason: reason,
+                        demandedBy: const [
+                          ComponentDemandSource(
+                            recipeId: 'sliders',
+                            title: 'Sausage Sliders',
+                            cookDay: 5,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            expose: (r) => router = r,
+            routes: {
+              '/cook': (_, _) => const CookView(),
+              '/recipes/:id/edit': (_, state) =>
+                  FScaffold(child: Text('edit ${state.pathParameters['id']}')),
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+        return router;
+      }
+
+      var router = await pumpGap(const ComponentYieldMissing());
+      expect(find.textContaining('Fix the line'), findsNothing);
+      await tester.tap(find.text('Set the yield'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/recipes/aioli/edit');
+
+      router = await pumpGap(const ComponentCycle());
+      expect(find.text('Set the yield'), findsNothing);
+      await tester.tap(find.text('Fix the line in Sausage Sliders'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/recipes/sliders/edit');
     });
   });
 
@@ -373,13 +441,9 @@ void main() {
       }
 
       // The sheet caps at its 1140 and is centred in the 1440 pane, and the
-      // card — with its own per-session timeline — is gone.
+      // card — with its own per-session strip — is gone.
       expect(first.dx, closeTo(150, 1));
-      expect(find.byType(CookTimeline), findsNothing);
-      expect(
-        find.text('grouped by recipe · split by shelf life'),
-        findsOneWidget,
-      );
+      expect(find.byType(WeekStrip), findsNothing);
       // The row still says every word the card said.
       expect(
         find.text('4 portions across the week · keeps 2 d'),
@@ -424,8 +488,8 @@ void main() {
       );
     });
 
-    testWidgets('a covered day past the window is the amber dot, and the '
-        'warning is said once for the row', (tester) async {
+    testWidgets('a covered day past the window is the amber dot, and no note '
+        'says it again', (tester) async {
       deskWidth(tester);
       await tester.pumpWidget(_host(threeCooks()));
       await tester.pump();
@@ -450,18 +514,13 @@ void main() {
         }
       }
 
-      // One warning per row that needs one, however many sessions it has.
-      expect(
-        find.text(
-          'A later meal falls past the 2-day window — cook it again, fresh.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining("Sunday's share"), findsOneWidget);
+      // The track says it; the split and freezer notes are gone.
+      expect(find.textContaining('cook it again, fresh'), findsNothing);
+      expect(find.textContaining("Sunday's share"), findsNothing);
     });
 
     testWidgets('every door the card offers is on the row: the title, and the '
-        'whole-batch nudge the track follows', (tester) async {
+        'whole-batch switch the track follows', (tester) async {
       deskWidth(tester);
       late GoRouter router;
       await tester.pumpWidget(
@@ -475,23 +534,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The honest factor is on the row and on its tick.
-      expect(find.text('Cook Mon ×⅞'), findsOneWidget);
+      // The exact factor is on the switch and on its tick.
+      expect(find.text('Cook Mon'), findsOneWidget);
+      expect(find.text('×⅞ exact'), findsOneWidget);
       expect(marks(tester, 'r1', 0).cookScale, '×⅞');
 
-      // The nudge is the same display toggle, and the tick follows the words.
-      await tester.tap(
-        find.text(
-          'cook ×1 instead — covers 2 portions · ¼ portion left over · '
-          'shopping still buys ×⅞',
-        ),
-      );
+      // The switch is the same display toggle, and the tick follows it.
+      await tester.tap(find.text('×1 whole batch'));
       await tester.pump();
-      expect(
-        find.text('showing the whole batch — tap for the honest ×⅞'),
-        findsOneWidget,
-      );
-      expect(find.text('Cook Mon ×1'), findsOneWidget);
+      expect(find.text('covers Mon dinner · ¼ portion spare'), findsOneWidget);
       expect(marks(tester, 'r1', 0).cookScale, '×1');
 
       // The title is the same door, carrying the same week.
@@ -503,7 +554,7 @@ void main() {
       );
     });
 
-    testWidgets('a component gap keeps its named reason and its one fix', (
+    testWidgets('a component gap keeps its named reason and its fix', (
       tester,
     ) async {
       deskWidth(tester);
@@ -544,9 +595,9 @@ void main() {
       final second = tester.getTopLeft(find.text('House Ragù'));
       expect(second.dx, first.dx);
       expect(second.dy, greaterThan(first.dy));
-      // The card's own anatomy, unchanged: a timeline per session, the tile's
+      // The card's own anatomy, unchanged: a strip per session, the tile's
       // two-line heading — and no shared axis anywhere.
-      expect(find.byType(CookTimeline), findsNWidgets(4));
+      expect(find.byType(WeekStrip), findsNWidgets(4));
       expect(find.text('Cook Mon'), findsOneWidget);
       expect(find.text('MON'), findsNothing);
       expect(find.byType(CookTrack), findsNothing);

@@ -4,6 +4,7 @@ import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
+import 'package:ansi/shared/week_strip_days.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 CookSession _session({
@@ -68,6 +69,50 @@ void main() {
     });
   });
 
+  group('the whole-batch switch', () {
+    // 1¾ portions of a serves-4 recipe: ×0.44 exact, or ×1 with 2¼ spare.
+    final session = _session(
+      cookDay: 0,
+      covers: [_meal(0, 'Dinner', 1.75)],
+      servings: 4,
+    );
+
+    test('names both sides with the real numbers', () {
+      expect(
+        wholeBatchChoice(wholeBatchNudgeFor(session)!, rawFactor: 0.4375),
+        (exact: '×0.44 exact', whole: '×1 whole batch'),
+      );
+    });
+
+    test('the exact side covers the portions planned', () {
+      final speech = SessionSpeech.of(session, WeekShape.monday);
+      expect(speech.wholeBatchShown, isFalse);
+      expect(speech.covers, 'covers Mon dinner · 1¾ portions');
+      expect(speech.scale, '×0.44');
+    });
+
+    test('the whole side says the portions spare', () {
+      final speech = SessionSpeech.of(
+        session,
+        WeekShape.monday,
+        showWholeBatch: true,
+      );
+      expect(speech.wholeBatchShown, isTrue);
+      expect(speech.covers, 'covers Mon dinner · 2¼ portions spare');
+      expect(speech.scale, '×1');
+      expect(speech.wholeBatch, isNotNull);
+    });
+
+    test('a whole factor offers no switch', () {
+      final whole = _session(
+        cookDay: 0,
+        covers: [_meal(0, 'Dinner', 4)],
+        servings: 4,
+      );
+      expect(SessionSpeech.of(whole, WeekShape.monday).wholeBatch, isNull);
+    });
+  });
+
   group('recipeSummaryLine', () {
     test('lists portions and shelf-life descriptors', () {
       const recipe = RecipeCookPlan(
@@ -93,22 +138,6 @@ void main() {
       expect(
         recipeSummaryLine(recipe),
         '4 portions across the week · keeps 4 d · freezable',
-      );
-    });
-  });
-
-  group('freezerNoteFor', () {
-    test('names the frozen day and the cook day', () {
-      final s = _session(
-        cookDay: 1,
-        keeps: 3,
-        freezable: true,
-        covers: [_meal(1, 'Dinner', 2), _meal(5, 'Dinner', 2)],
-      );
-      expect(
-        freezerNoteFor('Ragù', s, WeekShape.monday),
-        'Saturday is far off, but Ragù freezes — cook once Tuesday, freeze '
-        "Saturday's share.",
       );
     });
   });
@@ -161,6 +190,107 @@ void main() {
       expect(spec.freshTo, 6);
       expect(spec.frozenTo, 6);
       expect(spec.hasGone, isFalse);
+    });
+  });
+
+  group('stripDays', () {
+    const none = WeekStripFill.none;
+    const cooked = WeekStripFill.cooked;
+    const keeps = WeekStripFill.keeps;
+    const frozen = WeekStripFill.frozen;
+    const gone = WeekStripFill.gone;
+    List<WeekStripFill> fills(List<WeekStripDay> days) => [
+      for (final d in days) d.fill,
+    ];
+    List<int> where(List<WeekStripDay> days, bool Function(WeekStripDay) f) => [
+      for (final (i, d) in days.indexed)
+        if (f(d)) i,
+    ];
+
+    test('the cook day is solid, the window keeps, the rest is hatched', () {
+      // Cook Mon(0), keeps 3 → Tue..Thu keep, Fri..Sun past the window.
+      final s = _session(
+        cookDay: 0,
+        keeps: 3,
+        covers: [_meal(0, 'Dinner', 2), _meal(3, 'Dinner', 2)],
+      );
+      final days = CookTimelineSpec.of(s).stripDays();
+      expect(fills(days), [cooked, keeps, keeps, keeps, gone, gone, gone]);
+      expect(where(days, (d) => d.eats), [0, 3]);
+      expect(where(days, (d) => d.thisMeal), isEmpty);
+    });
+
+    test('a frozen meal is its own blue day, with nothing hatched', () {
+      // Cook Tue(1), keeps 2 → Wed, Thu keep; Sat(5) from the freezer.
+      final s = _session(
+        cookDay: 1,
+        keeps: 2,
+        freezable: true,
+        covers: [_meal(1, 'Dinner', 2), _meal(5, 'Dinner', 2)],
+      );
+      final days = CookTimelineSpec.of(s).stripDays(thisMeal: 5);
+      expect(fills(days), [none, cooked, keeps, keeps, none, frozen, none]);
+      expect(where(days, (d) => d.eats), [1, 5]);
+      expect(where(days, (d) => d.thisMeal), [5]);
+    });
+
+    test("a window reaching the week's end has no hatch", () {
+      final s = _session(cookDay: 4, keeps: 3, covers: [_meal(4, 'D', 2)]);
+      expect(fills(CookTimelineSpec.of(s).stripDays()), [
+        none,
+        none,
+        none,
+        none,
+        cooked,
+        keeps,
+        keeps,
+      ]);
+    });
+
+    test('an unknown shelf life keeps to the last meal and no further', () {
+      final s = _session(
+        cookDay: 1,
+        covers: [_meal(1, 'Dinner', 2), _meal(3, 'Dinner', 2)],
+      );
+      expect(fills(CookTimelineSpec.of(s).stripDays()), [
+        none,
+        cooked,
+        keeps,
+        keeps,
+        none,
+        none,
+        none,
+      ]);
+    });
+
+    test('eats replaces the covered days as the dots', () {
+      final s = _session(
+        cookDay: 0,
+        keeps: 4,
+        covers: [_meal(0, 'Dinner', 2), _meal(2, 'Dinner', 2)],
+      );
+      final days = CookTimelineSpec.of(s).stripDays(thisMeal: 2, eats: [0]);
+      expect(where(days, (d) => d.eats), [0]);
+      expect(where(days, (d) => d.thisMeal), [2]);
+    });
+
+    test("a split dish merges into one row, a cook on each batch's day", () {
+      // Two batches: Mon (keeps 1) and Sat (keeps 1).
+      final first = _session(cookDay: 0, keeps: 1, covers: [_meal(0, 'D', 2)]);
+      final second = _session(cookDay: 5, keeps: 1, covers: [_meal(5, 'D', 2)]);
+      final days = stripDaysOfAll([first, second]);
+      // Saturday's cook beats the first batch's hatch.
+      expect(fills(days), [cooked, keeps, gone, gone, gone, cooked, keeps]);
+      expect(where(days, (d) => d.eats), [0, 5]);
+      expect(fills(cookDaysOnly(days)), [
+        cooked,
+        none,
+        none,
+        none,
+        none,
+        cooked,
+        none,
+      ]);
     });
   });
 
@@ -218,43 +348,6 @@ void main() {
       expect(
         [for (final d in days) d.keeps],
         [true, true, false, false, false, true, true],
-      );
-    });
-  });
-
-  group('wholeBatchNudgeLine', () {
-    test('spells out the whole-batch advice with honest leftovers', () {
-      // The closing clause is honest about the accepted gap (tracker row):
-      // the shopping list keeps scaling by the raw factor, nudge or not.
-      expect(
-        wholeBatchNudgeLine((
-          factor: 1,
-          batchPortions: 4,
-          leftoverPortions: 1,
-        ), rawFactor: 0.75),
-        'cook ×1 instead — covers 4 portions · 1 portion left over · '
-        'shopping still buys ×¾',
-      );
-      expect(
-        wholeBatchNudgeLine((
-          factor: 2,
-          batchPortions: 5.0,
-          leftoverPortions: 0.5,
-        ), rawFactor: 1.25),
-        'cook ×2 instead — covers 5 portions · ½ portion left over · '
-        'shopping still buys ×1¼',
-      );
-    });
-
-    test('a fractional demand leaves a fractional, glyph-printed leftover', () {
-      // 1¾ portions of a serves-4 recipe: ×0.44 → cook ×1, 2¼ left over.
-      final nudge = wholeBatchNudgeFor(
-        _session(cookDay: 0, covers: [_meal(0, 'Dinner', 1.75)], servings: 4),
-      );
-      expect(
-        wholeBatchNudgeLine(nudge!, rawFactor: 0.4375),
-        'cook ×1 instead — covers 4 portions · 2¼ portions left over · '
-        'shopping still buys ×0.44',
       );
     });
   });
@@ -331,43 +424,18 @@ void main() {
       );
     });
 
-    test('a part-batch demand says what is left over, and what is not '
-        'tracked', () {
-      expect(
-        componentLeftoverNote(
-          session,
-          WeekShape.monday,
-          denomination: (qty: 1, unit: cup),
-        ),
-        'A batch makes 1 cup and Saturday needs ¼ — the rest is yours. '
-        'Nothing here tracks the leftover.',
-      );
-    });
-
-    test('a whole-batch demand leaves nothing over, so it says nothing', () {
-      const whole = CookSession(
+    test('the summary is the shelf life alone', () {
+      const recipe = RecipeCookPlan(
         recipeId: 'aioli',
-        recipeTitle: 'Romesco Aioli',
+        title: 'Romesco Aioli',
         servingsBase: 4,
-        cookDay: 5,
-        demands: [
-          ComponentDemand(
-            parentRecipeId: 'sliders',
-            parentTitle: 'Sausage Sliders',
-            cookDay: 5,
-            batches: 2,
-          ),
-        ],
+        keepsForDays: 5,
       );
+      expect(componentSummaryLine(recipe), 'keeps 5 d');
       expect(
-        componentLeftoverNote(
-          whole,
-          WeekShape.monday,
-          denomination: (qty: 1, unit: cup),
-        ),
-        isNull,
+        componentSummaryLine(recipe.copyWith(keepsForDays: null)),
+        isEmpty,
       );
-      expect(componentLeftoverNote(session, WeekShape.monday), isNull);
     });
 
     test('a demand said in the recipe’s own word shows its work', () {
@@ -427,18 +495,14 @@ void main() {
       ],
     );
 
-    test('a missing yield is named, and offers the one-tap fix', () {
+    test('a missing yield is named, and its button opens the sub-recipe', () {
       final missing = gap(const ComponentYieldMissing());
-      expect(
-        gapSummaryLine(missing),
-        'derived from a component line · yield not set',
-      );
+      expect(gapSummaryLine(missing), 'yield not set');
       expect(
         gapHeadline(missing),
         'Romesco Aioli doesn’t say how much it makes',
       );
-      expect(gapBody(missing), startsWith('Set its yield'));
-      expect(gapOffersYieldFix(missing), isTrue);
+      expect(gapFixes(missing), [(label: 'Set the yield', recipeId: 'aioli')]);
       // Frame (f) verbatim: the one number a gap CAN state is what the line
       // printed.
       expect(
@@ -505,26 +569,57 @@ void main() {
       );
     });
 
-    test('a family mismatch names both sides and the fix that closes it', () {
+    test('a family mismatch is fixed on the yield too', () {
       final mismatch = gap(
         const ComponentFamilyMismatch(
           lineFamily: UnitFamily.volume,
           yieldFamilies: [UnitFamily.mass],
         ),
       );
-      expect(gapBody(mismatch), contains('The line is in volume'));
-      expect(gapBody(mismatch), contains('the yield only says weight'));
-      expect(gapBody(mismatch), contains('second denomination'));
-      expect(gapOffersYieldFix(mismatch), isTrue);
+      expect(gapFixes(mismatch), [(label: 'Set the yield', recipeId: 'aioli')]);
     });
 
-    test('an amount or a cycle is fixed on the parent, so no yield button', () {
-      expect(gapOffersYieldFix(gap(const ComponentAmountMissing())), isFalse);
-      expect(gapOffersYieldFix(gap(const ComponentCycle())), isFalse);
-      expect(
-        gapHeadline(gap(const ComponentCycle())),
-        'Romesco Aioli is used inside itself',
+    test(
+      'an amount, a gone measure or a cycle is fixed on the parent line',
+      () {
+        for (final reason in const <UnresolvedComponentAmount>[
+          ComponentAmountMissing(),
+          ComponentMeasureMissing('m-gone'),
+          ComponentCycle(),
+        ]) {
+          expect(gapFixes(gap(reason)), [
+            (label: 'Fix the line in Sausage Sliders', recipeId: 'sliders'),
+          ]);
+        }
+        expect(
+          gapHeadline(gap(const ComponentCycle())),
+          'Romesco Aioli is used inside itself',
+        );
+      },
+    );
+
+    test('two demanding parents get a button each', () {
+      const shared = ComponentGap(
+        recipeId: 'aioli',
+        title: 'Romesco Aioli',
+        reason: ComponentAmountMissing(),
+        demandedBy: [
+          ComponentDemandSource(
+            recipeId: 'sliders',
+            title: 'Sausage Sliders',
+            cookDay: 5,
+          ),
+          ComponentDemandSource(
+            recipeId: 'toasts',
+            title: 'Romesco Toasts',
+            cookDay: 6,
+          ),
+        ],
       );
+      expect(gapFixes(shared), [
+        (label: 'Fix the line in Sausage Sliders', recipeId: 'sliders'),
+        (label: 'Fix the line in Romesco Toasts', recipeId: 'toasts'),
+      ]);
     });
 
     test('no gap copy ever offers a scale', () {
@@ -533,7 +628,6 @@ void main() {
         ComponentYieldMissing(),
         ComponentCycle(),
       ]) {
-        expect(gapBody(gap(reason)), isNot(contains('×')));
         expect(gapHeadline(gap(reason)), isNot(contains('×')));
       }
     });
