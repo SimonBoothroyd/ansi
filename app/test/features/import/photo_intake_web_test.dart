@@ -40,18 +40,12 @@ void main() {
       expect(find.text('Choose photos'), findsOneWidget);
     });
 
-    testWidgets('a browser offers files, and says the crop is a phone job', (
-      tester,
-    ) async {
+    testWidgets('a browser offers files alone', (tester) async {
       final picked = <PhotoSource>[];
       await tester.pumpAnsiApp(ImportPhotoDoors(onPick: picked.add, web: true));
 
       expect(find.text('Take a photo'), findsNothing);
       expect(find.text('Choose image files'), findsOneWidget);
-      expect(
-        find.textContaining('cropping and rotating is a phone job'),
-        findsOneWidget,
-      );
 
       await tester.tap(find.text('Choose image files'));
       await tester.pumpAndSettle();

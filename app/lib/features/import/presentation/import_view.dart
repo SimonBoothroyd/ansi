@@ -193,13 +193,6 @@ class _IntakeForm extends HookConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
       children: [
-        Text(
-          'Paste a recipe link, or import from photos. We read the '
-          'ingredients and steps, then you confirm each match — nothing is '
-          'guessed for you.',
-          style: ansiSans(size: 14, color: AnsiColors.muted, height: 1.4),
-        ),
-        const SizedBox(height: 20),
         Text('RECIPE URL', style: ansiLabel()),
         const SizedBox(height: 6),
         FTextField(

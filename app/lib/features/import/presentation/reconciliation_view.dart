@@ -115,17 +115,6 @@ class ReconciliationBody extends HookConsumerWidget {
                       ? 'not printed — set it'
                       : null,
                   underMakes: sourceStated ? 'from source:  $source' : null,
-                  afterMakes: state.header.yieldQty != null
-                      ? null
-                      : sourceStated
-                      ? 'the page didn’t say a number — set one, or leave it '
-                            'unset. Nothing is invented, and a yield-less '
-                            'recipe still saves, links and scales; only the '
-                            'derived numbers wait.'
-                      : 'the page didn’t say what this makes — set it, or '
-                            'leave it unset. Nothing is invented, and a '
-                            'yield-less recipe still saves, links and '
-                            'scales.',
                 ),
               ),
               const SizedBox(height: 10),

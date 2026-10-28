@@ -146,7 +146,7 @@ class _DroppedLine extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'removed — this line will not be saved',
+                'removed',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ],
@@ -524,18 +524,15 @@ class ReviewLineForm extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Match an ingredient first — then the amount and notes unlock.',
+              'Match an ingredient first',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),
-        // The two rules a linked line lives by, said on the card rather than
-        // left for the user to infer.
         if (linked)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'linked — no ingredient match needed, no allowed-units gate. '
-              'Valid for Save the moment its amount is set.',
+              'linked recipe',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),

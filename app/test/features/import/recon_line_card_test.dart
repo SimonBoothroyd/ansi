@@ -693,12 +693,7 @@ void main() {
     // …and the amount and notes stay locked behind it, as they do on any
     // unmatched line: a unit means nothing with no allowed set to read.
     expect(find.byType(AmountEditor), findsNothing);
-    expect(
-      find.text(
-        'Match an ingredient first — then the amount and notes unlock.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Match an ingredient first'), findsOneWidget);
   });
 
   // --- plan 0022 / ADR-0010 · the board's frame (a) -------------------------
@@ -1022,7 +1017,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Greyed, labelled, and out of the editing surface entirely.
-    expect(find.text('removed — this line will not be saved'), findsOneWidget);
+    expect(find.text('removed'), findsOneWidget);
     expect(find.text('AMOUNT'), findsNothing);
     final dropped =
         container.read(importControllerProvider) as ImportReconciling;
@@ -1118,8 +1113,8 @@ void main() {
       expect(linked.isResolved, isTrue);
       expect(lineIssues(linked), isEmpty);
 
-      // The card says the two rules a linked line lives by…
-      expect(find.textContaining('no ingredient match needed'), findsOneWidget);
+      // The card says the line is a linked recipe…
+      expect(find.text('linked recipe'), findsOneWidget);
       // …and the identity cell is lane U's recipe chip, with the unlink beside
       // it. (Two: the expanded card's cell — the collapsed row is not built.)
       expect(find.text('Romesco Aioli'), findsWidgets);

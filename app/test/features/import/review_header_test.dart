@@ -181,7 +181,6 @@ void main() {
     expect(_field('8'), findsOneWidget);
     expect(find.text('piece'), findsWidgets);
     expect(find.text('Another denomination'), findsOneWidget);
-    expect(find.textContaining('didn’t say a number'), findsNothing);
   });
 
   testWidgets('anything fancier leaves MAKES empty over the visible source '
@@ -196,7 +195,6 @@ void main() {
 
     expect(find.text('from source:  MAKES ENOUGH FOR A CROWD'), findsOneWidget);
     expect(_state(container).header.yields, isEmpty);
-    expect(find.textContaining('didn’t say a number'), findsOneWidget);
   });
 
   testWidgets('a page that printed nothing shows MAKES with no source line', (
@@ -209,7 +207,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('from source:  MAKES'), findsNothing);
-    expect(find.textContaining('didn’t say what this makes'), findsOneWidget);
+    expect(find.textContaining('didn’t say'), findsNothing);
   });
 
   testWidgets('SHELF LIFE is prefilled from what the page printed, and rides '
