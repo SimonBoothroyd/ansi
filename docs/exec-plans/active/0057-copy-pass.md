@@ -1,6 +1,6 @@
 # Exec plan: a copy pass — fewer, plainer words
 
-- **Status:** draft — the table below waits on the owner's ruling
+- **Status:** active — table, redesigns and the week strip ruled 2026-10-28; being built in five lanes
 - **Owner:** agent
 - **Roadmap step:** none — the backlog row [*A copy pass*](../backlog.md)
 - **Created:** 2026-10-28
@@ -280,24 +280,77 @@ are.
 
 ## Redesign flags
 
-Each of these screens needed a sentence to be understood. The sentence goes in
-this pass. The screen gets its own pass later, each a backlog row once the owner
-agrees it is real.
+Each of these screens needed a sentence to be understood. The sentence goes,
+and the screen is redesigned in this pass. Sketches, old against new:
+<https://claude.ai/artifact/T3DhqX3tnMesSknGSnnEst>. The owner ruled them all
+in on 2026-10-28.
 
-Old-vs-new sketches for each flag: <https://claude.ai/artifact/T3DhqX3tnMesSknGSnnEst>. The ones the owner picks get drawn on the board as `proposed`.
-
-| Flag | Screen | What the dropped text was covering for | Rows |
+| Flag | Screen | The fix | Rows |
 |---|---|---|---|
-| F1 | Sync banner | A refused write can only be fixed by finding the thing and saving it again by hand. A link from the banner to each refused item would replace the instruction. | 4 |
-| F2 | Settings · week start | What the week-start day actually does (which shop covers which dinner) isn't visible anywhere. | 19 |
-| F3 | Meal editor | Whether a meal joins an existing batch, or is frozen from one, only shows as a sentence. The batch could be a chip on the meal, as the Cook tab shows it. | 25–27 |
-| F4 | Edit for this week | Which days a this-week edit covers, and which fields can't be edited here, needed captions. | 33, 36 |
-| F5 | Cook · sub-recipe gaps | Each gap card describes its fix in prose. The card should open the recipe or line that needs fixing. | 43–47 |
-| F6 | Cook · whole-batch toggle | Showing the whole batch or the exact scale hangs on "tap for ×1.5". It needs to look like a toggle. | 49 |
-| F7 | Recipe header · MAKES and keeps | The second yield slot's rules and the fact that *keeps in the fridge* decides batching were both explained in captions. | 60, 61 |
-| F8 | Recipe measures | A recipe's own measure ("1 blob = 30 g") needed a worked example to make sense. | 63 |
-| F9 | Import review · stubs | What happens to a line matched to a stub ingredient isn't visible. | 100 |
-| F10 | Ingredient · price | Two save models on one screen: prices save right away, but the other fields wait for Save. The base price and the receipt price also need captions to say which one wins. | 119–121, 123 |
+| F1 | Sync banner | Banner: “{n} changes didn’t sync. / They’re only on this phone.” with **Show me**. The sheet, titled **Didn’t sync**, lists each refused change by the thing it changed (“Weeknight Chicken Curry · recipe edit · 14:02 ›”) and opens it. Table, verb and code move behind **Copy details**. **Done** acknowledges, as *I’ve seen this* did. | 4 |
+| F2 | Settings · week start | The label reads **Week**; the chips read **Sun – Sat** / **Mon – Sun** (from the week shape, so any start day works). Dialog: “Run weeks Sun – Sat?” / “Your planned weeks will shift to match.” | 17, 19 |
+| F3 | Add to plan | The batch paragraph becomes the week strip (below): the cook day solid, the fridge days tinted, the new meal outlined, a freezer cell when it is frozen. Caption “from {day}’s batch” or “from {day}’s batch, frozen”, matching the week row’s cook marker. | 25–27 |
+| F4 | Edit for this week | Title **This week only**. The band: “Week of {date}”, the recipe title with “serves {n}” beside it, and the week strip showing the days that cook these lines. The “from the recipe · not edited here” line and “The recipe is not changed.” go. The optional tag is the switch without the “＋ include this week” hint. | 33, 36, 37 |
+| F5 | Cook · sub-recipe problems | Each problem card keeps its one-line problem and gets a button that lands on its fix: **Set the yield ›** opens MAKES, **Fix the line in {parent} ›** opens that line. All five kinds get one. The prose and “derived from a component line” go. | 43–47 |
+| F6 | Cook · whole batch | The tappable line becomes a two-way switch on the session: **×{f} exact** / **×1 whole batch**. Whole batch shows “{n} portions spare” on the covers line. The shop behaviour is unchanged; see *Open questions*. | 41, 49 |
+| F7 | Recipe editor · MAKES | Both amounts on one row joined by **=** (“250 g = 16 tbsp ✕”). The empty second slot reads “＋ cups, pieces…”, naming only the other kinds of unit. The fridge caption goes; the week strip shows what it does. | 60, 61 |
+| F8 | Recipe editor · measures | Every recipe measure reads **1 blob = 15 g**, in the list and in the add form (“1 [name] = [15] [g] Add”). The notes go. | 63 |
+| F9 | Import review · created here | A stub row reads “{name} · stub · no macros” with **fill in ›**, opening the ingredient form. The piece-weight item’s link reads **add a piece weight ›**. The panel’s footnote goes. | 96, 99, 100 |
+| F10 | Ingredient · price | One tag, **used for costs**, on whichever price a recipe reads; a price not in use is muted. The three captions go. The edit form no longer draws the Price group: prices are set from the fact sheet only. | 119–123 |
+
+## The week strip
+
+A new standard component, ruled in on 2026-10-28. Sketch:
+<https://claude.ai/artifact/LT2aDWBfeqDTxbGcRor3y6>.
+
+- **Seven cells**, in the household’s week order (`WeekShape`). Never a calendar.
+- **Fill** says what the batch does that day: cooked (solid herb), keeps in the
+  fridge (herb-soft), from the freezer (the Cook tab’s freezer blue), past the
+  fridge window (the Cook track’s hatched “gone”).
+- **A dot** marks a day a meal eats from the batch. **An outline** marks the
+  meal the screen is about.
+- **At most one caption fragment** underneath, or none.
+- **Three sizes:** full (Mon, Tue…) for sheets and pages; compact (initials)
+  inside cards; line (no fills, an underline under cook days) where the board
+  keeps fills for something else, as on the recipe hero.
+- **Model:** `CookTimelineSpec` already carries the cook day, the meal days,
+  the fridge window and the frozen tail. The strip draws that, plus one
+  optional “this meal” day. It is pure geometry, so it gets unit tests.
+
+Where it goes:
+
+| Screen | Replaces |
+|---|---|
+| Cook tab, every session (compact) | The `CookTimeline` bar, the split note (row 48) and the freezer note (`cook_format.dart:246, 250`) |
+| Add to plan (full) | F3’s batch paragraph |
+| Meal editor (full, under the title) | Nothing today. The ingredients row loses its “every day this week — Mon and Thu” sub-line |
+| Edit for this week (full) | F4’s day sentence |
+| Recipe page from the week (line) | “Planned Tue · Sat this week”; the menu item drops “· Tue & Sat only” |
+
+Not used on week rows (one line already says “from Monday’s batch”) or on the
+Shop’s provenance sheet.
+
+## Lanes
+
+Five subagents, each in its own worktree, each owning a set of files so no two
+lanes edit the same Dart file. Each lane does the table rows and the flags in
+its files, moves the tests that quote its strings, and redraws its board views.
+
+| Lane | Owns | Rows | Flags |
+|---|---|---|---|
+| A · shared and settings | `shared/` (except the new strip), `features/shopping/`, `features/account/`, `features/ask/presentation/`, `features/share/`, `features/books/`, `planning/presentation/household_section.dart` | 1–15, 17–20, 186–194 | F1, F2 |
+| B · week strip, week and cook | the strip (new, `shared/week_strip.dart`), `features/planning/` (except `household_section.dart`), `features/cook_plan/` | 16, 21–49 | F3, F4, F5, F6, the strip |
+| C · recipes | `features/recipes/` | 50–86 | F7, F8 |
+| D · import and receipts | `features/import/`, `features/receipts/` | 87–111 | F9 |
+| E · ingredients | `features/ingredients/` | 112–185 | F10 |
+
+A row that names files in two lanes (38, 75, 76) is done by each lane in its
+own files.
+
+F5’s buttons open recipe-editor targets that lane C owns. Lane B links to the
+editor’s existing routes; if a deeper target (the MAKES field, one line card)
+needs a new route parameter in `features/recipes/`, lane B adds only that and
+says so.
 
 ## Out of scope
 
@@ -309,14 +362,35 @@ Old-vs-new sketches for each flag: <https://claude.ai/artifact/T3DhqX3tnMesSknGS
 
 ## Approach
 
-1. The owner rules on the table: keep, change the wording, or overrule a drop.
-2. Apply it screen by screen, one commit per section. Each string's widget and
-   structural tests move with it (`find.text` matches the exact string).
-3. Read the board's frames for the same strings; a frame that quotes an old
-   string is redrawn, and its status date bumped only after re-verifying.
-4. The redesign flags become backlog rows, if the owner agrees.
-5. `make analyze` + `make test` + `make docs-check` once, then `make test-sim`
-   before landing.
+1. ~~The owner rules on the table, the flags and the strip.~~ Done 2026-10-28.
+2. Each lane applies its rows and flags, one commit per screen. Each string's
+   widget and structural tests move with it (`find.text` matches the exact
+   string). Each lane runs `make analyze` and its own features' tests.
+3. Each lane redraws the board views it touched: frames replaced, not
+   appended, and the status date bumped after reading the view against
+   `app/lib`. Lane B adds the strip to the board's `index.html` system strip.
+4. The lanes merge into one branch; `make analyze` + `make test` +
+   `make docs-check` once on the result.
+5. `make test-sim` before landing. This container has no simulator, so that
+   run is owed (see the checklist).
+
+## Open questions
+
+- **F6: should the shop follow the whole-batch switch?** Today it buys the
+  exact scale. The switch ships display-only, as today’s tap is, and the
+  question stays open.
+
+## Acceptance criteria
+
+- [ ] Every row of the table applied as ruled, or a decision-log line saying
+      why not.
+- [ ] F1–F10 built as described under *Redesign flags*.
+- [ ] The week strip built once and used on the five screens listed.
+- [ ] Tests move with every string; new logic (the strip’s geometry, F1’s
+      lookup) has unit tests.
+- [ ] Board views redrawn for every screen touched.
+- [ ] `make analyze`, `make test`, `make docs-check` green on the merged branch.
+- [ ] `make test-sim` run before landing.
 
 ## Decision log
 
@@ -331,3 +405,15 @@ Old-vs-new sketches for each flag: <https://claude.ai/artifact/T3DhqX3tnMesSknGS
   confusing UI that needs a redesign (flag)."* Rules 1 and 7. Another 37 rows
   dropped; 22 of the drops, and row 4, were covering for a screen and carry a flag (F1–F10).
 - 2026-10-28 — Row 154 is a refusal (both sides of a density in one family), not a hint, so it stays. F11 is retired: the per-serving switch it covered is already a visible control.
+- 2026-10-28 — The owner, on the sketches: *"Love it"*, with one change: the
+  strip’s caption says **from** Monday’s batch, never *with*, matching the week
+  row’s cook marker.
+- 2026-10-28 — The owner made the day strip a standard component (*"the day of
+  the week indicator should become a reusable component standard in our design
+  language"*), and approved the before/after for five screens: *"lgtm"*.
+- 2026-10-28 — The meal editor cannot change a meal’s day (a row’s position is
+  its day), so its strip shows which batch the meal comes from. It is not a live
+  preview of a move.
+- 2026-10-28 — Built in five lanes split by file ownership (see *Lanes*). The
+  owner: subagents are trusted, and their work is not redone or retested unless
+  it has to be.
