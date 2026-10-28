@@ -768,7 +768,7 @@ void main() {
     // points at the density entry (ADR-0008: a volume-named weight mapping
     // IS a density)…
     expect(
-      find.textContaining('is a unit — that mapping is the density'),
+      find.textContaining('is a unit. Set a density instead.'),
       findsOneWidget,
     );
     // …which switches to the spoon phrasing with that spoon pre-picked
@@ -802,10 +802,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Optional'), findsOneWidget);
-    expect(
-      find.textContaining('left out of macros and the shop list'),
-      findsOneWidget,
-    );
+    expect(find.text('not counted'), findsOneWidget);
 
     await tester.tap(find.byType(FSwitch));
     await tester.pumpAndSettle();

@@ -25,7 +25,6 @@ Future<String?> pickLabelPhoto(BuildContext context, WidgetRef ref) {
     context: context,
     builder: (sheetContext) => AnsiSheetShell(
       title: 'Read a label',
-      subtitle: 'one photo of the nutrition panel — a screenshot counts',
       children: [
         ImportPhotoDoors(
           onPick: (source) async {

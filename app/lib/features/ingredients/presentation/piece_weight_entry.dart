@@ -72,9 +72,7 @@ class PieceWeightEntry extends HookWidget {
     Future<void> save() async {
       final v = input.value;
       if (v == null || !(v > 0) || !v.isFinite) {
-        error.value =
-            'weigh one: ${unit.value.label} per piece must be '
-            'positive';
+        error.value = 'must be above zero';
         return;
       }
       // Stored in the basis like every other amount on the row, so nothing
@@ -85,9 +83,7 @@ class PieceWeightEntry extends HookWidget {
         densityGPerMl: ingredient.densityGPerMl,
       );
       if (inBasis case Err()) {
-        error.value =
-            'this row has no density, so ${unit.value.label} cannot become '
-            '$baseLabel — say it in $baseLabel, or state a density first';
+        error.value = 'needs a density. Use $baseLabel.';
         return;
       }
       error.value = null;
@@ -118,7 +114,7 @@ class PieceWeightEntry extends HookWidget {
               Flexible(
                 child: Text(
                   weight == null
-                      ? 'none yet — what one of these weighs'
+                      ? 'none yet'
                       : '${formatAmountIn(weight, base)} $baseLabel'
                             '${pieceWeightSourceSuffix(source)}',
                   style: ansiMono(
@@ -238,9 +234,9 @@ class _RemovePieceWeight extends StatelessWidget {
         children: [
           Text(
             stripped.isEmpty
-                ? 'Remove it? Nothing about what a line may say changes.'
+                ? 'Remove it?'
                 : 'Remove it? ${stripped.map((u) => u.label).join(' · ')} '
-                      'locks again, and a count of this stops joining totals.',
+                      'will stop working.',
             style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
           const SizedBox(height: 6),

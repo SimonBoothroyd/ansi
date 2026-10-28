@@ -457,7 +457,7 @@ class _QuantitySurface extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'left out of macros and the shop list, and named where it left',
+            'not counted',
             style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
         ],

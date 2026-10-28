@@ -48,7 +48,7 @@ void main() {
       // doors are how the match changes.
       expect(find.text('Look up in USDA'), findsNothing);
       // D5 still: the status line says what a stub costs.
-      expect(find.textContaining('Still a stub'), findsOneWidget);
+      expect(find.text('Stub · not in macros'), findsOneWidget);
     },
   );
 
@@ -107,8 +107,7 @@ void main() {
 
   testWidgets(
     'a DECLINED row names the food it refused, says the numbers were cleared, '
-    'offers Choose another alone beside the plain lookup door, and warns that '
-    'a rename will not refill it',
+    'and offers Choose another alone beside the plain lookup door',
     (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
@@ -127,10 +126,6 @@ void main() {
       );
       expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
       expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
-      expect(
-        find.text('renaming this row will not refill it — you said no once'),
-        findsOneWidget,
-      );
       // A refusal is not a dead end: the plain door stands too, because the
       // card is a record of what was said no to rather than an offer.
       expect(find.text('Look up in USDA'), findsOneWidget);
@@ -177,10 +172,7 @@ void main() {
     );
     expect(find.text('USDA · declined'), findsOneWidget);
     expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
-    expect(
-      find.textContaining('a rename will not bring them back'),
-      findsOneWidget,
-    );
+    expect(find.text('Cleared'), findsOneWidget);
   });
 
   testWidgets('Choose another asks for FIVE under the name in the FIELD — '
@@ -313,10 +305,7 @@ void main() {
     await tester.tap(find.widgetWithText(FButton, 'Choose another ›'));
     await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('nothing came back for “Curry leaves, fresh”'),
-      findsOneWidget,
-    );
+    expect(find.text('No match'), findsOneWidget);
     // One surface, not two: at this width the sheet is itself presented as a
     // dialog, so anything raised over it would show up here.
     expect(find.byType(FDialog), findsOneWidget);
@@ -346,7 +335,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('FDC'), findsNothing);
-    expect(find.textContaining('your macros and your density'), findsOneWidget);
+    expect(find.text('your macros and your density edited'), findsOneWidget);
     // B-D3: both doors are exactly as they were.
     expect(find.widgetWithText(FButton, 'Not this food'), findsOneWidget);
     expect(find.widgetWithText(FButton, 'Choose another ›'), findsOneWidget);
@@ -366,7 +355,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('your macros — the numbers'), findsOneWidget);
+    expect(find.text('your macros edited'), findsOneWidget);
     expect(find.textContaining('your density'), findsNothing);
   });
 

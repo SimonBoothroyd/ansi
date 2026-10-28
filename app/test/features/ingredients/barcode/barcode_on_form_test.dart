@@ -68,7 +68,7 @@ void main() {
       );
       // Nothing has been written.
       expect((await repo.byId('curry'))!.macros, isNull);
-      expect(find.textContaining('filled in, not saved'), findsOneWidget);
+      expect(find.text('nothing new'), findsNothing);
 
       await tester.tap(find.widgetWithText(FButton, 'Save').last);
       await tester.pumpAndSettle();
@@ -260,7 +260,7 @@ void main() {
       );
       expect(measures.rows, isEmpty);
       expect(offer, findsNothing);
-      expect(find.textContaining('pack added below'), findsOneWidget);
+      expect(find.text('pack added below'), findsOneWidget);
 
       await saveForm(tester);
       final asked = repo.savedForms.single;

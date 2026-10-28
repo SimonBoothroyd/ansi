@@ -197,9 +197,7 @@ class PriceEditor extends HookConsumerWidget {
       final ok = await askAnsi(
         host.context,
         title: 'Delete the base price?',
-        body:
-            'A cost then reads only what a receipt says was paid. Receipts '
-            'stay as they are.',
+        body: 'Costs will use receipts only.',
         confirm: 'Delete',
         destructive: true,
       );

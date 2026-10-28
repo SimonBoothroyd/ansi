@@ -40,9 +40,7 @@ part 'ingredient_view_models.g.dart';
 const _uuid = Uuid();
 
 /// Said when a per-serving panel has no serving amount, so no per-100 reading.
-const kServingAmountFirst =
-    'One serving is how much? The label’s figures become per 100 only once '
-    'the serving amount is typed.';
+const kServingAmountFirst = 'Enter the serving size.';
 
 /// The macro inputs as typed text, so "half filled in" is a nameable state.
 /// [kcal], [protein], [carb] and [fat] move together; [fiber] ([Macros.fiber])
@@ -321,22 +319,6 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     );
   }
 
-  /// True for a scan that landed a per-100 panel and named no serving: the one
-  /// state where the section hints that per-serving mode exists. Reads the
-  /// fields, so it goes once the person touches the mode or a figure.
-  bool get scannedPer100NeedsServingHint {
-    final scanned = this.scanned;
-    final applied = scanApplied;
-    if (scanned == null || applied == null) return false;
-    if (scanned.macrosGap != DraftMacrosGap.none) return false;
-    if (applied.serving != null) return false;
-    final landed = applied.macros;
-    if (landed == null) return false;
-    return !perServing &&
-        basis == applied.macrosBasis &&
-        macros == MacroDraft.from(landed);
-  }
-
   bool get stub => row.status == IngredientStatus.stub;
 
   /// Whether the provenance the form holds is a pick or a scan that has not
@@ -359,7 +341,7 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// draft so the dock can ask before the tap.
   String? get refusal {
     if (name.trim().isEmpty) {
-      return 'A name is the one field an ingredient can’t go without.';
+      return 'Needs a name.';
     }
     // One namespace: a name or alias another row carries is refused.
     if (nameCollision case final taken?) {
@@ -367,17 +349,13 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     }
     // New rows only: rows already stored without a category stay saveable.
     if (creating && category.trim().isEmpty) {
-      return 'Which aisle is it in? Pick a category — an uncategorised row '
-          'sorts ahead of every aisle, and words like pinch and handful are '
-          'earned by one.';
+      return 'Pick a category.';
     }
     if (!macros.fourCoherent) {
-      return 'Enter all four macros, or leave them all blank — a part of a '
-          'panel isn’t a panel.';
+      return 'Enter all four macros or none.';
     }
     if (!macros.fiberCoherent) {
-      return 'Fibre is an extra figure on a panel, not a panel of its own — '
-          'give it a number beside the four, or clear it.';
+      return 'Fibre needs the other four.';
     }
     if (perServing && printedMacros != null && serving.amountInBasis == null) {
       return kServingAmountFirst;
@@ -385,15 +363,12 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
     // A basis flip or USDA pick can strand a default already chosen, so the
     // write side refuses too. The row is never rewritten silently.
     if (!unitSayableAsDefault(editedRow, defaultUnit)) {
-      final basisWord = basis == MacrosBasis.perMl ? 'ml' : 'g';
-      return 'Macros per 100 $basisWord and no density can’t have '
-          '${defaultUnit.label} as the default unit — add a density '
-          'below, or make it ${basisDefaultUnitFix(editedRow).label}.';
+      return '${defaultUnit.label} needs a density. Add one or use '
+          '${basisDefaultUnitFix(editedRow).label}.';
     }
     // The count-side twin (ADR-0015): a `piece` default with no piece weight.
     if (defaultUnitNeedsPieceWeight(editedRow)) {
-      return 'Piece can’t be the default unit with nothing weighing one — '
-          'enter what one weighs below, or make it '
+      return 'Piece needs a weight. Add one or use '
           '${basisDefaultUnitFix(editedRow).label}.';
     }
     return null;
@@ -407,17 +382,11 @@ abstract class IngredientFormDraft with _$IngredientFormDraft {
   /// reason is the line — no feedback message may stand in front of it.
   String? get dockLine {
     final blocker = refusal ?? (storedMacros == null ? 'needs macros' : null);
-    if (creating) {
-      return blocker ??
-          message ??
-          'saving it counts it in conversions and macro totals';
-    }
+    if (creating) return blocker ?? message;
     if (stub) {
       return refusal ??
           message ??
-          (storedMacros == null
-              ? 'needs macros'
-              : 'completing it counts it in conversions and macro totals');
+          (storedMacros == null ? 'needs macros' : null);
     }
     return refusal ?? message;
   }
@@ -1056,9 +1025,7 @@ class IngredientForm extends _$IngredientForm {
       pendingSourceScore: undo.pendingSourceScore,
       labelUndo: null,
       labelNotes: const <String>[],
-      message:
-          'Undone — the label’s figures are off the form, and nothing was '
-          'saved.',
+      message: 'Undone',
     );
     state = next.copyWith(allowed: _admissionFor(next.editedRow, next.allowed));
   }
@@ -1166,9 +1133,7 @@ class IngredientForm extends _$IngredientForm {
       density: pick.densityGPerMl != null
           ? DensitySet(pick.densityGPerMl!)
           : const DensityCleared(),
-      message:
-          'Filled from “${pick.description}” — nothing is saved until you '
-          'tap Save.',
+      message: 'Filled from “${pick.description}”',
     );
     if (pick.macros != null) {
       final filled = MacroDraft.from(pick.macros);
@@ -1193,11 +1158,7 @@ class IngredientForm extends _$IngredientForm {
     _dropUsdaFill();
     // A pick that only sat in the draft has no row to clear.
     if (!stored) {
-      state = state.copyWith(
-        message:
-            'Not this food — the pick is off the form, and nothing was '
-            'saved.',
-      );
+      state = state.copyWith(message: 'Cleared');
       return;
     }
     state = state.copyWith(busy: true);
@@ -1207,11 +1168,7 @@ class IngredientForm extends _$IngredientForm {
           .declineUsdaPrefill(state.row.id);
       if (!ref.mounted) return;
       if (cleared == null) return;
-      state = state.copyWith(
-        message:
-            'Cleared — the USDA numbers are gone, and a rename will not bring '
-            'them back.',
-      );
+      state = state.copyWith(message: 'Cleared');
     } finally {
       if (ref.mounted) state = state.copyWith(busy: false);
     }
@@ -1355,10 +1312,7 @@ class IngredientForm extends _$IngredientForm {
   Future<void> unconfirm() async {
     await ref.read(ingredientRepositoryProvider).unconfirm(state.row.id);
     if (!ref.mounted) return;
-    state = state.copyWith(
-      message:
-          'Back to a stub — it stops counting until you complete it again.',
-    );
+    state = state.copyWith(message: 'Back to a stub');
   }
 
   /// The refusal is the interesting state: it names the count, because "used by

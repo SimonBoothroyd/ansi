@@ -8,11 +8,13 @@
 /// **base price**, never a receipt: a price paid is opened on its receipt, and
 /// the base price is its own entry beside it.
 ///
-/// The last group asks the same questions of the **editing** posture, which
-/// draws the same widget: the prices are there, each one is the same tap, and
-/// what the sheet writes neither rides the form's Save nor is doubled by it.
+/// One tag, **used for costs**, sits on the price a cost reads: the latest
+/// paid when there is one, else the base price, which is then drawn muted. The
+/// last group pins that the form, whose fields wait for Save, draws no Price
+/// group at all: a price is set from the fact sheet, where it writes at once.
 library;
 
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
@@ -103,6 +105,29 @@ Finder get paidField => find.descendant(
 
 String derivedText(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(kPriceDerivedKey)).data!;
+
+/// Whether the one `used for costs` tag sits on the line of the micro-label
+/// [label].
+void expectUsedForCostsOn(WidgetTester tester, String label) {
+  final tag = find.text(kUsedForCostsTag.toUpperCase());
+  expect(tag, findsOneWidget);
+  expect(
+    (tester.getCenter(tag).dy - tester.getCenter(find.text(label)).dy).abs(),
+    lessThan(8),
+    reason: 'the tag sits beside $label',
+  );
+}
+
+/// The ink the base price's own line is drawn in.
+Color? basePriceInk(WidgetTester tester) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byKey(kBasePriceKey),
+        matching: find.byType(Text),
+      ),
+    )
+    .style
+    ?.color;
 
 Future<void> openTheSheet(WidgetTester tester) async {
   await tester.tap(find.byKey(kAddPriceKey));
@@ -397,10 +422,11 @@ void main() {
       expect(prices.setCalls.single.packAmount, 454);
       expect(prices.setCalls.single.packUnitId, 'g');
       // The sheet closed onto the page, which now states the base price as
-      // what a recipe reads.
+      // the one costs use.
       expect(find.byType(PriceEditor), findsNothing);
       expect(find.text('BASE'), findsOneWidget);
-      expect(find.text('what a recipe reads'), findsOneWidget);
+      expectUsedForCostsOn(tester, 'BASE');
+      expect(basePriceInk(tester), AnsiColors.ink);
       expect(find.text('Price — none yet'), findsNothing);
     });
 
@@ -483,10 +509,7 @@ void main() {
       await tester.pumpAndSettle();
       await enterPrice(tester, paid: '3.49', pack: '1');
 
-      expect(
-        derivedText(tester),
-        'an imprecise word cannot be priced — say the pack in g',
-      );
+      expect(derivedText(tester), 'can’t price that. Use g.');
       expect(
         tester.widget<FButton>(find.widgetWithText(FButton, 'Done')).onPress,
         isNull,
@@ -865,9 +888,8 @@ void main() {
       expect(find.text('receipt r-l2'), findsOneWidget);
     });
 
-    testWidgets('beside a price paid, the base price says it stands in', (
-      tester,
-    ) async {
+    testWidgets('beside a price paid, the base price is muted and the tag is '
+        'on the latest', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -880,12 +902,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The receipt is what a recipe reads; the base price is its own entry,
-      // named as what is read when no receipt prices the row.
+      // The receipt is what a cost reads; the base price is its own entry,
+      // drawn muted because nothing reads it while a receipt prices the row.
       expect(find.text('LATEST'), findsOneWidget);
-      expect(find.text('what a recipe reads'), findsOneWidget);
       expect(find.text('BASE'), findsOneWidget);
-      expect(find.text('read when no receipt prices it'), findsOneWidget);
+      expectUsedForCostsOn(tester, 'LATEST');
+      expect(basePriceInk(tester), AnsiColors.muted);
     });
 
     testWidgets('a new base price beside a receipt offers no Delete, and says '
@@ -909,93 +931,32 @@ void main() {
     });
   });
 
-  group('the Price group, editing', () {
-    testWidgets('the editor draws the same group, and says the sheet does '
-        'not wait for Save', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      await tester.pumpWidget(
-        host(FakeIngredientRepo(const [bananas]), at: editRoute('banana')),
-      );
-      await tester.pumpAndSettle();
-
-      // The state is said where the group is named here too, and never as a
-      // zero the form could then be read as holding.
-      expect(find.text('Price — none yet'), findsOneWidget);
-      expect(find.byKey(kAddPriceKey), findsOneWidget);
-      expect(
-        find.textContaining('a price is written as you enter it'),
-        findsOneWidget,
-        reason:
-            'the dock must not be read as covering a section it does not '
-            'own',
-      );
-      expect(find.byKey(kFormSaveKey), findsOneWidget);
-    });
-
-    testWidgets('every stored price is on the editor, and the base price '
-        'opens the sheet on itself', (tester) async {
+  group('the form draws no Price group', () {
+    testWidgets('editing a priced row: its prices stay on the fact sheet', (
+      tester,
+    ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
         host(
           FakeIngredientRepo(const [bananas]),
           at: editRoute('banana'),
-          prices: FakePriceRepo(
-            prices: [
-              price(),
-              price(lineId: 'l2', cents: 329, on: DateTime.utc(2026, 8, 23)),
-            ],
-            base: basePrice(cents: 299),
-          ),
+          prices: FakePriceRepo(prices: [price()], base: basePrice()),
           measures: FakeMeasureRepo(const [bagMeasure]),
         ),
       );
       await tester.pumpAndSettle();
 
-      // The fact sheet's own lines, word for word — one widget, two hosts.
-      expect(
-        find.text(r"77¢ / 100 g · $3.49 for bag (454 g) · TJ's · 13 Sep"),
-        findsOneWidget,
-      );
-      expect(find.text('BEFORE'), findsOneWidget);
-
-      await tester.tap(find.byKey(kBasePriceKey));
-      await tester.pumpAndSettle();
-      expect(find.text(r'editing $2.99 · set 13 Sep'), findsOneWidget);
+      expect(find.byKey(kFormSaveKey), findsOneWidget);
+      expect(find.textContaining('Price'), findsNothing);
+      expect(find.byKey(kLatestPriceKey), findsNothing);
+      expect(find.byKey(kBasePriceKey), findsNothing);
+      expect(find.byKey(kAddPriceKey), findsNothing);
     });
 
-    testWidgets('a price entered here is written at once, and the form’s Save '
-        'neither loses nor doubles it', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      final prices = FakePriceRepo();
-      await tester.pumpWidget(
-        host(
-          FakeIngredientRepo(const [bananas]),
-          at: editRoute('banana'),
-          prices: prices,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await openTheSheet(tester);
-      // The door opens on nothing: there is no base price to take back yet.
-      expect(find.byKey(kPriceDeleteKey), findsNothing);
-      await enterPrice(tester, paid: '3.49', pack: '454');
-      await tester.tap(find.widgetWithText(FButton, 'Done'));
-      await tester.pumpAndSettle();
-      expect(prices.setCalls, hasLength(1));
-
-      // Save lands the FIELDS and puts the form down. The base price is not
-      // the draft's to hold, so nothing about the price moves.
-      await saveForm(tester);
-      expect(prices.setCalls, hasLength(1));
-      expect(find.text('BASE'), findsOneWidget);
-    });
-
-    testWidgets('a row that does not exist yet has nothing to hang a price '
-        'on, and is not asked for one', (tester) async {
+    testWidgets('a row that does not exist yet is not asked for a price', (
+      tester,
+    ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -1003,20 +964,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Price — after the first save'), findsOneWidget);
-      expect(
-        find.textContaining('this one does not exist yet'),
-        findsOneWidget,
-      );
-      // No door onto a sheet that would have no row to write against.
+      expect(find.textContaining('Price'), findsNothing);
       expect(find.byKey(kAddPriceKey), findsNothing);
-      // And the gate is the one it always was: the dock is waiting on the
-      // fields a row is made of, never on a price.
+      // The dock waits on the fields a row is made of, never on a price.
       expect(saveButton(tester).onPress, isNull);
-      expect(
-        find.text('A name is the one field an ingredient can’t go without.'),
-        findsOneWidget,
-      );
+      expect(find.text('Needs a name.'), findsOneWidget);
     });
   });
 }

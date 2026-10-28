@@ -147,7 +147,7 @@ void main() {
       await tester.pumpWidget(_host(_shallot));
       await tester.pumpAndSettle();
 
-      expect(find.text('none yet — what one of these weighs'), findsOneWidget);
+      expect(find.text('none yet'), findsOneWidget);
       expect(find.text('1 piece weighs'), findsOneWidget);
       expect(find.text('· change'), findsNothing);
     });
@@ -206,7 +206,7 @@ void main() {
         await tester.tap(_saveButton);
         await tester.pumpAndSettle();
         expect(
-          find.text('weigh one: g per piece must be positive'),
+          find.text('must be above zero'),
           findsOneWidget,
           reason: bad.isEmpty ? '(empty)' : bad,
         );
@@ -218,7 +218,7 @@ void main() {
       await tester.pump();
       await tester.tap(_saveButton);
       await tester.pumpAndSettle();
-      expect(find.textContaining('must be positive'), findsNothing);
+      expect(find.text('must be above zero'), findsNothing);
       expect(saves, [45]);
     });
 
@@ -315,8 +315,8 @@ void main() {
       await tester.tap(find.text('remove the piece weight'));
       await tester.pumpAndSettle();
 
-      // The consequence, not "are you sure": `piece` locks again.
-      expect(find.textContaining('piece locks again'), findsOneWidget);
+      // The consequence, not "are you sure": `piece` stops working.
+      expect(find.text('Remove it? piece will stop working.'), findsOneWidget);
       expect(removals, isEmpty, reason: 'asking is not doing');
 
       await tester.tap(find.widgetWithText(FButton, 'Remove'));

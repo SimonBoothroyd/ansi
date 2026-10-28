@@ -299,7 +299,7 @@ void main() {
 
       expect(find.text('CANONICAL NAME'), findsNothing);
       expect(
-        find.text('Complete — counts in conversions and macro totals.'),
+        find.text('Identity'),
         findsOneWidget,
         reason: 'the door lands on the row that already has the name',
       );

@@ -47,9 +47,7 @@ Future<bool> mayDeleteMeasure(
         '${recipes.isEmpty ? '' : ', in ${recipes.length} '
                   '${plural(recipes.length, 'recipe')}'}. '
         'Change ${plural(usage.lines, 'it', plural: 'them')} to another unit '
-        'first — deleting it now would quietly drop '
-        '${plural(usage.lines, 'that line', plural: 'those lines')} out of '
-        'every total.',
+        'first.',
     door: recipes.isEmpty ? null : 'Show me where',
   );
   if (took) {
@@ -103,12 +101,6 @@ class _UsedBy extends StatelessWidget {
             ),
           ),
         ),
-      const SizedBox(height: 10),
-      Text(
-        'a planned meal or a shopping top-up can say it too — those are not '
-        'recipes, so there is no page to send you to',
-        style: ansiMono(size: 10, color: AnsiColors.muted),
-      ),
     ],
   );
 }

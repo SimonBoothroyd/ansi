@@ -24,12 +24,11 @@ class DraftCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attribution = draft.attribution;
-    // A draft that came back from the not-found exit has nothing to show but
-    // the code — the honest empty answer rather than an empty card.
+    // A draft that came back from the not-found exit has nothing to show, so
+    // it says so rather than drawing an empty card.
     if (attribution == null) {
       return Text(
-        'Nothing came back for ${draft.barcode ?? 'that code'} — the name and '
-        'the macros are all a barcode was going to fill in. Type them here.',
+        'Not found. Enter the name and macros.',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       );
     }
@@ -66,8 +65,7 @@ class DraftCard extends StatelessWidget {
             Text(formatMacroLine(macros), style: ansiMono(size: 12)),
             const SizedBox(height: 2),
             Text(
-              'panel read per 100 ${draft.macrosBasis.dbValue} — stored as '
-              'the basis, not converted',
+              'per 100 ${draft.macrosBasis.dbValue}',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ] else if (serving != null) ...[
@@ -83,9 +81,7 @@ class DraftCard extends StatelessWidget {
             // Blank, with the reason. Never zeros: an absent panel is a fact
             // about Open Food Facts, not a nutrition figure.
             Text(
-              draft.macrosGap.message ??
-                  'No macros came with this product — fill them in on the '
-                      'next screen.',
+              draft.macrosGap.message ?? 'No macros found',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           if (skipped.isNotEmpty) ...[
@@ -103,17 +99,9 @@ class DraftCard extends StatelessWidget {
   /// Under the printed four: what OFF knows about the serving, and whether
   /// the amount still has to be typed.
   static String _servingLine(DraftServingPanel serving) {
-    final size = serving.servingSize;
     final amount = serving.servingAmount;
-    if (amount == null) {
-      final says = size == null ? '' : ' — the pack says “$size”';
-      return 'panel read per serving$says — type the serving weight and the '
-          'row stores per 100';
-    }
-    final basis = serving.servingBasis!;
-    final says = size == null ? '' : ' (“$size”)';
-    return 'panel read per serving of '
-        '${formatQuantityIn(amount, basis.baseUnit)} '
-        '${basis.baseUnit.label}$says — stored per 100 ${basis.dbValue}';
+    if (amount == null) return 'per serving. Enter the serving weight.';
+    final unit = serving.servingBasis!.baseUnit;
+    return 'per serving of ${formatQuantityIn(amount, unit)} ${unit.label}';
   }
 }

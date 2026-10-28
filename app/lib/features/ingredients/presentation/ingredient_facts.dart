@@ -265,14 +265,9 @@ String editedBasePriceAside(BasePrice price) => [
 String priceRefusal(Failure failure, Ingredient ingredient) {
   final basis = ingredient.macrosBasis.baseUnit;
   return switch (failure.code) {
-    'unit/no_density' =>
-      'this row has no density, so a volume pack cannot be weighed — set one '
-          'on the ingredient, or say the pack in ${basis.label}',
-    'unit/incompatible' =>
-      'this row does not say what one piece weighs — set a piece weight, or '
-          'say the pack in ${basis.label}',
-    'unit/imprecise' =>
-      'an imprecise word cannot be priced — say the pack in ${basis.label}',
+    'unit/no_density' => 'no density. Use ${basis.label}.',
+    'unit/incompatible' => 'no piece weight. Use ${basis.label}.',
+    'unit/imprecise' => 'can’t price that. Use ${basis.label}.',
     'price/no_pack' => 'say what the money bought',
     'price/nothing_paid' => 'say what you paid',
     _ => failure.message,
