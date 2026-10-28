@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble</p>
+    <p class="view-status">built · matches code 2026-09-20 · the meal editor, copy last week and the foot: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble</p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -138,11 +138,15 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The meal editor</b> · what the avatar and portions cluster opens: three fields — slot, who’s eating, portions — each written through on tap</p>
+        <p class="frame-name"><b>The meal editor</b> · what the avatar and portions cluster opens: the batch the meal comes from, on the <a href="./index.html">week strip</a>, then three fields — slot, who’s eating, portions — each written through on tap</p>
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
             <div style="display:flex;align-items:baseline;gap:10px;margin:0 20px 4px"><div class="c-h" style="margin:0;flex:1">Weeknight Chicken Curry</div><span style="color:var(--herb-deep);font-size:13px">Close</span></div>
             <p class="conv-note" style="margin-top:2px">Thursday · dinner</p>
+            <div class="wks-wrap" style="margin-top:8px">
+                <div class="wks"><span class="wk-cook wk-meal">Mon</span><span class="wk-keep">Tue</span><span class="wk-keep">Wed</span><span class="wk-keep wk-meal wk-me">Thu</span><span class="wk-keep">Fri</span><span class="wk-gone">Sat</span><span class="wk-gone">Sun</span></div>
+                <div class="wks-cap">from Monday’s batch</div>
+            </div>
             <p class="clabel">Slot</p>
             <div style="display:flex;align-items:center;gap:8px;margin:0 20px"><div class="slotchip" style="margin:0;flex:1">Dinner<span class="caret" style="margin-left:auto">▾</span></div><span class="rplus" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);color:var(--herb)">＋</span></div>
             <p class="clabel">Who’s eating</p>
@@ -150,7 +154,7 @@
             <p class="clabel">Portions</p>
             <div class="portion"><div class="pl">1 portion<small>Ada 1 — their usual</small></div><div class="pstepper"><span class="s">–</span><span class="qv">1</span><span class="s">+</span></div></div>
             <p class="clabel">Ingredients</p>
-            <div class="crow"><span class="cl">As the recipe has them<small>a change covers every day this week — Mon and Thu</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">edit for this week ›</span></div>
+            <div class="crow"><span class="cl">As the recipe has them</span><span class="ci" style="color:var(--herb-deep);font-size:12px">edit for this week ›</span></div>
 
             <p class="clabel" style="margin-top:20px">the same row, once something has changed</p>
             <div class="crow"><span class="cl">Edited for this week<small>3 changes · Tue and Sat</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">edit for this week ›</span></div>
@@ -158,7 +162,7 @@
             <p class="conv-note">three fields in the confirm sheet’s order, each written through on tap — nothing to save, though a sheet still needs a visible way out. And <b>no way through to the recipe or the bin</b>: those are the title and the <span style="font-family:'IBM Plex Mono',monospace">−</span>, already on the row you came from</p>
             <p class="conv-note">the <b>slot is a field</b> because the row prints it — it is the gutter label the row sits under. Pick <b>Lunch</b> and the subtitle reads <i>Thursday · lunch</i> and the row re-sorts under LUNCH; the trailing <b>+</b> names a custom one. The <b>day is not a field</b>: a row’s position is its day, so a meal changes day by remove-and-re-add through the picker’s “already this week” quick picks</p>
             <p class="conv-note">the <b>fourth row is not a field</b>. It states one fact and opens the screen that edits it — week mode in the recipe editor — and nothing here writes; the editor's own <b>Save</b> does. It goes last, under Portions, because the sheet already scrolls and length costs nothing above the fold</p>
-            <p class="conv-note">the sheet is per-<i>meal</i> and the variant is per-<b>week and recipe</b>, so the row must say its own scope in its own words — <b>“every day this week — Mon and Thu”</b>, naming every day the week plans it. That sub-line is a condition of the door, not decoration: without it the row lies about what a tap changes. It is <b>not</b> a fourth target on the dish row: the row's rule is <i>a row's controls are the facts the row prints</i>, and a control drawn on every row to reach a state almost no row is in is a target every row pays for</p>
+            <p class="conv-note">the <b>strip</b> under the title is the batch this meal comes from, read off the cook plan: the cook day solid, the fridge days tinted, a dot on each meal that eats from it, this meal outlined, and one caption. It is not a preview of a move, because the sheet cannot move a meal. The days it dots are the days a change to the fourth row covers, so the row says no scope of its own until something has changed. The door is <b>not</b> a fourth target on the dish row: the row's rule is <i>a row's controls are the facts the row prints</i>, and a control drawn on every row to reach a state almost no row is in is a target every row pays for</p>
         </div></div>
     </div>
 
@@ -190,7 +194,7 @@
         <p class="conv-note" style="margin:10px 4px 0"><b>Both rows say it, and they cannot disagree.</b> One variant per <i>(week, recipe)</i> is what makes this drawable: a per-meal override would put “edited” on Tuesday and not Saturday, and then the two rows would be describing two different pots</p>
         <p class="conv-note" style="margin:6px 4px 0">the mark is the <b>cook marker's</b> second, quieter variant — paper ground, hairline, muted (<code>.cookmark.from</code>), the voice the board already uses for <i>“from Monday's batch”</i>: derived, not fresh. It sits beside the cook marker on the row's second line, never on the title line, because it is a fact the row prints and not a target</p>
         <p class="conv-note" style="margin:6px 4px 0">the week's <b>macro strip reads the variant too</b>: a varied recipe is re-summed over the lines this week actually cooks, while every recipe the week leaves alone keeps the Library's own figure</p>
-        <p class="conv-note" style="margin:6px 4px 0">the <b>title carries the week</b> it is planned in (<code>/recipes/:id?week=…</code>), so the recipe page it opens can print <i>“Planned Tue · Sat this week”</i> and offer <b>Edit for this week</b> beside its own Edit. The tap is unchanged — the title still opens the dish it names; it just no longer arrives having forgotten where it came from</p>
+        <p class="conv-note" style="margin:6px 4px 0">the <b>title carries the week</b> it is planned in (<code>/recipes/:id?week=…</code>), so the recipe page it opens can draw that week’s strip and offer <b>Edit for this week</b> beside its own Edit. The tap is unchanged — the title still opens the dish it names; it just no longer arrives having forgotten where it came from</p>
     </div>
 
     <div class="frame">
@@ -320,7 +324,7 @@
             <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>Next week<span class="dt">21 Sep</span><span class="caret">▾</span></span><span class="chev">›</span></div>
             <div class="state" style="margin:14px 20px">
                 <div class="sh"><span>ⓘ</span><span style="flex:1;font-weight:400;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">Copied 7 meals from last week</span><span style="color:var(--muted);font-weight:400">✕</span></div>
-                <div class="sb" style="color:var(--ink)">One recipe's this-week changes were left behind — Slow-Cooker Beef Ragù (5 changes). Last week's meals came over; last week's changes did not. Open one and edit for this week if you want it again.</div>
+                <div class="sb" style="color:var(--ink)">This-week edits not copied: Slow-Cooker Beef Ragù (5 changes)</div>
             </div>
             <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
             <div class="day2"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">22 Sep</span></div>
@@ -358,7 +362,7 @@
 
             <div class="wkfoot">
                 <div class="wf-h"><span class="wf-t">Planned · week · everyone</span></div>
-                <div class="dm-none">no meals yet — nothing to add up</div>
+                <div class="dm-none">no meals yet</div>
             </div>
             <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
@@ -401,11 +405,10 @@
             <div class="wkfoot">
                 <div class="wf-h"><span class="wf-t">Planned &middot; week &middot; everyone</span><span class="wf-t">6 of 7 days</span></div>
                 <div class="dm" style="display:block">13&nbsp;860 <svg class="gly" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="kcal"><title>kcal</title><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> &middot; 704P 1&nbsp;012C 542F</div>
-                <div class="dm" style="display:block;margin-top:4px;font-size:10px;color:var(--muted)">avg 2&nbsp;310 kcal/day over the 6 days that counted &middot; 12 of 13 meals</div>
+                <div class="dm" style="display:block;margin-top:4px;font-size:10px;color:var(--muted)">avg 2&nbsp;310 kcal/day (6 days) &middot; 12 of 13 meals</div>
                 <div class="dm" style="display:block;margin-top:4px"><b>at least $71</b> to cook &middot; 3 lines unpriced</div>
                 <div class="dm" style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="flex:1"><b>$84.12</b> spent &middot; 1 receipt &middot; TJ&rsquo;s, Sun</span><span style="color:var(--muted)">&rsaquo;</span></div>
                 <div class="dm" style="display:block;margin-top:3px;font-size:10px;color:var(--muted)">excluded: Sausage Sliders &middot; 1 stub line</div>
-                <div class="wf-note">This is the sum of what is planned, not a daily target &mdash; a week that only plans dinners averages a dinner.</div>
             </div>
             <div class="nav"><div class="ni"><span class="ic">&#9636;</span>Library</div><div class="ni on"><span class="ic">&#9638;</span>Week</div><div class="ni"><span class="ic">&#9677;</span>Cook</div><div class="ni"><span class="ic">&#9635;</span>Shop</div></div>
         </div></div>
@@ -591,7 +594,7 @@
                     </div>
                 <div class="main wx-main">
                     <div class="wx-top"><div class="wkhdr"><span class="chev">&lsaquo;</span><span class="wt"><span class="now"></span>This week<span class="dt">31 Aug</span><span class="caret">&#9662;</span></span><span class="chev">&rsaquo;</span></div><div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div></div>
-                    <div class="state wx-state"><div class="sh"><span>&#9432;</span><span style="flex:1;font-weight:400;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">Copied 7 meals from last week</span><span style="color:var(--muted);font-weight:400">&#10005;</span></div><div class="sb" style="color:var(--ink)">One recipe&rsquo;s this-week changes were left behind &mdash; Slow-Cooker Beef Rag&ugrave; (5 changes). Last week&rsquo;s meals came over; last week&rsquo;s changes did not. Open one and edit for this week if you want it again.</div></div>
+                    <div class="state wx-state"><div class="sh"><span>&#9432;</span><span style="flex:1;font-weight:400;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">Copied 7 meals from last week</span><span style="color:var(--muted);font-weight:400">&#10005;</span></div><div class="sb" style="color:var(--ink)">This-week edits not copied: Slow-Cooker Beef Rag&ugrave; (5 changes)</div></div>
                     <div class="wx-body">
                         <div class="wx-agenda">
                         <div class="wx-kick">THE WEEK<i>31 Aug &ndash; 6 Sep</i></div>
