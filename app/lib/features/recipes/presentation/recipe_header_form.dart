@@ -25,6 +25,7 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/ansi_stepper_row.dart';
+import '../../../shared/dashed_border_box.dart';
 import '../../../shared/format.dart';
 import '../../../shared/inline_amount_field.dart';
 import '../../../shared/write.dart';
@@ -123,7 +124,7 @@ class RecipeHeaderForm extends StatelessWidget {
   final List<RecipeHeaderSection> sections;
 
   /// The wide header's compact cells: a short word beside (or above, see
-  /// [_DenseRow]) a compact control, without the explanatory paragraphs.
+  /// [_DenseRow]) a compact control, without the captions.
   final bool dense;
 
   @override
@@ -166,9 +167,7 @@ class RecipeHeaderForm extends StatelessWidget {
         RecipeHeaderSection.makes => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // "MAKES · optional" — the label the board's frame h draws, with
-            // the optional half in sentence case beside the eyebrow.
-            AnsiMicroLabel(section.label, suffix: '· optional'),
+            AnsiMicroLabel(section.label),
             if (notes.underMakes case final source?)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -177,7 +176,7 @@ class RecipeHeaderForm extends StatelessWidget {
                   style: ansiMono(size: 11, color: AnsiColors.muted),
                 ),
               ),
-            _MakesSection(recipe: recipe, host: host, dense: dense),
+            _MakesSection(recipe: recipe, host: host),
             if (notes.afterMakes case final hint?)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
@@ -191,10 +190,7 @@ class RecipeHeaderForm extends StatelessWidget {
         RecipeHeaderSection.measures => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AnsiMicroLabel(
-              section.label,
-              suffix: '· optional · what you call one of these',
-            ),
+            AnsiMicroLabel(section.label),
             _MeasuresSection(recipe: recipe, host: host),
           ],
         ),
@@ -223,7 +219,6 @@ class RecipeHeaderForm extends StatelessWidget {
             ] else ...[
               _StepperRow(
                 label: 'Cook',
-                caption: timeCaptions ? 'hands-on and on the heat' : null,
                 value: recipe.cookTimeSeconds,
                 step: 60,
                 format: formatDuration,
@@ -267,19 +262,12 @@ class RecipeHeaderForm extends StatelessWidget {
 ///
 /// Independent of serves. The second denomination offers only the other unit
 /// families and can be added only once the first is stated, matching the
-/// database CHECK.
+/// database CHECK. The phone and the wide header draw it alike.
 class _MakesSection extends HookWidget {
-  const _MakesSection({
-    required this.recipe,
-    required this.host,
-    this.dense = false,
-  });
+  const _MakesSection({required this.recipe, required this.host});
 
   final Recipe recipe;
   final RecipeHeaderHost host;
-
-  /// See [RecipeHeaderForm.dense].
-  final bool dense;
 
   /// The units a yield may be stated in: every ingredient-line unit except the
   /// imprecise ones. `batch` is excluded too.
@@ -301,8 +289,13 @@ class _MakesSection extends HookWidget {
         if (u.family != unit.value.family) u,
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // One row, the two amounts joined by `=`: one batch said two ways. A Wrap,
+    // so a narrow cell carries the second slot, `=` and all, to a line of its
+    // own instead of squeezing the fields.
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         _YieldRow(
           key: const ValueKey('yield-1'),
@@ -314,49 +307,92 @@ class _MakesSection extends HookWidget {
             host.setYield(qty, u);
           },
         ),
-        if (hasFirst && showSecond) ...[
-          const SizedBox(height: 8),
-          _YieldRow(
-            key: const ValueKey('yield-2'),
-            quantity: recipe.yieldQty2,
-            unit: unit2.value ?? otherFamilies.first,
-            units: otherFamilies,
-            onRemove: () {
-              unit2.value = null;
-              host.setSecondYield(null, null);
-            },
-            onChanged: (qty, u) {
-              unit2.value = u;
-              host.setSecondYield(qty, u);
-            },
-          ),
-          if (!dense)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'the second slot only offers the other families — two ways of '
-                'saying one batch, never two numbers in one family',
-                style: ansiMono(size: 11, color: AnsiColors.muted),
+        if (hasFirst)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '=',
+                key: const ValueKey('yield-equals'),
+                style: ansiMono(size: 14, color: AnsiColors.muted),
               ),
-            ),
-        ] else if (hasFirst) ...[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FButton(
-              variant: FButtonVariant.ghost,
-              size: FButtonSizeVariant.sm,
-              prefix: const Icon(FLucideIcons.plus),
-              onPress: () => unit2.value = otherFamilies.first,
-              // The eyebrow overhead already says MAKES, and a quarter of the
-              // wide cap does not hold the longer way of saying it.
-              child: Text(dense ? 'Another' : 'Another denomination'),
-            ),
+              const SizedBox(width: 8),
+              if (showSecond)
+                _YieldRow(
+                  key: const ValueKey('yield-2'),
+                  quantity: recipe.yieldQty2,
+                  unit: unit2.value ?? otherFamilies.first,
+                  units: otherFamilies,
+                  onRemove: () {
+                    unit2.value = null;
+                    host.setSecondYield(null, null);
+                  },
+                  onChanged: (qty, u) {
+                    unit2.value = u;
+                    host.setSecondYield(qty, u);
+                  },
+                )
+              else
+                _EmptyYieldSlot(
+                  offer: otherFamilies,
+                  onTap: () => unit2.value = otherFamilies.first,
+                ),
+            ],
           ),
-        ],
       ],
     );
   }
+}
+
+/// The second MAKES slot before anything is in it: a dashed chip naming the
+/// kinds of unit it would take, `cups, pieces…` beside a weight.
+class _EmptyYieldSlot extends StatelessWidget {
+  const _EmptyYieldSlot({required this.offer, required this.onTap});
+
+  /// The units the slot offers. The chip names one per family among them.
+  final List<Unit> offer;
+  final VoidCallback onTap;
+
+  /// Each family by the unit a cook reaches for in it.
+  static const _said = {
+    UnitFamily.mass: 'grams',
+    UnitFamily.volume: 'cups',
+    UnitFamily.count: 'pieces',
+  };
+
+  /// The chip's words for [offer]: `cups, pieces…`.
+  static String label(List<Unit> offer) {
+    final words = [
+      for (final family in {for (final u in offer) u.family})
+        if (_said[family] case final word?) word,
+    ];
+    return '${words.join(', ')}…';
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    key: const ValueKey('yield-2-add'),
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: DashedBorderBox(
+      radius: kInlineControlHeight / 2,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: SizedBox(
+        height: kInlineControlHeight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(FLucideIcons.plus, size: 12, color: AnsiColors.herb),
+            const SizedBox(width: 5),
+            Text(
+              label(offer),
+              style: ansiMono(size: 11, color: AnsiColors.herb),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// The MEASURES list, under the MAKES it depends on (ADR-0018).
@@ -427,6 +463,7 @@ class _YieldRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         AmountAndUnitField(
           amountWidth: 64,
@@ -546,14 +583,6 @@ class _ShelfLifeSection extends StatelessWidget {
           unsetText: 'not set',
           onChanged: host.setKeepsForDays,
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            'Drives the batch cook plan — how far apart the same dish can be '
-            'planned before it becomes two things to cook.',
-            style: ansiMono(size: 11, color: AnsiColors.muted),
-          ),
-        ),
         const SizedBox(height: 14),
         FSwitch(
           label: Text('Freezes', style: ansiSans(size: 15)),
@@ -575,8 +604,8 @@ class _ShelfLifeSection extends StatelessWidget {
   }
 }
 
-/// The wide header's SHELF LIFE cell: the same two facts without the
-/// explanatory paragraph.
+/// The wide header's SHELF LIFE cell: the same facts, each word beside its
+/// control.
 class _DenseShelfLife extends StatelessWidget {
   const _DenseShelfLife({required this.recipe, required this.host});
 

@@ -243,10 +243,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Optional'), findsOneWidget);
-    expect(
-      find.textContaining('left out of macros and the shop list'),
-      findsOneWidget,
-    );
+    expect(find.text('not counted'), findsOneWidget);
 
     await tester.tap(find.byType(FSwitch));
     await tester.pumpAndSettle();

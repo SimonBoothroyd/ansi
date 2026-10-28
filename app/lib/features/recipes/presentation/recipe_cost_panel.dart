@@ -150,25 +150,11 @@ class _Refusal extends StatelessWidget {
     );
   }
 
-  /// The sentence under the badge, in the state's own terms.
+  /// The line under the badge, in the state's own terms.
   String _why(RecipeCostSummary summary) {
-    if (summary.noLines) {
-      return 'A cost arrives once this recipe has ingredients.';
-    }
-    if (summary.nothingCountable) {
-      return 'Every line is imprecise or optional, so there is nothing to '
-          'price — a figure here would be a fabrication.';
-    }
-    if (summary.partlyPriced) {
-      final month = summary.newestPrice;
-      final from = month == null
-          ? ''
-          : ', at prices from ${formatMonthShort(month)}';
-      return 'What the priced lines come to$from — a floor, not the cost: '
-          'the lines named below can only add to it.';
-    }
-    return 'Left out until every line has a price — a figure short of one of '
-        'them would not be this recipe.';
+    if (summary.noLines) return 'No ingredients yet';
+    if (summary.nothingCountable) return 'Nothing to price';
+    return 'Some lines have no price';
   }
 }
 

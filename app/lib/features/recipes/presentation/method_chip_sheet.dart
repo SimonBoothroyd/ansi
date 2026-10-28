@@ -148,13 +148,6 @@ class _ChipSheet extends HookWidget {
                 : ChipAmountRule.hideAmount,
           )),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'The first time a step calls for something, its chip shows the '
-          'amount. After that it’s the same stuff, so the chip just names '
-          'it.',
-          style: ansiMono(size: 11, color: AnsiColors.muted),
-        ),
         const SizedBox(height: 16),
         FButton(
           variant: FButtonVariant.ghost,

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · MEASURES under MAKES <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: differs 2026-09-20: the two foot doors stack in the 420 column, the caret&rsquo;s chip wears the ring&rsquo;s herb rule without its hairline, and the wide frame does not reach the MEASURES band drawn under the four cells <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · MEASURES under MAKES <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: differs 2026-09-20: the two foot doors stack in the 420 column, the caret&rsquo;s chip wears the ring&rsquo;s herb rule without its hairline, and the wide frame does not reach the MEASURES band drawn under the four cells <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · copy pass: matches code 2026-10-28 (MAKES on one row, measures as equations, the method’s dialogs); differs: the measure add form, as its frame says · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
@@ -30,16 +30,14 @@
             <p class="conv-note" style="margin:-6px 20px 12px"><b>Tidied on leave.</b> Spacing collapses and the name is Title Cased when the field loses focus &mdash; <span style="font-family:'IBM Plex Mono',monospace">&nbsp;smoky&nbsp;&nbsp;bean stew&nbsp;</span> becomes <i>Smoky Bean Stew</i>. One rule for every name a household writes, so a title sits on the shelf beside its book; no <i>word</i> ever changes, so there is nothing to tell, and Save is the backstop. The review's copy of this form behaves the same.</p>
             <p class="flabel">Serves</p>
             <div class="qtyrow" style="margin:0 20px 12px"><div class="stepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
-            <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
-            <div class="qtyrow" style="margin:0 20px 6px"><span class="addm-in g">1.8</span><span class="uchip on">kg</span></div>
-            <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
+            <p class="flabel">Makes</p>
+            <div class="qtyrow" style="margin:0 20px 6px;flex-wrap:wrap"><span class="addm-in g">1.8</span><span class="uchip on">kg</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="uchip" style="border-style:dashed;color:var(--herb)">＋ cups, pieces…</span></div>
             <p class="conv-note" style="margin:6px 20px 10px">MEASURES sits here, between MAKES and TIMES — its own frame below.</p>
             <p class="flabel">Times</p>
-            <div class="portion" style="margin-bottom:8px"><div class="pl">Cook<small>hands-on and on the heat</small></div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
+            <div class="portion" style="margin-bottom:8px"><div class="pl">Cook</div><div class="pstepper"><span class="s">–</span><span class="qv">35 min</span><span class="s">+</span></div></div>
             <div class="portion" style="margin-bottom:12px"><div class="pl">Total<small>start to plate</small></div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
             <p class="flabel">Shelf life</p>
             <div class="portion" style="margin-bottom:6px"><div class="pl">Keeps in the fridge</div><div class="pstepper"><span class="s">–</span><span class="qv">4 days</span><span class="s">+</span></div></div>
-            <p class="conv-note" style="margin:0 20px 10px">Drives the batch cook plan — how far apart the same dish can be planned before it becomes two things to cook.</p>
             <div class="crow" style="margin-bottom:8px"><span class="cl">Freezes</span><span class="fsw"></span></div>
             <div class="portion" style="margin-bottom:12px"><div class="pl">Keeps in the freezer</div><div class="pstepper"><span class="s" style="color:var(--line)">–</span><span class="qv unset">no limit</span><span class="s">+</span></div></div>
             <p class="flabel">File under</p>
@@ -112,7 +110,7 @@
             <p class="conv-note"><b>Amount stays a sheet.</b> The chip <b>2 clove ✎</b> opens the 7.7 quantity + unit sheet exactly as the row's amount cell did — a keypad, the chip row of units and the measures are not a thing a card can hold, and the sheet is our one place where an amount is said. One extra tap than today, on the screen where the tap used to land on the wrong door half the time</p>
             <p class="conv-note"><b>Optional is a control here and only here.</b> It leads the flag row, as it does on every expanded review card, and it is drawn in the <b>tag's</b> geometry rather than a second pill shape — an outline and an empty ring for <i>not optional</i>, the herb wash for <i>optional</i>, one tap either way. The quantity sheet's own <b>Optional</b> switch went from the editor's sheet with it: one fact, one door. (Week mode keeps its switch — there the question is <i>this week</i>, and the filled herb box with a check, reading <b>included</b>, is reserved for that answer)</p>
             <p class="conv-note"><b>used in 2 steps</b> moves onto the card, under the head. It is a fact nobody needs while scanning a list, and it is exactly what a reader wants standing over the two controls that can break a chip — <b>change ›</b> and the <b>🗑</b></p>
-            <p class="conv-note"><b>The bin lives in the head</b>, beside the <b>⌃</b> that closes the card — the review's placement. Off the row, a delete cannot be mis-hit while reaching for a line, and removing a referenced line already asks first: <i>“2 steps mention Garlic.”</i> over <i>“Remove those chips too? Their words stay in the sentences — only the links go.”</i></p>
+            <p class="conv-note"><b>The bin lives in the head</b>, beside the <b>⌃</b> that closes the card — the review's placement. Off the row, a delete cannot be mis-hit while reaching for a line, and removing a referenced line already asks first: <i>“2 steps mention Garlic.”</i> over <i>“Remove their chips too?”</i></p>
             <p class="conv-note">a <b>retired</b> line opens the same way, its head wearing <b>ingredient removed · pick again</b> and its <b>change ›</b> being the repair. The card never greys its amount or notes the way the review does: there is no unmatched line in a saved recipe, only a line whose vocabulary row went away</p>
         </div></div>
     </div>
@@ -266,58 +264,55 @@
     </div>
 
         <div class="frame">
-            <p class="frame-name"><b>What it makes</b> · serves and makes are two independent facts, and a second denomination only offers the <i>other</i> families — with what import does and does not prefill from <code>yield_raw</code></p>
+            <p class="frame-name"><b>What it makes</b> · serves and makes are two independent facts, and MAKES is one batch said up to two ways, joined by <b>=</b> — the second slot offers only the <i>other</i> kinds of unit, and names them while empty; with what import does and does not prefill from <code>yield_raw</code></p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl">Edit recipe</span><span class="dots"></span></div>
                 <p class="flabel">Serves</p>
                 <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">8</span><span class="s">+</span></div></div>
-                <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
-                <div class="qtyrow" style="margin:6px 20px 4px"><span class="addm-in g">250</span><span class="uchip on">g</span></div>
-                <div class="qtyrow" style="margin:8px 20px 4px"><span class="addm-in g">16</span><span class="uchip on">tbsp</span><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
-                <p class="conv-note" style="margin-top:4px">the second slot only offers the <b>other</b> families — two ways of saying one batch, never two numbers in one family</p>
+                <p class="flabel">Makes</p>
+                <div class="qtyrow" style="margin:6px 20px 4px;flex-wrap:wrap"><span class="addm-in g">250</span><span class="uchip on">g</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="addm-in g">16</span><span class="uchip on">tbsp</span><span style="align-self:center;color:var(--muted);font-size:13px">✕</span></div>
+                <p class="flabel" style="margin-top:12px">Before a second amount</p>
+                <div class="qtyrow" style="margin:6px 20px 4px;flex-wrap:wrap"><span class="addm-in g">250</span><span class="uchip on">g</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="uchip" style="border-style:dashed;color:var(--herb)">＋ cups, pieces…</span></div>
+                <p class="conv-note" style="margin-top:4px">the empty slot names one unit per kind it offers — <i>grams, pieces…</i> beside a cup, <i>grams, cups…</i> beside a piece — and a tap opens it on the first of them. Before the first amount is stated there is no second slot at all.</p>
                 <p class="conv-note" style="margin-top:4px">the amount and its unit are <b>one control</b>, the same one the ingredient form&rsquo;s density, piece weight, measures and serving wear — a number with a unit is stated the same way wherever it is stated. The unit is a <b>chip</b> that opens the pick sheet, never a dropdown, and the <b>✕</b> beside the second slot is sized to the control: the row is <b>32 pt</b> end to end</p>
                 <p class="flabel" style="margin-top:16px">The same row on the import Review screen</p>
                 <div class="frow"><div class="srcline" style="margin:0 0 6px">from source:  MAKES: 8 SLIDERS</div>
-                    <div class="qtyrow" style="margin:0"><span class="addm-in g">8</span><span class="uchip on">piece</span></div></div>
+                    <div class="qtyrow" style="margin:0;flex-wrap:wrap"><span class="addm-in g">8</span><span class="uchip on">piece</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="uchip" style="border-style:dashed;color:var(--herb)">＋ grams, cups…</span></div></div>
                 <div class="frow" style="margin-top:10px"><div class="srcline" style="margin:0 0 6px">from source:  MAKES ENOUGH FOR A CROWD</div>
-                    <div class="qtyrow" style="margin:0"><span class="addm-in g">&nbsp;</span><span class="uchip on">g</span></div>
-                    <div class="lockhint">the page didn’t say a number — set one, or leave it unset. Nothing is invented, and a yield-less recipe still saves, links and scales; only the derived numbers wait.</div></div>
+                    <div class="qtyrow" style="margin:0"><span class="addm-in g">&nbsp;</span><span class="uchip on">g</span></div></div>
             </div></div>
         </div>
 
         <div class="frame">
-            <p class="frame-name"><b>…and what it makes it in</b> · a <b>MEASURES</b> list under MAKES: the household’s own words for one of these, each an <b>amount in a unit</b> — <i>a blob is 15 g</i>, read exactly as an ingredient’s measures are. Only sayable once MAKES is set</p>
+            <p class="frame-name"><b>…and what it makes it in</b> · a <b>MEASURES</b> list under MAKES: the household’s own words for one of these, each read as an equation — <b>1 blob = 15 g</b>, in the list and in the form. Only sayable once MAKES is set</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl">Edit recipe</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
                 <p class="flabel">Serves</p>
                 <div class="qtyrow" style="margin:6px 20px 4px"><div class="stepper"><span class="s">–</span><span class="qv">8</span><span class="s">+</span></div></div>
-                <p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional</span></p>
-                <div class="qtyrow" style="margin:6px 20px 4px"><span class="addm-in g">250</span><span class="uchip on">g</span></div>
-                <div class="frow"><span class="ghostbtn" style="margin-top:0;color:var(--herb);border-style:dashed">＋ Another denomination</span></div>
-                <p class="flabel" style="margin-top:14px">Measures <span style="color:var(--muted);text-transform:none;letter-spacing:0">· optional · what you call one of these</span></p>
+                <p class="flabel">Makes</p>
+                <div class="qtyrow" style="margin:6px 20px 4px;flex-wrap:wrap"><span class="addm-in g">250</span><span class="uchip on">g</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="uchip" style="border-style:dashed;color:var(--herb)">＋ cups, pieces…</span></div>
+                <p class="flabel" style="margin-top:14px">Measures</p>
                 <div class="field" style="margin-bottom:4px">
-                    <div class="msr-row"><span class="mlab">blob</span><span class="mg">15 g</span><span class="mbin">🗑</span></div>
-                    <div class="msr-row"><span class="mlab">loaf</span><span class="mg">250 g</span><span class="mbin">🗑</span></div>
+                    <div class="msr-row"><span class="mlab">1 blob</span><span class="mg">= 15 g</span><span class="mbin">🗑</span></div>
+                    <div class="msr-row"><span class="mlab">1 loaf</span><span class="mg">= 250 g</span><span class="mbin">🗑</span></div>
                 </div>
                 <div class="field" style="margin-top:8px">
                     <div class="addm-card" style="margin-bottom:0">
-                        <div class="addm-h">＋ add measure</div>
-                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “blob”</span><span class="addm-in g">15</span><span class="uchip on">g</span><span class="addm-save">Add</span></div>
-                        <div class="addm-note">one of them, weighed — another recipe can then say “3 blob” of this one</div>
+                        <div class="addm-fields" style="flex-wrap:wrap"><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);align-self:center">1</span><span class="addm-in" style="color:var(--muted);min-width:70px">name</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="addm-in g">15</span><span class="uchip on">g</span><span class="addm-save">Add</span></div>
                     </div>
                 </div>
-                <div class="lockhint" style="margin:10px 20px 0">another recipe can then say <b>3 blob</b> of this one: 45 g, which this recipe’s own <i>makes 250 g</i> turns into 0.18 of a batch. Nothing else changes — the page, the shop and the cook plan all still count batches.</div>
-                <p class="conv-note" style="margin-top:12px"><b>The add form is label · amount · unit</b>, and the amount and unit are the <b>shared control</b> MAKES above it wears — the same 32 pt row, the same chip that opens the pick sheet. A listed row is that pair read back — <b>blob</b> then <b>15 g</b> — with the bin outside it. It is the ingredient editor’s measures list one level up, because it is now the same fact: a word, and what one of it comes to.</p>
+                <p class="conv-note" style="margin-top:12px"><b>The add form is the sentence it states</b> — 1 · name · = · amount · unit — and the amount and unit are the <b>shared control</b> MAKES above it wears — the same 32 pt row, the same chip that opens the pick sheet. A listed row is that sentence read back — <b>1 blob</b> then <b>= 15 g</b> — with the bin outside it. It is the ingredient editor’s measures list one level up, because it is now the same fact: a word, and what one of it comes to.</p>
                 <p class="conv-note" style="margin-top:8px">the unit chip offers only the families <b>MAKES states</b> — a recipe that says <i>250 g</i> offers a weight, and the way to say a blob in millilitres is the second MAKES denomination. There is no density for a recipe (<a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a>).</p>
-                <p class="conv-note" style="margin-top:8px"><b>It sits under MAKES because it depends on it.</b> Re-stating <i>makes</i> from 250 g to 500 g leaves every measure alone and correctly halves the share a blob is — which is the point of an absolute amount — and a Save that takes away the family a live word stands on <b>warns first</b>: <i>“blob” (15 g) has nothing left to be a share of after this.</i> It warns, never refuses: what a batch makes is the recipe’s own fact.</p>
+                <p class="conv-note" style="margin-top:8px"><b>It sits under MAKES because it depends on it.</b> Re-stating <i>makes</i> from 250 g to 500 g leaves every measure alone and correctly halves the share a blob is — which is the point of an absolute amount — and a Save that takes away the family a live word stands on <b>warns first</b>: <i>Lines using “blob” will stop working.</i> It warns, never refuses: what a batch makes is the recipe’s own fact.</p>
                 <p class="conv-note" style="margin-top:8px">the list and the add form are the <b>same</b> control the component sheet’s ＋ opens — one list, one editor, two doors; the ingredient form and the quantity dock have worn this pair since 7.6. This host has a Save, so a measure written here lands with the recipe (<a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a>).</p>
                 <p class="conv-note" style="margin-top:8px"><b>a row is the door to re-stating it</b>, in the add form’s own shape — and the row keeps its <b>id</b>, so <i>blob</i> at 18 g follows through to every line already saying it. The bin is refused while anything still does: <span style="font-family:'IBM Plex Mono',monospace">Can’t delete “blob” yet · 3 lines still say it, in 2 recipes.</span> The door, <b>Show me where</b>, lists them. The list does not drag: the order a household types their measures in is the order they get (ADR-0018, “out of the first slice”).</p>
                 <p class="conv-note" style="margin-top:8px">a label that merely names a unit — <span style="font-family:'IBM Plex Mono',monospace">cup</span>, <span style="font-family:'IBM Plex Mono',monospace">g</span>, <span style="font-family:'IBM Plex Mono',monospace">batch</span> — is refused here, the way a volume-named ingredient measure is: the chip row already says those words, and one thing with two words on one row is what <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> was written to stop.</p>
                 <p class="flabel" style="margin-top:16px">Before MAKES is set</p>
-                <div class="lockhint" style="margin:8px 20px 0">A measure is a share of a batch. Say what a batch makes first, under MAKES.</div>
-                <p class="conv-note" style="margin-top:8px"><b>the sentence is the whole section</b> — no label slot, no chip, no button. A control that could only ever produce a refusal is worse than none, so the honest cost of the owner’s ruling (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>) is paid at the door, naming the fix. The words the recipe <i>already</i> has stay listed, each reading <span style="font-family:'IBM Plex Mono',monospace">nothing to be a share of · MAKES states no weight yield</span>.</p>
+                <div class="lockhint" style="margin:8px 20px 0">Set what a batch makes first.</div>
+                <p class="conv-note" style="margin-top:8px"><b>the sentence is the whole section</b> — no label slot, no chip, no button. A control that could only ever produce a refusal is worse than none, so the honest cost of the owner’s ruling (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>) is paid at the door, naming the fix. The words the recipe <i>already</i> has stay listed, each reading <span style="font-family:'IBM Plex Mono',monospace">needs a weight yield</span>.</p>
                 <p class="conv-note" style="margin-top:8px">the <b>import Review</b> hosts this form too, and prefills nothing into it: the extractor prints units, never a household’s word for a blob.</p>
             </div></div>
+        <p class="differs-note">differs: the add form still draws its <b>＋ ADD MEASURE</b> heading and has no <b>1</b> or <b>=</b> beside its slots until the shared measure form takes them (plan 0057, F8). The hint already reads <i>name</i> and the note under the form is gone.</p>
             <p class="conv-note" style="margin:10px 4px 0"><b>Wide:</b> MEASURES takes the band <b>under</b> the four dense cells, at the cap’s full width. It is the one section that is a list with a form under it — a label, an amount, its chip and a button — and a quarter of the cap holds none of that; it still sits directly under the MAKES cell it depends on.</p>
         </div>
 
@@ -347,7 +342,6 @@
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
             <p class="c-h">Point the chip at</p>
-            <p class="rc-note" style="margin-top:2px">A chip can only point at a line this recipe already has.</p>
             <div class="field" style="margin-top:10px"><div class="search"><span class="mag">⌕</span><span>everything spice</span><span class="care"></span></div></div>
             <div class="savebtn" style="margin:10px 20px 4px">Chip as “Everything Spice”</div>
             <p class="list-h" style="margin-top:12px">In this recipe</p>
@@ -388,7 +382,6 @@
             <p class="clabel" style="margin-top:0">Word</p>
             <div class="frow"><div class="fin" style="font-family:'IBM Plex Mono',monospace;font-size:13px">olive oil</div></div>
             <div class="crow"><span class="cl">Show the amount here</span><span class="fsw"></span></div>
-            <div class="lockhint" style="margin:4px 20px 0">The first time a step calls for something, its chip shows the amount. After that it’s the same stuff, so the chip just names it.</div>
             <div class="dngr">Remove chip · keeps the word</div>
             <p class="conv-note" style="text-align:center">three controls and a door out. <b>Points at</b> is the box itself — tapping it opens the same line picker for this chip only, not the whole line, and it <b>leaves the word alone</b>: Word is the one field that changes what a chip says</p>
             <p class="conv-note" style="text-align:center">the sheet carries no copy of the sentence and no <i>Reads as</i> fold: the step card underneath is already showing both, and the sheet edits one chip in it</p>
@@ -449,7 +442,7 @@
             <div class="tsec" style="margin-top:12px"><span class="tl">Method</span><span class="tc">6</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
             <div class="state warn">
                 <div class="sh"><span>⚠</span><span>2 steps mentioned Italian Sausage</span></div>
-                <div class="sb">Their chips now read <b>Beef &amp; pork meatballs</b>. The words around them may need a look — we don’t rewrite your sentences.</div>
+                <div class="sb">Chips renamed to <b>Beef &amp; pork meatballs</b>.</div>
             </div>
             <div class="mstep attn">
                 <div class="mstep-h"><span class="n">Step 5 · check</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
@@ -476,11 +469,8 @@
             <div style="background:var(--frame);border-top:1px solid var(--line);border-radius:22px 22px 0 0;margin:-26px 0 0;box-shadow:0 -8px 30px rgba(24,33,28,.10);position:relative">
                 <div class="grab"></div>
                 <p class="c-h">Convert the method to plain text?</p>
-                <p class="rc-note" style="margin-top:2px"><b style="color:var(--ink)">11 ingredient chips</b> and <b style="color:var(--ink)">3 timers</b> become ordinary words. Every sentence reads exactly the same — only the links go.</p>
-                <div class="state" style="margin-top:12px">
-                    <div class="sh" style="font-size:12.5px"><span>ⓘ</span><span>This can’t be undone here</span></div>
-                    <div class="sb">Chips are written at import, or added one at a time from a selection. Nothing on the phone can re-chip a method — matching is online-only, and only at import.</div>
-                </div>
+                <p class="rc-note" style="margin-top:2px">Removes 11 chips and 3 timers.</p>
+                <p class="rc-note" style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px">Can’t be undone.</p>
                 <div class="ghostbtn" style="margin:14px 20px 0;justify-content:center;width:calc(100% - 40px);padding:13px">Convert to plain text</div>
                 <p class="conv-note" style="text-align:center;margin-bottom:14px">Cancel</p>
             </div>
@@ -517,7 +507,7 @@
                             </div>
                             <div class="we-hfacts">
                                 <div class="we-f"><p class="flabel">Serves</p><div class="stepper"><span class="s">&ndash;</span><span class="qv">4</span><span class="s">+</span></div></div>
-                                <div class="we-f"><p class="flabel">Makes <span style="color:var(--muted);text-transform:none;letter-spacing:0">&middot; optional</span></p><div class="qtyrow"><span class="addm-in g">8</span><span class="uchip on">piece</span></div></div>
+                                <div class="we-f"><p class="flabel">Makes</p><div class="qtyrow" style="flex-wrap:wrap"><span class="addm-in g">8</span><span class="uchip on">piece</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="uchip" style="border-style:dashed;color:var(--herb)">＋ grams, cups…</span></div></div>
                                 <div class="we-f"><p class="flabel">Times</p>
                                     <div class="we-mini"><span class="k">cook</span><div class="stepper"><span class="s">&ndash;</span><span class="qv">35 min</span><span class="s">+</span></div></div>
                                     <div class="we-mini"><span class="k">total</span><div class="stepper"><span class="s" style="color:var(--line)">&ndash;</span><span class="qv unset">not set</span><span class="s">+</span></div></div>
@@ -576,7 +566,7 @@
         <p class="conv-note" style="margin:4px 4px 0"><b>A pushed page, so the sidebar is neutral and the page draws its own back</b> &mdash; named for the door it came through. <b>Save is where the phone has it</b>, the header's right end, which on a desk is the top right of the page rather than of the window; nothing is stored until it is pressed, <b>&lsaquo;</b> abandons the draft, and the browser's Back does what that control does</p>
         <p class="conv-note" style="margin:4px 4px 0"><b>What gives, and where.</b> The cap is the recipe page's ~1000, and the pair is 420 + 558. At <b>1180</b> the <i>chrome</i> gives, not the page: the sidebar is the 64&nbsp;px icon rail from 1024, so the pane is still wider than the cap and the editor is drawn exactly as here. At <b>1024</b> the page gives 92&nbsp;px, all of it from the <b>method</b> column (558 &rarr; 466): the ingredients column holds 420, because an 84&nbsp;px amount, a grip, a name and a note is what that row is. Below 1024 the editor is the <b>phone's one scroll, centred at 640</b> &mdash; unchanged, and not re-verified here</p>
         <p class="conv-note" style="margin:4px 4px 0">the <b>grip stays</b> at every width and the list is still one draggable list, so filing a line under another heading is still the drag it is on the phone. The <b>keyboard</b> reorder a desk asks for is not drawn and not built &mdash; it is one of the four things <a href="../../design-docs/wide-screen.md">wide-screen.md</a> &sect;8 says no width here answers &mdash; and drawing it would be a promise this frame cannot keep</p>
-        <p class="differs-note">differs, in four places. The <b>two foot doors stack</b>: at the app's real type <b>&#65291; Add ingredient</b> and <b>&#65291; Add group</b> want 544 side by side, and the column that holds an 84&nbsp;px amount, a grip, a name and a note is not the thing to narrow for a pair of buttons. The <b>ring</b> on the caret's chip is the herb rule this frame draws inset, without the hairline around the run &mdash; a text run carries one background paint, and the rule is the half that reads. And the method column is <b>518</b> at the cap rather than 558: the page's own 20&nbsp;px gutters sit inside the 1000, exactly as they do on <a href="./recipe-page.html">the recipe page</a>, so the pair is 420 + 22 + 518 of 960. The <b>MAKES</b> cell's second-denomination door, which this frame does not reach, reads <b>Another</b> in a quarter of the cap. And a cell's short word &mdash; <b>cook</b>, <b>total</b>, <b>fridge</b>, <b>freezes</b>, <b>freezer</b> &mdash; is drawn at the <b>measured width of the longest of them</b> (57&nbsp;px at the app's real type, 44 at this frame's smaller one) rather than at a number typed once, and it <b>drops its control onto the line below</b> where the cell cannot hold both. The pair wants 220 and a quarter of the cap is 226, so this frame is what <b>1280 and 1512</b> draw; from <b>1024 to 1063</b> &mdash; the only widths where the 64&nbsp;px rail leaves a pane narrower than the cap, so the cell is 216 &mdash; the word sits <b>above</b> its stepper or switch. The word is the part that never gives: a label broken inside itself (<code>TOTA/L</code>, <code>FRID/GE</code>, <code>FREE/ZES</code>) has stopped being a word, and the only other room to take was the stepper's touch size</p>
+        <p class="differs-note">differs, in four places. The <b>two foot doors stack</b>: at the app's real type <b>&#65291; Add ingredient</b> and <b>&#65291; Add group</b> want 544 side by side, and the column that holds an 84&nbsp;px amount, a grip, a name and a note is not the thing to narrow for a pair of buttons. The <b>ring</b> on the caret's chip is the herb rule this frame draws inset, without the hairline around the run &mdash; a text run carries one background paint, and the rule is the half that reads. And the method column is <b>518</b> at the cap rather than 558: the page's own 20&nbsp;px gutters sit inside the 1000, exactly as they do on <a href="./recipe-page.html">the recipe page</a>, so the pair is 420 + 22 + 518 of 960. And a cell's short word &mdash; <b>cook</b>, <b>total</b>, <b>fridge</b>, <b>freezes</b>, <b>freezer</b> &mdash; is drawn at the <b>measured width of the longest of them</b> (57&nbsp;px at the app's real type, 44 at this frame's smaller one) rather than at a number typed once, and it <b>drops its control onto the line below</b> where the cell cannot hold both. The pair wants 220 and a quarter of the cap is 226, so this frame is what <b>1280 and 1512</b> draw; from <b>1024 to 1063</b> &mdash; the only widths where the 64&nbsp;px rail leaves a pane narrower than the cap, so the cell is 216 &mdash; the word sits <b>above</b> its stepper or switch. The word is the part that never gives: a label broken inside itself (<code>TOTA/L</code>, <code>FRID/GE</code>, <code>FREE/ZES</code>) has stopped being a word, and the only other room to take was the stepper's touch size</p>
     </div>
 
     <div class="frame wide">

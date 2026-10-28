@@ -694,12 +694,12 @@ void main() {
 
     expect(find.text('New recipe'), findsOneWidget);
     expect(find.text('TITLE'), findsOneWidget);
-    // What a batch MAKES sits under SERVES, optional (8.6, board frame h) —
-    // and the second denomination is only addable once the first is stated.
+    // What a batch MAKES sits under SERVES (board frame h), and the second
+    // denomination is only addable once the first is stated.
     expect(find.text('SERVES'), findsOneWidget);
     expect(find.text('MAKES'), findsOneWidget);
-    expect(find.text('· optional'), findsOneWidget);
-    expect(find.text('Another denomination'), findsNothing);
+    expect(find.textContaining('· optional'), findsNothing);
+    expect(find.byKey(const ValueKey('yield-2-add')), findsNothing);
     expect(find.text('SHELF LIFE'), findsOneWidget);
     expect(find.text('Keeps in the fridge'), findsOneWidget);
     // METHOD and the group controls sit below the fold now the shelf-life
@@ -847,17 +847,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Both denominations, and the note that pins the family rule.
+    // Both denominations, one batch said two ways.
     expect(find.text('250'), findsOneWidget);
     expect(find.text('16'), findsOneWidget);
-    expect(
-      find.textContaining('only offers the other families'),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('yield-equals')), findsOneWidget);
     // The second slot's remove affordance is the only ✕ in the numbers block.
     expect(find.byIcon(FLucideIcons.x), findsWidgets);
     // With a second denomination already stated, nothing offers to add one.
-    expect(find.text('Another denomination'), findsNothing);
+    expect(find.byKey(const ValueKey('yield-2-add')), findsNothing);
   });
 
   testWidgets(

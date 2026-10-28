@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/ingredients</code> · <code>presentation/unit_chips.dart</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · the ＋ on a component’s dock hosts the <a href="./recipe-editor.html">recipe editor</a>’s own MEASURES list · wide: same, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/ingredients</code> · <code>presentation/unit_chips.dart</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · the ＋ on a component’s dock hosts the <a href="./recipe-editor.html">recipe editor</a>’s own MEASURES list · wide: same, as a dialog from 640 · copy pass: matches code 2026-10-28 for the component dock and a recipe’s measures; differs: the measure add form, as its frame says · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: <b>one chip row</b>, handed the offer the surface’s own rule builds — an ingredient’s admitted units and its named measures, or a sub-recipe’s <i>batch</i>, its yields’ families and the recipe’s own measures — with the conversion said out loud above them.</p>
 </header>
 
@@ -154,7 +154,7 @@
                 <div class="dock">
                     <p class="conv-note" style="margin:0 0 9px"><b>¼ cup</b> = ¼ of a batch · makes 1 cup</p>
                     <div class="uchips"><span class="uchip">batch</span><span class="uchip on">cup</span><span class="uchip">tbsp</span><span class="uchip">tsp</span><span class="uchip">ml</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip addm">＋</span></div>
-                    <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>left out of macros and the shop list, and named where it left</small></span><span class="fsw"></span></div>
+                    <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>not counted</small></span><span class="fsw"></span></div>
                     <div class="kbd numpad">
                         <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
                         <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
@@ -199,7 +199,7 @@
                 </div>
             </div></div>
             <p class="conv-note" style="margin:10px 4px 0"><b>Exactly one denomination leaves this sheet.</b> Picking a measure clears the unit and picking a unit clears the measure — the repository refuses a line said in both or in neither.</p>
-            <p class="conv-note" style="margin:8px 4px 0"><b>A measure with no number holds Done shut</b>, under the line <span style="font-family:'IBM Plex Mono',monospace">Say how many — a measure counts something.</span></p>
+            <p class="conv-note" style="margin:8px 4px 0"><b>A measure with no number holds Done shut</b>, under the line <span style="font-family:'IBM Plex Mono',monospace">How many?</span></p>
             <p class="conv-note" style="margin:8px 4px 0"><b>Every door that reaches a component line opens this dock</b>: the recipe editor’s line card, the add-a-component flow, the method editor and <b>week mode’s</b> amount. The <b>＋</b> ends the row wherever the line is a stored component line, and opens the manage page in the frame below; the import review’s dock draws none.</p>
             <p class="conv-note" style="margin:8px 4px 0"><b>Wide:</b> unchanged — the sheet is already a dialog from 640, and the row is the same row in it.</p>
         </div>
@@ -224,7 +224,7 @@
                     <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu" style="color:var(--muted)"></span></div></div>
                     <p class="conv-note" style="margin:0 0 9px"><b>3</b> — its measure is gone</p>
                     <div class="uchips"><span class="uchip">batch</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip addm">＋</span></div>
-                    <p class="conv-note" style="margin:8px 0 10px">Under the row: <span style="font-family:'IBM Plex Mono',monospace">This line’s measure is gone from that recipe — pick a chip to say it again.</span></p>
+                    <p class="conv-note" style="margin:8px 0 10px">Under the row: <span style="font-family:'IBM Plex Mono',monospace">Measure deleted. Pick another.</span></p>
                     <p class="conv-note" style="margin:0 0 10px"><b>No chip is lit</b>, because nothing here is what the line says. The number is kept and the line is <b>unresolved</b> — it joins no total, and every surface names it. The pointer stays put until a chip is tapped, which is the other repair.</p>
                     <p class="chip-note">and the different case: the measure is <b>alive</b>, but the recipe stopped saying what it makes in its family</p>
                     <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu">blob (15 g)</span></div></div>
@@ -237,29 +237,28 @@
         </div>
 
         <div class="frame">
-            <p class="frame-name"><b>Manage measures · a recipe</b> · behind the ＋ on a component’s dock, and the same list the recipe editor holds — <b>label · amount · unit</b>, in the ingredient measures list’s own shape</p>
+            <p class="frame-name"><b>Manage measures · a recipe</b> · behind the ＋ on a component’s dock, and the same list the recipe editor holds — each measure read as an equation, <b>1 blob = 15 ml</b>, in the list and in the form</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Measures · Romesco Aioli</span><span class="dots"></span></div>
                 <div class="field" style="margin-bottom:4px">
-                    <div class="msr-row"><span class="mlab">blob</span><span class="mg">15 ml</span></div>
-                    <div class="msr-row"><span class="mlab">ladle</span><span class="mg">60 ml</span></div>
+                    <div class="msr-row"><span class="mlab">1 blob</span><span class="mg">= 15 ml</span></div>
+                    <div class="msr-row"><span class="mlab">1 ladle</span><span class="mg">= 60 ml</span></div>
                 </div>
                 <div class="field" style="margin-top:12px">
                     <div class="addm-card" style="margin-bottom:0">
-                        <div class="addm-h">＋ add measure</div>
-                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “blob”</span><span class="addm-in g">5</span><span class="uchip on">ml</span><span class="addm-save">Save</span></div>
-                        <div class="addm-note">one of them, weighed — another recipe can then say “3 blob” of this one</div>
+                        <div class="addm-fields" style="flex-wrap:wrap"><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);align-self:center">1</span><span class="addm-in" style="color:var(--muted);min-width:70px">name</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--muted);align-self:center">=</span><span class="addm-in g">5</span><span class="uchip on">ml</span><span class="addm-save">Save</span></div>
                     </div>
                 </div>
-                <p class="conv-note" style="margin-top:14px"><b>The same form the ingredient side wears</b>, because it is the same fact: a label, an amount, its <b>unit chip</b>, a button — one run at <b>32 pt</b> end to end. The unit chip offers only the families this recipe’s <i>makes</i> states; there is no density for a recipe, so the way to say a blob in grams is the second MAKES denomination (<a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a>).</p>
+                <p class="conv-note" style="margin-top:14px"><b>The form is the sentence it states</b> — <i>1</i>, a name, <i>=</i>, an amount, its <b>unit chip</b>, a button — one run at <b>32 pt</b> end to end, the ingredient side’s form with the equation written in. The unit chip offers only the families this recipe’s <i>makes</i> states; there is no density for a recipe, so the way to say a blob in grams is the second MAKES denomination (<a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a>).</p>
                 <p class="conv-note" style="margin-top:8px"><b>The row keeps its id</b>, so re-stating <i>blob</i> as 18 ml follows through to every line already saying it, and the dock behind this page re-reads the row rather than the copy it was picked from. <b>No grip</b> — the order a household types their measures in is the order they get (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>).</p>
                 <p class="conv-note" style="margin-top:8px">A landed measure <b>clears the label and the figure and keeps the unit</b>, keyboard back in the first slot — and behind this ＋ the sheet then closes to the amount with the new measure picked.</p>
-                <p class="conv-note" style="margin-top:8px"><b>Before MAKES is set there is no form</b>, only its own sentence: <span style="font-family:'IBM Plex Mono',monospace">A measure is a share of a batch. Say what a batch makes first, under MAKES.</span> The ＋ still opens — the measures the recipe already has stay listed — and under the sentence sits the same <b>Set the yield</b> button the amount face draws. A host that cannot set a yield (week, method) draws no ＋ at all while the target states none.</p>
-                <p class="conv-note" style="margin-top:8px"><b>the bin is refused while anything still says it</b> — a dialog titled <i>Still in use</i>, reading <span style="font-family:'IBM Plex Mono',monospace">Can’t delete “blob” yet · 3 lines still say it, in 2 recipes.</span> The door, <b>Show me where</b>, lists them; a week saying it in its own amount is a footnote there, having no page to open.</p>
+                <p class="conv-note" style="margin-top:8px"><b>Before MAKES is set there is no form</b>, only its own sentence: <span style="font-family:'IBM Plex Mono',monospace">Set what a batch makes first.</span> The ＋ still opens — the measures the recipe already has stay listed — and under the sentence sits the same <b>Set the yield</b> button the amount face draws. A host that cannot set a yield (week, method) draws no ＋ at all while the target states none.</p>
+                <p class="conv-note" style="margin-top:8px"><b>the bin is refused while anything still says it</b> — a dialog titled <i>Still in use</i>, reading <span style="font-family:'IBM Plex Mono',monospace">Can’t delete “blob” yet · 3 lines still say it, in 2 recipes.</span> The door, <b>Show me where</b>, lists them; a week saying it in its own amount is a footnote there, <span style="font-family:'IBM Plex Mono',monospace">Also used in 1 week.</span>, having no page to open.</p>
                 <p class="conv-note" style="margin-top:8px">no source dots and no legend: an ingredient’s measures arrive from USDA, a borrow or an estimate, and a recipe’s only ever come from the household that wrote the recipe.</p>
-                <p class="conv-note" style="margin-top:8px">A row the recipe can no longer hold stays listed, with <span style="font-family:'IBM Plex Mono',monospace">nothing to be a share of · MAKES states no weight yield</span> under it — the measure is alive; MAKES stopped saying enough.</p>
+                <p class="conv-note" style="margin-top:8px">A row the recipe can no longer hold stays listed, with <span style="font-family:'IBM Plex Mono',monospace">needs a weight yield</span> under it — the measure is alive; MAKES stopped saying enough.</p>
                 <p class="rc-note">This host has no Save, so a measure written here is live on the next chip row (<a href="../../decisions/0011-one-save-one-write.md">ADR-0011</a>) — the ingredient manage state’s rule. The dock <b>watches</b> the target’s measures, so the chip is there with nothing reloaded, and one retired out from under the line hands the selection back to the yield’s own unit in a note. The recipe editor’s copy of this list defers to the editor’s Save. <b>The import review draws no ＋</b>: a review line stores a unit id and has no column for a pointer, so one coined there would have nowhere to be said.</p>
             </div></div>
+            <p class="differs-note">differs: the add form still draws its <b>＋ ADD MEASURE</b> heading and has no <b>1</b> or <b>=</b> beside its slots until the shared measure form takes them (plan 0057, F8). The hint already reads <i>name</i> and the note under the form is gone.</p>
             <p class="conv-note" style="margin:10px 4px 0"><b>Wide:</b> unchanged — the manage state is a body swap inside the same dialog.</p>
         </div>
 

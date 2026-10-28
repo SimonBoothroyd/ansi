@@ -36,25 +36,14 @@ Future<void> openMethodMenu(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('the confirm counts what dies, and says why there is no way '
+  testWidgets('the confirm counts what goes, and says there is no way '
       'back', (tester) async {
     await openEditor(tester);
     await openMethodMenu(tester);
 
     expect(find.text('Convert the method to plain text?'), findsOneWidget);
-    expect(
-      find.textContaining('1 ingredient chip and 1 timer become ordinary'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('Every sentence reads exactly the same'),
-      findsOneWidget,
-    );
-    expect(find.text('This can’t be undone here'), findsOneWidget);
-    expect(
-      find.textContaining('matching is online-only, and only at import'),
-      findsOneWidget,
-    );
+    expect(find.text('Removes 1 chip and 1 timer.'), findsOneWidget);
+    expect(find.text('Can’t be undone.'), findsOneWidget);
   });
 
   testWidgets('cancelling changes nothing', (tester) async {

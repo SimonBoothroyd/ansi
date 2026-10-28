@@ -335,7 +335,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(RecipeMeasuresEditor),
-        matching: find.text('blob'),
+        matching: find.text('1 blob'),
       ),
     );
     await tester.pumpAndSettle();
@@ -394,7 +394,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(RecipeMeasuresEditor),
-        matching: find.text('blob'),
+        matching: find.text('1 blob'),
       ),
     );
     await tester.pumpAndSettle();

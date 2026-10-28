@@ -185,12 +185,9 @@ void main() {
         'has gone, each saying what is missing', (tester) async {
       await _pump(tester, const _Host(yields: [], words: [blobWord]));
 
-      expect(find.text('blob'), findsOneWidget);
-      expect(find.text('15 g'), findsOneWidget);
-      expect(
-        find.text('nothing to be a share of · MAKES states no weight yield'),
-        findsOneWidget,
-      );
+      expect(find.text('1 blob'), findsOneWidget);
+      expect(find.text('= 15 g'), findsOneWidget);
+      expect(find.text('needs a weight yield'), findsOneWidget);
       expect(find.text(kRecipeMeasureNoYieldRefusal), findsOneWidget);
     });
 
@@ -211,8 +208,8 @@ void main() {
       expect(word.label, 'blob');
       expect(word.amount, 15);
       expect(word.unit, g);
-      expect(find.text('blob'), findsOneWidget);
-      expect(find.text('15 g'), findsOneWidget);
+      expect(find.text('1 blob'), findsOneWidget);
+      expect(find.text('= 15 g'), findsOneWidget);
     });
 
     testWidgets('a word that lands empties both slots and takes the keyboard '
@@ -264,7 +261,7 @@ void main() {
       await tester.enterText(_amountField, '');
       await tester.pump();
       await _tapAdd(tester);
-      expect(find.text(recipeMeasureAmountRefusal('blob')), findsOneWidget);
+      expect(find.text(kRecipeMeasureAmountRefusal), findsOneWidget);
     });
 
     testWidgets('the recipe’s own word cannot be minted twice — the refusal '
@@ -300,14 +297,7 @@ void main() {
       await _tapAdd(tester);
 
       expect(state.words, isEmpty);
-      expect(
-        find.text(
-          recipeMeasureUnitFamilyRefusal('blob', ml, const [
-            (qty: 300.0, unit: g),
-          ]),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text(recipeMeasureUnitFamilyRefusal(ml)), findsOneWidget);
       // The pick stands: a chip that silently re-aimed itself would change the
       // sentence the person typed.
       expect(
@@ -338,7 +328,7 @@ void main() {
           const _Host(yields: _makesMass, words: [blobWord]),
         );
 
-        await tester.tap(find.text('blob'));
+        await tester.tap(find.text('1 blob'));
         await tester.pumpAndSettle();
         expect(
           tester.widget<TextField>(_editLabelField).controller?.text,
@@ -362,7 +352,7 @@ void main() {
         final word = state.words.single;
         expect(word.id, 'm-blob', reason: 'every line saying it follows');
         expect(word.amount, 18);
-        expect(find.text('18 g'), findsOneWidget);
+        expect(find.text('= 18 g'), findsOneWidget);
       },
     );
 
@@ -395,8 +385,8 @@ void main() {
         const _Host(yields: _makesMass, words: [blobWord]),
       );
 
-      // The word and its number read as one sentence; the bin keeps its name.
-      expect(find.bySemanticsLabel('blob · 15 g'), findsOneWidget);
+      // The word and its number read as one equation; the bin keeps its name.
+      expect(find.bySemanticsLabel('1 blob = 15 g'), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('Delete the measure'));
       await tester.pumpAndSettle();
       expect(state.words, isEmpty);
@@ -450,10 +440,8 @@ void main() {
         tester.getTopLeft(find.text('TIMES')).dy,
         greaterThan(tester.getTopLeft(find.text('MEASURES')).dy),
       );
-      expect(
-        find.text('· optional · what you call one of these'),
-        findsOneWidget,
-      );
+      // Neither eyebrow carries a qualifier.
+      expect(find.textContaining('· optional'), findsNothing);
     });
 
     testWidgets('a word typed here rides the draft and lands with the recipe — '
@@ -467,7 +455,7 @@ void main() {
       await _tapAdd(tester, 'Add');
 
       expect(fakes.recipes.saved, isEmpty, reason: 'the draft holds it');
-      expect(find.text('15 g'), findsOneWidget);
+      expect(find.text('= 15 g'), findsOneWidget);
 
       await saveEditor(tester);
       final word = fakes.recipes.saved.single.measures.single;
@@ -481,7 +469,7 @@ void main() {
     testWidgets('MAKES edited in the same draft re-evaluates the section on '
         'the same keystroke', (tester) async {
       await pump(tester, aioli(measures: const [blobWord]));
-      expect(find.textContaining('nothing to be a share of'), findsNothing);
+      expect(find.text('needs a weight yield'), findsNothing);
 
       // The one yield, restated into the other family under a live word.
       await _pickUnit(
@@ -493,10 +481,7 @@ void main() {
         'ml',
       );
 
-      expect(
-        find.text('nothing to be a share of · MAKES states no weight yield'),
-        findsOneWidget,
-      );
+      expect(find.text('needs a weight yield'), findsOneWidget);
       // And the add form follows MAKES rather than the word that is stranded.
       expect(
         find.descendant(of: _unitChip, matching: find.text('ml')),
@@ -520,7 +505,7 @@ void main() {
 
       expect(find.text('Leave that measure on nothing?'), findsOneWidget);
       expect(
-        find.textContaining('“blob” (15 g) has nothing left to be a share of'),
+        find.text('Lines using “blob” will stop working.'),
         findsOneWidget,
       );
       expect(fakes.recipes.saved, isEmpty, reason: 'the warning comes first');
@@ -563,7 +548,7 @@ void main() {
         tester,
         aioli(yieldQty: 1, yieldUnit: cup, measures: const [blobWord]),
       );
-      expect(find.textContaining('nothing to be a share of'), findsOneWidget);
+      expect(find.text('needs a weight yield'), findsOneWidget);
 
       await saveEditor(tester);
       expect(find.text('Leave that measure on nothing?'), findsNothing);
@@ -603,7 +588,7 @@ void main() {
       await tester.tap(find.text('Sausage Sliders'));
       await tester.pumpAndSettle();
       // The word is still the recipe's: a refused delete changes nothing.
-      expect(find.text('15 g'), findsNothing, reason: 'on the recipe now');
+      expect(find.text('= 15 g'), findsNothing, reason: 'on the recipe now');
     });
 
     testWidgets('a word no Save has written yet just leaves the draft', (
@@ -615,11 +600,11 @@ void main() {
       await tester.enterText(_amountField, '15');
       await tester.pump();
       await _tapAdd(tester, 'Add');
-      expect(find.text('15 g'), findsOneWidget);
+      expect(find.text('= 15 g'), findsOneWidget);
 
       await tester.tap(find.bySemanticsLabel('Delete the measure'));
       await tester.pumpAndSettle();
-      expect(find.text('15 g'), findsNothing);
+      expect(find.text('= 15 g'), findsNothing);
 
       await saveEditor(tester);
       expect(fakes.recipes.saved.single.measures, isEmpty);
@@ -657,13 +642,13 @@ void main() {
 
       await saveEditor(tester);
 
-      expect(find.text('That Save didn’t land'), findsOneWidget);
+      expect(find.text('Couldn’t save'), findsOneWidget);
       expect(find.text(_RefusingRepo.reason), findsOneWidget);
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
       // Still in the editor, with the word still in the draft.
       expect(find.text('MEASURES'), findsOneWidget);
-      expect(find.text('15 g'), findsOneWidget);
+      expect(find.text('= 15 g'), findsOneWidget);
     });
   });
 }

@@ -37,9 +37,9 @@ String measuredAmountText(double? quantity, String measureLabel) {
   return qty.isEmpty ? measureLabel : '$qty $measureLabel';
 }
 
-/// A recipe measure as a list row: "blob · 15 g".
+/// A recipe measure as a list row: "1 blob = 15 g".
 String recipeMeasureListText(RecipeMeasure measure) =>
-    '${measure.label} · ${recipeMeasureAmountText(measure)}';
+    '1 ${measure.label} = ${recipeMeasureAmountText(measure)}';
 
 /// What one of the word comes to: "15 g", "1.25 cup", "1 piece".
 String recipeMeasureAmountText(RecipeMeasure measure) =>
@@ -96,26 +96,19 @@ String recipeMeasureDeleteRefusalText({
             '${plural(weeks, 'says', plural: 'say')} it too.';
 }
 
-/// What a MEASURES row says while MAKES no longer supports the word: "nothing
-/// to be a share of · MAKES states no weight yield". The word stays alive and
-/// lines keep their number (ADR-0018 rule 3).
+/// What a MEASURES row says while MAKES no longer supports the word: "needs a
+/// weight yield". The word stays alive and lines keep their number (ADR-0018
+/// rule 3).
 String recipeMeasureOrphanedRowNote(RecipeMeasure measure) =>
-    'nothing to be a share of · MAKES states no '
-    '${measure.unit.family.said} yield';
+    'needs a ${measure.unit.family.said} yield';
 
 /// The recipe editor's warning before a Save that removes the `makes` a live
-/// word depends on. It names the words, says they survive, and says how to
-/// restore them. A warning, not a refusal. Empty when the edit orphans nothing.
+/// word depends on: "Lines using “blob” will stop working." A warning, not a
+/// refusal. Empty when the edit orphans nothing.
 String recipeMeasuresOrphanedWarning(List<RecipeMeasure> orphaned) {
   if (orphaned.isEmpty) return '';
-  final n = orphaned.length;
-  final words = orphaned
-      .map((m) => '“${m.label}” (${recipeMeasureAmountText(m)})')
-      .join(', ');
-  return '$words ${plural(n, 'has', plural: 'have')} nothing left to be a '
-      'share of after this. Nothing is deleted — but every line saying '
-      '${plural(n, 'it', plural: 'them')} goes unresolved until MAKES says '
-      'what a batch comes to in the same kind of unit again.';
+  final words = orphaned.map((m) => '“${m.label}”').join(', ');
+  return 'Lines using $words will stop working.';
 }
 
 /// `"1 batch"`, `"2 batches"`, `"0.25 of a batch"`.

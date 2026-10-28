@@ -347,10 +347,7 @@ class ComponentQuantityEditor extends HookConsumerWidget {
           onChange: (on) => optional.value = on,
         ),
         const SizedBox(height: 4),
-        Text(
-          'left out of macros and the shop list, and named where it left',
-          style: ansiMono(size: 11, color: AnsiColors.muted),
-        ),
+        Text('not counted', style: ansiMono(size: 11, color: AnsiColors.muted)),
         if (amountless) ...[
           const SizedBox(height: 10),
           Text(
@@ -397,14 +394,11 @@ class ComponentQuantityEditor extends HookConsumerWidget {
   }
 
   /// Said while a measure is picked and the number is missing.
-  static const kMeasuredLineNeedsANumber =
-      'Say how many — a measure counts something.';
+  static const kMeasuredLineNeedsANumber = 'How many?';
 
   /// Said on a line whose measure was deleted on the target recipe, or has not
   /// synced here yet.
-  static const kGoneWordKeepsItsNumber =
-      'This line’s measure is gone from that recipe — pick a chip to say it '
-      'again.';
+  static const kGoneWordKeepsItsNumber = 'Measure deleted. Pick another.';
 }
 
 /// The one-tap way to the target's own editor, where MAKES is stated.

@@ -180,7 +180,8 @@ void main() {
     // the unit selector — with the editor's second-denomination door open.
     expect(_field('8'), findsOneWidget);
     expect(find.text('piece'), findsWidgets);
-    expect(find.text('Another denomination'), findsOneWidget);
+    expect(find.text('grams, cups…'), findsOneWidget);
+    expect(find.textContaining('didn’t say a number'), findsNothing);
   });
 
   testWidgets('anything fancier leaves MAKES empty over the visible source '

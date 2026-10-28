@@ -160,7 +160,7 @@ class RecipeEditorView extends ConsumerWidget {
                         // The host outlives the header — see [hostContextOf].
                         // ignore: use_build_context_synchronously
                         host.context,
-                        title: 'That Save didn’t land',
+                        title: 'Couldn’t save',
                         body: said,
                       );
                       return;
@@ -1169,9 +1169,7 @@ Future<void> removeLineWithChips(
     title:
         '$steps ${plural(steps, 'step mentions', plural: 'steps mention')} '
         '${item.ingredientName}.',
-    body:
-        'Remove those chips too? Their words stay in the sentences — only '
-        'the links go.',
+    body: 'Remove their chips too?',
     confirm: 'Remove',
   );
   if (confirmed) notifier.removeLineItem(item.id);
