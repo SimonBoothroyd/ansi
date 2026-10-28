@@ -793,16 +793,16 @@ go. There is no re-chip — tokenization happens only inside the import call.
     the week cooks; it does not re-target them). The line picker suppresses
     its "Your recipes" section in week mode.
   - **Three doors, one screen.** The first is a row at the foot of the meal
-    editor sheet — *edit for this week* — which states its own scope ("a change
-    covers every day this week — Tue and Sat") because the sheet is per meal and
-    the variant is per week. The other two are where a planned recipe is
-    *looked at*: the Week's dish row and the Cook card's title open the recipe
-    page **with the week they belong to** (`/recipes/:id?week=…`), and that page
-    then prints one band under its title — "Planned Tue · Sat this week", plus
+    editor sheet — *edit for this week* — under the sheet's week strip, which
+    shows the batch the meal comes from and so the days a change covers. The
+    other two are where a planned recipe is *looked at*: the Week's dish row
+    and the Cook card's title open the recipe page **with the week they belong
+    to** (`/recipes/:id?week=…`), and that page then prints one band under its
+    title — the line-size week strip with the cook days underlined, plus
     "edited for this week" once there is a variant — and gains a second ⋯ item
-    beside its own, renamed, "Edit recipe": **"Edit for this week · Tue & Sat
-    only"**. The band is the condition of that item, not decoration: it says
-    which days a tap would change. The week is re-checked against the plan
+    beside its own, renamed, "Edit recipe": **"Edit for this week"**. The band
+    is the condition of that item, not decoration: it shows which days a tap
+    would change. The week is re-checked against the plan
     rather than trusted, so a stale link offers neither. That page also
     **holds the week**: its Ingredients tab draws the week's effective lines
     read-only, in week mode's own grammar — a replaced amount as the week
@@ -822,7 +822,7 @@ into **cook sessions** bounded by shelf life:
 - `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ demandPortions over covered — a double) · scale_factor (total_portions / recipe.servings_base)`
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
-- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **whole-batch nudge** on the session card ("cook ×1 instead — covers 4 portions · 1 left over") — display-level advice the cook can toggle per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
+- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) — display only, per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
 - **What a finished batch left over (plan 0054, migration 0057):** a planned
   meal is assumed bought, so a batch's planned portions less the shares its
@@ -1371,10 +1371,10 @@ source-tab slot, footer slot):
   vocabulary.
 - **Confirm & place:** picked card with the honest macro line, a **slot**
   picker (the four defaults plus a `+` that names a custom one, opened on the
-  day's next unfilled default — Breakfast on an empty day), and the full
-  batch prose ("Chicken Curry already cooks Monday and keeps 4 days — Wednesday
-  is inside that window, so this joins Monday's batch instead of a second
-  cook"). The **day is not asked**: every add starts from a day card, so the
+  day's next unfilled default — Breakfast on an empty day), and, when the
+  dish already cooks that week, the week strip of the batch it joins (the cook
+  day solid, the fridge days tinted, the new meal outlined, a freezer day when
+  it is reached frozen) captioned "from Monday’s batch". The **day is not asked**: every add starts from a day card, so the
   day arrived with the flow and the sheet states it — as the subtitle ("to ·
   Wednesday") and on the button ("Add to Wednesday"). A wrong day is one
   back-tap while the sheet is open, and remove-and-re-add once it is placed.
@@ -1493,9 +1493,9 @@ and an exclusion is *named*, not counted. Under **Everyone** an entry counts
 they are an eater, at their usual portion: their `portion_factor` in servings,
 or — when a `portions` override is set — that override shared out in
 proportion to the eaters' factors. An entry nobody is eating is excluded with a reason, never
-divided by zero. The week band is labelled **PLANNED** and says outright that
-it is the sum of what is planned, not a daily target — a week that only plans
-dinners averages a dinner.
+divided by zero. The week band is labelled **PLANNED**: it is the sum of what
+is planned, not a daily target, so a week that only plans dinners averages a
+dinner.
 
 **What a thing costs (shipped):** a **price** is cents paid for a **stated
 pack** — an event, at a store, on a date, kept as a line of a `receipt`; or,

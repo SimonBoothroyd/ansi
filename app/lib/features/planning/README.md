@@ -33,7 +33,7 @@ planning/
     meal_editor_sheet.dart    edit a placed meal; the variant door at its foot
     meal_fields.dart          controls both sheets share
     week_macro_widgets.dart   day foot, week band, the spent line
-    week_recipe_band.dart     "Planned Tue · Sat this week" on a recipe page
+    week_recipe_band.dart     the line-size week strip on a recipe page
     week_widgets.dart         Pill, EaterAvatar, PortionsChip, OutTag, …
     week_format.dart, copy_last_week.dart, household_section.dart
     week_variant_door / _editor / _format / _view_models

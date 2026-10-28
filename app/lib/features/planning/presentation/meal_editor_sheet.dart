@@ -1,6 +1,7 @@
-/// The sheet a dish row's portions chip and avatars open: the meal's slot, its
-/// eaters and its portions — and, from the meal's own day on, *I ate this* for
-/// the member signed in on this phone (`meal_eaten_row.dart`).
+/// The sheet a dish row's portions chip and avatars open: the batch the meal
+/// comes from (the week strip), the meal's slot, its eaters and its portions —
+/// and, from the meal's own day on, *I ate this* for the member signed in on
+/// this phone (`meal_eaten_row.dart`).
 ///
 /// A field editor only: the recipe opens from the row's title and removal is
 /// the row's `−`. The day is not a field; a meal changes day by
@@ -17,12 +18,16 @@ import '../../../core/sync/session.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
+import '../../../shared/week_strip.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/presentation/cook_format.dart' show CookTimelineSpec;
+import '../../cook_plan/presentation/cook_view_models.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_eaten_row.dart';
 import 'meal_fields.dart';
+import 'week_format.dart';
 import 'week_variant_door.dart';
 import 'week_view_models.dart';
 
@@ -76,6 +81,7 @@ class _MealEditorSheet extends ConsumerWidget {
       topPadding: 16,
       scrollable: true,
       children: [
+        if (entry.kind == PlanEntryKind.recipe) _MealBatch(entry: entry),
         if (canTick) ...[
           const SizedBox(height: 16),
           MealEatenRow(entry: entry, memberId: me, mealDay: mealDay),
@@ -127,9 +133,8 @@ class _MealEditorSheet extends ConsumerWidget {
             ),
           ),
         ),
-        // The door into week mode, for a recipe meal only. Its sub-line states
-        // its scope, because the sheet is per meal and the variant is per week
-        // and recipe.
+        // The door into week mode, for a recipe meal only. The strip at the top
+        // already shows the days a change would cover.
         if (entry.kind == PlanEntryKind.recipe) ...[
           const SizedBox(height: 18),
           const AnsiMicroLabel('Ingredients'),
@@ -140,6 +145,43 @@ class _MealEditorSheet extends ConsumerWidget {
         ],
         const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+/// The batch this meal comes from, as the full week strip with the meal
+/// outlined, read off the cook plan by the meal's own id. The sheet cannot move
+/// a meal, so this is the batch as planned, not a preview. Draws nothing until
+/// the plan has the meal.
+class _MealBatch extends ConsumerWidget {
+  const _MealBatch({required this.entry});
+
+  final PlanEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plan = ref.watch(currentCookPlanProvider).asData?.value;
+    final session = plan?.recipes
+        .where((r) => r.recipeId == entry.recipeId)
+        .expand((r) => r.mealSessions)
+        .where((s) => s.covers.any((m) => m.entryId == entry.id))
+        .firstOrNull;
+    if (session == null) return const SizedBox.shrink();
+    final shape = ref.watch(weekShapeProvider);
+    final day = entry.dayOfWeek;
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: WeekStrip(
+        days: CookTimelineSpec.of(session).stripDays(thisMeal: day),
+        shape: shape,
+        caption: day == session.cookDay
+            ? null
+            : batchCaption(
+                session.cookDay,
+                shape,
+                frozen: session.frozenDays.contains(day),
+              ),
+      ),
     );
   }
 }

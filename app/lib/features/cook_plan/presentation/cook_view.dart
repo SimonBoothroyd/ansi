@@ -7,7 +7,6 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -16,18 +15,17 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
-import '../../../shared/ansi_callout.dart';
 import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
 import '../../../shared/ansi_scroll.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/guarded_navigation.dart';
+import '../../../shared/week_strip.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
-import '../../planning/presentation/week_format.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -38,6 +36,7 @@ import '../domain/cook_plan.dart';
 import 'cook_format.dart';
 import 'cook_sheet.dart';
 import 'cook_view_models.dart';
+import 'whole_batch_switch.dart';
 
 class CookView extends ConsumerWidget {
   const CookView({this.weekKey, super.key});
@@ -108,7 +107,6 @@ class CookView extends ConsumerWidget {
               const EdgeInsets.only(top: 6, bottom: 24),
             ),
             children: [
-              const _PlanCaption(),
               if (data.isEmpty)
                 const _NothingToCookLine()
               else
@@ -121,7 +119,6 @@ class CookView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 6, bottom: 24),
       children: [
-        const _PlanCaption(),
         if (data.isEmpty) const _NothingToCookLine(),
         for (final recipe in data.recipes) ...[
           // A recipe both planned and demanded as a component shows two cards,
@@ -137,27 +134,8 @@ class CookView extends ConsumerWidget {
   }
 }
 
-class _PlanCaption extends StatelessWidget {
-  const _PlanCaption();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-      child: Text(
-        'grouped by recipe · split by shelf life',
-        style: ansiMono(
-          size: 10.5,
-          color: AnsiColors.muted,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-/// One recipe's batch plan: a title, a week-level summary, its cook sessions,
-/// and any split / freezer note. A split card takes the amber accent border.
+/// One recipe's batch plan: a title, a week-level summary and its cook
+/// sessions. A split shows as a second session, its strip saying why.
 class _RecipeCard extends ConsumerWidget {
   const _RecipeCard({required this.recipe});
 
@@ -168,7 +146,6 @@ class _RecipeCard extends ConsumerWidget {
     // A recipe that is also somebody's component has its component sessions on
     // their own card, so "split" here counts only the meal ones.
     final meals = recipe.mealSessions;
-    final split = meals.length > 1;
     final edited =
         (ref
                     .watch(viewedWeekOverridesProvider)
@@ -179,9 +156,7 @@ class _RecipeCard extends ConsumerWidget {
     // The title link carries the viewed week (`?week=`) so the recipe page can
     // offer "Edit for this week".
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
-    final shape = ref.watch(weekShapeProvider);
     return _Card(
-      accent: split,
       title: recipe.title,
       subtitle: recipeSummaryLine(recipe, editedThisWeek: edited),
       onTitleTap: () =>
@@ -190,10 +165,7 @@ class _RecipeCard extends ConsumerWidget {
         for (final (i, session) in meals.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
           _SessionTile(session: session),
-          if (session.hasFreezerRescue)
-            _Note.freezer(freezerNoteFor(recipe.title, session, shape)),
         ],
-        if (split) _Note.split(splitNoteFor(recipe)),
       ],
     );
   }
@@ -216,7 +188,6 @@ class _ComponentCard extends ConsumerWidget {
         .firstOrNull
         ?.yields
         .firstOrNull;
-    final shape = ref.watch(weekShapeProvider);
     final sessions = recipe.componentSessions;
     final parents = {for (final s in sessions) ...s.demandedBy}.toList();
 
@@ -228,11 +199,6 @@ class _ComponentCard extends ConsumerWidget {
         for (final (i, session) in sessions.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
           _SessionTile(session: session, denomination: denomination),
-          if (session.hasFreezerRescue)
-            _Note.freezer(freezerNoteFor(recipe.title, session, shape)),
-          if (componentLeftoverNote(session, shape, denomination: denomination)
-              case final note?)
-            _Note.split(note),
         ],
       ],
     );
@@ -240,7 +206,7 @@ class _ComponentCard extends ConsumerWidget {
 }
 
 /// A component the plan could not derive, in the session card's shape. It never
-/// shows a scale and carries the one-tap fix where there is one.
+/// shows a scale, and carries a button to each place its fix lives.
 class _GapCard extends ConsumerWidget {
   const _GapCard({required this.gap});
 
@@ -296,22 +262,78 @@ class _GapCard extends ConsumerWidget {
   }
 }
 
-/// The warn block inside a gap card: what is missing, what setting it buys,
-/// and (where the fix lives on the target) one tap to go set it.
+/// The warn block inside a gap card: the one-line problem, then a button per
+/// place its fix lives ([gapFixes]), each opening that recipe's editor.
 class _GapWarning extends StatelessWidget {
   const _GapWarning({required this.gap});
 
   final ComponentGap gap;
 
   @override
-  Widget build(BuildContext context) => AnsiCallout(
-    tone: AnsiTone.caution,
-    icon: FLucideIcons.flag,
-    title: gapHeadline(gap),
-    body: gapBody(gap),
-    action: gapOffersYieldFix(gap) ? 'Set the yield' : null,
-    onAction: () => context.pushOnce('/recipes/${gap.recipeId}/edit'),
-  );
+  Widget build(BuildContext context) {
+    const tone = AnsiTone.caution;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+      decoration: BoxDecoration(
+        color: tone.fill,
+        border: Border.all(color: tone.line),
+        borderRadius: BorderRadius.circular(AnsiRadii.box),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Icon(FLucideIcons.flag, size: 14, color: tone.ink),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  gapHeadline(gap),
+                  style: ansiSans(
+                    size: 12.5,
+                    color: tone.ink,
+                    weight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          for (final fix in gapFixes(gap)) ...[
+            const SizedBox(height: 10),
+            AnsiTap(
+              onTap: () => context.pushOnce('/recipes/${fix.recipeId}/edit'),
+              color: tone.ink,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  border: Border.all(color: tone.line),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        fix.label,
+                        textAlign: TextAlign.center,
+                        style: ansiMono(size: 12, color: tone.ink),
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(FLucideIcons.chevronRight, size: 13, color: tone.ink),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 /// The card shell every plan card shares: paper tile, title, summary line, and
@@ -326,13 +348,15 @@ class _Card extends StatelessWidget {
   });
 
   final String title;
+
+  /// The week-level facts under the title; empty draws none.
   final String subtitle;
   final List<Widget> children;
 
   /// Opens the recipe the card derives from; null leaves the title inert.
   final VoidCallback? onTitleTap;
 
-  /// Takes the amber border — a split recipe, or an underivable component.
+  /// Takes the amber border: an underivable component.
   final bool accent;
 
   @override
@@ -355,8 +379,13 @@ class _Card extends StatelessWidget {
             onTap: onTitleTap,
             child: Text(title, style: ansiSerif(size: AnsiType.row)),
           ),
-          const SizedBox(height: 3),
-          Text(subtitle, style: ansiMono(size: 10.5, color: AnsiColors.muted)),
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              style: ansiMono(size: 10.5, color: AnsiColors.muted),
+            ),
+          ],
           const SizedBox(height: 10),
           ...children,
         ],
@@ -365,9 +394,9 @@ class _Card extends StatelessWidget {
   }
 }
 
-/// One cook session as a paper tile: cook day, scale, covers, timeline, plus
-/// the whole-batch nudge when the factor is fractional. Tapping the nudge
-/// toggles display only; nothing is persisted.
+/// One cook session as a paper tile: cook day, scale, covers and the compact
+/// week strip. A fractional factor trades the scale for the exact-or-whole
+/// switch, which is display only; nothing is persisted.
 class _SessionTile extends ConsumerWidget {
   const _SessionTile({required this.session, this.denomination});
 
@@ -380,15 +409,16 @@ class _SessionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final key = cookSessionKey(session);
+    final shape = ref.watch(weekShapeProvider);
     // One set of words for both forms: the tile and the wide sheet's row read
     // the same speech, so neither decides on its own what a session says.
     final speech = SessionSpeech.of(
       session,
-      ref.watch(weekShapeProvider),
+      shape,
       showWholeBatch: ref.watch(wholeBatchDisplayProvider(key)),
       denomination: denomination,
     );
-    final nudge = speech.nudge;
+    final choice = speech.wholeBatch;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
@@ -409,10 +439,12 @@ class _SessionTile extends ConsumerWidget {
                   style: ansiSans(size: 13, weight: FontWeight.w600),
                 ),
               ),
-              Text(
-                speech.scale,
-                style: ansiMono(size: 12, color: AnsiColors.herbDeep),
-              ),
+              // The switch states the scale when there is a choice of two.
+              if (choice == null)
+                Text(
+                  speech.scale,
+                  style: ansiMono(size: 12, color: AnsiColors.herbDeep),
+                ),
             ],
           ),
           const SizedBox(height: 6),
@@ -426,38 +458,23 @@ class _SessionTile extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(word, style: ansiMono(size: 10, color: AnsiColors.herbDeep)),
           ],
-          if (nudge != null) ...[
-            const SizedBox(height: 6),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () =>
-                  ref.read(wholeBatchDisplayProvider(key).notifier).toggle(),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Icon(
-                      speech.wholeBatchShown
-                          ? FLucideIcons.rotateCcw
-                          : FLucideIcons.circleArrowUp,
-                      size: 13,
-                      color: AnsiColors.herbDeep,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      nudge,
-                      style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
-                    ),
-                  ),
-                ],
-              ),
+          if (choice != null) ...[
+            const SizedBox(height: 8),
+            WholeBatchSwitch(
+              exact: choice.exact,
+              whole: choice.whole,
+              wholeShown: speech.wholeBatchShown,
+              onChanged: (whole) => ref
+                  .read(wholeBatchDisplayProvider(key).notifier)
+                  .show(whole: whole),
             ),
           ],
           const SizedBox(height: 10),
-          CookTimeline(session: session),
+          WeekStrip(
+            days: CookTimelineSpec.of(session).stripDays(),
+            shape: shape,
+            size: WeekStripSize.compact,
+          ),
           if (!session.isComponent) LeftoverQuestion(session: session),
         ],
       ),
@@ -562,179 +579,20 @@ String leftoverAnswerLine(LeftoverAnswer a) {
   return [for (final (n, w) in parts) '${formatFraction(n)} $w'].join(' · ');
 }
 
-/// The freshness timeline on the week's seven-day axis; geometry from
-/// [CookTimelineSpec].
-class CookTimeline extends ConsumerWidget {
-  const CookTimeline({required this.session, super.key});
-
-  final CookSession session;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 30,
-      width: double.infinity,
-      child: CustomPaint(
-        painter: _TrackPainter(
-          CookTimelineSpec.of(session),
-          // The ruler counts the week's own days, so its initials start where
-          // the week does.
-          initials: [
-            for (final label in ref.watch(weekShapeProvider).shortLabels)
-              label[0],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Paints the freshness track: the week bar, the fresh window, a frozen or gone
-/// tail, day markers and a weekday-initial ruler.
-class _TrackPainter extends CustomPainter {
-  _TrackPainter(this.spec, {required this.initials});
-
-  final CookTimelineSpec spec;
-
-  /// One initial per day of the week, in the week's own order (Tue/Thu and
-  /// Sat/Sun repeat, as usual).
-  final List<String> initials;
-  static const _padX = 8.0;
-  static const _barH = 8.0;
-  static const _barCy = 8.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final axisW = size.width - 2 * _padX;
-    if (axisW <= 0) return;
-    double xOf(num day) => _padX + (day / 6) * axisW;
-    const top = _barCy - _barH / 2;
-
-    // The whole-week base track.
-    final base = RRect.fromRectAndRadius(
-      Rect.fromLTRB(xOf(0), top, xOf(6), top + _barH),
-      const Radius.circular(4),
-    );
-    canvas
-      ..drawRRect(base, Paint()..color = AnsiColors.line)
-      ..save()
-      ..clipRRect(base);
-
-    void fill(num from, num to, Color color) {
-      if (to <= from) return;
-      canvas.drawRect(
-        Rect.fromLTRB(xOf(from), top, xOf(to), top + _barH),
-        Paint()..color = color,
-      );
-    }
-
-    // Hatched "gone" tail (drawn first; fresh/frozen sit on top).
-    if (spec.hasGone) {
-      final rect = Rect.fromLTRB(xOf(spec.frozenTo), top, xOf(6), top + _barH);
-      canvas.drawRect(rect, Paint()..color = const Color(0xFFF6EDE9));
-      final stroke = Paint()
-        ..color = const Color(0xFFDCC7BE)
-        ..strokeWidth = 1.5;
-      for (var lx = rect.left - _barH; lx < rect.right; lx += 5) {
-        canvas.drawLine(
-          Offset(lx, rect.bottom),
-          Offset(lx + _barH, rect.top),
-          stroke,
-        );
-      }
-    }
-    fill(spec.freshTo, spec.frozenTo, AnsiColors.frozen);
-    fill(spec.cookDay, spec.freshTo, AnsiColors.fresh);
-    canvas.restore();
-
-    // Day markers: other eaten days as rings, the cook day as a solid pin.
-    final ring = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = AnsiColors.herb;
-    for (final day in spec.coveredDays) {
-      if (day == spec.cookDay) continue;
-      final c = Offset(xOf(day), _barCy);
-      canvas
-        ..drawCircle(c, 4.5, Paint()..color = AnsiColors.paper)
-        ..drawCircle(c, 4.5, ring);
-    }
-    final cook = Offset(xOf(spec.cookDay), _barCy);
-    canvas
-      ..drawCircle(cook, 6, Paint()..color = AnsiColors.paper)
-      ..drawCircle(cook, 4.5, Paint()..color = AnsiColors.herb);
-
-    // The weekday ruler; eaten days are emphasised.
-    final eaten = spec.coveredDays.toSet();
-    for (var day = 0; day < 7; day++) {
-      final on = eaten.contains(day);
-      final tp = TextPainter(
-        text: TextSpan(
-          text: initials[day],
-          style: TextStyle(
-            fontFamily: 'IBM Plex Mono',
-            fontSize: 9,
-            color: on ? AnsiColors.herbDeep : AnsiColors.muted,
-            fontWeight: on ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(xOf(day) - tp.width / 2, 20));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _TrackPainter old) =>
-      old.spec.cookDay != spec.cookDay ||
-      old.spec.freshTo != spec.freshTo ||
-      old.spec.frozenTo != spec.frozenTo ||
-      old.spec.hasGone != spec.hasGone ||
-      !listEquals(old.spec.coveredDays, spec.coveredDays) ||
-      !listEquals(old.initials, initials);
-}
-
-/// An inline note — split (amber) or freezer (blue) — under the sessions.
-class _Note extends StatelessWidget {
-  const _Note._({required this.tone, required this.icon, required this.text});
-
-  factory _Note.split(String text) =>
-      _Note._(tone: AnsiTone.caution, icon: FLucideIcons.flag, text: text);
-
-  factory _Note.freezer(String text) =>
-      _Note._(tone: AnsiTone.chill, icon: FLucideIcons.snowflake, text: text);
-
-  final AnsiTone tone;
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: AnsiCallout(tone: tone, icon: icon, body: text),
-  );
-}
-
 /// The empty state, shown inside the screen so the header and week switcher
 /// stay.
-class _NothingToCookLine extends ConsumerWidget {
+class _NothingToCookLine extends StatelessWidget {
   const _NothingToCookLine();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final suffix = formatDerivedWeekSuffix(
-      ref.watch(viewedWeekStartProvider),
-      ref.watch(currentWeekStartProvider),
-      ref.watch(weekShapeProvider),
-    );
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'nothing planned for ${suffix ?? 'this week'} yet — the batches '
-            'are worked out from the meals you put on the week',
+            'nothing planned yet',
             style: ansiMono(size: 11.5, color: AnsiColors.muted),
           ),
           const SizedBox(height: 10),

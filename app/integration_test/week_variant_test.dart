@@ -39,6 +39,7 @@ import 'package:ansi/features/shopping/presentation/shopping_view.dart'
     show ShoppingView, shopFoldKey;
 import 'package:ansi/features/shopping/presentation/shopping_view_models.dart'
     show ShopFold;
+import 'package:ansi/shared/week_strip.dart' show WeekStrip;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -150,12 +151,10 @@ void main() {
     await tester.tap(cluster.first);
     await tester.pumpAndSettle();
     await pumpUntilFound(tester, find.text('As the recipe has them'));
-    // The sheet is per MEAL and the variant is per week and recipe, so the row
-    // says so in its own words before anybody taps it.
-    expect(
-      find.textContaining('a change covers every day this week'),
-      findsOneWidget,
-    );
+    // The sheet's week strip shows the batch this meal comes from, so the
+    // door row says nothing about its scope.
+    expect(find.byType(WeekStrip), findsOneWidget);
+    expect(find.textContaining('a change covers every day'), findsNothing);
     await tester.tap(find.text('edit for this week'));
     await tester.pumpAndSettle();
 
@@ -165,7 +164,8 @@ void main() {
     await pumpUntilFound(tester, find.byType(WeekVariantEditorView));
     expect(find.byType(RecipeHeaderForm), findsNothing);
     expect(find.text('Brown it.'), findsNothing);
-    expect(find.textContaining('from the recipe · not edited here'), findsOne);
+    expect(find.text('This week only'), findsOne);
+    expect(find.textContaining('not edited here'), findsNothing);
 
     // The bin on a recipe line EXCLUDES it; the row stays, struck.
     // The line's own row is the nearest Row above the name that holds exactly

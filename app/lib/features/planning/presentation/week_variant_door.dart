@@ -1,6 +1,6 @@
-/// The door into week mode at the foot of the meal editor sheet. The sheet is
-/// per meal and the variant is per week and recipe, so the row states its
-/// scope: "a change covers every day this week — Tue and Sat".
+/// The door into week mode at the foot of the meal editor sheet. The sheet's
+/// week strip shows the days a change covers; the row counts the changes once
+/// there are some.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -37,6 +37,11 @@ class WeekVariantDoorRow extends ConsumerWidget {
       for (final e in plan?.entries ?? const <PlanEntry>[])
         if (e.recipeId == recipeId) e.dayOfWeek,
     }.toList()..sort();
+    final detail = weekDoorDetail(
+      changes,
+      days,
+      ref.watch(weekShapeProvider).shortLabels,
+    );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -52,15 +57,13 @@ class WeekVariantDoorRow extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(weekDoorTitle(changes), style: ansiSans(size: 15)),
-                  const SizedBox(height: 2),
-                  Text(
-                    weekDoorDetail(
-                      changes,
-                      days,
-                      ref.watch(weekShapeProvider).shortLabels,
+                  if (detail != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: ansiMono(size: 10.5, color: AnsiColors.muted),
                     ),
-                    style: ansiMono(size: 10.5, color: AnsiColors.muted),
-                  ),
+                  ],
                 ],
               ),
             ),

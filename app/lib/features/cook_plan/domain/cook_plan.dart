@@ -465,8 +465,43 @@ typedef BatchHint = ({int withDay, bool frozen});
 
 /// The batch a meal on [newDay] would share with meals already on
 /// [plannedDays], or null when it would be its own cook. Runs the real
-/// [clusterSessions] so the hint cannot disagree with the cook plan.
+/// [clusterSessions] (through [batchSessionFor]) so the hint cannot disagree
+/// with the cook plan.
 BatchHint? batchHintFor({
+  required List<int> plannedDays,
+  required int newDay,
+  int? keepsForDays,
+  bool freezable = false,
+  int? freezerDays,
+}) {
+  final session = batchSessionFor(
+    plannedDays: plannedDays,
+    newDay: newDay,
+    keepsForDays: keepsForDays,
+    freezable: freezable,
+    freezerDays: freezerDays,
+  );
+  if (session == null) return null;
+  final others = session.coveredDays.where((d) => d != newDay).toList();
+  if (others.isEmpty) {
+    // `coveredDays` is distinct, so a second meal on an already-planned day
+    // shows no other day; more than one covered meal means same batch, same
+    // day.
+    return session.covers.length > 1
+        ? (withDay: session.cookDay, frozen: false)
+        : null;
+  }
+  final withDay = others.contains(session.cookDay)
+      ? session.cookDay
+      : others.first;
+  return (withDay: withDay, frozen: session.frozenDays.contains(newDay));
+}
+
+/// The session a meal on [newDay] would be cooked in, once added beside the
+/// meals already on [plannedDays] (one covered meal per entry, so a day
+/// planned twice is two). Null when nothing is planned yet, since there is no
+/// batch to join. Clustered by the real [clusterSessions].
+CookSession? batchSessionFor({
   required List<int> plannedDays,
   required int newDay,
   int? keepsForDays,
@@ -487,21 +522,7 @@ BatchHint? batchHintFor({
     ],
   );
   for (final session in clusterSessions(recipe)) {
-    final days = session.coveredDays;
-    if (!days.contains(newDay)) continue;
-    final others = days.where((d) => d != newDay).toList();
-    if (others.isEmpty) {
-      // `coveredDays` is distinct, so a second meal on an already-planned day
-      // shows no other day; more than one covered meal means same batch, same
-      // day.
-      return session.covers.length > 1
-          ? (withDay: session.cookDay, frozen: false)
-          : null;
-    }
-    final withDay = others.contains(session.cookDay)
-        ? session.cookDay
-        : others.first;
-    return (withDay: withDay, frozen: session.frozenDays.contains(newDay));
+    if (session.coveredDays.contains(newDay)) return session;
   }
   return null;
 }

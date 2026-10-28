@@ -19,6 +19,7 @@ import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
 import 'cook_format.dart';
 import 'cook_view_models.dart';
+import 'whole_batch_switch.dart';
 
 /// The sheet's maximum width: the recipe column, seven days at 66 px and the
 /// column of words.
@@ -213,9 +214,6 @@ class _MealRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final shape = ref.watch(weekShapeProvider);
     final sessions = recipe.mealSessions;
-    // A recipe that is also somebody's component has its component sessions on
-    // their own row, so "split" here counts only the meal ones.
-    final split = sessions.length > 1;
     final edited =
         (ref
                     .watch(viewedWeekOverridesProvider)
@@ -258,16 +256,13 @@ class _MealRow extends ConsumerWidget {
             if (i > 0) const SizedBox(height: 13),
             _Says(
               speech: speeches[i],
-              onToggleWholeBatch: () => ref
+              onWholeBatch: (whole) => ref
                   .read(
                     wholeBatchDisplayProvider(cookSessionKey(session)).notifier,
                   )
-                  .toggle(),
+                  .show(whole: whole),
             ),
-            if (session.hasFreezerRescue)
-              _MarginNote.freezer(freezerNoteFor(recipe.title, session, shape)),
           ],
-          if (split) _MarginNote.split(splitNoteFor(recipe)),
         ],
       ),
     );
@@ -317,18 +312,9 @@ class _ComponentRow extends ConsumerWidget {
       says: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final (i, session) in sessions.indexed) ...[
+          for (final (i, speech) in speeches.indexed) ...[
             if (i > 0) const SizedBox(height: 13),
-            _Says(speech: speeches[i]),
-            if (session.hasFreezerRescue)
-              _MarginNote.freezer(freezerNoteFor(recipe.title, session, shape)),
-            if (componentLeftoverNote(
-                  session,
-                  shape,
-                  denomination: denomination,
-                )
-                case final note?)
-              _MarginNote.split(note),
+            _Says(speech: speech),
           ],
         ],
       ),
@@ -337,7 +323,7 @@ class _ComponentRow extends ConsumerWidget {
 }
 
 /// A component the plan could not derive: the days a batch is wanted, no scale
-/// anywhere, and the one-tap fix where there is one.
+/// anywhere, and a door to each place its fix lives.
 class _GapRow extends ConsumerWidget {
   const _GapRow({required this.gap});
 
@@ -387,11 +373,11 @@ class _GapRow extends ConsumerWidget {
               ).copyWith(height: 1.45),
             ),
           ),
-          _MarginNote.split('${gapHeadline(gap)} — ${gapBody(gap)}'),
-          if (gapOffersYieldFix(gap))
+          _MarginNote(gapHeadline(gap)),
+          for (final fix in gapFixes(gap))
             _MarginDoor(
-              label: 'Set the yield',
-              onTap: () => context.pushOnce('/recipes/${gap.recipeId}/edit'),
+              label: fix.label,
+              onTap: () => context.pushOnce('/recipes/${fix.recipeId}/edit'),
             ),
         ],
       ),
@@ -434,21 +420,23 @@ class _Name extends StatelessWidget {
 }
 
 /// One session's sentences at the row's end — the cook day with its scale, the
-/// covers line, and the whole-batch line where the batch is fractional.
+/// covers line, and the exact-or-whole switch where the batch is fractional.
 class _Says extends StatelessWidget {
-  const _Says({required this.speech, this.onToggleWholeBatch});
+  const _Says({required this.speech, this.onWholeBatch});
 
   final SessionSpeech speech;
-  final VoidCallback? onToggleWholeBatch;
+  final ValueChanged<bool>? onWholeBatch;
 
   @override
   Widget build(BuildContext context) {
-    final nudge = speech.nudge;
+    final choice = speech.wholeBatch;
+    final onWholeBatch = this.onWholeBatch;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '${speech.when} ${speech.scale}',
+          // The switch states the scale when there is a choice of two.
+          choice == null ? '${speech.when} ${speech.scale}' : speech.when,
           style: ansiMono(size: 10, color: AnsiColors.herbDeep),
         ),
         Padding(
@@ -474,37 +462,15 @@ class _Says extends StatelessWidget {
               ).copyWith(height: 1.45),
             ),
           ),
-        if (nudge != null)
+        if (choice != null && onWholeBatch != null)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onToggleWholeBatch,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 1),
-                    child: Icon(
-                      speech.wholeBatchShown
-                          ? FLucideIcons.rotateCcw
-                          : FLucideIcons.circleArrowUp,
-                      size: 12,
-                      color: AnsiColors.herbDeep,
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: Text(
-                      nudge,
-                      style: ansiMono(
-                        size: 9.5,
-                        color: AnsiColors.herbDeep,
-                      ).copyWith(height: 1.45),
-                    ),
-                  ),
-                ],
-              ),
+            padding: const EdgeInsets.only(top: 8),
+            child: WholeBatchSwitch(
+              exact: choice.exact,
+              whole: choice.whole,
+              wholeShown: speech.wholeBatchShown,
+              onChanged: onWholeBatch,
+              dense: true,
             ),
           ),
       ],
@@ -512,29 +478,11 @@ class _Says extends StatelessWidget {
   }
 }
 
-/// A note in the row's margin: the words behind a 2 px rule instead of inside a
-/// box, because nothing on this sheet is enclosed.
+/// A gap's problem in the row's margin: the words behind a 2 px amber rule
+/// instead of inside a box, because nothing on this sheet is enclosed.
 class _MarginNote extends StatelessWidget {
-  const _MarginNote._({
-    required this.rule,
-    required this.ink,
-    required this.text,
-  });
+  const _MarginNote(this.text);
 
-  factory _MarginNote.split(String text) => _MarginNote._(
-    rule: AnsiColors.aging,
-    ink: AnsiColors.cautionInk,
-    text: text,
-  );
-
-  factory _MarginNote.freezer(String text) => _MarginNote._(
-    rule: AnsiColors.frozen,
-    ink: AnsiColors.chillInk,
-    text: text,
-  );
-
-  final Color rule;
-  final Color ink;
   final String text;
 
   @override
@@ -546,12 +494,15 @@ class _MarginNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: 2, child: ColoredBox(color: rule)),
+          const SizedBox(width: 2, child: ColoredBox(color: AnsiColors.aging)),
           const SizedBox(width: 9),
           Expanded(
             child: Text(
               text,
-              style: ansiMono(size: 9.5, color: ink).copyWith(height: 1.5),
+              style: ansiMono(
+                size: 9.5,
+                color: AnsiColors.cautionInk,
+              ).copyWith(height: 1.5),
             ),
           ),
         ],
@@ -560,7 +511,7 @@ class _MarginNote extends StatelessWidget {
   );
 }
 
-/// The one door a margin note carries — a component gap's fix.
+/// A door under a margin note: one place a component gap's fix lives.
 class _MarginDoor extends StatelessWidget {
   const _MarginDoor({required this.label, required this.onTap});
 

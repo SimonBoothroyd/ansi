@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · MEASURES under MAKES <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: differs 2026-09-20: the two foot doors stack in the 420 column, the caret&rsquo;s chip wears the ring&rsquo;s herb rule without its hairline, and the wide frame does not reach the MEASURES band drawn under the four cells <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · copy pass: matches code 2026-10-28 (MAKES on one row, measures as equations, the method’s dialogs); differs: the measure add form, as its frame says · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · MEASURES under MAKES <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: differs 2026-09-20: the two foot doors stack in the 420 column, the caret&rsquo;s chip wears the ring&rsquo;s herb rule without its hairline, and the wide frame does not reach the MEASURES band drawn under the four cells <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · copy pass: matches code 2026-10-28 (MAKES on one row, measures as equations, the method’s dialogs); differs: the measure add form, as its frame says · week mode: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
@@ -171,16 +171,15 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Week mode, at rest</b> &middot; the same list and the same doors, opened with <code>?week=</code>; a band that says whose lines these are, and the recipe's own facts stated once and not editable here</p>
+        <p class="frame-name"><b>Week mode, at rest</b> &middot; the same list and the same doors, opened with <code>?week=</code>, titled <b>This week only</b>; a band that says which week, the recipe with what it serves, and the <a href="./index.html">week strip</a> of the days that cook these lines</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Edit for this week</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">This week only</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
 
             <div class="wv-band">
-                <span class="k">This week only</span>
-                <div class="t">Slow-Cooker Beef Rag&ugrave;</div>
-                <div class="s">Week of 14 Sep &middot; Tue and Sat both cook these lines<br>The recipe is not changed.</div>
+                <span class="k">Week of 14 Sep</span>
+                <div class="t" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;min-width:0">Slow-Cooker Beef Rag&ugrave;</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;color:var(--herb-deep)">serves 4</span></div>
+                <div class="wks" style="margin-top:10px"><span>Mon</span><span class="wk-cook wk-meal">Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span class="wk-cook wk-meal">Sat</span><span>Sun</span></div>
             </div>
-            <div class="wv-from">from the recipe &middot; not edited here: <b>serves 4</b> &middot; <b>6 steps</b> &middot; Slow-Cooker Beef Rag&ugrave;</div>
 
             <div style="margin:10px 20px 0;font-size:13px;color:var(--muted)">for the rag&ugrave;</div>
             <div style="margin:0 20px">
@@ -189,7 +188,7 @@
                 <div class="l3 edit"><span class="l3-amt">2 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span></span><span class="l3-pen">&#10005;</span></div>
                 <div class="l3 edit"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span></span><span class="l3-pen">&#10005;</span></div>
                 <div class="l3 edit wv-off"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span>
-                    <span class="wv-meta"><span class="wv-tag">optional</span><span class="wv-reset">&#65291; include this week</span></span></span></div>
+                    <span class="wv-meta"><span class="wv-tag">optional</span></span></span></div>
             </div>
             <div style="display:flex;gap:8px;margin:12px 20px 0">
                 <span class="ghostbtn" style="margin-top:0;flex:1">&#65291; Add ingredient</span>
@@ -197,10 +196,10 @@
 
             <p class="conv-note" style="margin-top:14px"><b>What is the same.</b> The row is the shipped three-part line &mdash; <b>[amount] [identity] [note]</b>; the amount cell opens the quantity sheet with its Optional switch, the identity cell opens the target picker, and <b>&#65291;&nbsp;Add ingredient</b> adds. Nothing new is built</p>
             <p class="conv-note"><b>What is gone, and why it is gone rather than locked.</b> The whole header form &mdash; title, serves, makes, measures, times, shelf life, file under &mdash; and the whole method are <b>not drawn</b>. A control drawn and refused is a control you have to explain on every tap; a control absent is a mode you understand in one look. The method has a second reason: a step chip points at a line id, an added line has not got one, and an excluded line would orphan its chips</p>
-            <p class="conv-note"><b>Serves survives as a sentence.</b> Every amount on this list is <i>per serves&nbsp;4</i> &mdash; drop the number and the list stops being readable. So it is stated in the <b>from the recipe</b> strip with the step count and the title, in mono muted, with nothing in it to tap</p>
+            <p class="conv-note"><b>Serves survives beside the title.</b> Every amount on this list is <i>per serves&nbsp;4</i> &mdash; drop the number and the list stops being readable. So it sits in the band as a plain fact, in mono, with nothing to tap. The strip under it shows only the days these lines are cooked (here two cooks, Tue and Sat), and a freezer day when one batch reaches a meal frozen: the question here is which meals the edit changes, not how long they keep</p>
             <p class="conv-note"><b>No grip.</b> A reorder is not storable this week, and a drag that silently reverts on reopen is worse than no drag. Group headings are inert text: no rename, no bin, no <b>&#65291;&nbsp;Add&nbsp;group</b>. An added line lands at the foot of the list</p>
             <p class="conv-note"><b>An optional line is a line this week has not asked for</b>, so it reads exactly like an excluded one: <b>struck and muted</b>, amount and name alike, with no bin &mdash; there is nothing to take out of a week that was never cooking it</p>
-            <p class="conv-note"><b>Here the tag IS the switch.</b> This is the screen where <i>are we doing the parmesan this week?</i> actually gets asked, so the tag answers it in one tap &mdash; <b>optional &nbsp;&#65291;&nbsp;include this week</b>, in the week tag's own slot and voice, with a 32&nbsp;px target under a 10&nbsp;px badge. It writes the same <b>include</b> row the amount sheet's <b>Optional</b> switch always did: no new state, no second screen, and nothing stored until <b>Save</b>. Ticked in, the line unstrikes, drops this slot and carries <b>this week &middot; included</b> with its <b>&#8634;&nbsp;reset</b> &mdash; one badge on a line, never two. On the recipe editor proper the same tag stays <b>display only</b>: there, optional is a fact about the recipe, and the amount sheet is where facts are changed</p>
+            <p class="conv-note"><b>Here the tag IS the switch.</b> This is the screen where <i>are we doing the parmesan this week?</i> actually gets asked, so the tag answers it in one tap &mdash; the <b>optional</b> tag alone, in the week tag's own slot and voice, with a 32&nbsp;px target under a 10&nbsp;px badge. It writes the same <b>include</b> row the amount sheet's <b>Optional</b> switch always did: no new state, no second screen, and nothing stored until <b>Save</b>. Ticked in, the line unstrikes, drops this slot and carries <b>this week &middot; included</b> with its <b>&#8634;&nbsp;reset</b> &mdash; one badge on a line, never two. On the recipe editor proper the same tag stays <b>display only</b>: there, optional is a fact about the recipe, and the amount sheet is where facts are changed</p>
             <p class="conv-note"><b>Save, not write-through.</b> Unlike the meal editor sheet, this screen keeps the editor's own posture &mdash; nothing is stored until <b>Save</b>, and <b>&lsaquo;</b> abandons the draft. Save writes the <i>diff</i>, not the lines</p>
         </div></div>
     </div>
@@ -224,13 +223,12 @@
     <div class="frame">
         <p class="frame-name"><b>Five changes, one grammar</b> &middot; a swap, an amount, an exclusion, an optional line ticked in, and an addition &mdash; one tag voice, one reset, one footer that states its count</p>
         <div class="phone"><div class="notch"></div><div class="screen">
-            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">Edit for this week</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
+            <div class="abar"><span class="back">&lsaquo;</span><span class="ttl">This week only</span><span class="dots" style="color:var(--herb);font-size:13px;font-weight:600">Save</span></div>
             <div class="wv-band">
-                <span class="k">This week only</span>
-                <div class="t">Slow-Cooker Beef Rag&ugrave;</div>
-                <div class="s">Week of 14 Sep &middot; Tue and Sat both cook these lines<br>The recipe is not changed.</div>
+                <span class="k">Week of 14 Sep</span>
+                <div class="t" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;min-width:0">Slow-Cooker Beef Rag&ugrave;</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;color:var(--herb-deep)">serves 4</span></div>
+                <div class="wks" style="margin-top:10px"><span>Mon</span><span class="wk-cook wk-meal">Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span class="wk-cook wk-meal">Sat</span><span>Sun</span></div>
             </div>
-            <div class="wv-from">from the recipe &middot; not edited here: <b>serves 4</b> &middot; <b>6 steps</b> &middot; Slow-Cooker Beef Rag&ugrave;</div>
 
             <div style="margin:10px 20px 0;font-size:13px;color:var(--muted)">for the rag&ugrave;</div>
             <div style="margin:0 20px">
@@ -657,19 +655,18 @@
                 </div>
                 <div class="main">
                     <div class="we we-wk">
-                        <div class="we-top"><span class="back">&lsaquo; Week</span><h2 class="ttl">Edit for this week</h2><span class="we-save">Save</span></div>
+                        <div class="we-top"><span class="back">&lsaquo; Week</span><h2 class="ttl">This week only</h2><span class="we-save">Save</span></div>
                         <div class="wv-band" style="margin-top:14px">
-                            <span class="k">This week only</span>
-                            <div class="t">Slow-Cooker Beef Rag&ugrave;</div>
-                            <div class="s">Week of 14 Sep &middot; Tue and Sat both cook these lines<br>The recipe is not changed.</div>
+                            <span class="k">Week of 14 Sep</span>
+                            <div class="t" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;min-width:0">Slow-Cooker Beef Rag&ugrave;</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:400;color:var(--herb-deep)">serves 4</span></div>
+                <div class="wks" style="margin-top:10px"><span>Mon</span><span class="wk-cook wk-meal">Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span class="wk-cook wk-meal">Sat</span><span>Sun</span></div>
                         </div>
-                        <div class="wv-from">from the recipe &middot; not edited here: <b>serves 4</b> &middot; <b>6 steps</b> &middot; Slow-Cooker Beef Rag&ugrave;</div>
                         <div class="we-grp inert">for the rag&ugrave;</div>
                         <div class="l3 edit"><span class="l3-amt">400 g</span><span class="l3-body"><span class="l3-id">Beef mince, 5%</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; was 400 g Pork sausage</span><span class="wv-reset">&#8634; reset</span></span><span class="l3-pen">&#10005;</span></div>
                         <div class="l3 edit"><span class="l3-amt">3 onion, medium</span><span class="l3-body"><span class="l3-id">Onion</span><span class="l3-note">finely chopped</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; was 2</span><span class="wv-reset">&#8634; reset</span></span><span class="l3-pen">&#10005;</span></div>
                         <div class="l3 edit wv-off"><span class="l3-amt">250 ml</span><span class="l3-body"><span class="l3-id">Red wine</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; left out</span><span class="wv-reset">&#8634; reset</span></span></div>
                         <div class="l3 edit"><span class="l3-amt">30 g</span><span class="l3-body"><span class="l3-id">Parmesan, grated</span><span class="l3-note">to finish</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; included</span><span class="wv-reset">&#8634; reset</span></span><span class="l3-pen">&#10005;</span></div>
-                        <div class="l3 edit wv-off"><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Basil</span><span class="l3-note">torn</span></span><span class="wv-meta"><span class="wv-tag">optional</span><span class="wv-reset">&#65291; include this week</span></span></div>
+                        <div class="l3 edit wv-off"><span class="l3-amt">1 handful</span><span class="l3-body"><span class="l3-id">Basil</span><span class="l3-note">torn</span></span><span class="wv-meta"><span class="wv-tag">optional</span></span></div>
                         <div class="we-grp inert">to serve</div>
                         <div class="l3 edit"><span class="l3-amt">2</span><span class="l3-body"><span class="l3-id">Lime</span><span class="l3-note">cut into wedges</span></span><span class="wv-meta"><span class="wv-tag">this week &middot; added</span><span class="wv-reset">&#10005; remove</span></span><span class="l3-pen">&#10005;</span></div>
                         <div class="we-foot"><span class="ghostbtn">&#65291; Add ingredient</span></div>
@@ -680,7 +677,7 @@
         </div>
         <p class="wide-cap"><b>The width buys nothing here, and the frame says so.</b> Week mode draws no header form and no method &mdash; a chip cannot point at a line the week may exclude or add, and a control drawn and refused is a control you explain on every tap &mdash; so the one thing the width was for is absent. Its honest wide form is the <b>measure</b>: one column, centred, in the pane the sidebar leaves.</p>
         <p class="conv-note" style="margin:9px 4px 0"><b>What the measure does buy</b> is a column for the week's own statement. At 390 the tag and its reset wrap under the name; at 640 they sit at the row's right end, so <b>every row is one line</b> and the five changes read <i>down an edge</i> instead of being hunted under five names &mdash; which is what makes the foot's <b>drops 5 changes</b> a count you can check rather than one you take on trust. The amount column widens with it, to hold a whole measure in its own words &mdash; <b>3 onion, medium</b>, <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> &mdash; and that is the one thing left on this list that can take a row to two lines</p>
-        <p class="conv-note" style="margin:4px 4px 0"><b>Nothing else moves.</b> The band is the shipped one, herb-soft and small, in its place under the strip; <b>from the recipe</b> keeps <b>serves 4</b> and the step count in mono with nothing to tap; group headings are <b>inert text</b>; there is <b>no grip</b>, because a reorder is not storable this week; an excluded line stays <b>struck and muted</b> with no bin and its reset as the only way back; an added line's control is <b>&#10005; remove</b>, and an optional line the week has not asked for reads exactly like an excluded one, its tag being the switch that includes it</p>
+        <p class="conv-note" style="margin:4px 4px 0"><b>Nothing else moves.</b> The band is the shipped one, herb-soft and small, with <b>serves 4</b> beside the title and the week strip under it; group headings are <b>inert text</b>; there is <b>no grip</b>, because a reorder is not storable this week; an excluded line stays <b>struck and muted</b> with no bin and its reset as the only way back; an added line's control is <b>&#10005; remove</b>, and an optional line the week has not asked for reads exactly like an excluded one, its tag being the switch that includes it</p>
         <p class="conv-note" style="margin:4px 4px 0"><b>At 1180 and at 1024 nothing gives</b>: the measure is 640 at every width above it, so all that changes is the pane it is centred in &mdash; the sidebar becomes the 64&nbsp;px icon rail below 1280, and the column sits where it sits. Below 1024 this is the phone's screen, unchanged</p>
         <p class="conv-note" style="margin:4px 4px 0">the swap's picker is the same <b>dialog</b> as the frame above, with <i>Your recipes</i> suppressed and the week's own title and subtitle passed into it &mdash; week mode still builds nothing</p>
     </div>

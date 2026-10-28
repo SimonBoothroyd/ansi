@@ -1,5 +1,5 @@
 /// Display formatting for the Cook screen — pure Dart (no widgets), so the
-/// batch-plan copy and the timeline geometry are unit-testable.
+/// batch-plan copy and the week strip's geometry are unit-testable.
 library;
 
 import 'dart:math' as math;
@@ -8,6 +8,7 @@ import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/format.dart';
+import '../../../shared/week_strip_days.dart';
 import '../../planning/presentation/week_variant_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
@@ -24,17 +25,16 @@ String formatCookCount(int sessions) => switch (sessions) {
   _ => '$sessions cooks',
 };
 
-/// The whole-batch nudge line for a fractional session: "cook ×1 instead —
-/// covers 4 portions · 1 portion left over · shopping still buys ×0.75". Advice
-/// beside the raw factor; the shopping list keeps scaling by [rawFactor].
-String wholeBatchNudgeLine(
+/// The two sides of the exact-or-whole-batch switch for a fractional session:
+/// `×0.44 exact` and `×1 whole batch`. Display only; the shopping list keeps
+/// scaling by the exact factor.
+({String exact, String whole}) wholeBatchChoice(
   WholeBatchNudge nudge, {
   required double rawFactor,
-}) =>
-    'cook ×${nudge.factor} instead — covers '
-    '${formatPortions(nudge.batchPortions)} · '
-    '${formatPortions(nudge.leftoverPortions)} left over · '
-    'shopping still buys ${formatScale(rawFactor)}';
+}) => (
+  exact: '${formatScale(rawFactor)} exact',
+  whole: '×${nudge.factor} whole batch',
+);
 
 /// The recipe card's summary line: total portions across the week plus shelf
 /// life ("4 portions across the week · keeps 4 d"). A recipe the week varies
@@ -51,14 +51,18 @@ String recipeSummaryLine(RecipeCookPlan recipe, {bool editedThisWeek = false}) {
 }
 
 /// A session's "covers …" line, ending with the portion count. Collapses the
-/// slot when every covered meal shares one ("Tue + Sat dinner").
-String coversLine(CookSession session, WeekShape shape) {
+/// slot when every covered meal shares one ("Tue + Sat dinner"). With [spare]
+/// (the whole batch on screen) it ends with the portions left over instead:
+/// "covers Mon dinner · 2¼ portions spare".
+String coversLine(CookSession session, WeekShape shape, {double? spare}) {
   // A component session covers no meals, so the line names the plans it serves.
   if (session.isComponent) return 'covers ${session.demandedBy.join(' + ')}';
 
   final covers = session.covers;
   final slots = {for (final m in covers) m.mealSlot.toLowerCase()};
-  final portions = formatPortions(session.totalPortions);
+  final portions = spare == null
+      ? formatPortions(session.totalPortions)
+      : '${formatPortions(spare)} spare';
 
   if (slots.length == 1) {
     // Distinct days, one shared slot.
@@ -82,10 +86,10 @@ String coversLine(CookSession session, WeekShape shape) {
 String componentCardTitle(String recipeTitle, List<String> parents) =>
     parents.isEmpty ? recipeTitle : '$recipeTitle · for ${parents.join(' + ')}';
 
-/// A component card's summary line: what it is, then the shelf-life facts the
-/// derived session inherits (they are the sub-recipe's OWN, not the parent's).
+/// A component card's summary line: the shelf-life facts the derived session
+/// inherits (they are the sub-recipe's OWN, not the parent's). Empty when it
+/// states none.
 String componentSummaryLine(RecipeCookPlan recipe) => [
-  'derived from a component line',
   if (recipe.keepsForDays != null) 'keeps ${recipe.keepsForDays} d',
   if (recipe.freezable) 'freezable',
 ].join(' · ');
@@ -120,29 +124,9 @@ String componentCoversLine(
       'you need ${formatQuantity(batches)}';
 }
 
-/// The note under a component session that needs less than a whole batch;
-/// leftovers are not tracked. Null when the demand is a whole number of batches
-/// or the target states no yield.
-String? componentLeftoverNote(
-  CookSession session,
-  WeekShape shape, {
-  YieldDenomination? denomination,
-}) {
-  final batches = session.batchesToCook;
-  if (batches == null || denomination == null) return null;
-  if (batches == batches.roundToDouble()) return null;
-  return 'A batch makes '
-      '${formatQuantityIn(denomination.qty, denomination.unit)} '
-      '${denomination.unit.label} and '
-      '${shape.labelFull(session.cookDay)} needs '
-      '${formatQuantity(batches)} — the rest is yours. Nothing here tracks '
-      'the leftover.';
-}
-
-/// The gap card's summary line — the component-card one, with the reason in
-/// the shelf-life slot: this card has no scale to inherit facts for.
-String gapSummaryLine(ComponentGap gap) =>
-    'derived from a component line · ${gapReasonShort(gap.reason)}';
+/// The gap card's summary line: the reason, in three or four words. The card
+/// has no scale to inherit shelf-life facts for.
+String gapSummaryLine(ComponentGap gap) => gapReasonShort(gap.reason);
 
 /// The reason in three or four words, for the card's summary line.
 String gapReasonShort(UnresolvedComponentAmount reason) => switch (reason) {
@@ -195,69 +179,31 @@ String gapHeadline(ComponentGap gap) => switch (gap.reason) {
   ComponentCycle() => '${gap.title} is used inside itself',
 };
 
-/// The warn state's body: what setting the missing fact would buy. Never
-/// suggests assuming one batch.
-String gapBody(ComponentGap gap) => switch (gap.reason) {
-  ComponentYieldMissing() =>
-    'Set its yield and this session gets a scale. Until then there is no '
-        'honest number to put here.',
-  ComponentFamilyMismatch(:final lineFamily, :final yieldFamilies) =>
-    'The line is in ${lineFamily.said} and the yield only says '
-        '${yieldFamilies.map((f) => f.said).toSet().join(' / ')}. State a '
-        'second denomination in that family — two stated facts, not an '
-        'invented bridge.',
-  ComponentAmountMissing() =>
-    'Set an amount on that line and this session gets a scale. Until then '
-        'there is no honest number to put here.',
-  ComponentMeasureMissing() =>
-    'The number is kept; what it counted is not. Say that line’s amount '
-        'again, in a measure ${gap.title} still has.',
-  ComponentCycle() =>
-    'A recipe cannot be built from itself. Change one of the links and the '
-        'plan can derive it again.',
+/// One way to the fix for a gap: what the button says and the recipe whose
+/// editor it opens.
+typedef GapFix = ({String label, String recipeId});
+
+/// The buttons a gap card carries, one per place its fix lives. A missing or
+/// unanswerable yield is fixed on the sub-recipe; a missing amount, a measure
+/// that has gone, or a cycle is fixed on the line in each demanding parent.
+List<GapFix> gapFixes(ComponentGap gap) => switch (gap.reason) {
+  ComponentYieldMissing() || ComponentFamilyMismatch() => [
+    (label: 'Set the yield', recipeId: gap.recipeId),
+  ],
+  ComponentAmountMissing() || ComponentMeasureMissing() || ComponentCycle() => [
+    for (final parent in {
+      for (final d in gap.demandedBy) d.recipeId: d.title,
+    }.entries)
+      (label: 'Fix the line in ${parent.value}', recipeId: parent.key),
+  ],
 };
 
-/// Whether the gap's one-tap fix is the target's yield. A missing amount or a
-/// cycle is fixed on the parent's line, so those offer no button.
-bool gapOffersYieldFix(ComponentGap gap) =>
-    gap.reason is ComponentYieldMissing ||
-    gap.reason is ComponentFamilyMismatch;
-
-/// The amber "split" note: a later meal outran the fridge window, so the dish
-/// becomes two cooks.
-String splitNoteFor(RecipeCookPlan recipe) {
-  final keeps = recipe.keepsForDays;
-  final window = keeps == null ? 'shelf-life' : '$keeps-day';
-  return 'A later meal falls past the $window window — cook it again, fresh.';
-}
-
-/// The blue "freezer" note for a session that reaches a far meal from the
-/// freezer: cook once on the cook day, freeze the distant share.
-String freezerNoteFor(
-  String recipeTitle,
-  CookSession session,
-  WeekShape shape,
-) {
-  final cook = shape.labelFull(session.cookDay);
-  final frozen = session.frozenDays;
-  if (frozen.isEmpty) return '';
-  if (frozen.length == 1) {
-    final day = shape.labelFull(frozen.first);
-    return '$day is far off, but $recipeTitle freezes — cook once $cook, '
-        "freeze $day's share.";
-  }
-  final days = frozen.map(shape.labelFull).join(' & ');
-  return '$days are far off, but $recipeTitle freezes — cook once $cook, '
-      'freeze those shares.';
-}
-
-/// The geometry of a session's freshness timeline on the week's axis (day
-/// coordinates 0..6).
+/// The geometry of a session's freshness on the week's axis (day coordinates
+/// 0..6), which the week strip ([stripDays]) and the wide sheet's track draw.
 ///
 /// From the cook day a fresh window runs for the fridge shelf life; a freezable
-/// session extends into a frozen tail to reach a later meal, otherwise a "gone"
-/// tail runs to the week's last day. Each of [coveredDays] is a marker;
-/// [cookDay] is the solid one.
+/// session reaches a later meal from the freezer, otherwise a "gone" tail runs
+/// to the week's last day.
 class CookTimelineSpec {
   const CookTimelineSpec({
     required this.cookDay,
@@ -265,6 +211,7 @@ class CookTimelineSpec {
     required this.freshTo,
     required this.frozenTo,
     required this.hasGone,
+    this.frozenDays = const [],
   });
 
   factory CookTimelineSpec.of(CookSession session) {
@@ -296,6 +243,7 @@ class CookTimelineSpec {
         freshTo: windowEnd,
         frozenTo: windowEnd < frozenTo ? frozenTo : windowEnd,
         hasGone: false,
+        frozenDays: session.frozenDays,
       );
     }
     return CookTimelineSpec(
@@ -324,7 +272,44 @@ class CookTimelineSpec {
 
   /// Whether a hatched "gone" tail runs from [frozenTo] to the week's end.
   final bool hasGone;
+
+  /// The covered days past the fridge window, reached from the freezer.
+  final List<int> frozenDays;
+
+  /// The seven days of the week strip: the cook day cooked, the window's days
+  /// keeping, each frozen meal's day frozen, the hatch after a window that
+  /// closes first, and a dot on every covered day. [thisMeal] is the day the
+  /// screen is about, outlined. [eats] replaces [coveredDays] as the dots,
+  /// for a strip drawn before a meal is placed.
+  List<WeekStripDay> stripDays({int? thisMeal, Iterable<int>? eats}) {
+    final dots = (eats ?? coveredDays).toSet();
+    return [
+      for (var day = 0; day < 7; day++)
+        WeekStripDay(
+          fill: day == cookDay
+              ? WeekStripFill.cooked
+              : frozenDays.contains(day)
+              ? WeekStripFill.frozen
+              : day > cookDay && day <= freshTo
+              ? WeekStripFill.keeps
+              : hasGone && day > frozenTo
+              ? WeekStripFill.gone
+              : WeekStripFill.none,
+          eats: dots.contains(day),
+          thisMeal: day == thisMeal,
+        ),
+    ];
+  }
 }
+
+/// The week strip for every meal batch of one dish, merged into one row.
+List<WeekStripDay> stripDaysOfAll(
+  Iterable<CookSession> sessions, {
+  int? thisMeal,
+}) => mergeStripDays([
+  for (final s in sessions)
+    CookTimelineSpec.of(s).stripDays(thisMeal: thisMeal),
+]);
 
 /// Everything one cook session says, gathered once so the phone's tile and the
 /// desk's row print the same words.
@@ -336,7 +321,7 @@ class SessionSpeech {
     required this.covers,
     required this.wholeBatchShown,
     this.words = const [],
-    this.nudge,
+    this.wholeBatch,
   });
 
   /// The speech for [session] in the week's [shape]. [showWholeBatch] is the
@@ -371,7 +356,11 @@ class SessionSpeech {
           : formatScale(session.scaleFactor),
       covers: component
           ? componentCoversLine(session, shape, denomination: denomination)
-          : coversLine(session, shape),
+          : coversLine(
+              session,
+              shape,
+              spare: whole ? nudge.leftoverPortions : null,
+            ),
       // One line per demand said in one of this recipe's own words.
       words: [
         for (final d in session.demands)
@@ -384,12 +373,9 @@ class SessionSpeech {
             line,
       ],
       wholeBatchShown: whole,
-      nudge: nudge == null
+      wholeBatch: nudge == null
           ? null
-          : whole
-          ? 'showing the whole batch — tap for the honest '
-                '${formatScale(session.scaleFactor)}'
-          : wholeBatchNudgeLine(nudge, rawFactor: session.scaleFactor),
+          : wholeBatchChoice(nudge, rawFactor: session.scaleFactor),
     );
   }
 
@@ -416,9 +402,9 @@ class SessionSpeech {
   /// Whether the whole-batch view is the one on screen.
   final bool wholeBatchShown;
 
-  /// The whole-batch line — the nudge before a tap, the way back after one.
+  /// The two sides of the exact-or-whole-batch switch ([wholeBatchChoice]).
   /// Null when the batch is already whole, and for every component session.
-  final String? nudge;
+  final ({String exact, String whole})? wholeBatch;
 }
 
 /// What one day carries on a Cook row's track: nothing, a day this batch feeds,

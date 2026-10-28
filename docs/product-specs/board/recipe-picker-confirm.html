@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/planning</code> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-10-28 · <code>features/planning</code> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
     <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week. One door answers three ways: a recipe, an ingredient, or the words of a meal eaten out.</p>
 </header>
 
@@ -29,7 +29,7 @@
                 <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">Search recipes and ingredients</span><span class="care"></span></div></div>
                 <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
                 <div class="reuse">
-                    <div class="reuse-h">Already this week — cook it in the same batch</div>
+                    <div class="reuse-h">Already this week</div>
                     <div class="reuse-chips">
                         <span class="rchip">Chicken Curry <span class="day-t">Mon</span></span>
                         <span class="rchip">Beef Ragù <span class="day-t">Tue</span></span>
@@ -59,7 +59,7 @@
                         <div class="rkeep"><span class="kpill keeps"><span class="mini-fresh"></span>keeps 3 d</span></div>
                         <div class="rml">serves 4 · ~610 kcal · 45P <span class="per" style="color:var(--muted)">/serving</span></div></div>
                     <span class="rplus">＋</span></div>
-                <div class="newrow">＋ new recipe — build it from scratch</div>
+                <div class="newrow">＋ new recipe</div>
                 <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
                     <span class="eaters"><span class="ep on a">A</span><span class="ep on j">J</span></span></div>
             </div></div>
@@ -67,7 +67,7 @@
         </div>
 
         <div class="frame" id="pv2-c2">
-            <p class="frame-name"><b>Confirm &amp; place</b> · the batch hint under the card, the slot on its own, the roster, and portions that default to the eaters’ own factors. The day came with the flow, so it is the subtitle and the button — never a question</p>
+            <p class="frame-name"><b>Confirm &amp; place</b> · the batch it joins under the card, on the <a href="./index.html">week strip</a>, the slot on its own, the roster, and portions that default to the eaters’ own factors. The day came with the flow, so it is the subtitle and the button — never a question</p>
             <div class="phone"><div class="notch"></div><div class="screen sheet">
                 <div class="grab"></div>
                 <div class="c-h">Add to plan</div>
@@ -76,7 +76,16 @@
                     <div class="pn"><div class="ptitle">Weeknight Chicken Curry</div>
                         <div class="rbook">keeps 4 d · freezable</div>
                         <div class="rml">serves 4 · ~520 kcal · 31P <span class="per" style="color:var(--muted)">/serving</span></div></div></div>
-                <div class="batch-note" style="margin-top:10px">Chicken Curry already cooks <b>Monday</b> and keeps 4 days — Wednesday is inside that window, so this joins Monday’s batch instead of a second cook.</div>
+                <div class="wks-wrap">
+                    <div class="wks"><span class="wk-cook wk-meal">Mon</span><span class="wk-keep">Tue</span><span class="wk-keep wk-me">Wed</span><span class="wk-keep">Thu</span><span class="wk-keep">Fri</span><span class="wk-gone">Sat</span><span class="wk-gone">Sun</span></div>
+                    <div class="wks-cap">from Monday’s batch</div>
+                </div>
+                <p class="flabel" style="margin:12px 20px 4px">the same strip, adding Saturday instead</p>
+                <div class="wks-wrap" style="margin-top:0">
+                    <div class="wks"><span class="wk-cook wk-meal">Mon</span><span class="wk-keep">Tue</span><span class="wk-keep">Wed</span><span class="wk-keep">Thu</span><span class="wk-keep">Fri</span><span class="wk-frz wk-me">Sat</span><span>Sun</span></div>
+                    <div class="wks-cap frz">from Monday’s batch, frozen</div>
+                </div>
+                <p class="conv-note" style="margin:8px 20px 0">drawn only when the dish already cooks this week: the batch the new meal would join, clustered by the cook plan’s own rule. Monday’s dot is the meal already planned; the outline is the one being added. A meal that would be its batch’s cook day gets the strip and no caption</p>
                 <p class="clabel">Slot</p>
                 <div class="slotchip">Dinner<span class="caret">▾</span></div>
                 <p class="conv-note" style="margin:8px 20px 0">the slot is the only question here, and it arrives answered: the flow opens it on the day’s <b>next unfilled default slot</b> — Breakfast on an empty day, Lunch once a breakfast is planned, and <b>Dinner</b> here because Wednesday already has its breakfast and lunch. Every add starts from a day card, so the day is stated above and repeated on the button; a wrong day is one back-tap, or remove-and-re-add, while a wrong slot is a field of the meal editor afterwards. The select offers Breakfast · Lunch · Dinner · Snack, and the trailing <b>+</b> prompts <b>Custom meal</b> — <i>“e.g. Brunch, Snack”</i> — because <code>meal_slot</code> is free text, so a household names its own</p>
@@ -100,7 +109,7 @@
                 <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
                 <p class="conv-note" style="margin:26px 20px">Nothing in the Library matches “Office lunch”.</p>
                 <div class="newrow" style="border-color:var(--herb);color:var(--herb)">＋ note it — “Office lunch” · not cooked, not bought</div>
-                <div class="newrow">＋ new recipe — build it from scratch</div>
+                <div class="newrow">＋ new recipe</div>
                 <p class="conv-note" style="margin:14px 20px 0">The condition is all four clauses: something is typed, <b>no recipe title hit at any tier</b> (typos included), <b>no ingredient hit</b> — even a guessed one is an answer — and the vocabulary search has caught up with what is typed, so the row cannot flash between keystrokes offering to plan half a word. The list above says its own empty state; the third answer sits in the footer, above the door it is a sibling of. Tapping it resolves the picker to the <b>words</b>, trimmed: nothing is minted in the Library or the vocabulary, and the confirm sheet is next.</p>
                 <p class="conv-note" style="margin:10px 20px 0"><b>A bare shelf and a search that missed are two different sentences.</b> <span style="font-family:'IBM Plex Mono',monospace">No recipes yet — add one below.</span> is what a household with no Library reads, and it points at the door under it. Once words are typed the list says them back — and names the shelf it emptied, because Favorites missing a dish is not the Library missing it: <span style="font-family:'IBM Plex Mono',monospace">Nothing in your favorites matches “…”.</span> Neither line offers anything; the miss has exactly one offer, and it is the footer's.</p>
                 <div class="foot"><span class="foot-lab">Eating: <b>Ada &amp; Jun</b> · shared</span>
@@ -122,12 +131,11 @@
                 <p class="clabel">Who's eating</p>
                 <div class="eater-row"><span class="eaters"><span class="ep on a">A</span></span><span class="lab" style="flex:none;margin-left:2px">Ada</span><span class="eaters" style="margin-left:14px"><span class="ep j">J</span></span><span class="lab" style="flex:none;margin-left:2px;color:var(--muted)">Jun</span></div>
                 <p class="clabel">Portions</p>
-                <div class="portion"><div class="pl">1 portion<small>Ada 1 — her usual</small></div>
+                <div class="portion"><div class="pl">1 portion<small>Ada 1 — their usual</small></div>
                     <div class="pstepper"><span class="s">–</span><span class="qv">1</span><span class="s">+</span></div></div>
                 <p class="clabel">Macros · per portion <span style="color:var(--muted);letter-spacing:0;text-transform:none">optional</span></p>
                 <div class="frow"><div class="macro-fields"><div class="mi"><div class="miv">620</div><div class="mil">kcal</div></div><div class="mi"><div class="miv">42</div><div class="mil">protein</div></div><div class="mi"><div class="miv">55</div><div class="mil">carb</div></div><div class="mi"><div class="miv">24</div><div class="mil">fat</div></div><div class="mi"><div class="miv">&nbsp;</div><div class="mil">fibre</div></div></div></div>
-                <p class="conv-note" style="margin:8px 20px 0">counted in the day and the week, as stated</p>
-                <p class="conv-note" style="margin:8px 20px 0">the same five-slot sentence the ingredient form types a label into — one keypad, one set of widths, one rule about the fifth slot — except that these figures are <b>per portion</b> rather than per 100 of a basis, because a canteen prints a plate. The line under the slots says which of three states the typing is in: left empty, <span style="font-family:'IBM Plex Mono',monospace">left empty — the meal fills its slot, and the day says it was not counted</span>; half filled, <span style="font-family:'IBM Plex Mono',monospace">kcal, protein, carb and fat are one panel — a partial one is not stated, and will not be saved</span>; whole, the line drawn above. A blank is never a zero, and fibre is stored only if it was typed. There is no batch cue and no shelf life: nothing about this meal is cooked.</p>
+                <p class="conv-note" style="margin:8px 20px 0">the same five-slot sentence the ingredient form types a label into — one keypad, one set of widths, one rule about the fifth slot — except that these figures are <b>per portion</b> rather than per 100 of a basis, because a canteen prints a plate. Left empty or filled in whole, nothing is said under the slots; half filled, one line: <span style="font-family:'IBM Plex Mono',monospace">fill in all four or none</span>. A blank is never a zero, and fibre is stored only if it was typed. There is no batch strip and no shelf life: nothing about this meal is cooked.</p>
                 <div class="addbtn">Add to Tuesday</div>
             </div></div>
         </div>

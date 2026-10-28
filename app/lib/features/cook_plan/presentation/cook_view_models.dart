@@ -25,14 +25,16 @@ Stream<CookPlan> currentCookPlan(Ref ref) => ref
 String cookSessionKey(CookSession session) =>
     '${session.recipeId}:${session.cookDay}';
 
-/// Whether a session tile shows the whole-batch view (×N + leftover line)
-/// instead of the honest raw factor. Display-only and ephemeral by design.
+/// Whether a session shows the whole batch (×N, with the portions spare)
+/// instead of the exact factor. Display-only and ephemeral by design.
 @riverpod
 class WholeBatchDisplay extends _$WholeBatchDisplay {
   @override
   bool build(String sessionKey) => false;
 
-  void toggle() => state = !state;
+  // A call, not a setter: the switch asks for a side, it does not assign one.
+  // ignore: use_setters_to_change_properties
+  void show({required bool whole}) => state = whole;
 }
 
 /// What was said about the viewed week's leftovers, keyed by

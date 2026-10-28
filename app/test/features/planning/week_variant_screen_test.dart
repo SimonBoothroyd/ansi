@@ -6,6 +6,8 @@ library;
 import 'dart:async';
 
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
@@ -19,11 +21,13 @@ import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_header_form.dart';
+import 'package:ansi/shared/week_strip.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
+import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
@@ -107,6 +111,30 @@ class _Planner extends FakePlanningRepository {
 }
 
 List<Override> _overrides(FakeWeekVariantRepository variants) => [
+  // The meal editor reads its batch off the cook plan, by the meal's id.
+  cookPlanRepositoryProvider.overrideWithValue(
+    FakeCookPlanRepository.of([
+      const PlannedRecipe(
+        recipeId: 'r1',
+        title: 'Slow-Cooker Beef Ragù',
+        servingsBase: 4,
+        meals: [
+          CoveredMeal(
+            dayOfWeek: 1,
+            mealSlot: 'Dinner',
+            portions: 1,
+            entryId: 'e1',
+          ),
+          CoveredMeal(
+            dayOfWeek: 5,
+            mealSlot: 'Dinner',
+            portions: 1,
+            entryId: 'e2',
+          ),
+        ],
+      ),
+    ]),
+  ),
   recipeRepositoryProvider.overrideWithValue(
     FakeRecipeRepository(recipe: _recipe),
   ),
@@ -166,22 +194,39 @@ void main() {
       (tester) async {
         await _pumpEditor(tester);
         final text = _allText(tester);
-        expect(text, contains('THIS WEEK ONLY'));
+        expect(find.text('This week only'), findsOneWidget);
+        expect(text, contains('WEEK OF 14 SEP'));
         expect(text, contains('Slow-Cooker Beef Ragù'));
-        expect(text, contains('Tue and Sat'));
-        expect(text, contains('The recipe is not changed.'));
+        expect(text, isNot(contains('The recipe is not changed.')));
+        // The strip: Tuesday cooks the one batch (no shelf life, so never
+        // split) and Saturday eats from it. No fridge days.
+        final strip = tester.widget<WeekStrip>(find.byType(WeekStrip));
+        expect(strip.size, WeekStripSize.full);
+        expect(
+          [for (final d in strip.days) d.fill],
+          [
+            WeekStripFill.none,
+            WeekStripFill.cooked,
+            WeekStripFill.none,
+            WeekStripFill.none,
+            WeekStripFill.none,
+            WeekStripFill.none,
+            WeekStripFill.none,
+          ],
+        );
+        expect(
+          [for (final d in strip.days) d.eats],
+          [false, true, false, false, false, true, false],
+        );
       },
     );
 
-    testWidgets("the recipe's own facts are stated once, and not editable", (
-      tester,
-    ) async {
+    testWidgets('serves sits beside the title, and nothing else of the '
+        "recipe's own is said", (tester) async {
       await _pumpEditor(tester);
       expect(find.byType(RecipeHeaderForm), findsNothing);
-      expect(
-        _allText(tester),
-        contains('from the recipe · not edited here: serves 4 · 2 steps'),
-      );
+      expect(find.text('serves 4'), findsOneWidget);
+      expect(_allText(tester), isNot(contains('not edited here')));
     });
 
     testWidgets('no method step is drawn — a chip would point at a line id an '
@@ -209,7 +254,7 @@ void main() {
       // what an exclusion is too — so it reads the same, and says how it comes
       // back in its own slot.
       expect(find.byType(OptionalTag), findsOneWidget);
-      expect(find.textContaining('include this week'), findsOneWidget);
+      expect(find.textContaining('include this week'), findsNothing);
       expect(_struck(tester, 'Parmesan, grated'), isTrue);
       expect(
         _struck(tester, 'Red wine'),
@@ -346,7 +391,7 @@ void main() {
       final variants = FakeWeekVariantRepository();
       await _pumpEditor(tester, variants: variants);
 
-      await tester.tap(find.textContaining('include this week'));
+      await tester.tap(find.byType(OptionalTag));
       await tester.pumpAndSettle();
 
       // The row is in: it unstrikes, drops the switch, and wears the week's
@@ -370,7 +415,7 @@ void main() {
       final variants = FakeWeekVariantRepository();
       await _pumpEditor(tester, variants: variants);
 
-      await tester.tap(find.textContaining('include this week'));
+      await tester.tap(find.byType(OptionalTag));
       await tester.pumpAndSettle();
       await tester.tap(find.text('↺ reset'));
       await tester.pumpAndSettle();
@@ -435,7 +480,7 @@ void main() {
   });
 
   group('the door', () {
-    testWidgets('states its own scope, because the sheet is per meal', (
+    testWidgets("says no scope of its own: the sheet's strip shows it", (
       tester,
     ) async {
       await tester.pumpAnsiApp(
@@ -446,10 +491,12 @@ void main() {
       await tester.pumpAndSettle();
       final text = _allText(tester);
       expect(text, contains('As the recipe has them'));
-      expect(
-        text,
-        contains('a change covers every day this week — Tue and Sat'),
-      );
+      expect(text, isNot(contains('a change covers every day')));
+      // The sheet's strip shows the batch this meal (Tuesday) comes from.
+      final strip = tester.widget<WeekStrip>(find.byType(WeekStrip));
+      expect(strip.days[1].thisMeal, isTrue);
+      expect(strip.days[1].fill, WeekStripFill.cooked);
+      expect(strip.days[5].eats, isTrue);
       expect(text, contains('edit for this week'));
     });
 
@@ -528,10 +575,7 @@ void main() {
         variantsLeftBehindLine(const [
           (recipeTitle: 'Slow-Cooker Beef Ragù', changes: 5),
         ]),
-        startsWith(
-          "One recipe's this-week changes were left behind — "
-          'Slow-Cooker Beef Ragù (5 changes).',
-        ),
+        'This-week edits not copied: Slow-Cooker Beef Ragù (5 changes)',
       );
     });
 
@@ -541,10 +585,7 @@ void main() {
           (recipeTitle: 'Ragù', changes: 5),
           (recipeTitle: 'Curry', changes: 1),
         ]),
-        startsWith(
-          "2 recipes' this-week changes were left behind — "
-          'Ragù (5 changes), Curry (1 change).',
-        ),
+        'This-week edits not copied: Ragù (5 changes), Curry (1 change)',
       );
     });
 

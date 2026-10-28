@@ -45,6 +45,7 @@ import 'package:ansi/features/shopping/presentation/shop_add_field.dart'
     show kShopAddFieldKey, kShopAddResultsKey;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
     show ShoppingView, shopChevronTargetKey, shopTickTargetKey;
+import 'package:ansi/shared/week_strip.dart' show WeekStrip;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -346,7 +347,7 @@ void main() {
     await pumpUntilFound(tester, find.text('BREAKFAST'));
 
     // Second meal on Wednesday — within the 2-day fridge window, so the
-    // confirm sheet cues that it cooks in Monday's batch.
+    // confirm sheet's week strip shows it coming from Monday's batch.
     await scrollTo(tester, find.text('Wednesday'));
     final add = find.descendant(
       of: dayCard('Wednesday'),
@@ -358,14 +359,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Chicken Curry').last);
     await tester.pumpAndSettle();
-    // The FULL batch prose (confirm v2): dish, day, window, conclusion.
-    expect(
-      find.textContaining(
-        'Chicken Curry already cooks Monday and keeps 2 days',
-      ),
-      findsOneWidget,
-    );
-    expect(find.textContaining('joins Monday’s batch'), findsOneWidget);
+    // The strip: Monday cooked, Wednesday outlined, and one caption.
+    expect(find.byType(WeekStrip), findsOneWidget);
+    expect(find.text('from Monday’s batch'), findsOneWidget);
     await tester.tap(find.text('Add to Wednesday'));
     await tester.pumpAndSettle();
     await waitForDb(tester, () async {

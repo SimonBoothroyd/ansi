@@ -39,7 +39,7 @@ sealed class MealTarget {
   const MealTarget();
 }
 
-/// A dish. Its amount is its portions; the batch cue applies.
+/// A dish. Its amount is its portions; the batch strip applies.
 final class RecipeMeal extends MealTarget {
   const RecipeMeal(this.recipe);
 
@@ -153,7 +153,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
 
-    // The batch cue is a recipe fact; a snack is not cooked, so it has none.
+    // The batch strip is a recipe fact; a snack is not cooked, so it has none.
     final recipe = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
     final plannedDays = recipe == null
         ? null
@@ -245,8 +245,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           OutMeal(:final label) => MealOutCard(label: label),
         },
         if (hint != null) ...[
-          const SizedBox(height: 10),
-          MealBatchBanner(hint: hint, recipe: recipe!, newDay: dayOfWeek),
+          const SizedBox(height: 12),
+          MealBatchStrip(
+            recipe: recipe!,
+            plannedDays: plannedDays ?? const [],
+            newDay: dayOfWeek,
+          ),
         ],
         const SizedBox(height: 18),
         const AnsiMicroLabel('Slot'),
