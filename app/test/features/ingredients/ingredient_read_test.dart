@@ -64,10 +64,7 @@ void main() {
       // The name leads, with the other words it answers to under it.
       expect(find.text('Mango'), findsOneWidget);
       expect(find.text('also known as mangoes'), findsOneWidget);
-      expect(
-        find.text('Complete — counts in conversions and macro totals.'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Stub'), findsNothing);
 
       // The three groups, in the form's own order and under its own labels.
       expect(find.text('Identity'), findsOneWidget);
@@ -167,10 +164,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('CANONICAL NAME'), findsOneWidget);
-      expect(
-        find.text('New — nothing is saved until you tap Save.'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Stub'), findsNothing);
     });
   });
 
@@ -246,10 +240,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Still a stub — left out of macro totals until confirmed.'),
-        findsOneWidget,
-      );
+      expect(find.text('Stub · not in macros'), findsOneWidget);
       // The dock's own words, not four zeros (invariant 3).
       expect(find.text('needs macros'), findsOneWidget);
       expect(macroTextContaining('0 kcal'), findsNothing);

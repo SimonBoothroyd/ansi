@@ -72,10 +72,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Still a stub — left out of macro totals until confirmed.'),
-        findsOneWidget,
-      );
+      expect(find.text('Stub · not in macros'), findsOneWidget);
       // G6's trim: the status line one row up already explains what a stub
       // costs, so the CTA's own note says only what it is waiting for.
       expect(find.text('needs macros'), findsOneWidget);
@@ -171,7 +168,7 @@ void main() {
       await tester.pump();
       await saveForm(tester);
 
-      expect(find.textContaining('Fibre is an extra figure'), findsOneWidget);
+      expect(find.text('Fibre needs the other four.'), findsOneWidget);
       expect((await repo.byId('curry'))!.macros, isNull);
     });
 
@@ -184,10 +181,7 @@ void main() {
         await tester.pumpWidget(host(repo, at: editRoute('mango')));
         await tester.pumpAndSettle();
 
-        expect(
-          find.text('Complete — counts in conversions and macro totals.'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('Stub'), findsNothing);
         await openMoreMenu(tester);
         await tester.tap(find.text('Return it to a stub'));
         await tester.pumpAndSettle();
@@ -217,7 +211,7 @@ void main() {
     });
 
     testWidgets('the default unit is one chip the household cannot prune, and '
-        'a line says so', (tester) async {
+        'no line explains it', (tester) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -225,11 +219,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The mango is counted, so `piece` is the word every line of it says.
-      expect(
-        find.text('piece stays on — the row is bought in it'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('stays on'), findsNothing);
     });
 
     testWidgets('two locks, two lines: piece waits on a piece weight, never '
@@ -325,7 +315,7 @@ void main() {
       await openDensityEntry(tester);
       await tester.tap(find.text('remove the density'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('lock again'), findsOneWidget);
+      expect(find.textContaining('will stop working'), findsOneWidget);
       await tester.tap(find.widgetWithText(FButton, 'Remove'));
       await tester.pumpAndSettle();
       // Same rule on the way out: the chips lock again at once, the row keeps
@@ -836,7 +826,7 @@ void main() {
       await tester.pump();
       await addMeasure(tester);
 
-      expect(find.textContaining('must be a positive number'), findsOneWidget);
+      expect(find.text('must be above zero'), findsOneWidget);
       expect(fieldText(tester, measureLabelField), 'half cheek');
       expect(find.byType(MeasureRow), findsNothing);
     });
@@ -941,7 +931,7 @@ void main() {
       // switched to the spoon phrasing with `cup` picked — the one door.
       expect(measures.rows, isEmpty);
       expect(
-        find.textContaining('that mapping is the density'),
+        find.textContaining('is a unit. Set a density instead.'),
         findsOneWidget,
       );
       expect(find.text('weighs'), findsOneWidget);
@@ -985,10 +975,7 @@ void main() {
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
       expect(
-        find.text(
-          'Piece can’t be the default unit with nothing weighing one — '
-          'enter what one weighs below, or make it g.',
-        ),
+        find.text('Piece needs a weight. Add one or use g.'),
         findsOneWidget,
       );
       expect(repo.savedForms, isEmpty);
@@ -1043,7 +1030,7 @@ void main() {
       await openPieceWeightEntry(tester);
       await tester.tap(find.text('remove the piece weight'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('piece locks again'), findsOneWidget);
+      expect(find.text('Remove it? piece will stop working.'), findsOneWidget);
       await tester.tap(find.widgetWithText(FButton, 'Remove'));
       await tester.pumpAndSettle();
 
@@ -1413,16 +1400,10 @@ void main() {
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
 
-      // Refused in the message line, with the unit, the basis and both ways
-      // out — and the form is still open, because nothing was written.
+      // Refused in the message line, with the unit and the way out, and the
+      // form is still open, because nothing was written.
       expect(
-        find.textContaining(
-          'Macros per 100 ml and no density can’t have g as the default unit',
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('add a density below, or make it ml'),
+        find.text('g needs a density. Add one or use ml.'),
         findsOneWidget,
       );
       expect(find.text('CANONICAL NAME'), findsOneWidget);
@@ -1561,7 +1542,7 @@ void main() {
       // The short-list's own empty state, which covers offline and "nothing
       // close enough" together — a person cannot act differently on the two,
       // and the server trigger re-runs the same probe on upload either way.
-      expect(find.textContaining('nothing came back for'), findsOneWidget);
+      expect(find.text('No match'), findsOneWidget);
       // Nothing is RAISED over the short-list, and the row is untouched. One
       // surface: at this width the sheet is itself presented as a dialog, so a
       // refusal on top of it would make two.
@@ -1580,10 +1561,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('CANONICAL NAME'), findsOneWidget);
-      expect(
-        find.text('New — nothing is saved until you tap Save.'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Stub'), findsNothing);
       // Nothing to delete and nothing to un-confirm on a row that is not
       // there, so the header carries no menu at all.
       expect(find.byIcon(FLucideIcons.ellipsis), findsNothing);
@@ -1637,17 +1615,14 @@ void main() {
 
       // Blank: the name is what the refusal names first, in its own words.
       expect(saveButton(tester).onPress, isNull);
-      expect(
-        find.text('A name is the one field an ingredient can’t go without.'),
-        findsOneWidget,
-      );
+      expect(find.text('Needs a name.'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField).first, 'Curry leaves');
       await tester.pump();
       // A new row says which aisle it is in. The dock asks in the form's own
       // refusal voice, and nothing is defaulted for it.
       expect(saveButton(tester).onPress, isNull);
-      expect(find.textContaining('Which aisle is it in?'), findsOne);
+      expect(find.text('Pick a category.'), findsOne);
 
       await coinCategory(tester, 'produce');
       expect(saveButton(tester).onPress, isNull);
@@ -1658,14 +1633,10 @@ void main() {
       await tester.enterText(macroField('kcal'), '108');
       await tester.pump();
       expect(saveButton(tester).onPress, isNull);
-      expect(find.textContaining('a part of a panel isn’t a panel'), findsOne);
+      expect(find.text('Enter all four macros or none.'), findsOne);
 
       await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
       expect(saveButton(tester).onPress, isNotNull);
-      expect(
-        find.text('saving it counts it in conversions and macro totals'),
-        findsOneWidget,
-      );
 
       await saveForm(tester);
       expect(repo.rows.single.status, IngredientStatus.complete);
@@ -1703,7 +1674,7 @@ void main() {
       await tester.pump();
       await typeMacros(tester, kcal: '108', protein: '6', carb: '19', fat: '1');
       expect(saveButton(tester).onPress, isNull);
-      expect(find.textContaining('Which aisle is it in?'), findsOne);
+      expect(find.text('Pick a category.'), findsOne);
 
       await coinCategory(tester, 'produce');
       expect(saveButton(tester).onPress, isNotNull);
@@ -1723,7 +1694,7 @@ void main() {
         host(FakeIngredientRepo(const [uncategorised]), at: editRoute('bare')),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('Which aisle is it in?'), findsNothing);
+      expect(find.text('Pick a category.'), findsNothing);
       expect(saveButton(tester).onPress, isNotNull);
     });
 

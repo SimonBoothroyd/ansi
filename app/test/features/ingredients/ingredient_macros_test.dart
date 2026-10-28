@@ -67,12 +67,9 @@ void main() {
       await typeMacros(tester, kcal: '100', protein: '0', carb: '0', fat: '11');
       // The four are in, the serving is not: the preview says what it needs
       // and Save refuses rather than dividing by a blank.
-      expect(
-        find.textContaining('stored per 100 g: needs the serving amount'),
-        findsOneWidget,
-      );
+      expect(find.text('needs the serving size'), findsOneWidget);
       await saveForm(tester);
-      expect(find.textContaining('One serving is how much?'), findsOneWidget);
+      expect(find.text('Enter the serving size.'), findsOneWidget);
       expect((await repo.byId('spread'))!.macros, isNull);
 
       await tester.enterText(servingAmountField, '14');
@@ -149,7 +146,7 @@ void main() {
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('can’t have g as the default unit'),
+        find.text('g needs a density. Add one or use ml.'),
         findsOneWidget,
       );
       await tester.tap(find.text('switch to ml'));
@@ -211,13 +208,9 @@ void main() {
 
       // The serving row makes no offer of its own any more.
       expect(find.text('THIS SERVING ALSO SAYS'), findsNothing);
-      // The density sentence takes the serving as its left-hand side and asks
-      // only for the weight.
+      // The density sentence takes the serving as its left-hand side, and the
+      // weight is the person's to type.
       expect(fieldText(tester, densityAmountField), '2');
-      expect(
-        find.textContaining('type what that much weighs (the pack’s “(32 g)”)'),
-        findsOneWidget,
-      );
 
       await tester.enterText(densityField, '32');
       await tester.pumpAndSettle();
@@ -292,10 +285,7 @@ void main() {
         findsOneWidget,
       );
       // The card says what it read.
-      expect(
-        find.textContaining('panel read per serving of 32 g'),
-        findsOneWidget,
-      );
+      expect(find.text('per serving of 32 g'), findsOneWidget);
       // Nothing written until Save.
       expect((await repo.byId('bare'))!.macros, isNull);
 
@@ -330,7 +320,7 @@ void main() {
       expect(fieldText(tester, servingAmountField), isEmpty);
       expect(macroFieldText(tester, 'kcal'), '180');
       await saveForm(tester);
-      expect(find.textContaining('One serving is how much?'), findsOneWidget);
+      expect(find.text('Enter the serving size.'), findsOneWidget);
       expect((await repo.byId('bare'))!.macros, isNull);
 
       await tester.enterText(servingAmountField, '32');
@@ -358,10 +348,7 @@ void main() {
 
       // The pack prints fibre, so the card's line carries the fifth figure.
       expect(find.text('180 kcal · 6P 10C 14F · 2 fibre'), findsOneWidget);
-      expect(
-        find.textContaining('panel read per serving of 32 g (“2 Tbsp (32 g)”)'),
-        findsOneWidget,
-      );
+      expect(find.text('per serving of 32 g'), findsOneWidget);
       expect(fieldText(tester, servingAmountField), '32');
       expect(
         find.textContaining('stored per 100 g · 563 kcal'),
@@ -409,7 +396,7 @@ void main() {
       // names the number that is missing, before anything is tapped.
       expect(tester.widget<FButton>(find.byKey(kFormSaveKey)).onPress, isNull);
       expect(repo.rows, isEmpty);
-      expect(find.textContaining('One serving is how much?'), findsOneWidget);
+      expect(find.text('Enter the serving size.'), findsOneWidget);
 
       await tester.enterText(servingAmountField, '32');
       await tester.pumpAndSettle();

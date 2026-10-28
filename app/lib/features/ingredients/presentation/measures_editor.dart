@@ -144,20 +144,16 @@ class MeasuresEditor extends HookWidget {
         // Density owns volume conversion (ADR-0008 §2), so offer that door
         // instead of only refusing.
         onVolumeLabel(volumeUnit);
-        error.value =
-            '“$name” is a unit — that mapping is the density; '
-            'enter it in the density section and the ${volumeUnit.label} '
-            'chip unlocks';
+        error.value = '“$name” is a unit. Set a density instead.';
         return;
       }
       if (weight == null || !(weight > 0)) {
-        error.value =
-            'measure it: ${amountUnit.value.label} must be a positive number';
+        error.value = 'must be above zero';
         return;
       }
       final inBasis = _inBasis(ingredient, weight, amountUnit.value);
       if (inBasis == null) {
-        error.value = _noBridge(amountUnit.value, baseLabel);
+        error.value = _noBridge(baseLabel);
         return;
       }
       error.value = null;
@@ -269,16 +265,7 @@ class MeasuresEditor extends HookWidget {
           amount: amount,
           onUnit: (u) => amountUnit.value = u,
           onSave: save,
-          footer: Row(
-            children: [
-              const SourceDot(kind: MeasureSourceKind.manual),
-              const SizedBox(width: 5),
-              Text(
-                'saved as yours — synced & editable',
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-            ],
-          ),
+          footer: const SizedBox.shrink(),
         ),
       ],
     );
@@ -394,20 +381,16 @@ class _EditMeasureForm extends HookWidget {
         // The same door the add form offers (ADR-0008 §2): a volume-named
         // mapping IS the density, whichever form typed it.
         onVolumeLabel(volumeUnit);
-        error.value =
-            '“$name” is a unit — that mapping is the density; '
-            'enter it in the density section and the ${volumeUnit.label} '
-            'chip unlocks';
+        error.value = '“$name” is a unit. Set a density instead.';
         return;
       }
       if (weight == null || !(weight > 0)) {
-        error.value =
-            'measure it: ${amountUnit.value.label} must be a positive number';
+        error.value = 'must be above zero';
         return;
       }
       final inBasis = _inBasis(ingredient, weight, amountUnit.value);
       if (inBasis == null) {
-        error.value = _noBridge(amountUnit.value, baseLabel);
+        error.value = _noBridge(baseLabel);
         return;
       }
       error.value = null;
@@ -463,9 +446,7 @@ double? _inBasis(Ingredient ingredient, double amount, Unit unit) =>
 
 /// Why a pick could not be stored, in the words the density entry uses: the
 /// missing number is named, and so is the way out.
-String _noBridge(Unit unit, String baseLabel) =>
-    'this row has no density, so ${unit.label} cannot become $baseLabel — '
-    'say it in $baseLabel, or state a density first';
+String _noBridge(String baseLabel) => 'needs a density. Use $baseLabel.';
 
 // --- Provenance display ------------------------------------------------------
 

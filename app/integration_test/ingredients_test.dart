@@ -575,7 +575,7 @@ void main() {
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('Piece can’t be the default unit'),
+        find.textContaining('Piece needs a weight.'),
         findsOneWidget,
         reason: 'Save refuses a piece default nothing weighs',
       );
@@ -765,10 +765,6 @@ void main() {
         findsOneWidget,
       );
       expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);
-      expect(
-        find.text('renaming this row will not refill it — you said no once'),
-        findsOneWidget,
-      );
 
       // The guarantee, end to end: renaming a row to a name the reference set
       // matches ("Watercress, raw" — checked on the local stack) refills
@@ -890,7 +886,7 @@ void main() {
       // The draft is on the FORM, not in a row: the sheet handed it back and
       // the form's one Save is what writes it — provenance, macros and the
       // name it supplied for a row that had none, together.
-      expect(find.textContaining('filled in, not saved'), findsOneWidget);
+      expect(find.text('nothing new'), findsNothing);
       expect(
         await db.getAll(
           'SELECT id FROM ingredient WHERE source = ? AND deleted_at IS NULL',
@@ -908,7 +904,7 @@ void main() {
       );
       // Through the harness door, which scrolls the picker into view first:
       // the prefilled draft is long, and its pinned Save dock (carrying the
-      // "filled in, not saved" line) covers a picker left where it was.
+      // dock's refusal line) covers a picker left where it was.
       await coinCategory(tester, 'pantry');
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();

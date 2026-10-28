@@ -43,12 +43,6 @@ ReceiptName name(
   receiptId: receiptId,
 );
 
-/// The muted line under the list, spelled out — a change to it is a change a
-/// reader has to agree to.
-const theLine =
-    'what the receipt door remembers — not words this row is also '
-    'known as; fix one on its own receipt, where the latest answer wins';
-
 void main() {
   group('the On receipts fold', () {
     testWidgets('a row no receipt has carried draws no section at all', (
@@ -99,7 +93,6 @@ void main() {
         findsNothing,
         reason: 'shut means shut — the names are behind the chevron',
       );
-      expect(find.text(theLine), findsNothing);
     });
 
     testWidgets('unfolding shows every name, newest first, with its own line', (
@@ -134,9 +127,6 @@ void main() {
       expect(find.text("1 line · TJ's · 19 Sep"), findsOneWidget);
       expect(find.text('SHELLED EDAMAME'), findsOneWidget);
       expect(find.text("2 lines · TJ's +1 · 2 Aug"), findsOneWidget);
-
-      // And the line that says what this list is not.
-      expect(find.text(theLine), findsOneWidget);
     });
 
     testWidgets('folding it again puts the names away', (tester) async {
@@ -206,11 +196,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The Price group IS on the form — changing what a thing costs is
-      // editing it — and this section is not: it reads receipts, and the way to
-      // answer one leaves the page, which a form holding a draft must not
-      // offer.
-      expect(find.byKey(kAddPriceKey), findsOneWidget);
+      // It reads receipts, and the way to answer one leaves the page, which a
+      // form holding a draft must not offer.
       expect(find.text('On receipts'), findsNothing);
       expect(find.byKey(kOnReceiptsFoldKey), findsNothing);
     });

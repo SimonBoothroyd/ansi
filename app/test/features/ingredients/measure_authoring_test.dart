@@ -70,14 +70,13 @@ void main() {
     });
   });
 
-  test('the refusal names both figures and the way out', () {
+  test('the refusal names the word and the way out', () {
     final said = measureWordTakenRefusal(
       label: 'can',
       said: '794 g',
       taken: '411 g',
     );
-    expect(said, contains('“can” is already 411 g on this row'));
-    expect(said, contains('this pack is 794 g'));
+    expect(said, '“can” is taken. Try “can (794 g)”.');
     expect(
       said,
       contains('“can (794 g)”'),

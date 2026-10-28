@@ -133,12 +133,6 @@ class BarcodeScanSheet extends HookWidget {
           Text(
             'Looking it up…',
             style: ansiMono(size: 11, color: AnsiColors.muted),
-          )
-        else if (typed.value.trim().isNotEmpty && code == null)
-          Text(
-            'a barcode is 8 to 14 digits — the small ones printed beside the '
-            'bars count too',
-            style: ansiMono(size: 11, color: AnsiColors.muted),
           ),
         if (failed != null) ...[
           const SizedBox(height: 12),
@@ -314,11 +308,9 @@ class CameraOffNotice extends HookWidget {
           const SizedBox(height: 6),
           Text(
             permissionDenied
-                ? 'Camera access is turned off for Ansi. Turn it on in '
-                      'Settings, or type the barcode below — both end in the '
-                      'same place.'
-                : 'No camera is available here. Type the barcode below — it '
-                      'ends in the same place.',
+                ? 'Camera access is off. Turn it on in Settings or type the '
+                      'barcode.'
+                : 'No camera. Type the barcode.',
             textAlign: TextAlign.center,
             style: ansiMono(size: 10, color: AnsiColors.line),
           ),
@@ -383,23 +375,19 @@ class BarcodeFailurePanel extends StatelessWidget {
     final (title, body) = switch (failure.reason) {
       BarcodeLookupFailure.notFound => (
         "${failure.barcode} isn't in Open Food Facts",
-        'Nobody has added this product yet. Add it by hand — the name and '
-            'macros are the only parts a barcode was going to fill in anyway.',
+        'Add it by hand.',
       ),
       BarcodeLookupFailure.offline => (
         "Can't reach Open Food Facts",
-        'The lookup needs a connection. Everything else on the form works '
-            "offline and syncs when you're back.",
+        'You’re offline. Add it by hand or try again.',
       ),
       BarcodeLookupFailure.unavailable => (
-        'Open Food Facts turned us away',
-        'It limits how often it will answer. Wait a moment and try again, or '
-            'fill the form in by hand.',
+        'Open Food Facts is busy',
+        'Try again soon or add it by hand.',
       ),
       BarcodeLookupFailure.malformed => (
         "Open Food Facts sent something we can't read",
-        "This isn't a missing product — the answer came back in a shape we "
-            'do not understand. Try again, or fill the form in by hand.',
+        'Try again or add it by hand.',
       ),
       BarcodeLookupFailure.invalidCode => (
         "That isn't a barcode",

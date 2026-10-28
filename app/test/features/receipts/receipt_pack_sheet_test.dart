@@ -257,8 +257,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
-      expect(note, contains('already 482 g on this row'));
-      expect(note, contains('this pack is 794 g'));
+      expect(note, contains('“bottle (17 oz)” is taken'));
       expect(note, contains('bottle (17 oz) (794 g)'));
       expect(
         doneButton(tester).onPress,
@@ -284,7 +283,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
-    expect(note, contains('already 454 g'));
+    expect(note, '“bag” is taken. Try “bag (907 g)”.');
     expect(doneButton(tester).onPress, isNull);
 
     // The same size is the same measure: the save mints it once.

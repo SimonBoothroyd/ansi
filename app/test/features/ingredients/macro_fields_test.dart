@@ -13,7 +13,6 @@ library;
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
-import 'package:ansi/features/ingredients/presentation/serving_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -32,10 +31,6 @@ const _bare = Ingredient(
 );
 
 const _macroNames = ['kcal', 'protein', 'carb', 'fat', 'fibre'];
-
-const _nudge =
-    'the pack printed it per serving? switch to per serving and type it '
-    'as read';
 
 /// The sentence's own container — one [Wrap], keyed so a run assertion cannot
 /// wander onto the density sentence's.
@@ -169,61 +164,10 @@ void main() {
     });
   });
 
-  group('a scanned per-100 row that names no serving says per-serving is '
-      'there', () {
-    testWidgets('the nudge sits under the fields, and goes the moment the '
-        'mode moves', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      await tester.pumpWidget(
-        host(
-          FakeIngredientRepo(const [_bare]),
-          at: editRoute('bare'),
-          // Nutella: a per-100 g panel, and Open Food Facts holds no serving
-          // for it at all — the owner's own scan.
-          lookup: lookupAnswering('nutella_per_100g'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text(_nudge), findsNothing, reason: 'nothing scanned yet');
-
-      await scanOnForm(tester, '3017620422003');
-      expect(find.text(_nudge), findsOneWidget);
-      // It is the comparison line's slot, and its manners: under the fields,
-      // above the next group.
-      expect(
-        tester.getRect(find.text(_nudge)).top,
-        greaterThan(tester.getRect(macroField('fibre')).bottom),
-      );
-      expect(find.byType(ScannedPerServingNudge), findsOneWidget);
-
-      await tester.tap(find.text('per serving'));
-      await tester.pumpAndSettle();
-      expect(find.text(_nudge), findsNothing);
-    });
-
-    testWidgets('one edited figure and it is gone — what is on screen is '
-        'yours now', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      await tester.pumpWidget(
-        host(
-          FakeIngredientRepo(const [_bare]),
-          at: editRoute('bare'),
-          lookup: lookupAnswering('nutella_per_100g'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await scanOnForm(tester, '3017620422003');
-      expect(find.text(_nudge), findsOneWidget);
-
-      await tester.enterText(macroField('kcal'), '540');
-      await tester.pump();
-      expect(find.text(_nudge), findsNothing);
-    });
-
-    testWidgets('a pack that DID print its serving is entered in it — there '
-        'is nothing left to advise', (tester) async {
+  group('a scanned pack', () {
+    testWidgets('a pack that printed its serving is entered in it', (
+      tester,
+    ) async {
       filterForuiSemanticsAssertions();
       tallScreen(tester);
       await tester.pumpWidget(
@@ -236,31 +180,11 @@ void main() {
       await tester.pumpAndSettle();
 
       await scanOnForm(tester, '0099482514778');
-      expect(find.text(_nudge), findsNothing);
       expect(basisChip(tester, 'per serving').selected, isTrue);
       expect(macroFieldText(tester, 'kcal'), '80');
       // The comparison holds in this mode too: the fields' figures against the
       // pack's own per-100 column.
       expect(find.textContaining('the pack prints'), findsOneWidget);
-    });
-
-    testWidgets('a hand-typed row is never nudged — nobody there is reading '
-        'a mode they did not choose', (tester) async {
-      filterForuiSemanticsAssertions();
-      tallScreen(tester);
-      await tester.pumpWidget(
-        host(FakeIngredientRepo(const [_bare]), at: editRoute('bare')),
-      );
-      await tester.pumpAndSettle();
-
-      await typeMacros(
-        tester,
-        kcal: '539',
-        protein: '6.3',
-        carb: '57.5',
-        fat: '30.9',
-      );
-      expect(find.text(_nudge), findsNothing);
     });
   });
 }

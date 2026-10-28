@@ -35,10 +35,7 @@ enum DraftMacrosGap {
   /// [IngredientDraft.servingPanel]. OFF's `serving_size` is free text and is
   /// never parsed: the numeric `serving_quantity` prefills the serving row when
   /// present, else the host asks.
-  perServingPanel(
-    'Open Food Facts holds this panel per serving, not per 100 — type the '
-    'serving weight from the pack and the row stores per 100.',
-  );
+  perServingPanel('Enter the serving weight from the pack.');
 
   const DraftMacrosGap(this.message);
 

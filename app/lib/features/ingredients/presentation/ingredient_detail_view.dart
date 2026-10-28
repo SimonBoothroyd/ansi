@@ -186,9 +186,7 @@ class IngredientDetailView extends HookConsumerWidget {
       child: switch (async) {
         AsyncError(:final error) => _Centered('Could not open it — $error'),
         AsyncLoading() => const _Centered('…'),
-        _ => const _Centered(
-          'This ingredient is gone — it was deleted on another device.',
-        ),
+        _ => const _Centered('Deleted on another device.'),
       },
     );
   }
@@ -337,8 +335,7 @@ class _ReadPosture extends ConsumerWidget {
                 style: ansiMono(size: 11, color: AnsiColors.muted),
               ),
             ),
-          const SizedBox(height: 14),
-          _StatusStrip(ingredient: ing),
+          _StatusStrip(ingredient: ing, top: 18),
           if (stub)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -398,7 +395,7 @@ class _ReadPosture extends ConsumerWidget {
             children: [
               const _Label('DEFAULT UNIT'),
               _Fact(ing.defaultUnit.label),
-              const _Label('ALLOWED UNITS', hint: 'what a line may say'),
+              const _Label('ALLOWED UNITS'),
               _Fact(allowedUnitsFact(ing)),
               // Drawn only on a count row that states a piece weight.
               if (pieceWeight != null) ...[
@@ -410,7 +407,7 @@ class _ReadPosture extends ConsumerWidget {
                 densityFact(ing, serving: serving),
                 muted: ing.densityGPerMl == null,
               ),
-              const _Label('MEASURES', hint: 'count-like, in the basis'),
+              const _Label('MEASURES'),
               // Load-bearing emptiness: an errored stream is not "no measures".
               if (measuresAsync case AsyncError(
                 :final error,
@@ -452,60 +449,31 @@ const kLatestPriceKey = ValueKey('latest-price');
 /// The Base line, which is a tap onto the price sheet that set it.
 const kBasePriceKey = ValueKey('base-price');
 
+/// The tag on whichever price a cost reads, exported so a test names it.
+const kUsedForCostsTag = 'used for costs';
+
 /// The Price group: the latest price paid on one line with its derived
 /// `/100 g`, the earlier ones under it, and the row's own base price as its
 /// own entry.
 ///
 /// A row nobody has priced says so and offers the door; it never shows a zero.
 /// A price paid opens its receipt; the base price opens the sheet, which is the
-/// only thing the sheet writes. Both postures draw this one widget.
+/// only thing the sheet writes. Only the fact sheet draws it: a price writes at
+/// once, so the form, whose fields wait for Save, never offers one.
 class _PriceGroup extends ConsumerWidget {
-  const _PriceGroup({
-    required this.ingredient,
-    this.editing = false,
-    this.creating = false,
-  });
+  const _PriceGroup({required this.ingredient});
 
-  /// The row as stored, never the draft: the sheet writes at once and derives
-  /// per-100 from this row's basis and density.
+  /// The row as stored: the sheet derives per-100 from its basis and density.
   final Ingredient ingredient;
-
-  /// True on the editing posture, where the group says a price does not wait
-  /// for the form's Save.
-  final bool editing;
-
-  /// True on the create form: there is no row to price, and the group says so.
-  final bool creating;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (creating) {
-      return const _Group(
-        title: 'Price',
-        suffix: '— after the first save',
-        children: [
-          _Fact(
-            'A price is an event on a row, and this one does not exist yet.',
-            muted: true,
-          ),
-        ],
-      );
-    }
-
     final async = ref.watch(ingredientPricesProvider(ingredient.id));
     final prices = async.asData?.value ?? const <PriceObservation>[];
     final base = ref
         .watch(ingredientBasePriceProvider(ingredient.id))
         .asData
         ?.value;
-    // A slot, so the reading posture keeps the group's rhythm without the
-    // aside.
-    final aside = editing
-        ? const _Fact(
-            'a price is written as you enter it; Save below is for the fields',
-            muted: true,
-          )
-        : const SizedBox.shrink();
 
     // Load-bearing emptiness: an errored stream is not "never bought".
     if (async case AsyncError(:final error, :final stackTrace)) {
@@ -527,8 +495,10 @@ class _PriceGroup extends ConsumerWidget {
       );
     }
 
-    // What a recipe reads is `costPriceOf`: the newest price paid, else this
-    // row's base price. The hints say which one that is.
+    // A cost reads `costPriceOf`: the newest price paid, else this row's base
+    // price. The tag sits on that one, and a base price standing behind a
+    // receipt is drawn muted.
+    final baseUsed = prices.isEmpty;
     final baseEntry = base == null
         ? Padding(
             padding: const EdgeInsets.only(top: 14),
@@ -543,12 +513,7 @@ class _PriceGroup extends ConsumerWidget {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Label(
-                'BASE',
-                hint: prices.isEmpty
-                    ? 'what a recipe reads'
-                    : 'read when no receipt prices it',
-              ),
+              _Label('BASE', tag: baseUsed ? kUsedForCostsTag : null),
               AnsiTap(
                 key: kBasePriceKey,
                 onTap: () => unawaited(
@@ -559,7 +524,7 @@ class _PriceGroup extends ConsumerWidget {
                   ),
                 ),
                 minTarget: false,
-                child: _Fact(basePriceFact(base)),
+                child: _Fact(basePriceFact(base), muted: !baseUsed),
               ),
             ],
           );
@@ -568,7 +533,7 @@ class _PriceGroup extends ConsumerWidget {
       return _Group(
         title: 'Price',
         suffix: base == null ? '— none yet' : null,
-        children: [aside, baseEntry],
+        children: [baseEntry],
       );
     }
 
@@ -580,8 +545,7 @@ class _PriceGroup extends ConsumerWidget {
     return _Group(
       title: 'Price',
       children: [
-        aside,
-        const _Label('LATEST', hint: 'what a recipe reads'),
+        const _Label('LATEST', tag: kUsedForCostsTag),
         AnsiTap(
           key: kLatestPriceKey,
           onTap: () => open(prices.first),
@@ -593,11 +557,6 @@ class _PriceGroup extends ConsumerWidget {
         if (earlier.isNotEmpty) ...[
           const _Label('BEFORE'),
           _EarlierPrices(prices: earlier, onTap: open),
-          const _Fact(
-            'a recipe reads the latest; the rest is what you paid, kept as '
-            'paid',
-            muted: true,
-          ),
         ],
         baseEntry,
       ],
@@ -738,12 +697,6 @@ class _OnReceiptsGroup extends HookConsumerWidget {
                 ],
               ),
             ),
-          const _Fact(
-            'what the receipt door remembers — not words this row is also '
-            'known as; fix one on its own receipt, where the latest answer '
-            'wins',
-            muted: true,
-          ),
         ] else
           const SizedBox.shrink(),
       ],
@@ -925,9 +878,7 @@ class _DetailForm extends ConsumerWidget {
       final took = await askAnsi(
         context,
         title: 'Use ${near.ingredientName} instead?',
-        body:
-            '${near.ingredientName} is already in your ingredients. '
-            'Nothing you have typed here is saved.',
+        body: '${near.ingredientName} already exists.',
         confirm: 'Use ${near.ingredientName}',
         cancel: 'Keep typing',
       );
@@ -1121,7 +1072,7 @@ class _DetailForm extends ConsumerWidget {
                   : form.undoLabelFill,
             ),
 
-            const _Label('MACROS', hint: 'as the label reads · fibre optional'),
+            const _Label('MACROS'),
             // Per 100 of the basis, or per serving. Each leg unfocuses first,
             // because a mode change rebuilds the four fields around fresh
             // controllers.
@@ -1178,8 +1129,7 @@ class _DetailForm extends ConsumerWidget {
               onChanged: form.setMacros,
             ),
             // The derived per-100 line, and on a scanned row the pack's
-            // per-serving against its per-100 column; else the nudge that
-            // per-serving mode exists.
+            // per-serving against its per-100 column.
             if (draft.perServing) ...[
               StoredPer100Line(
                 serving: draft.serving,
@@ -1190,9 +1140,7 @@ class _DetailForm extends ConsumerWidget {
                 printed: draft.printedMacros,
                 per100: draft.scannedPer100,
               ),
-            ] else if (draft.scannedPer100NeedsServingHint)
-              const ScannedPerServingNudge()
-            else
+            ] else
               ScannedServingLine(
                 serving: draft.serving,
                 printed: draft.serving.packPrinted,
@@ -1246,7 +1194,7 @@ class _DetailForm extends ConsumerWidget {
                 },
               ),
 
-            const _Label('ALLOWED UNITS', hint: 'what a line may say'),
+            const _Label('ALLOWED UNITS'),
             _AdmissionChips(
               ingredient: draftRow,
               selected: draft.allowed,
@@ -1277,7 +1225,7 @@ class _DetailForm extends ConsumerWidget {
               },
             ),
 
-            const _Label('MEASURES', hint: 'count-like, in the basis'),
+            const _Label('MEASURES'),
             // Load-bearing emptiness: an errored stream drawn as empty would
             // let the next Save write the narrowed set back.
             if (measuresAsync case AsyncError(:final error, :final stackTrace))
@@ -1368,9 +1316,6 @@ class _DetailForm extends ConsumerWidget {
               ),
           ],
         ),
-
-        // The stored row, not the draft: the price sheet writes at once.
-        _PriceGroup(ingredient: ing, editing: true, creating: creating),
       ],
     );
 
@@ -1551,14 +1496,14 @@ class _UsdaProvenance extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(line, style: ansiMono(size: 10, color: AnsiColors.muted)),
-          if (edited) ...[
-            const SizedBox(height: 3),
-            Text(
-              '${_overriddenNumbers(ingredient)} — the numbers on this row are '
-              'no longer the source’s',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ],
+          if (edited)
+            if (_overriddenNumbers(ingredient) case final numbers?) ...[
+              const SizedBox(height: 3),
+              Text(
+                '$numbers edited',
+                style: ansiMono(size: 10, color: AnsiColors.muted),
+              ),
+            ],
           const SizedBox(height: 8),
           Row(
             spacing: 8,
@@ -1578,10 +1523,6 @@ class _UsdaProvenance extends StatelessWidget {
               ),
             ],
           ),
-          if (declined)
-            const _Note(
-              'renaming this row will not refill it — you said no once',
-            ),
         ],
       ),
     );
@@ -1656,7 +1597,7 @@ class _LabelProvenance extends StatelessWidget {
     if (!isLabelFilled(ingredient.source)) return const SizedBox.shrink();
     // The muted line is the same either way: the figures came off a photograph
     // and the label is the thing to check them against.
-    const line = 'read from a photo — check it against the label';
+    const line = 'check against the label';
     if (!pending) {
       return Padding(
         padding: const EdgeInsets.only(top: 16),
@@ -1713,16 +1654,16 @@ class _LabelProvenance extends StatelessWidget {
   }
 }
 
-/// Which numbers the `edited here` line names. `source_edited` is one boolean,
-/// so this reads what the row now carries, not which field was typed; a row
-/// carrying neither says the plain thing.
-String _overriddenNumbers(Ingredient ingredient) {
+/// Which numbers the `edited` line names. `source_edited` is one boolean, so
+/// this reads what the row now carries, not which field was typed; a row
+/// carrying neither has no line, the header's `edited here` saying it.
+String? _overriddenNumbers(Ingredient ingredient) {
   final macros = ingredient.macros != null;
   final density = ingredient.densityGPerMl != null;
   if (macros && density) return 'your macros and your density';
   if (macros) return 'your macros';
   if (density) return 'your density';
-  return 'edited here';
+  return null;
 }
 
 /// `＋ add “pack” = 400 g as a measure` — the offer's own words. The amount is
@@ -1733,8 +1674,8 @@ String _packOfferLabel(PackMeasureOffer pack) {
       '${basis.label} as a measure';
 }
 
-/// What the form's scan landed: the shared result card, a note that nothing is
-/// saved or confirmed, and the pack-size offer.
+/// What the form's scan landed: the shared result card, a note when it filled
+/// nothing, and the pack-size offer.
 class _ScanResult extends StatelessWidget {
   const _ScanResult({
     required this.draft,
@@ -1757,13 +1698,7 @@ class _ScanResult extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DraftCard(draft: draft, skipped: applied.skipped),
-          _Note(
-            applied.fillsSomething
-                ? 'filled in, not saved — Save keeps it, and nothing counts '
-                      'until you confirm.'
-                : 'nothing to fill in — every field it could answer already '
-                      'had an answer.',
-          ),
+          if (!applied.fillsSomething) const _Note('nothing new'),
           // The pack size is an offer: a measure lands only because it was
           // tapped.
           if (pack != null && !packAdded)
@@ -1775,7 +1710,7 @@ class _ScanResult extends StatelessWidget {
               ),
             )
           else if (pack != null)
-            const _Note('pack added below — rename it or bin it there.'),
+            const _Note('pack added below'),
         ],
       ),
     );
@@ -1844,10 +1779,6 @@ class _AdmissionChips extends StatelessWidget {
             ],
           ],
         ),
-        // The default unit cannot be turned off, so a note says why its tap is
-        // inert.
-        if (candidates.any((c) => !c.locked && c.unit == fixed))
-          _Note('${fixed.label} stays on — the row is bought in it'),
         // The density note is printed once, under the default-unit row above.
         if (pieceLocked)
           const _Note('piece unlocks when this row has a piece weight'),
@@ -2124,9 +2055,7 @@ class _AliasEditor extends HookWidget {
       // disagree about what carries an identity word.
       if (normalizeMatchText(entry.text).isEmpty) {
         taken.value = null;
-        error.value =
-            'That alias carries no identity word — it would match '
-            'everything and nothing.';
+        error.value = 'Too generic.';
         return;
       }
       final collision = await onAdd(entry.text);
@@ -2379,7 +2308,7 @@ class _GhostButton extends StatelessWidget {
 
 /// The shared [AnsiMicroLabel] with this form's spacing.
 class _Label extends StatelessWidget {
-  const _Label(this.text, {this.hint});
+  const _Label(this.text, {this.hint, this.tag});
 
   final String text;
 
@@ -2387,11 +2316,41 @@ class _Label extends StatelessWidget {
   /// this says how to read it.
   final String? hint;
 
+  /// A filled tag beside the label, or null: [kUsedForCostsTag] on the price
+  /// a cost reads.
+  final String? tag;
+
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 20),
-    child: AnsiMicroLabel(text, hint: hint, gap: 6),
-  );
+  Widget build(BuildContext context) {
+    final tag = this.tag;
+    if (tag == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: AnsiMicroLabel(text, hint: hint, gap: 6),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AnsiMicroLabel(text, hint: hint, gap: 6),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: AnsiColors.herb,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Text(
+              tag.toUpperCase(),
+              style: ansiMono(size: 9, color: AnsiColors.surface),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// One named group of the form: a serif heading and a hairline over its fields.
@@ -2435,21 +2394,30 @@ class _Group extends StatelessWidget {
   );
 }
 
-/// Whether this row counts in totals yet, at the top of the form.
+/// A saved stub's one line at the top of the page: it is left out of macro
+/// totals. A complete row and a new one draw nothing.
 class _StatusStrip extends StatelessWidget {
-  const _StatusStrip({required this.ingredient, this.creating = false});
+  const _StatusStrip({
+    required this.ingredient,
+    this.creating = false,
+    this.top = 4,
+  });
 
   final Ingredient ingredient;
 
-  /// A row that does not exist yet. It says so rather than calling itself a
-  /// stub, which only a saved row is.
+  /// A row that does not exist yet, which is not a stub: only a saved row is.
   final bool creating;
+
+  /// The space above the strip, which goes with it when it draws nothing.
+  final double top;
 
   @override
   Widget build(BuildContext context) {
-    final stub = ingredient.status == IngredientStatus.stub;
+    if (creating || ingredient.status != IngredientStatus.stub) {
+      return const SizedBox.shrink();
+    }
     return Container(
-      margin: const EdgeInsets.only(top: 4),
+      margin: EdgeInsets.only(top: top),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: AnsiColors.surface,
@@ -2461,19 +2429,15 @@ class _StatusStrip extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: stub ? AnsiColors.muted : AnsiColors.fresh,
+              color: AnsiColors.muted,
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              creating
-                  ? 'New — nothing is saved until you tap Save.'
-                  : stub
-                  ? 'Still a stub — left out of macro totals until confirmed.'
-                  : 'Complete — counts in conversions and macro totals.',
+              'Stub · not in macros',
               style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
           ),

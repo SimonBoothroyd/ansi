@@ -67,16 +67,9 @@ class UsdaPickSheet extends HookConsumerWidget {
         else
           UsdaCandidateList(
             candidates: candidates.data ?? const [],
-            queryName: name,
             current: ingredient,
             onPick: (c) => Navigator.of(context).pop(c),
           ),
-        const SizedBox(height: 12),
-        Text(
-          'picking one fills density + macros from it and names it on the '
-          'form — still a stub until you confirm',
-          style: ansiMono(size: 10, color: AnsiColors.muted),
-        ),
       ],
     );
   }
@@ -89,7 +82,6 @@ class UsdaPickSheet extends HookConsumerWidget {
 class UsdaCandidateList extends StatelessWidget {
   const UsdaCandidateList({
     required this.candidates,
-    required this.queryName,
     required this.onPick,
     this.current,
     this.selected,
@@ -97,10 +89,6 @@ class UsdaCandidateList extends StatelessWidget {
   });
 
   final List<UsdaCandidate> candidates;
-
-  /// The name that was asked about — named in the empty state so "nothing
-  /// came back" says for what.
-  final String queryName;
 
   /// The row being re-chosen, if any. Its current `usda_fdc:` match reads
   /// *current* and is not offered; a declined food reads *declined* (matched by
@@ -120,8 +108,7 @@ class UsdaCandidateList extends StatelessWidget {
     ];
     if (offered.isEmpty) {
       return Text(
-        'nothing came back for “$queryName” — offline, or nothing close '
-        'enough. The server runs the same lookup when the row syncs up.',
+        'No match',
         style: ansiMono(size: 11, color: AnsiColors.muted),
       );
     }

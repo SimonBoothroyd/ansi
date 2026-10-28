@@ -9,7 +9,6 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
@@ -311,8 +310,7 @@ class IngredientListView extends HookConsumerWidget {
     AsyncLoading() when all.isEmpty => const SizedBox.shrink(),
     _ when all.isEmpty => Center(
       child: Text(
-        'No ingredients yet — the vocabulary arrives with your '
-        'household’s first sync.',
+        'No ingredients yet',
         textAlign: TextAlign.center,
         style: ansiMono(size: 12, color: AnsiColors.muted),
       ),
@@ -356,11 +354,7 @@ class IngredientListView extends HookConsumerWidget {
     onTap: addNew,
     child: FCard(
       child: Text(
-        // The scan door does not exist in a browser (the detector wants a
-        // camera the tab has not got), so the card must not advertise it there.
-        kIsWeb
-            ? 'add an ingredient'
-            : 'add an ingredient — by hand, or scan a barcode',
+        'add an ingredient',
         textAlign: TextAlign.center,
         style: ansiMono(size: 11, color: AnsiColors.herb),
       ),
@@ -544,7 +538,7 @@ class _SheetPane extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Pick a row to read what it says.',
+                'Pick an ingredient',
                 textAlign: TextAlign.center,
                 style: ansiMono(size: 12, color: AnsiColors.muted),
               ),

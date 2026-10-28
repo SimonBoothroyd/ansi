@@ -348,7 +348,10 @@ void main() {
         )!;
         expect(draft.macros, isNull);
         expect(draft.macrosGap, DraftMacrosGap.perServingPanel);
-        expect(draft.macrosGap.message, contains('type the serving weight'));
+        expect(
+          draft.macrosGap.message,
+          'Enter the serving weight from the pack.',
+        );
         expect(
           draft.servingPanel,
           const DraftServingPanel(

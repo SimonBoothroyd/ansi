@@ -178,10 +178,8 @@ class DensityEntry extends HookWidget {
       final gPerMl = said?.gPerMl;
       if (said == null || gPerMl == null || !(gPerMl > 0)) {
         error.value = spoon.value.family == weightUnit.value.family
-            ? 'one side is a volume and the other a weight — '
-                  '“1 cup weighs 240 g”, or “30 ml weighs 1 oz”'
-            : 'weigh it: ${_phrase(amount.value, spoon.value)} and what it '
-                  'weighs must both be positive';
+            ? 'One side must be a volume, the other a weight.'
+            : 'must be above zero';
         return;
       }
       error.value = null;
@@ -313,20 +311,14 @@ class DensityEntry extends HookWidget {
               ),
             ],
           ),
-          if (servingPrefill?.unit.family == UnitFamily.volume)
+          // Both halves came off the pack's serving line, so they are checked
+          // against it.
+          if (servingPrefill?.unit.family == UnitFamily.volume &&
+              servingPrefill?.weighs != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              // Says what to do with what is in the slots, not where they came
-              // from.
               child: Text(
-                servingPrefill!.weighs == null
-                    ? 'your serving, ready to use — type what that much '
-                          'weighs (the pack’s “(32 g)”)'
-                    : _prefillHeld(servingPrefill!, density)
-                    ? 'both halves come from the pack’s serving line — '
-                          'check them against it'
-                    : 'both halves come from the pack’s serving line — check '
-                          'them, then tap $saveLabel',
+                'check against the pack',
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
             ),
@@ -366,25 +358,6 @@ class DensityEntry extends HookWidget {
     );
   }
 }
-
-/// Whether [density] is already the one [offer] states — the host landed the
-/// pack's serving line itself, so there is nothing left to tap.
-bool _prefillHeld(DensityOffer offer, double? density) {
-  final weighs = offer.weighs;
-  if (density == null || weighs == null) return false;
-  final offered = densityForPair(
-    offer.amount,
-    offer.unit,
-    weighs.amount,
-    weighs.unit,
-  );
-  return offered != null && (offered - density).abs() < 1e-9;
-}
-
-/// `2 tbsp` — a side of the sentence as the refusal quotes it back, said the
-/// way its own unit is said.
-String _phrase(double amount, Unit unit) =>
-    '${formatQuantityIn(amount, unit)} ${unit.label}';
 
 /// Removes the stored density, the one write that shrinks the allowed list. The
 /// confirmation names the consequence: the cross-family chips the density
@@ -427,9 +400,9 @@ class _RemoveDensity extends StatelessWidget {
         children: [
           Text(
             stripped.isEmpty
-                ? 'Remove it? Nothing about what a line may say changes.'
+                ? 'Remove it?'
                 : 'Remove it? ${stripped.map((u) => u.label).join(' · ')} '
-                      'lock again.',
+                      'will stop working.',
             style: ansiMono(size: 10, color: AnsiColors.muted),
           ),
           const SizedBox(height: 6),

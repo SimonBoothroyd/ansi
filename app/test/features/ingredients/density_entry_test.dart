@@ -182,10 +182,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('type what that much weighs (the pack’s “(32 g)”)'),
-        findsOneWidget,
-      );
+      expect(find.text('check against the pack'), findsNothing);
 
       await tester.enterText(densityField, '32');
       await tester.pumpAndSettle();
@@ -241,9 +238,8 @@ void main() {
       expect(fieldText(tester, densityAmountField), '2');
       expect(fieldText(tester, densityField), '7');
       expect(find.text('= 0.237 g/ml'), findsOneWidget);
-      // The note stops pointing at an empty slot and asks for the check the
-      // person is actually being asked to make.
-      expect(find.textContaining('check them, then tap'), findsOneWidget);
+      // Both halves came off the pack, so the note asks for the check.
+      expect(find.text('check against the pack'), findsOneWidget);
       // An offer, not a write: the button is still the thing that lands it.
       expect(landed, 0);
       await tester.tap(find.widgetWithText(FButton, 'Add'));
@@ -259,7 +255,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(fieldText(tester, densityAmountField), '1');
-      expect(find.textContaining('your serving, ready to use'), findsNothing);
+      expect(find.text('check against the pack'), findsNothing);
     });
   });
 

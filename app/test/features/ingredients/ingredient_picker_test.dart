@@ -224,13 +224,10 @@ void main() {
       tester,
     ) async {
       // Three characters is where the phone stops guessing, and the silence
-      // is explained rather than left mysterious.
+      // is answered rather than left mysterious.
       await tester.pumpWidget(_resultsHost(results: const [], query: 'tfu'));
       await tester.pumpAndSettle();
-      expect(
-        find.textContaining('Too few letters to guess from'),
-        findsOneWidget,
-      );
+      expect(find.text('Keep typing'), findsOneWidget);
 
       // A long query that simply has no match gets no such excuse.
       await tester.pumpWidget(
@@ -238,7 +235,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('No match for "xylophone".'), findsOneWidget);
-      expect(find.textContaining('Too few letters'), findsNothing);
+      expect(find.text('Keep typing'), findsNothing);
     });
 
     testWidgets('an unsearched, empty vocabulary reads differently', (

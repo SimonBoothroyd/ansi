@@ -33,7 +33,9 @@ void deskWidth(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-const _completeStrip = 'Complete — counts in conversions and macro totals.';
+/// The fact sheet's own group: the form draws no Price group, so this is the
+/// reading posture, on a row nobody has priced.
+const _factSheet = 'Price — none yet';
 
 /// A vocabulary long enough that a row near its end is nowhere near the first
 /// screen — which is the whole of what the reveal is for.
@@ -148,7 +150,7 @@ void main() {
       // …and the sheet is the shared fact sheet, beside the list rather than
       // over it. One of them: the manager does not draw a second copy.
       expect(find.byType(IngredientDetailView), findsOneWidget);
-      expect(find.text(_completeStrip), findsOneWidget);
+      expect(find.text(_factSheet), findsOneWidget);
       expect(
         tester.getTopLeft(find.byType(IngredientDetailView)).dx,
         greaterThan(tester.getTopLeft(find.byKey(kVocabularyReadingRowKey)).dx),
@@ -176,7 +178,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // `/ingredients` opens on no row, and says so where the sheet will be.
-      expect(find.text('Pick a row to read what it says.'), findsOneWidget);
+      expect(find.text('Pick an ingredient'), findsOneWidget);
       expect(find.byKey(kVocabularyReadingRowKey), findsNothing);
       final depth = router.routerDelegate.currentConfiguration.matches.length;
 
@@ -186,7 +188,7 @@ void main() {
       // The address bar names the row the pane is reading, so a refresh keeps
       // it and the link is worth sending.
       expect(router.state.uri.toString(), ingredientDetailRoute('yeast'));
-      expect(find.text(_completeStrip), findsOneWidget);
+      expect(find.text(_factSheet), findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(kVocabularyReadingRowKey),
@@ -259,7 +261,7 @@ void main() {
         findsNothing,
         reason: 'a row opened from the vocabulary opens as a row, to be read',
       );
-      expect(find.text(_completeStrip), findsOneWidget);
+      expect(find.text(_factSheet), findsOneWidget);
     });
 
     testWidgets('a pick restates the page it was made on: the search field '
@@ -355,7 +357,7 @@ void main() {
       await tester.tap(find.text('Nutritional yeast').first);
       await tester.pumpAndSettle();
 
-      expect(find.text(_completeStrip), findsOneWidget);
+      expect(find.text(_factSheet), findsOneWidget);
       expect(paneHeaderActions(tester).where((a) => !isEllipsis(a)), isEmpty);
     });
 
@@ -431,7 +433,7 @@ void main() {
       // have the same projection, so that copy IS the row.
       await tester.pump();
 
-      expect(find.text(_completeStrip), findsOneWidget);
+      expect(find.text(_factSheet), findsOneWidget);
       expect(
         find.text('…'),
         findsNothing,
@@ -473,7 +475,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(_completeStrip), findsOneWidget);
+      expect(find.text(_factSheet), findsOneWidget);
       expect(
         find.text('Needs fleshing out'),
         findsNothing,

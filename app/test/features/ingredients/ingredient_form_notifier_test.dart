@@ -326,7 +326,7 @@ void main() {
       // across would relabel that column as a fact about 100 g.
       expect(at().perServing, isTrue);
       expect(at().macros, typed);
-      expect(at().message, startsWith('One serving is how much?'));
+      expect(at().message, kServingAmountFirst);
       // Exactly the sentence Save says about the same missing number.
       expect(at().message, at().refusal);
 
@@ -699,7 +699,7 @@ void main() {
       form.setName('   ');
 
       expect(await form.save(), isNull);
-      expect(at().message, contains('A name is the one'));
+      expect(at().message, 'Needs a name.');
 
       form
         ..setName('Mango')
@@ -715,7 +715,7 @@ void main() {
           const MacroDraft(kcal: '30', protein: '1', carb: '7', fat: '0'),
         );
       expect(await form.save(), isNull);
-      expect(at().message, contains('One serving is how'));
+      expect(at().message, kServingAmountFirst);
 
       expect(repo.savedForms, isEmpty);
     });
@@ -803,11 +803,7 @@ void main() {
       final (:form, :at) = await _open(repo, id: 'mango');
 
       expect(await form.save(), isNull);
-      expect(
-        at().message,
-        'Piece can’t be the default unit with nothing weighing one — '
-        'enter what one weighs below, or make it g.',
-      );
+      expect(at().message, 'Piece needs a weight. Add one or use g.');
       expect(repo.savedForms, isEmpty);
 
       // Either fix clears it: the number…
@@ -849,7 +845,7 @@ void main() {
         const MacroDraft(kcal: '108', protein: '6', carb: '19', fat: '1'),
       );
 
-      expect(at().refusal, startsWith('Which aisle is it in?'));
+      expect(at().refusal, 'Pick a category.');
       expect(at().completable, isFalse);
       expect(await form.save(), isNull);
       expect(repo.savedForms, isEmpty);
@@ -867,7 +863,7 @@ void main() {
       final (:form, :at) = await _open(repo, initialName: 'Curry leaves');
       form.setCategory('   ');
 
-      expect(at().refusal, startsWith('Which aisle is it in?'));
+      expect(at().refusal, 'Pick a category.');
     });
 
     // The rows already here that never named one are not a backlog to be
@@ -939,7 +935,6 @@ void main() {
       // And the pack's own per-100 column is kept, so leaving the mode with
       // nothing typed puts the label's other reading back.
       expect(draft.per100Macros, MacroDraft.from(per100));
-      expect(draft.scannedPer100NeedsServingHint, isFalse);
     });
 
     test('a serving with no figures of its own leaves the row per 100 — there '
@@ -961,12 +956,9 @@ void main() {
       expect(draft.perServing, isFalse);
       expect(draft.macros, MacroDraft.from(per100));
       expect(draft.serving.amountText, '28');
-      // The row already states a serving, so nothing points at the mode.
-      expect(draft.scannedPer100NeedsServingHint, isFalse);
     });
 
-    test('figures with no serving at all stay per 100, and the nudge says the '
-        'mode is there', () async {
+    test('figures with no serving at all stay per 100', () async {
       final repo = FakeIngredientRepo([_bareStub]);
       final (:form, :at) = await _open(repo, id: 'bare');
 
@@ -976,7 +968,6 @@ void main() {
       expect(draft.perServing, isFalse);
       expect(draft.macros, MacroDraft.from(per100));
       expect(draft.serving.amount, isNull);
-      expect(draft.scannedPer100NeedsServingHint, isTrue);
     });
   });
 
@@ -1395,7 +1386,7 @@ void main() {
       open.form.undoLabelFill();
       final draft = open.at();
       expect(draft.message, startsWith('Undone'));
-      expect(draft.refusal, startsWith('Which aisle is it in?'));
+      expect(draft.refusal, 'Pick a category.');
       expect(draft.dockLine, draft.refusal);
     });
 
@@ -1406,7 +1397,7 @@ void main() {
       expect(open.at().dockLine, 'needs macros');
     });
 
-    test('once the form can save, the feedback message is the line', () async {
+    test('once the form can save, the dock has no line', () async {
       final repo = FakeIngredientRepo(const []);
       final open = await _open(repo, initialName: 'Granola');
       open.form
@@ -1417,10 +1408,7 @@ void main() {
             perServing: LabelMacros(kcal: 113, protein: 4, carb: 18, fat: 2),
           ),
         );
-      expect(
-        open.at().dockLine,
-        'saving it counts it in conversions and macro totals',
-      );
+      expect(open.at().dockLine, isNull);
     });
   });
 }

@@ -199,10 +199,7 @@ void main() {
       await readLabelOnForm(tester);
 
       expect(find.text('From a label · not saved'), findsOneWidget);
-      expect(
-        find.text('read from a photo — check it against the label'),
-        findsOneWidget,
-      );
+      expect(find.text('check against the label'), findsOneWidget);
       expect(repo.savedForms, isEmpty);
 
       await tester.tap(find.text('Undo the fill'));
@@ -305,10 +302,7 @@ void main() {
       await readLabelOnForm(tester);
 
       expect(find.textContaining('Read from a photo'), findsNothing);
-      expect(
-        find.textContaining('Enter all four macros, or leave them all blank'),
-        findsOneWidget,
-      );
+      expect(find.text('Enter all four macros or none.'), findsOneWidget);
       // What could not be read is on the label's card, not on the dock.
       expect(find.textContaining('The fat row was cut off'), findsOneWidget);
     });
@@ -321,13 +315,7 @@ void main() {
       // Held by the draft and headlined as the pack said it, with the g/ml
       // derived from it beside.
       expect(find.text('⅔ cup weighs 55 g · 0.349 g/ml'), findsOneWidget);
-      expect(
-        find.text(
-          'both halves come from the pack’s serving line — check them '
-          'against it',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('check against the pack'), findsOneWidget);
 
       await tester.tap(find.byKey(kFormSaveKey));
       await tester.pumpAndSettle();

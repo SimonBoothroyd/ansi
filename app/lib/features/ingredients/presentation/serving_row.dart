@@ -168,9 +168,9 @@ class StoredPer100Line extends StatelessWidget {
         : Macros.per100From(serving: inBasis, basis: basis, printed: printed);
     final String text;
     if (printed == null) {
-      text = 'stored per 100 ${basis.dbValue} — once the four are in';
+      text = 'needs all four';
     } else if (stored == null) {
-      text = 'stored per 100 ${basis.dbValue}: needs the serving amount';
+      text = 'needs the serving size';
     } else {
       final from = serving.conversion;
       text =
@@ -182,23 +182,6 @@ class StoredPer100Line extends StatelessWidget {
       child: Text(text, style: ansiMono(size: 10, color: AnsiColors.muted)),
     );
   }
-}
-
-/// The line a scanned per-100 row shows in [ScannedServingLine]'s slot when the
-/// payload named no serving: it says per-serving mode exists. It goes once the
-/// mode moves or a figure is typed.
-class ScannedPerServingNudge extends StatelessWidget {
-  const ScannedPerServingNudge({super.key});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 6),
-    child: Text(
-      'the pack printed it per serving? switch to per serving and type it '
-      'as read',
-      style: ansiMono(size: 10, color: AnsiColors.muted),
-    ),
-  );
 }
 
 /// The line under a scanned row's figures: what the pack printed per serving,
