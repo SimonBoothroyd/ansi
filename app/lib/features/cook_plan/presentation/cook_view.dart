@@ -263,7 +263,7 @@ class _GapCard extends ConsumerWidget {
 }
 
 /// The warn block inside a gap card: the one-line problem, then a button per
-/// place its fix lives ([gapFixes]), each opening that recipe's editor.
+/// place its fix lives ([gapFixes]), each opening the editor on the fix.
 class _GapWarning extends StatelessWidget {
   const _GapWarning({required this.gap});
 
@@ -305,7 +305,7 @@ class _GapWarning extends StatelessWidget {
           for (final fix in gapFixes(gap)) ...[
             const SizedBox(height: 10),
             AnsiTap(
-              onTap: () => context.pushOnce('/recipes/${fix.recipeId}/edit'),
+              onTap: () => context.pushOnce(fix.location),
               color: tone.ink,
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 9),

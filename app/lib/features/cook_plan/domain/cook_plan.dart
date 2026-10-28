@@ -266,12 +266,25 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
 /// [quantity] / [unit] are the demanding line's stored values, not scaled by
 /// the parent session; [quantity] is null on a numberless line. When a parent
 /// lists the same target more than once, the first line is the one quoted.
+///
+/// [lineId] is that line, in the recipe that holds it: the planned recipe at
+/// depth one, [viaRecipeId] below it. It is where the fix lives.
 @freezed
 abstract class ComponentDemandSource with _$ComponentDemandSource {
+  const ComponentDemandSource._();
+
   const factory ComponentDemandSource({
     required String recipeId,
     required String title,
     required int cookDay,
+
+    /// The `recipe_line_item` that names the target.
+    required String lineId,
+
+    /// The intermediate recipe holding [lineId], and its title. Both null at
+    /// depth one, where the planned recipe holds it.
+    String? viaRecipeId,
+    String? via,
 
     /// The demanding line's catalog unit, null when it was said in one of the
     /// target's own words ([measureLabel]).
@@ -286,6 +299,12 @@ abstract class ComponentDemandSource with _$ComponentDemandSource {
     /// catalog unit when [measureLabel] is null.
     @Default(false) bool saysAMeasure,
   }) = _ComponentDemandSource;
+
+  /// The recipe whose line names the target: where that line is fixed.
+  String get lineRecipeId => viaRecipeId ?? recipeId;
+
+  /// [lineRecipeId]'s title.
+  String get lineRecipeTitle => via ?? title;
 }
 
 /// A component the plan could not derive a session for. [reason] says why (no
@@ -762,6 +781,10 @@ typedef _PlannedRoot = ({String recipeId, String title, int cookDay});
                     recipeId: root.recipeId,
                     title: root.title,
                     cookDay: root.cookDay,
+                    lineId: line.id,
+                    // Below depth one, the line is in the recipe being walked.
+                    viaRecipeId: via == null ? null : recipeId,
+                    via: via,
                     quantity: line.quantity,
                     unit: line.unit,
                     measureLabel: said?.label,

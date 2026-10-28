@@ -489,20 +489,24 @@ void main() {
           recipeId: 'sliders',
           title: 'Sausage Sliders',
           cookDay: 5,
+          lineId: 'li-sliders-aioli',
           quantity: quantity,
           unit: unit,
         ),
       ],
     );
 
-    test('a missing yield is named, and its button opens the sub-recipe', () {
+    test('a missing yield is named, and its button opens the sub-recipe at '
+        'MAKES', () {
       final missing = gap(const ComponentYieldMissing());
       expect(gapSummaryLine(missing), 'yield not set');
       expect(
         gapHeadline(missing),
         'Romesco Aioli doesn’t say how much it makes',
       );
-      expect(gapFixes(missing), [(label: 'Set the yield', recipeId: 'aioli')]);
+      expect(gapFixes(missing), [
+        (label: 'Set the yield', location: '/recipes/aioli/edit?focus=makes'),
+      ]);
       // Frame (f) verbatim: the one number a gap CAN state is what the line
       // printed.
       expect(
@@ -550,6 +554,7 @@ void main() {
             recipeId: 'sliders',
             title: 'Sausage Sliders',
             cookDay: 5,
+            lineId: 'li-sliders-aioli',
             quantity: 0.25,
             unit: cup,
           ),
@@ -557,6 +562,7 @@ void main() {
             recipeId: 'toasts',
             title: 'Romesco Toasts',
             cookDay: 6,
+            lineId: 'li-toasts-aioli',
             quantity: 1,
             unit: batches,
           ),
@@ -576,27 +582,30 @@ void main() {
           yieldFamilies: [UnitFamily.mass],
         ),
       );
-      expect(gapFixes(mismatch), [(label: 'Set the yield', recipeId: 'aioli')]);
+      expect(gapFixes(mismatch), [
+        (label: 'Set the yield', location: '/recipes/aioli/edit?focus=makes'),
+      ]);
     });
 
-    test(
-      'an amount, a gone measure or a cycle is fixed on the parent line',
-      () {
-        for (final reason in const <UnresolvedComponentAmount>[
-          ComponentAmountMissing(),
-          ComponentMeasureMissing('m-gone'),
-          ComponentCycle(),
-        ]) {
-          expect(gapFixes(gap(reason)), [
-            (label: 'Fix the line in Sausage Sliders', recipeId: 'sliders'),
-          ]);
-        }
-        expect(
-          gapHeadline(gap(const ComponentCycle())),
-          'Romesco Aioli is used inside itself',
-        );
-      },
-    );
+    test('an amount, a gone measure or a cycle is fixed on the parent line, '
+        'opened at that line', () {
+      for (final reason in const <UnresolvedComponentAmount>[
+        ComponentAmountMissing(),
+        ComponentMeasureMissing('m-gone'),
+        ComponentCycle(),
+      ]) {
+        expect(gapFixes(gap(reason)), [
+          (
+            label: 'Fix the line in Sausage Sliders',
+            location: '/recipes/sliders/edit?line=li-sliders-aioli',
+          ),
+        ]);
+      }
+      expect(
+        gapHeadline(gap(const ComponentCycle())),
+        'Romesco Aioli is used inside itself',
+      );
+    });
 
     test('two demanding parents get a button each', () {
       const shared = ComponentGap(
@@ -608,17 +617,58 @@ void main() {
             recipeId: 'sliders',
             title: 'Sausage Sliders',
             cookDay: 5,
+            lineId: 'li-sliders-aioli',
           ),
           ComponentDemandSource(
             recipeId: 'toasts',
             title: 'Romesco Toasts',
             cookDay: 6,
+            lineId: 'li-toasts-aioli',
           ),
         ],
       );
       expect(gapFixes(shared), [
-        (label: 'Fix the line in Sausage Sliders', recipeId: 'sliders'),
-        (label: 'Fix the line in Romesco Toasts', recipeId: 'toasts'),
+        (
+          label: 'Fix the line in Sausage Sliders',
+          location: '/recipes/sliders/edit?line=li-sliders-aioli',
+        ),
+        (
+          label: 'Fix the line in Romesco Toasts',
+          location: '/recipes/toasts/edit?line=li-toasts-aioli',
+        ),
+      ]);
+    });
+
+    test('below depth one the button opens the recipe that holds the line, '
+        'once however many planned recipes reach it', () {
+      const deep = ComponentGap(
+        recipeId: 'aioli',
+        title: 'Romesco Aioli',
+        reason: ComponentMeasureMissing('m-gone'),
+        demandedBy: [
+          ComponentDemandSource(
+            recipeId: 'sliders',
+            title: 'Sausage Sliders',
+            cookDay: 5,
+            lineId: 'li-sauce-aioli',
+            viaRecipeId: 'sauce',
+            via: 'Burger Sauce',
+          ),
+          ComponentDemandSource(
+            recipeId: 'toasts',
+            title: 'Romesco Toasts',
+            cookDay: 6,
+            lineId: 'li-sauce-aioli',
+            viaRecipeId: 'sauce',
+            via: 'Burger Sauce',
+          ),
+        ],
+      );
+      expect(gapFixes(deep), [
+        (
+          label: 'Fix the line in Burger Sauce',
+          location: '/recipes/sauce/edit?line=li-sauce-aioli',
+        ),
       ]);
     });
 

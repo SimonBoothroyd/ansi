@@ -57,6 +57,8 @@ Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
         '/cook': (_, _) => const CookView(),
         '/recipes/:id': (_, state) =>
             FScaffold(child: Text('recipe ${state.pathParameters['id']}')),
+        '/recipes/:id/edit': (_, state) =>
+            FScaffold(child: Text('edit ${state.pathParameters['id']}')),
       },
     );
 
@@ -298,9 +300,8 @@ void main() {
       expect(find.text('×1 batch'), findsNothing);
     });
 
-    testWidgets('each gap button opens the editor its fix lives in', (
-      tester,
-    ) async {
+    testWidgets('each gap button opens the editor its fix lives in, landed on '
+        'the fix', (tester) async {
       Future<GoRouter> pumpGap(UnresolvedComponentAmount reason) async {
         late GoRouter router;
         await tester.pumpWidget(
@@ -320,6 +321,7 @@ void main() {
                             recipeId: 'sliders',
                             title: 'Sausage Sliders',
                             cookDay: 5,
+                            lineId: 'li-sliders-aioli',
                           ),
                         ],
                       ),
@@ -344,13 +346,16 @@ void main() {
       expect(find.textContaining('Fix the line'), findsNothing);
       await tester.tap(find.text('Set the yield'));
       await tester.pumpAndSettle();
-      expect(router.state.uri.toString(), '/recipes/aioli/edit');
+      expect(router.state.uri.toString(), '/recipes/aioli/edit?focus=makes');
 
       router = await pumpGap(const ComponentCycle());
       expect(find.text('Set the yield'), findsNothing);
       await tester.tap(find.text('Fix the line in Sausage Sliders'));
       await tester.pumpAndSettle();
-      expect(router.state.uri.toString(), '/recipes/sliders/edit');
+      expect(
+        router.state.uri.toString(),
+        '/recipes/sliders/edit?line=li-sliders-aioli',
+      );
     });
   });
 
@@ -582,6 +587,40 @@ void main() {
       expect(find.text('×1 batch'), findsNothing);
     });
 
+    testWidgets('a gap row’s doors land on the fix: MAKES, or the line the '
+        'plan named', (tester) async {
+      deskWidth(tester);
+      Future<GoRouter> pumpPlan(CookPlan plan) async {
+        late GoRouter router;
+        await tester.pumpWidget(
+          _routedHost([
+            cookPlanRepositoryProvider.overrideWithValue(
+              FakeCookPlanRepository(plan),
+            ),
+            recipeRepositoryProvider.overrideWithValue(_recipeRepo()),
+          ], (r) => router = r),
+        );
+        await tester.pumpAndSettle();
+        return router;
+      }
+
+      var router = await pumpPlan(_planWith(yields: const []));
+      await tester.tap(find.text('Set the yield'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.toString(), '/recipes/aioli/edit?focus=makes');
+
+      // A numberless line: the derived gap carries the line's own id.
+      router = await pumpPlan(
+        _planWith(yields: const [(qty: 1, unit: cup)], quantity: null),
+      );
+      await tester.tap(find.text('Fix the line in Sausage Sliders'));
+      await tester.pumpAndSettle();
+      expect(
+        router.state.uri.toString(),
+        '/recipes/sliders/edit?line=li-aioli',
+      );
+    });
+
     testWidgets('below expanded the same plan is the phone’s column of cards', (
       tester,
     ) async {
@@ -682,8 +721,12 @@ void main() {
 }
 
 /// A week with the sliders planned for Saturday and a ¼-cup aioli component,
-/// where the aioli states [yields] (empty ⇒ the gap state).
-CookPlan _planWith({required List<YieldDenomination> yields}) => buildCookPlan(
+/// where the aioli states [yields] (empty ⇒ the gap state). A null [quantity]
+/// is a numberless line, the other gap.
+CookPlan _planWith({
+  required List<YieldDenomination> yields,
+  double? quantity = 0.25,
+}) => buildCookPlan(
   const [
     PlannedRecipe(
       recipeId: 'sliders',
@@ -705,7 +748,7 @@ CookPlan _planWith({required List<YieldDenomination> yields}) => buildCookPlan(
         (
           id: 'li-aioli',
           subRecipeId: 'aioli',
-          quantity: 0.25,
+          quantity: quantity,
           unit: cup,
           recipeMeasureId: null,
           optional: false,
