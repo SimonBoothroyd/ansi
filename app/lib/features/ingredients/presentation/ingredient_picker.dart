@@ -239,7 +239,7 @@ class _EmptyState extends StatelessWidget {
           if (tooShortToGuess) ...[
             const SizedBox(height: 6),
             Text(
-              'Too few letters to guess from — try spelling it out.',
+              'Keep typing',
               textAlign: TextAlign.center,
               style: ansiMono(size: 11, color: AnsiColors.muted),
             ),
