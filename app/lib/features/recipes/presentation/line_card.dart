@@ -361,9 +361,7 @@ class OptionalFlagToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: value
-        ? 'optional · tap to make it required'
-        : 'not optional · tap to mark it optional',
+    label: value ? 'optional' : 'required',
     button: true,
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,

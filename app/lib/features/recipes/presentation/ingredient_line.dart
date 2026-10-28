@@ -443,9 +443,7 @@ class OptionalTag extends StatelessWidget {
     );
     if (onToggle == null) return badge;
     return Semantics(
-      label: included
-          ? 'included this week · tap to leave it out'
-          : 'optional · tap to include this week',
+      label: included ? 'included' : 'optional',
       button: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
