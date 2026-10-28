@@ -406,9 +406,7 @@ class _PageTextState extends State<_PageText> {
         const SizedBox(height: 12),
         if (text == null || text.isEmpty)
           Text(
-            'the page’s own text did not come back with this import — the '
-            'lines below are what we read out of it, and each one still '
-            'carries the words it was read from.',
+            'No page text',
             style: ansiMono(size: 11, color: AnsiColors.muted),
           )
         else
@@ -510,7 +508,7 @@ class _PhotoPages extends HookWidget {
         ],
         if (readingWords != null && readingWords!.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('this line, as the page printed it', style: ansiLabel()),
+          Text('as printed', style: ansiLabel()),
           const SizedBox(height: 4),
           Text(readingWords!, style: ansiMono(size: 11.5)),
         ],
@@ -796,14 +794,6 @@ class _Panel extends ConsumerWidget {
                       ),
                     ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              line == null
-                  ? 'every item above is a flag already drawn on its row, read '
-                        'from the one map the header count and Save read'
-                  : 'nothing here is saved until Save, exactly as on the phone',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
           ],
         ),
       ),
@@ -866,8 +856,7 @@ class _WorkQueue extends StatelessWidget {
     );
     if (groups.isEmpty && created.isEmpty) {
       return Text(
-        'nothing is waiting on you — every line is matched, its amount is '
-        'set and its unit is one the row can carry.',
+        'All lines ready',
         style: ansiMono(size: 11, color: AnsiColors.muted),
       );
     }
@@ -875,19 +864,12 @@ class _WorkQueue extends StatelessWidget {
       children: [
         for (final group in groups) ...[
           _QueueHeading(label: group.work.label, count: group.items.length),
-          for (final item in group.items) ...[
-            _QueueItem(item: item, onTap: () => onSelect(item.lineIndex)),
-            if (item.openIngredientId != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '${item.name} has no piece weight yet — that is the row’s '
-                  'fact, so the door goes to the row. Every other bare count '
-                  'of it clears with it.',
-                  style: ansiMono(size: 10, color: AnsiColors.muted),
-                ),
-              ),
-          ],
+          for (final item in group.items)
+            _QueueItem(
+              item: item,
+              link: 'add a piece weight ›',
+              onTap: () => onSelect(item.lineIndex),
+            ),
         ],
         if (created.isNotEmpty) ...[
           const SizedBox(height: 18),
@@ -897,16 +879,12 @@ class _WorkQueue extends StatelessWidget {
             quiet: true,
           ),
           for (final item in created)
-            _QueueItem(item: item, onTap: () => onSelect(item.lineIndex)),
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'it saves as it stands and is out of the count — a stub is a '
-              'real, plannable line with numbers it has not got yet. It '
-              'surfaces in the Ingredients manager’s stub band.',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
+            _QueueItem(
+              item: item,
+              link: 'fill in ›',
+              showPrinted: true,
+              onTap: () => onSelect(item.lineIndex),
             ),
-          ),
         ],
       ],
     );
@@ -952,10 +930,19 @@ class _QueueHeading extends StatelessWidget {
   );
 }
 
+/// One queue line. When the item names an ingredient to open, [link] is drawn
+/// and opens that row's form; [showPrinted] keeps the printed words beside it.
 class _QueueItem extends StatelessWidget {
-  const _QueueItem({required this.item, required this.onTap});
+  const _QueueItem({
+    required this.item,
+    required this.link,
+    required this.onTap,
+    this.showPrinted = false,
+  });
 
   final ImportWorkItem item;
+  final String link;
+  final bool showPrinted;
   final VoidCallback onTap;
 
   @override
@@ -976,24 +963,27 @@ class _QueueItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            // A piece weight is the ingredient's property, so this item opens
-            // the row's own form (ADR-0015).
-            if (openRow != null)
+            if (item.printed.isNotEmpty && (openRow == null || showPrinted))
+              Text(
+                item.printed,
+                style: ansiMono(size: 10.5, color: AnsiColors.muted),
+              ),
+            // A piece weight and a stub's macros are the ingredient's own
+            // facts, so the fix is the row's own form (ADR-0015).
+            if (openRow != null) ...[
+              if (showPrinted && item.printed.isNotEmpty)
+                const SizedBox(width: 8),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => context.pushOnce(
                   ingredientDetailRoute(openRow, edit: true),
                 ),
                 child: Text(
-                  'open the row ›',
+                  link,
                   style: ansiMono(size: 10.5, color: AnsiColors.herb),
                 ),
-              )
-            else if (item.printed.isNotEmpty)
-              Text(
-                item.printed,
-                style: ansiMono(size: 10.5, color: AnsiColors.muted),
               ),
+            ],
           ],
         ),
       ),

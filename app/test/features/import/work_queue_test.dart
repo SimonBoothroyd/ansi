@@ -162,7 +162,8 @@ void main() {
   });
 
   group('createdHereItems', () {
-    test('lists the rows this review made, and says what they are', () {
+    test('lists the rows this review made, says what they lack, and opens '
+        'a stub in its own form', () {
       final items = createdHereItems(
         resolutions: [
           _line(0, ingredientId: 'ing-dragon', createdHere: true),
@@ -175,7 +176,8 @@ void main() {
       );
       expect(items, hasLength(1));
       expect(items.single.lineIndex, 0);
-      expect(items.single.printed, 'stub');
+      expect(items.single.printed, 'stub · no macros');
+      expect(items.single.openIngredientId, 'ing-dragon');
     });
 
     test('a created row somebody has since completed says so', () {
@@ -184,6 +186,7 @@ void main() {
         byLine: const {0: LineValidation(issues: [])},
       );
       expect(items.single.printed, 'complete');
+      expect(items.single.openIngredientId, isNull);
     });
 
     test('a dropped line is not listed — it is leaving', () {

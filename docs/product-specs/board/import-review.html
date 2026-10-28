@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Import review</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: matches code 2026-09-20 <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a></p>
+    <p class="view-status">built · matches code 2026-10-28 · <code>features/import</code> · <code>recipes/presentation/line_card.dart</code> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../import-and-matching.md">import &amp; matching</a> · <a href="../../exec-plans/completed/0034-import-review-editable.md">plan 0034</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0040-usda-provenance-and-edits.md">plan 0040</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · wide: matches code 2026-10-28 <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a></p>
     <p class="view-blurb">One form with two doors, then the whole import on one editable screen: the editor’s own header, a card per line, the method as step cards, and a Save gate that counts the same number the header does.</p>
 </header>
 
@@ -25,8 +25,7 @@
             <p class="frame-name"><b>Intake</b> · one form, two doors — a link, or photos (shot now, or chosen from the library); no source tabs, and a failure comes back to this same form with the reason under it</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">‹</span><span class="ttl">Import a recipe</span><span class="dots"></span></div>
-                <p class="rc-note" style="margin-top:4px">Paste a recipe link, or import from photos. We read the ingredients and steps, then <b style="color:var(--ink)">you confirm each match</b> — nothing is guessed for you.</p>
-                <p class="flabel" style="margin-top:16px">Recipe URL</p>
+                <p class="flabel" style="margin-top:8px">Recipe URL</p>
                 <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:var(--muted)">https://…</span><span class="care"></span></div></div>
                 <div class="savebtn">Import from link</div>
                 <div style="display:flex;gap:10px;margin:20px 20px 0"><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">◻ Take a photo</div><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">▣ Choose photos</div></div>
@@ -143,7 +142,7 @@
                     <div class="suggests" style="margin-top:0"><span class="sug">Garlic</span><span class="sug">Garlic granules</span></div>
                     <div class="ghostbtn">⌕ Something else</div>
                     <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">2–3 cloves</span></span></div>
-                    <div class="lockhint">Match an ingredient first — then the amount and notes unlock.</div>
+                    <div class="lockhint">Match an ingredient first</div>
                 </div>
 
                 <div class="lcard attn">
@@ -205,7 +204,7 @@
                 <div class="lcard gone">
                     <div class="drop">
                         <span class="dbin">🗑</span>
-                        <span class="dbody"><span class="dn">Aleppo chilli flakes</span><div class="dsub">removed — this line will not be saved</div></span>
+                        <span class="dbody"><span class="dn">Aleppo chilli flakes</span><div class="dsub">removed</div></span>
                         <span class="undo">↺ undo</span>
                     </div>
                 </div>
@@ -318,7 +317,7 @@
                 <p class="flabel" style="margin:14px 20px 6px">The same card, once you tap the chip</p>
                 <div class="lcard">
                     <div class="l3 edit"><span class="l3-amt">¼ cup</span><span class="l3-body"><span class="ichip">↪ Romesco Aioli</span></span><span class="l3-pen">✎</span></div>
-                    <div class="lockhint">linked — no ingredient match needed, no allowed-units gate. Valid for Save the moment its amount is set.</div>
+                    <div class="lockhint">linked recipe</div>
                 </div>
                 <div class="lcard">
                     <div class="l3 edit"><span class="l3-amt">1</span><span class="l3-body"><span class="l3-id">Italian Sausage (page 45)</span></span><span class="l3-pen">✎</span></div>
@@ -509,8 +508,7 @@
                         <div class="suggests" style="margin-top:0"><span class="sug">Garlic</span><span class="sug">Garlic granules</span></div>
                         <div class="ghostbtn">&#8981; Something else</div>
                         <div class="erow"><span class="elab">Amount</span><span class="ebody"><span class="amtchip off">2&ndash;3 cloves</span></span></div>
-                        <div class="lockhint">Match an ingredient first — then the amount and notes unlock.</div>
-                        <div class="ir-pfoot">the card's own contents, held open beside the list instead of pushing it down. <b style="color:var(--ink)">Nothing here is saved until Save</b>, exactly as on the phone</div>
+                        <div class="lockhint">Match an ingredient first</div>
                     </div>
 
                 </div>
@@ -605,12 +603,9 @@
                         <div class="ir-qi"><span class="n">Rose harissa</span><span class="w">tbsp</span></div>
                         <div class="ir-qh"><span>Pick a supported unit</span><span class="n">2</span></div>
                         <div class="ir-qi"><span class="n">bunch of cilantro</span><span class="w">&ldquo;bunch&rdquo;</span></div>
-                        <div class="ir-qi"><span class="n">Dragon fruit</span><span class="go">open the row &rsaquo;</span></div>
-                        <div class="lockhint" style="margin-left:0">Dragon fruit has no piece weight yet — that is the row's fact, so the door goes to the row. Every other bare count of it clears with it.</div>
+                        <div class="ir-qi"><span class="n">Dragon fruit</span><span class="go">add a piece weight &rsaquo;</span></div>
                         <div class="ir-qh quiet" style="margin-top:18px"><span>Created here</span><span class="n">1</span></div>
-                        <div class="ir-qi"><span class="n">Dragon fruit</span><span class="w">stub</span></div>
-                        <div class="lockhint" style="margin-left:0">it saves as it stands and is <b>out of the count</b> — a stub is a real, plannable line with numbers it has not got yet. It surfaces in the Ingredients manager's stub band.</div>
-                        <div class="ir-pfoot">nothing new is counted here. Every item above is a flag already drawn on its row, read from the <b style="color:var(--ink)">one validation map</b> the header count, the row flags and the Save gate read — so the queue cannot say four while the bar says five. Tapping an item selects its line, and the panel becomes the form</div>
+                        <div class="ir-qi"><span class="n">Dragon fruit</span><span class="w">stub · no macros</span><span class="go">fill in &rsaquo;</span></div>
                     </div>
 
                 </div>
@@ -618,7 +613,7 @@
             </div>
         </div>
         <p class="wide-cap"><b>An empty panel beside a list of work would be the width wasted.</b> With nothing selected the panel says what is left, grouped by <i>what it wants</i> rather than by line order — which is the one thing a twenty-line import is hard to see: that four of the five outstanding lines are the same job done four times. It is a <b>view</b>, not a feature: no new number, no new state, nothing that can disagree with a row. The groups are the <code>&#9888;</code> labels the rows already carry, in the order the phone's gate checks them.</p>
-        <p class="wide-cap"><b>The piece-weight item is not a new flag.</b> A counted line on a row with no weight meets the ordinary unsupported-unit gate, which is why it sits under <i>Pick a supported unit</i> with the cilantro's <code>bunch</code> — and why its one door is <b>the row</b>, since what one of a thing weighs is the ingredient's property and never the import's. <b>Created here</b> is drawn apart and quiet for the opposite reason: a stub commits perfectly well, so it is out of the count, and saying so is the whole point of putting it on screen.</p>
+        <p class="wide-cap"><b>The piece-weight item is not a new flag.</b> A counted line on a row with no weight meets the ordinary unsupported-unit gate, which is why it sits under <i>Pick a supported unit</i> with the cilantro's <code>bunch</code> — and why its one door, <b>add a piece weight</b>, opens <b>the row</b> in its editing posture, since what one of a thing weighs is the ingredient's property and never the import's. <b>Created here</b> is drawn apart and quiet: a stub commits perfectly well, so it is out of the count. Each one says what it lacks, and <b>fill in</b> opens that row's own form now, rather than in the Ingredients manager later; the picker's create door stored the row before the line took it, so there is a row to open. A created row somebody has completed reads <i>complete</i>, with no door. Tapping any item's name selects its line, and the panel becomes the form.</p>
         <p class="wide-cap"><b>The queue does not replace the rows.</b> Every flag is still on its own line, with its own words, where somebody scrolling will meet it — the phone's screen is the one that has to work alone, and nothing here is only reachable from the panel. This is the same rule the Shop's provenance pane holds: the pane is the width's offer, not a second place the truth lives.</p>
     </div>
 

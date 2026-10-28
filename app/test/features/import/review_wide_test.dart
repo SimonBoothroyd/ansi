@@ -9,6 +9,7 @@ library;
 import 'dart:async';
 
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/import/data/import_providers.dart';
 import 'package:ansi/features/import/domain/commit_payload.dart';
@@ -20,11 +21,13 @@ import 'package:ansi/features/import/presentation/import_view_models.dart';
 import 'package:ansi/features/import/presentation/reconciliation_view.dart';
 import 'package:ansi/features/import/presentation/wide_review_view.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/shared/ansi_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
@@ -87,6 +90,15 @@ ReconciliationPayload _payload() => reconPayload(
   sourceText: _page,
 );
 
+/// A row the picker's create-new door made during the review: a stub, so it
+/// has no macros yet.
+const _dragon = Ingredient(
+  id: 'ing-dragon',
+  canonicalName: 'Dragon fruit',
+  defaultUnit: g,
+  status: IngredientStatus.stub,
+);
+
 Future<ProviderContainer> _reviewing({
   ReconciliationPayload? payload,
   ImportSource source = const ImportFromUrl('https://example.test/curry'),
@@ -102,7 +114,13 @@ ProviderContainer _container(ImportRepository repo) {
       bookRepositoryProvider.overrideWithValue(const FakeBookRepository()),
       importRepositoryProvider.overrideWithValue(repo),
       ingredientRepositoryProvider.overrideWithValue(
-        FakeIngredientRepo(const [onionByWeight, garlic, cilantro]),
+        FakeIngredientRepo(const [
+          onionByWeight,
+          garlic,
+          cilantro,
+          pepper,
+          _dragon,
+        ]),
       ),
       measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
       recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
@@ -117,6 +135,30 @@ Widget _host(ProviderContainer container) => UncontrolledProviderScope(
   container: container,
   child: MaterialApp(
     home: FTheme(data: ansiThemeData(), child: const ImportView()),
+  ),
+);
+
+/// [_host] under a router, with the ingredient form's route as a stand-in
+/// that prints where it was asked to open.
+Widget _routedHost(ProviderContainer container) => UncontrolledProviderScope(
+  container: container,
+  child: MaterialApp.router(
+    routerConfig: GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, _) =>
+              FTheme(data: ansiThemeData(), child: const ImportView()),
+        ),
+        GoRoute(
+          path: '/ingredients/:id',
+          builder: (_, state) => Text(
+            'form ${state.pathParameters['id']} '
+            'edit=${state.uri.queryParameters['edit']}',
+          ),
+        ),
+      ],
+    ),
   ),
 );
 
@@ -344,6 +386,97 @@ void main() {
     });
   });
 
+  group('the work queue’s doors', () {
+    testWidgets('a stub made here says what it lacks and opens its own form', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      _desk(tester);
+      final container = await _reviewing(
+        payload: reconPayload([
+          reconLine(
+            'dragon fruit',
+            qty: 200,
+            unit: 'g',
+            rawAmount: '200 g',
+            ingredientId: _dragon.id,
+            canonicalName: 'Dragon fruit',
+          ),
+        ], sourceText: _page),
+      );
+      await tester.pumpWidget(_routedHost(container));
+      await tester.pumpAndSettle();
+
+      final panel = find.byKey(kWidePanelKey);
+      expect(
+        find.descendant(of: panel, matching: find.text('All lines ready')),
+        findsOne,
+      );
+
+      container
+          .read(importControllerProvider.notifier)
+          .updateResolution(
+            0,
+            (r) => r.resolveToIngredient(
+              _dragon.id,
+              'Dragon fruit',
+              correction: true,
+              created: true,
+            ),
+          );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: panel, matching: find.text('Created here')),
+        findsOne,
+      );
+      expect(
+        find.descendant(of: panel, matching: find.text('stub · no macros')),
+        findsOne,
+      );
+      expect(find.text('All lines ready'), findsNothing);
+      await tester.tap(
+        find.descendant(of: panel, matching: find.text('fill in ›')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('form ing-dragon edit=1'), findsOne);
+    });
+
+    testWidgets('a count with no piece weight links to the row’s form', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      _desk(tester);
+      final container = await _reviewing(
+        payload: reconPayload([
+          reconLine(
+            'red peppers',
+            qty: 2,
+            rawAmount: '2',
+            ingredientId: pepper.id,
+            canonicalName: pepper.canonicalName,
+          ),
+        ], sourceText: _page),
+      );
+      await tester.pumpWidget(_routedHost(container));
+      await tester.pumpAndSettle();
+
+      final panel = find.byKey(kWidePanelKey);
+      expect(
+        find.descendant(
+          of: panel,
+          matching: find.text('Pick a supported unit'),
+        ),
+        findsOne,
+      );
+      await tester.tap(
+        find.descendant(of: panel, matching: find.text('add a piece weight ›')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('form ${pepper.id} edit=1'), findsOne);
+    });
+  });
+
   group('below the band', () {
     testWidgets('the phone review is what is drawn, unchanged', (tester) async {
       filterForuiSemanticsAssertions();
@@ -359,13 +492,7 @@ void main() {
       // phone's review.
       await tester.tap(find.text('Onion'));
       await tester.pumpAndSettle();
-      expect(
-        find.text(
-          'Match an ingredient first — then the amount and '
-          'notes unlock.',
-        ),
-        findsNothing,
-      );
+      expect(find.text('Match an ingredient first'), findsNothing);
       expect(find.textContaining('from source:'), findsWidgets);
     });
   });

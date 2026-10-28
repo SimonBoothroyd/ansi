@@ -68,7 +68,8 @@ class ImportWorkItem {
   final String printed;
 
   /// The ingredient whose own form holds the fix: a count on a row with no
-  /// piece weight (ADR-0015). Null otherwise.
+  /// piece weight (ADR-0015), or a stub created during this review, whose
+  /// macros are still to fill in. Null otherwise.
   final String? openIngredientId;
 }
 
@@ -118,17 +119,27 @@ List<ImportWorkGroup> importWorkQueue({
 }
 
 /// The rows this review created, listed apart and out of the count.
-/// [LineResolution.createdHere] is set by the picker's create-new door. The
-/// word beside each is the row's status, usually `stub`.
+/// [LineResolution.createdHere] is set by the picker's create-new door, which
+/// stores the row before it returns, so a stub here can be opened in its own
+/// form at once. The words beside each are the row's status, usually a stub
+/// with no macros (a stub omits them).
 List<ImportWorkItem> createdHereItems({
   required List<LineResolution> resolutions,
   required Map<int, LineValidation> byLine,
 }) => [
   for (final r in resolutions)
     if (r.createdHere && !r.isDropped)
-      ImportWorkItem(
-        lineIndex: r.lineIndex,
-        name: r.displayName,
-        printed: (byLine[r.lineIndex]?.rowIsStub ?? true) ? 'stub' : 'complete',
-      ),
+      if (byLine[r.lineIndex]?.rowIsStub ?? true)
+        ImportWorkItem(
+          lineIndex: r.lineIndex,
+          name: r.displayName,
+          printed: 'stub · no macros',
+          openIngredientId: r.chosenIngredientId,
+        )
+      else
+        ImportWorkItem(
+          lineIndex: r.lineIndex,
+          name: r.displayName,
+          printed: 'complete',
+        ),
 ];
