@@ -511,10 +511,7 @@ void main() {
       () {
         final drafts = [tofu(index: 0), tofu(index: 1), tofu(index: 2)];
         expect(linesAnsweredWith(drafts, 1), {0, 1, 2});
-        expect(
-          sameLineAgainNote(drafts, 1),
-          '×3 on this receipt — an answer here answers them all',
-        );
+        expect(sameLineAgainNote(drafts, 1), '×3 on this receipt');
       },
     );
 
@@ -791,11 +788,7 @@ void main() {
       );
       expect(map.joinCloses, isFalse);
       expect(map.apartCents, 349);
-      expect(
-        joinNote(map),
-        r'$3.49 apart · Find the join — a line is missing, doubled or '
-        'misread',
-      );
+      expect(joinNote(map), r'$3.49 off. Check for a missing or doubled line.');
       expect(
         map.headerCount,
         map.outstanding + 1,
@@ -831,8 +824,8 @@ void main() {
       expect(apart.headerCount, apart.outstanding + 1);
       expect(
         joinNote(apart),
-        r'$5.73 apart from the total less tax ($22.73) · Find the join — a '
-        'line is missing, doubled or misread',
+        r'$5.73 off from the total less tax ($22.73). Check for a missing or '
+        'doubled line.',
       );
     });
 

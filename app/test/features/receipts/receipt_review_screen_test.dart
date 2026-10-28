@@ -10,6 +10,7 @@ import 'dart:async';
 
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/import/presentation/photo_doors.dart';
 import 'package:ansi/features/ingredients/domain/allowed_units.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/receipts/data/sample_receipt_payloads.dart';
@@ -62,13 +63,13 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('the intake carries the overlap guidance', (tester) async {
+  testWidgets('the intake is the photo doors alone', (tester) async {
     tallSurface(tester);
     await tester.pumpWidget(scanHost(overrides: receiptOverrides()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('two or three shots'), findsOneWidget);
-    expect(find.textContaining('overlapping a few lines'), findsOneWidget);
     expect(find.text('Scan a receipt'), findsOneWidget);
+    expect(find.byType(ImportPhotoDoors), findsOneWidget);
+    expect(find.textContaining('Photograph the receipt'), findsNothing);
   });
 
   group('the review', () {
@@ -213,10 +214,7 @@ void main() {
       await runTheScan(tester, container);
 
       expect(
-        find.textContaining(
-          r'$3.49 apart · Find the join — a line is missing, doubled or '
-          'misread',
-        ),
+        find.textContaining(r'$3.49 off. Check for a missing or doubled line.'),
         findsOneWidget,
       );
       expect(
@@ -317,7 +315,7 @@ void main() {
       expect(save.onPress, isNull);
     });
 
-    testWidgets('Bought is the receipt’s own date, and says so', (
+    testWidgets('Bought is the receipt’s own date, with no caption', (
       tester,
     ) async {
       tallSurface(tester);
@@ -326,10 +324,7 @@ void main() {
       await runTheScan(tester, containerOf(tester));
 
       expect(find.text('Sunday 13 Sep · 17:42'), findsOneWidget);
-      expect(
-        find.textContaining('the receipt’s own date, not the scan’s'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('scan date'), findsNothing);
     });
 
     testWidgets(
@@ -522,10 +517,7 @@ void main() {
 
       await tester.tap(find.text('ORG TRICOLOR QUINOA').first);
       await tester.pumpAndSettle();
-      expect(
-        find.text('×2 on this receipt — an answer here answers them all'),
-        findsOneWidget,
-      );
+      expect(find.text('×2 on this receipt'), findsOneWidget);
     });
 
     testWidgets('one match answers every line that is that line again', (
@@ -768,7 +760,7 @@ void main() {
       // The lines' sum and the join move with it.
       expect(state.map.linesCents, before.linesCents + 329);
       expect(state.map.apartCents, 329);
-      expect(find.textContaining(r'$3.29 apart'), findsOneWidget);
+      expect(find.textContaining(r'$3.29 off.'), findsOneWidget);
     });
 
     testWidgets('it asks for a pack like any other matched line, and holds '

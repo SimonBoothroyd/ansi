@@ -92,8 +92,7 @@ class _Ledger extends ConsumerWidget {
             _ScanAction(web: web),
             const SizedBox(height: 12),
             Text(
-              'no receipts yet — a scanned shop files here by week; a price '
-              'typed on an ingredient stays on the ingredient',
+              'no receipts yet',
               style: ansiMono(size: 11.5, color: AnsiColors.muted),
             ),
           ],
@@ -153,8 +152,7 @@ class _ScanAction extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Text(
-            'in a browser there is no camera and no crop step — shoot the '
-            'receipt on the phone, and review it anywhere',
+            'scan receipts on your phone',
             style: ansiMono(size: 10.5, color: AnsiColors.muted),
           ),
         ),

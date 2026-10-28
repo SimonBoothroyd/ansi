@@ -29,7 +29,7 @@ const kReceiptPackDerivedKey = ValueKey('receipt-pack-derived');
 /// The *keep as a measure* toggle.
 const kKeepAsMeasureKey = ValueKey('receipt-keep-as-measure');
 
-/// The line under the word field: what minting buys, or why this word cannot.
+/// The line under the word field when this word cannot be kept: why not.
 const kKeepAsMeasureNoteKey = ValueKey('receipt-keep-as-measure-note');
 
 /// What the sheet hands back: the pack in both denominations, and the word to
@@ -222,25 +222,23 @@ class ReceiptPackEditor extends HookConsumerWidget {
                 onChange: (v) => word.value = v.text,
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              refusal ??
-                  'The pack carries over either way. Keep one you would say '
-                      'on a recipe or a shopping list, with its size in it: '
-                      '“can (14.5 oz)”.',
-              key: kKeepAsMeasureNoteKey,
-              style: ansiSans(
-                size: 11.5,
-                color: refusal == null ? AnsiColors.muted : AnsiColors.aging,
-                height: 1.35,
+            if (refusal != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                refusal,
+                key: kKeepAsMeasureNoteKey,
+                style: ansiSans(
+                  size: 11.5,
+                  color: AnsiColors.aging,
+                  height: 1.35,
+                ),
               ),
-            ),
+            ],
             if (isThatMeasure)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  'this row already says “$takenWord” at this weight — '
-                  'the line will point at it',
+                  'uses “$takenWord”',
                   style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
                 ),
               ),
@@ -274,9 +272,7 @@ class _KeepAsMeasure extends StatelessWidget {
     child: Semantics(
       container: true,
       button: true,
-      label: value
-          ? 'keeping the pack as a measure · tap to stop'
-          : 'not kept as a measure · tap to keep it',
+      label: value ? 'kept as a measure' : 'not kept',
       child: GestureDetector(
         key: kKeepAsMeasureKey,
         behavior: HitTestBehavior.opaque,

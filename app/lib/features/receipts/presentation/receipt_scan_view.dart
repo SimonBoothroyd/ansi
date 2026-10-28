@@ -1,8 +1,7 @@
 /// The scan route (`/receipts/review`): one screen switching on the
 /// [ReceiptScanController] (intake → reading → review → saved). It reuses the
-/// recipe import's camera, crop, another-page question and reading checklist,
-/// and adds a line of guidance on photographing a long receipt. Nothing is
-/// written until Save.
+/// recipe import's camera, crop, another-page question and reading checklist.
+/// Nothing is written until Save.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -19,11 +18,6 @@ import '../../import/presentation/photo_doors.dart';
 import '../domain/receipt_repository.dart';
 import 'receipt_review_body.dart';
 import 'receipt_view_models.dart';
-
-/// The one line of guidance the camera door carries.
-const kReceiptShootGuidance =
-    'Photograph the receipt. A long one goes in two or three shots, top to '
-    'bottom, overlapping a few lines.';
 
 class ReceiptScanView extends ConsumerWidget {
   const ReceiptScanView({super.key});
@@ -151,11 +145,6 @@ class _Intake extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
       children: [
-        Text(
-          kReceiptShootGuidance,
-          style: ansiSans(size: 14, color: AnsiColors.muted, height: 1.4),
-        ),
-        const SizedBox(height: 20),
         ImportPhotoDoors(onPick: shoot),
         if (error != null) ...[
           const SizedBox(height: 20),

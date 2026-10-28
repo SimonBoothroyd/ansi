@@ -26,10 +26,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Scan a receipt'), findsOneWidget);
-    final line = find.text(
-      'no receipts yet — a scanned shop files here by week; a price typed on '
-      'an ingredient stays on the ingredient',
-    );
+    final line = find.text('no receipts yet');
     expect(line, findsOneWidget);
     expect(tester.getTopLeft(action).dy, lessThan(tester.getTopLeft(line).dy));
     expect(find.textContaining('from the Shop'), findsNothing);
@@ -77,12 +74,8 @@ void main() {
       ledgerHost(overrides: receiptOverrides(), web: true),
     );
     await tester.pumpAndSettle();
-    final words = find.textContaining('no camera and no crop step');
+    final words = find.text('scan receipts on your phone');
     expect(words, findsOneWidget);
-    expect(
-      find.textContaining('shoot the receipt on the phone'),
-      findsOneWidget,
-    );
     expect(
       tester.getTopLeft(words).dy,
       greaterThan(tester.getBottomLeft(find.byKey(kReceiptScanActionKey)).dy),
@@ -92,6 +85,6 @@ void main() {
   testWidgets('on the phone there is nothing to explain', (tester) async {
     await tester.pumpWidget(ledgerHost(overrides: receiptOverrides()));
     await tester.pumpAndSettle();
-    expect(find.textContaining('no camera'), findsNothing);
+    expect(find.text('scan receipts on your phone'), findsNothing);
   });
 }

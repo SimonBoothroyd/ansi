@@ -3,9 +3,8 @@
 /// Three things are pinned: the dock **states the derivation itself** rather
 /// than a preview of one, so the refusal a row that cannot weigh the pack
 /// produces is the same refusal that keeps Done off; *keep as a measure* is
-/// offered only where there is a word to gain; and what the toggle SAYS is
-/// true — keeping buys a measure, not a pack that carries over, because the
-/// pack carries over either way.
+/// offered only where there is a word to gain; and the word field carries a
+/// note only to refuse a word.
 library;
 
 import 'package:ansi/core/units/macros.dart';
@@ -174,22 +173,17 @@ void main() {
   });
 
   group('what keeping the word actually buys', () {
-    testWidgets('the note says it is a word, not a pack that carries over', (
+    testWidgets('a word nothing refuses carries no note, only the example', (
       tester,
     ) async {
-      // The pack carries over from this row's latest price whether or not a
-      // measure was kept (`landPack`).
       await pumpSheet(tester);
       await tester.enterText(find.byType(EditableText).first, '482');
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(kKeepAsMeasureKey));
       await tester.pumpAndSettle();
 
-      final note = tester.widget<Text>(find.byKey(kKeepAsMeasureNoteKey)).data!;
-      expect(note, contains('carries over either way'));
-      expect(note, contains('a recipe or a shopping list'));
+      expect(find.byKey(kKeepAsMeasureNoteKey), findsNothing);
       // The household's own style, shown rather than described.
-      expect(note, contains('can (14.5 oz)'));
       expect(find.text('e.g. can (14.5 oz)'), findsOneWidget);
     });
 
@@ -232,7 +226,7 @@ void main() {
       await tester.enterText(find.byType(EditableText).last, 'Bottle (17 oz)');
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('the line will point at it'), findsOneWidget);
+      expect(find.text('uses “bottle (17 oz)”'), findsOneWidget);
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
 

@@ -221,7 +221,7 @@ class _Expanded extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'low confidence — check this one against the paper',
+              'check this',
               style: ansiMono(size: 10.5, color: AnsiColors.muted),
             ),
           ),

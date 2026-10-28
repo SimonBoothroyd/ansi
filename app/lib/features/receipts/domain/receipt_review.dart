@@ -429,13 +429,11 @@ Set<int> linesAnsweredWith(List<ReceiptLineDraft> drafts, int index) {
   };
 }
 
-/// `×6 on this receipt — an answer here answers them all`, or null where the
-/// line stands alone.
+/// `×6 on this receipt`, or null where the line stands alone. An answer on
+/// one of them answers them all.
 String? sameLineAgainNote(List<ReceiptLineDraft> drafts, int index) {
   final count = linesAnsweredWith(drafts, index).length;
-  return count < 2
-      ? null
-      : '×$count on this receipt — an answer here answers them all';
+  return count < 2 ? null : '×$count on this receipt';
 }
 
 /// What [draft] still wants. Dropped and non-food lines report nothing.
@@ -579,8 +577,8 @@ String joinNote(ReceiptReviewMap map) {
   final against = derived
       ? ' from the total less tax (${formatMoney(expected)})'
       : '';
-  return '${formatMoney(map.apartCents!)} apart$against · Find the join — a '
-      'line is missing, doubled or misread';
+  return '${formatMoney(map.apartCents!)} off$against. Check for a missing or '
+      'doubled line.';
 }
 
 /// `Save receipt · $84.12`, or what is still owed, in the recipe review's

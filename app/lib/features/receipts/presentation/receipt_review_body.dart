@@ -231,8 +231,8 @@ class _Bought extends ConsumerWidget {
         : state.isSaved
         ? null
         : state.payload.purchasedAt == null
-        ? 'the paper printed no date — this is the scan day'
-        : 'the receipt’s own date, not the scan’s';
+        ? 'no date, using scan date'
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

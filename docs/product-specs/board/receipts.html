@@ -15,18 +15,17 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi &middot; the board</a></p>
     <h1 class="view-title">Receipts</h1>
-    <p class="view-status">built &middot; matches code 2026-10-25 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
+    <p class="view-status">built &middot; matches code 2026-10-28 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> &middot; <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
     <p class="view-blurb">A photographed receipt reads through the recipe import&rsquo;s own pipeline, is confirmed line by line, and is kept whole &mdash; so what a week cost reads off the receipts themselves, and every matched line with a pack is a price. A scan starts from this ledger, whose door is the receipt action in <a href="./cook-shop.html">the Shop&rsquo;s header</a>, drawn from the first day. The figure it produces is <a href="./week.html">the band&rsquo;s second line</a>. <b>Nothing is written until Save.</b></p>
 </header>
 
 <div class="board">
 
     <div class="frame">
-        <p class="frame-name"><b>Shot in parts, read in stages</b> &middot; the recipe import&rsquo;s own camera and checklist, one line of guidance added for a strip longer than a page, and the four stages named for what they read</p>
+        <p class="frame-name"><b>Shot in parts, read in stages</b> &middot; the recipe import&rsquo;s own camera and checklist, and the four stages named for what they read</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Scan a receipt</span><span class="dots"></span></div>
-            <p class="rc-note" style="margin-top:4px">Photograph the receipt. A long one goes in two or three shots, top to bottom, overlapping a few lines.</p>
-            <div style="display:flex;gap:10px;margin:16px 20px 0"><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">◻ Take a photo</div><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">▣ Choose photos</div></div>
+            <div style="display:flex;gap:10px;margin:12px 20px 0"><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">◻ Take a photo</div><div class="ghostbtn" style="flex:1;justify-content:center;padding:13px">▣ Choose photos</div></div>
             <div style="display:flex;flex-direction:column;justify-content:center;padding:26px 40px 0">
                 <div style="display:flex;align-items:center;gap:10px;padding:7px 0"><span style="width:22px;text-align:center;color:var(--herb);font-size:13px">✓</span><span style="flex:1;font-size:13px">Photos received</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:02</span></div>
                 <div style="display:flex;align-items:center;gap:10px;padding:7px 0"><span style="width:22px;text-align:center;color:var(--herb);font-size:13px">✓</span><span style="flex:1;font-size:13px">Photos read</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">0:18</span></div>
@@ -50,20 +49,19 @@
             <div class="frow" style="margin-bottom:4px"><div class="uchips"><span class="uchip on">TJ’s</span><span class="uchip">Whole Foods</span><span class="uchip addm">＋</span></div></div>
             <div class="frow" style="margin-bottom:10px"><div class="srcline" style="margin:0">from receipt:  TRADER JOE’S #135 · 09/13/26 05:42 PM</div></div>
             <p class="flabel">Bought</p>
-            <div class="portion" style="margin-bottom:4px"><div class="pl">Sunday 13 Sep · 17:42</div><span class="ci">✎</span></div>
-            <div class="srcline" style="margin:0 0 12px">the receipt’s own date, not the scan’s</div>
+            <div class="portion" style="margin-bottom:12px"><div class="pl">Sunday 13 Sep · 17:42</div><span class="ci">✎</span></div>
             <p class="flabel">Printed totals</p>
             <div class="crow"><span class="cl">Subtotal</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px">$83.30</span></div>
             <div class="crow"><span class="cl">Tax</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px">$0.82</span></div>
             <div class="crow" style="margin-bottom:10px"><span class="cl"><b>Total</b></span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px"><b>$84.12</b></span></div>
             <div class="lcard" style="background:var(--herb-soft);border-color:var(--herb)"><div class="l3"><span class="l3-amt" style="color:var(--herb)">✓</span><span class="l3-body"><span class="l3-id">The lines add up to $83.30</span><span class="l3-note">the receipt says the same</span></span></div></div>
             <div class="lcard attn">
-                <div class="l3"><span class="l3-amt" style="color:var(--aging)">⚠</span><span class="l3-body"><span class="l3-id">The lines add up to $79.81</span><span class="l3-note">$3.49 apart · Find the join — a line is missing, doubled or misread</span></span></div>
+                <div class="l3"><span class="l3-amt" style="color:var(--aging)">⚠</span><span class="l3-body"><span class="l3-id">The lines add up to $79.81</span><span class="l3-note">$3.49 off. Check for a missing or doubled line.</span></span></div>
             </div>
             <p class="conv-note" style="margin-top:2px">the two states of one card: the sum the lines make, against the subtotal the paper printed. A card that does not close is a flag the header counts, never a refusal — the receipt saves either way, and Save says so underneath.</p>
             <div class="tsec" style="margin-top:6px"><span class="tl">Lines</span><span class="tc">24</span><span class="rule"></span></div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0"><b>The store is a chip, and the paper’s words are under it.</b> The chips are the household’s own store names, with the printed header on the <i>from receipt</i> line; a store never seen before is the <b>＋</b>, named once. <b>The date is a door</b> — the receipt’s own date, not the scan’s, so a Tuesday scan of Sunday’s shop files under Sunday’s week; a tap opens a calendar and a 24-hour clock under one <i>Use it</i>, a day moved alone keeps the clock, a moment later than now holds <i>Use it</i>, and an undated strip opens on the scan day and says so. With no printed subtotal the lines are held against the total less tax, and the join card names that figure.</p>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The store is a chip, and the paper’s words are under it.</b> The chips are the household’s own store names, with the printed header on the <i>from receipt</i> line; a store never seen before is the <b>＋</b>, named once. <b>The date is a door</b> — the date the paper printed, so a Tuesday scan of Sunday’s shop files under Sunday’s week; a tap opens a calendar and a 24-hour clock under one <i>Use it</i>, a day moved alone keeps the clock, a moment later than now holds <i>Use it</i>, and an undated strip opens on the scan day and says <i>no date, using scan date</i>. With no printed subtotal the lines are held against the total less tax, and the join card names that figure.</p>
     </div>
 
     <div class="frame">
@@ -111,7 +109,7 @@
                 <div class="erow"><span class="elab">Count</span><span class="ebody"><span class="amtchip">× 1 <span class="pen">✎</span></span></span></div>
                 <div class="srcline" style="color:var(--herb-deep)">kept as a measure on save: bottle (17 oz)</div>
                 <div class="ghostbtn">Not food</div>
-                <div class="lockhint">The pack door is the price sheet’s <i>for</i> field, with <i>keep as a measure</i> and a word field under it — and this line is what the card says once one is typed. A word the row already says at this weight is not minted twice; at another weight the sheet refuses and prints both figures.</div>
+                <div class="lockhint">The pack door is the price sheet’s <i>for</i> field, with <i>keep as a measure</i> and a word field under it — and this line is what the card says once one is typed. A word the row already says at this weight is not minted twice, and the sheet says <i>uses “bottle (17 oz)”</i>; at another weight it refuses and prints both figures.</div>
             </div>
 
             <div class="lcard attn">
@@ -140,18 +138,18 @@
             <div class="lcard attn">
                 <div class="chead"><span class="l3-amt" style="color:var(--ink)">$2.49</span><span class="cn">TJ ORG TOFU FIRM</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from receipt:  TJ ORG TOFU FIRM  2.49</div>
-                <div class="srcline" style="color:var(--herb-deep)">×6 on this receipt — an answer here answers them all</div>
+                <div class="srcline" style="color:var(--herb-deep)">×6 on this receipt</div>
                 <div class="erow"><span class="elab">Price</span><span class="ebody"><span class="amtchip">$2.49 <span class="pen">✎</span></span></span></div>
                 <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
                 <div class="ghostbtn">⌕ Something else</div>
                 <div class="ghostbtn">Not food</div>
-                <div class="lockhint">six tubs of tofu print six identical lines. The note is said <i>before</i> the answer, so six cards settling at once is what the person was told would happen</div>
+                <div class="lockhint">six tubs of tofu print six identical lines, and one answer settles all six cards</div>
             </div>
 
             <div class="lcard attn">
                 <div class="chead"><span class="l3-amt" style="color:var(--ink)">$1.98</span><span class="cn">2 @ 0.99</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from receipt:  2 @ 0.99  1.98</div>
-                <div class="srcline">low confidence — check this one against the paper</div>
+                <div class="srcline">check this</div>
                 <div class="erow"><span class="elab">Price</span><span class="ebody"><span class="amtchip">$1.98 <span class="pen">✎</span></span></span></div>
                 <div class="attn-tag"><span>⚠</span><span>Match an ingredient</span></div>
                 <div class="ghostbtn">⌕ Something else</div>
@@ -162,7 +160,7 @@
             <div class="lcard attn">
                 <div class="chead"><span class="l3-amt" style="color:var(--ink)">$0.00</span><span class="cn">Tortillas</span><span class="ci">🗑</span><span class="ci">⌃</span></div>
                 <div class="srcline">from receipt:  TJ ????  ?.??</div>
-                <div class="srcline">low confidence — check this one against the paper</div>
+                <div class="srcline">check this</div>
                 <div class="chosen"><span class="ck">✓</span><span class="cnm">Tortillas</span><span class="chint">tap to change</span><span class="ci">›</span></div>
                 <div class="attn-tag"><span>⚠</span><span>Set the amount</span></div>
                 <div class="ghostbtn">Set the amount</div>
@@ -212,7 +210,7 @@
             <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$91.06</span></div><div class="item-sub">Sun 6 Sep · 27 lines · 1 not food</div></div>
             <div class="daymac" style="margin:0 20px 8px"><span class="dm"><b>$91.06</b> spent</span><div class="scope" style="display:block;text-align:right;margin-top:3px">1 receipt</div></div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0"><b>The scan lives with what it makes.</b> The action opens the camera and checklist at <code>/receipts/review</code>, and Save comes back here, where the new receipt has just filed under its week. In a browser the line under the action says what it can do there: shoot the receipt on the phone, review it anywhere. The Shop keeps one receipts icon in its header and no door at its foot</p>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The scan lives with what it makes.</b> The action opens the camera and checklist at <code>/receipts/review</code>, and Save comes back here, where the new receipt has just filed under its week. In a browser the line under the action reads <i>scan receipts on your phone</i>; a receipt reviews anywhere. The Shop keeps one receipts icon in its header and no door at its foot</p>
         <p class="conv-note" style="margin:6px 4px 0"><b>The week is the unit, because the shop is.</b> A receipt files under the week its date falls in — the household’s own week start, so a Sunday shop sits inside the week it feeds. A month line at the top sums the receipts by store, and each week foots with what it cost; only the week the app is currently costing adds <i>≈ $71 to cook</i>, because no past week can be re-costed honestly. <b>A receipt opens on the review it was confirmed on</b>, titled <i>Receipt</i> — so a wrong store, date, match, pack or figure is put right where it was first said. Save reads <i>Save changes</i>, stays shut until something has moved, and <i>delete this receipt</i> sits under it behind a question. The ledger holds shops and nothing else: a price typed on an ingredient page is that row’s <i>base price</i> and never a receipt, so it adds nothing to a week’s <i>spent</i>. (A <code>manual</code> one-liner an older build wrote reads here as an ordinary receipt.)</p>
     </div>
 
@@ -221,9 +219,9 @@
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots"></span></div>
             <div class="btn primary scan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Scan a receipt</div>
-            <p class="conv-note" style="margin:12px 20px 0">no receipts yet — a scanned shop files here by week; a price typed on an ingredient stays on the ingredient</p>
+            <p class="conv-note" style="margin:12px 20px 0">no receipts yet</p>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0">The empty ledger is reachable from the first day, because the Shop&rsquo;s receipts icon never waits for a receipt, so the empty state is where the feature is first met. It offers the one thing that fills it, and says where a typed price goes instead</p>
+        <p class="conv-note" style="margin:10px 4px 0">The empty ledger is reachable from the first day, because the Shop&rsquo;s receipts icon never waits for a receipt, so the empty state is where the feature is first met. It offers the one thing that fills it</p>
     </div>
 
 </div>

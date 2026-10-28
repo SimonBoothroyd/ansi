@@ -88,17 +88,11 @@ StoredReceipt tjs() => (
 );
 
 void main() {
-  testWidgets('an empty ledger says where receipts come from', (tester) async {
+  testWidgets('an empty ledger says it is empty', (tester) async {
     tallSurface(tester);
     await tester.pumpWidget(ledgerHost(overrides: receiptOverrides()));
     await tester.pumpAndSettle();
-    expect(
-      find.text(
-        'no receipts yet — a scanned shop files here by week; a price typed '
-        'on an ingredient stays on the ingredient',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('no receipts yet'), findsOneWidget);
   });
 
   testWidgets('receipts file by week, newest first, with a month on top', (
