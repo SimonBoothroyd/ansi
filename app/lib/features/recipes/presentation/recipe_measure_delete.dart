@@ -54,11 +54,7 @@ Future<bool> mayDeleteRecipeMeasure(
     // ignore: use_build_context_synchronously
     host.context,
     title: 'Still in use',
-    body:
-        '$refusal '
-        'Change $change '
-        'first — a measure that goes leaves every line saying it '
-        'unresolved for good.',
+    body: '$refusal Change $change first.',
     door: recipes.isEmpty ? null : 'Show me where',
   );
   if (took) {
@@ -124,10 +120,7 @@ class _SaidBy extends StatelessWidget {
       if (weeks > 0) ...[
         const SizedBox(height: 10),
         Text(
-          '${plural(weeks, 'one week', plural: '$weeks weeks')} '
-          '${plural(weeks, 'says', plural: 'say')} it in '
-          '${plural(weeks, 'its', plural: 'their')} own amount — that is not a '
-          'recipe, so there is no page to send you to',
+          'Also used in $weeks ${plural(weeks, 'week')}.',
           style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
       ],

@@ -185,8 +185,8 @@ void main() {
       );
     });
 
-    test('the word reads in a list as the ingredient side reads one', () {
-      expect(recipeMeasureListText(blob), 'blob · 15 g');
+    test('the word reads in a list as an equation', () {
+      expect(recipeMeasureListText(blob), '1 blob = 15 g');
       expect(recipeMeasureAmountText(blob), '15 g');
       expect(recipeMeasureChipText(blob), 'blob (15 g)');
       expect(recipeMeasureRateText(blob), 'a blob is 15 g');
@@ -200,7 +200,7 @@ void main() {
             unit: ml,
           ),
         ),
-        'ladle · 180 ml',
+        '1 ladle = 180 ml',
       );
     });
 
@@ -325,35 +325,24 @@ void main() {
       expect(recipeMeasuresOrphanedWarning(const []), '');
     });
 
-    test('one word: it names the word, its size, and the way back', () {
+    test('one word: it names the word', () {
       expect(
         recipeMeasuresOrphanedWarning(const [blob]),
-        '“blob” (15 g) has nothing left to be a share of after this. Nothing '
-        'is deleted — but every line saying it goes unresolved until MAKES '
-        'says what a batch comes to in the same kind of unit again.',
+        'Lines using “blob” will stop working.',
       );
     });
 
-    test('two words agree with the count', () {
+    test('two words are both named', () {
       expect(
         recipeMeasuresOrphanedWarning(const [blob, ladle]),
-        '“blob” (15 g), “ladle” (180 ml) have nothing left to be a share of '
-        'after this. Nothing is deleted — but every line saying them goes '
-        'unresolved until MAKES says what a batch comes to in the same kind '
-        'of unit again.',
+        'Lines using “blob”, “ladle” will stop working.',
       );
     });
 
     test('the ROW says the same gap in one clause, naming the family MAKES '
         'has to say again', () {
-      expect(
-        recipeMeasureOrphanedRowNote(blob),
-        'nothing to be a share of · MAKES states no weight yield',
-      );
-      expect(
-        recipeMeasureOrphanedRowNote(ladle),
-        'nothing to be a share of · MAKES states no volume yield',
-      );
+      expect(recipeMeasureOrphanedRowNote(blob), 'needs a weight yield');
+      expect(recipeMeasureOrphanedRowNote(ladle), 'needs a volume yield');
     });
   });
 }

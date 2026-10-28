@@ -57,7 +57,7 @@ void main() {
       final refused = _author('   ', 20);
       expect(refused, isA<Err<RecipeMeasure>>());
       expect((refused as Err).failure.code, 'recipe_measure/no_label');
-      expect((refused as Err).failure.message, contains('what you call one'));
+      expect((refused as Err).failure.message, 'Needs a name.');
     });
   });
 
@@ -101,10 +101,7 @@ void main() {
       final refused =
           _author('Blob', 6, measures: [blob]) as Err<RecipeMeasure>;
       expect(refused.failure.code, 'recipe_measure/word_taken');
-      expect(
-        refused.failure.message,
-        '“blob” is already a measure here, at 15 g. Re-state that one instead.',
-      );
+      expect(refused.failure.message, '“blob” already exists.');
     });
 
     test('a row re-stating ITSELF is not its own duplicate', () {
@@ -129,7 +126,7 @@ void main() {
       }
       expect(
         (_author('blob', 0) as Err).failure.message,
-        'Say what one “blob” comes to — a number above zero.',
+        'Must be above zero.',
       );
     });
 
@@ -162,11 +159,7 @@ void main() {
       final refused =
           _author('blob', 0.05, unit: batches) as Err<RecipeMeasure>;
       expect(refused.failure.code, 'recipe_measure/unit_cannot_measure');
-      expect(
-        refused.failure.message,
-        '“blob” can’t be a share of a batch. Say what one “blob” comes to as a '
-        'weight, a volume or a count.',
-      );
+      expect(refused.failure.message, 'Use a weight, volume or count.');
     });
 
     test('an imprecise word is refused: it converts nothing', () {
@@ -180,8 +173,7 @@ void main() {
       }
       expect(
         (_author('blob', 1, unit: pinch) as Err).failure.message,
-        '“pinch” is not a size. Say what one “blob” comes to as a weight, a '
-        'volume or a count.',
+        'Use a weight, volume or count.',
       );
     });
   });
@@ -191,8 +183,7 @@ void main() {
       final refused =
           _author('blob', 15, yields: const []) as Err<RecipeMeasure>;
       expect(refused.failure.code, 'recipe_measure/no_yield');
-      expect(refused.failure.message, kRecipeMeasureNoYieldRefusal);
-      expect(refused.failure.message, contains('MAKES'));
+      expect(refused.failure.message, 'Set what a batch makes first.');
     });
 
     test("it is the DOOR's gate, asked before anything is typed", () {
@@ -212,11 +203,7 @@ void main() {
     test('a unit whose family the recipe does not state is refused', () {
       final refused = _author('ladle', 180, unit: ml) as Err<RecipeMeasure>;
       expect(refused.failure.code, 'recipe_measure/unit_family');
-      expect(
-        refused.failure.message,
-        'This recipe makes 300 g, and a recipe has no density to say “ladle” '
-        'in ml. Add what a batch makes in ml under MAKES.',
-      );
+      expect(refused.failure.message, 'Add a volume yield first.');
     });
 
     test('the second MAKES denomination is the way out, and it works', () {
@@ -225,10 +212,9 @@ void main() {
         ml,
       );
       expect(_author('blob', 15, yields: _both).valueOrNull?.unit, g);
-      // And the refusal names both stated denominations when there are two.
+      // And the refusal names the kind of yield still missing.
       final refused = _author('patty', 1, unit: pieces, yields: _both) as Err;
-      // Kitchen fractions, as everywhere else the app prints an amount.
-      expect(refused.failure.message, contains('makes 300 g · 1¼ cup'));
+      expect(refused.failure.message, 'Add a count yield first.');
     });
 
     test('a count word is sayable exactly when the recipe counts', () {

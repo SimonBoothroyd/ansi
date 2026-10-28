@@ -260,11 +260,7 @@ void main() {
       throwsA(
         isA<RecipeMeasureRefused>()
             .having((e) => e.code, 'code', 'recipe_measure/unit_family')
-            .having(
-              (e) => e.message,
-              'message',
-              contains('a recipe has no density'),
-            ),
+            .having((e) => e.message, 'message', 'Add a weight yield first.'),
       ),
     );
     // Nothing landed — neither half of the Save.

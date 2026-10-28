@@ -169,7 +169,7 @@ class RecipeMeasuresEditor extends HookWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                'No measures yet — a component line can still say “0.5 batch”.',
+                'No measures yet',
                 style: ansiMono(size: 12, color: AnsiColors.muted),
               ),
             )
@@ -217,7 +217,7 @@ class RecipeMeasuresEditor extends HookWidget {
             headline: 'ADD MEASURE',
             saveLabel: addLabel,
             slot: 'add-word',
-            hint: 'label — “blob”',
+            hint: 'name',
             // The person's own pick is always offered back, even when MAKES no
             // longer states its family.
             units: [...choices, if (!choices.contains(unit)) unit],
@@ -229,11 +229,7 @@ class RecipeMeasuresEditor extends HookWidget {
             amount: amount,
             onUnit: (u) => picked.value = u,
             onSave: save,
-            footer: Text(
-              'one of them, weighed — another recipe can then say “3 blob” of '
-              'this one',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
+            footer: const SizedBox.shrink(),
           ),
       ],
     );
@@ -277,8 +273,8 @@ class RecipeMeasureRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                // The word and its number read as one sentence (`blob · 15 g`);
-                // the bin stays outside it.
+                // The word and its number read as one equation (`1 blob = 15
+                // g`); the bin stays outside it.
                 Expanded(
                   child: Semantics(
                     label: recipeMeasureListText(measure),
@@ -288,14 +284,14 @@ class RecipeMeasureRow extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            measure.label,
+                            '1 ${measure.label}',
                             style: ansiSans(size: 14, weight: FontWeight.w500),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          recipeMeasureAmountText(measure),
+                          '= ${recipeMeasureAmountText(measure)}',
                           style: ansiMono(size: 11, color: AnsiColors.muted),
                         ),
                       ],
@@ -395,7 +391,7 @@ class _EditRecipeMeasureForm extends HookWidget {
         headline: 'EDIT MEASURE',
         saveLabel: 'Save',
         slot: 'edit-word',
-        hint: 'label — “blob”',
+        hint: 'name',
         units: [...choices, if (!choices.contains(picked.value)) picked.value],
         unit: picked.value,
         label: label,

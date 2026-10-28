@@ -10,7 +10,6 @@ library;
 import '../../../core/result/result.dart';
 import '../../../core/units/measure.dart'
     show measureAlreadyNamed, measureLabelAsAuthored;
-import '../../../core/units/number_format.dart';
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
@@ -86,17 +85,17 @@ Result<RecipeMeasure> authorRecipeMeasure({
     );
   }
   if (!kRecipeMeasureFamilies.contains(unit.family)) {
-    return Err(
+    return const Err(
       Failure(
         'recipe_measure/unit_cannot_measure',
-        recipeMeasureUnitCannotMeasureRefusal(word, unit),
+        kRecipeMeasureUnitCannotMeasureRefusal,
       ),
     );
   }
   // `!(x > 0)` (rather than `x <= 0`) also catches NaN.
   if (amount == null || !amount.isFinite || !(amount > 0)) {
-    return Err(
-      Failure('recipe_measure/amount', recipeMeasureAmountRefusal(word)),
+    return const Err(
+      Failure('recipe_measure/amount', kRecipeMeasureAmountRefusal),
     );
   }
   final measure = RecipeMeasure(
@@ -112,7 +111,7 @@ Result<RecipeMeasure> authorRecipeMeasure({
     return Err(
       Failure(
         'recipe_measure/unit_family',
-        recipeMeasureUnitFamilyRefusal(word, unit, yields),
+        recipeMeasureUnitFamilyRefusal(unit),
       ),
     );
   }
@@ -157,47 +156,27 @@ List<RecipeMeasure> recipeMeasuresOrphanedBy({
 ];
 
 /// Why no measure can be coined yet; also shown on the disabled MEASURES list.
-const kRecipeMeasureNoYieldRefusal =
-    'A measure is a share of a batch. Say what a batch makes first, under '
-    'MAKES.';
+const kRecipeMeasureNoYieldRefusal = 'Set what a batch makes first.';
 
 /// Why a measure cannot be minted without its name.
-const kRecipeMeasureNoLabelRefusal =
-    'A measure needs a name — what you call one of these.';
+const kRecipeMeasureNoLabelRefusal = 'Needs a name.';
 
 /// Why a unit's name cannot be minted as a measure.
 String recipeMeasureUnitWordRefusal(String label) =>
-    '“$label” is already a unit. Call the measure something else, like “blob”.';
+    '“$label” is already a unit.';
 
-/// Why a name cannot be minted twice; suggests re-stating the existing row.
+/// Why a name cannot be minted twice.
 String recipeMeasureWordTakenRefusal(RecipeMeasure taken) =>
-    '“${taken.label}” is already a measure here, at '
-    '${_said(taken.amount, taken.unit)}. Re-state that one instead.';
+    '“${taken.label}” already exists.';
 
 /// Why a measure cannot be minted without its number.
-String recipeMeasureAmountRefusal(String label) =>
-    'Say what one “$label” comes to — a number above zero.';
+const kRecipeMeasureAmountRefusal = 'Must be above zero.';
 
 /// Why a measure cannot be said in `batch`, or in an imprecise word.
-String recipeMeasureUnitCannotMeasureRefusal(String label, Unit unit) {
-  final fact = unit.family == UnitFamily.batch
-      ? '“$label” can’t be a share of a batch'
-      : '“${unit.label}” is not a size';
-  return '$fact. Say what one “$label” comes to as a weight, a volume or a '
-      'count.';
-}
+const kRecipeMeasureUnitCannotMeasureRefusal = 'Use a weight, volume or count.';
 
 /// Why a measure in this unit cannot be read against this recipe: no yield is
-/// stated in the unit's family (ADR-0008).
-String recipeMeasureUnitFamilyRefusal(
-  String label,
-  Unit unit,
-  List<YieldDenomination> yields,
-) =>
-    'This recipe makes ${yields.map((y) => _said(y.qty, y.unit)).join(' · ')}, '
-    'and a recipe has no density to say “$label” in ${unit.label}. Add what a '
-    'batch makes in ${unit.label} under MAKES.';
-
-/// `15 g`, `1.25 cup` ([formatAmountIn]).
-String _said(double amount, Unit unit) =>
-    '${formatAmountIn(amount, unit)} ${unit.label}';
+/// stated in the unit's family, and a recipe has no density to cross over
+/// (ADR-0008). Names the kind of yield to add: "Add a volume yield first."
+String recipeMeasureUnitFamilyRefusal(Unit unit) =>
+    'Add a ${unit.family.said} yield first.';

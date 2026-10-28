@@ -296,8 +296,8 @@ void main() {
       // Sausage Sliders, and the word belongs to the aioli.
       expect(find.text('Measures'), findsOneWidget);
       expect(find.text('Romesco Aioli'), findsWidgets);
-      expect(find.text('blob'), findsWidgets);
-      expect(find.text('50 ml'), findsOneWidget);
+      expect(find.text('1 blob'), findsWidgets);
+      expect(find.text('= 50 ml'), findsOneWidget);
     });
 
     testWidgets('a word coined behind that ＋ reaches the ROW — the line reads '
@@ -467,7 +467,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Measures'), findsOneWidget);
-      expect(find.text('50 ml'), findsOneWidget);
+      expect(find.text('= 50 ml'), findsOneWidget);
     });
 
     testWidgets('and a word coined behind it reaches this week’s row too', (
