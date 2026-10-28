@@ -4,9 +4,10 @@
 ///
 /// The header form and the method are absent, not locked: a step's chip points
 /// at a line id, which an added line lacks and an excluded line would orphan.
-/// Serves survives as an inert sentence because every amount is per that
-/// number. There is no reorder grip, since a week cannot store an order. Wide
-/// is one column, with the week's statement at each row's right end.
+/// Serves survives as an inert fact beside the title because every amount is
+/// per that number. There is no reorder grip, since a week cannot store an
+/// order. Wide is one column, with the week's statement at each row's right
+/// end.
 library;
 
 import 'dart:async';
@@ -21,8 +22,11 @@ import '../../../core/units/units.dart';
 import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
+import '../../../shared/format.dart';
+import '../../../shared/week_strip.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/presentation/cook_format.dart' show stripDaysOfAll;
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/quantity_unit_sheet.dart';
@@ -33,6 +37,7 @@ import '../../recipes/presentation/component_quantity_sheet.dart';
 import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/line_target_picker.dart';
 import '../domain/planning.dart' show PlanEntry;
+import 'week_format.dart';
 import 'week_variant_format.dart';
 import 'week_variant_view_models.dart';
 import 'week_view_models.dart';
@@ -63,7 +68,7 @@ class WeekVariantEditorView extends ConsumerWidget {
     return FScaffold(
       childPad: false,
       header: FHeader.nested(
-        title: Text('Edit for this week', style: ansiHeaderTitle()),
+        title: Text('This week only', style: ansiHeaderTitle()),
         // Falls back to the recipe page as that week plans it.
         prefixes: [FHeaderAction.back(onPress: () => _back(context))],
         suffixes: [
@@ -137,8 +142,7 @@ class _WeekList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 40),
       children: [
-        WeekVariantBand(title: recipe.title, weekKey: weekKey),
-        _FromTheRecipe(recipe: recipe),
+        WeekVariantBand(recipe: recipe, weekKey: weekKey),
         for (final group in recipe.groups) ...[
           _GroupHeading(group: group),
           for (final item in group.items)
@@ -171,26 +175,31 @@ class _WeekList extends StatelessWidget {
   }
 }
 
-/// The band saying these are the week's lines, not the recipe's. It names the
-/// days the week plans the recipe on, because the variant is per (week,
-/// recipe).
+/// The band saying these are the week's lines, not the recipe's: which week,
+/// the recipe with what it serves, and the week strip of the days that cook
+/// these lines (the variant is per week and recipe, so every batch of it).
 class WeekVariantBand extends ConsumerWidget {
   const WeekVariantBand({
-    required this.title,
+    required this.recipe,
     required this.weekKey,
     super.key,
   });
 
-  final String title;
+  final Recipe recipe;
   final String weekKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final plan = ref.watch(viewedWeekProvider).asData?.value;
-    final days = <int>{
-      for (final e in plan?.entries ?? const <PlanEntry>[])
-        if (e.recipeTitle == title) e.dayOfWeek,
-    }.toList()..sort();
+    final plan = ref.watch(weekPlanForProvider(weekKey)).asData?.value;
+    final batches = weekBatchesOf(
+      [
+        for (final e in plan?.entries ?? const <PlanEntry>[])
+          if (e.recipeId == recipe.id) e.dayOfWeek,
+      ],
+      keepsForDays: recipe.keepsForDays,
+      freezable: recipe.freezable,
+      freezerDays: recipe.freezerDays,
+    );
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -203,7 +212,7 @@ class WeekVariantBand extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'THIS WEEK ONLY',
+            weekScopeLine(weekKey).toUpperCase(),
             style: ansiMono(
               size: 9.5,
               color: AnsiColors.herbDeep,
@@ -211,41 +220,36 @@ class WeekVariantBand extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(title, style: ansiSans(size: 16, weight: FontWeight.w600)),
-          const SizedBox(height: 3),
-          Text(
-            weekScopeLine(
-              weekKey,
-              days,
-              ref.watch(weekShapeProvider).shortLabels,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(
+                  recipe.title,
+                  style: ansiSans(size: 16, weight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'serves ${formatQuantity(recipe.servingsBase)}',
+                style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+              ),
+            ],
+          ),
+          if (batches.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            // Only the cook days and the freezer: the question here is which
+            // meals the edit changes, not how long they keep.
+            WeekStrip(
+              days: cookDaysOnly(stripDaysOfAll(batches)),
+              shape: ref.watch(weekShapeProvider),
             ),
-            style: ansiMono(size: 10.5, color: AnsiColors.muted),
-          ),
-          Text(
-            'The recipe is not changed.',
-            style: ansiMono(size: 10.5, color: AnsiColors.muted),
-          ),
+          ],
         ],
       ),
     );
   }
-}
-
-/// The recipe's own facts, inert — serves above all, because every amount is
-/// per that number.
-class _FromTheRecipe extends StatelessWidget {
-  const _FromTheRecipe({required this.recipe});
-
-  final Recipe recipe;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-    child: Text(
-      fromTheRecipeLine(recipe),
-      style: ansiMono(size: 10.5, color: AnsiColors.muted),
-    ),
-  );
 }
 
 /// An inert group heading; the grouping is the recipe's.
@@ -532,8 +536,8 @@ class _WeekTag extends StatelessWidget {
   );
 }
 
-/// The `optional` tag as a one-tap switch. Ticking it in writes the diff's
-/// `include` row, and the slot becomes the week tag.
+/// The `optional` tag as a one-tap switch, the tag alone. Ticking it in
+/// writes the diff's `include` row, and the slot becomes the week tag.
 class _OptionalSwitch extends StatelessWidget {
   const _OptionalSwitch({required this.onTap, this.alignEnd = false});
 
@@ -544,7 +548,7 @@ class _OptionalSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'optional · tap to include this week',
+    label: 'optional',
     button: true,
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -554,19 +558,7 @@ class _OptionalSwitch extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 32),
         alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
         padding: EdgeInsets.only(top: alignEnd ? 0 : 4),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 4,
-          alignment: alignEnd ? WrapAlignment.end : WrapAlignment.start,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const OptionalTag(),
-            Text(
-              '＋ include this week',
-              style: ansiMono(size: 10, color: AnsiColors.muted),
-            ),
-          ],
-        ),
+        child: const OptionalTag(),
       ),
     ),
   );

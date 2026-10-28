@@ -172,12 +172,7 @@ class WeekStripCell extends StatelessWidget {
             right: 4,
             bottom: 0,
             height: 2,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: AnsiColors.herb,
-                borderRadius: BorderRadius.all(Radius.circular(1)),
-              ),
-            ),
+            child: ColoredBox(color: AnsiColors.herb),
           )
         else if (day.eats)
           const Positioned(
@@ -253,11 +248,13 @@ class _Dot extends StatelessWidget {
   final double size;
   final Color color;
 
+  // Clipped rather than decorated: the line size draws no decorated shape.
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  Widget build(BuildContext context) => ClipOval(
+    child: SizedBox.square(
+      dimension: size,
+      child: ColoredBox(color: color),
+    ),
   );
 }
 

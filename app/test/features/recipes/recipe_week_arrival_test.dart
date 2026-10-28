@@ -28,6 +28,7 @@ import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/method_step_text.dart';
+import 'package:ansi/shared/week_strip.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -253,19 +254,29 @@ void main() {
     ) async {
       await _pumpPage(tester, week: _weekKey);
       expect(find.byType(PlannedThisWeekBand), findsOneWidget);
-      expect(find.text('Planned Tue · Sat this week'), findsOneWidget);
+      final strip = tester.widget<WeekStrip>(
+        find.descendant(
+          of: find.byType(PlannedThisWeekBand),
+          matching: find.byType(WeekStrip),
+        ),
+      );
+      expect(
+        [
+          for (final (i, d) in strip.days.indexed)
+            if (d.fill == WeekStripFill.cooked) i,
+        ],
+        [1, 5],
+      );
+      expect(find.textContaining('Planned'), findsNothing);
     });
 
-    testWidgets('the band is one line with a calendar glyph and no fill — the '
+    testWidgets('the band is the line-size week strip, with no fill — the '
         'chip row is the only filled shape above the tabs', (tester) async {
       await _pumpPage(tester, week: _weekKey);
 
       expect(
-        find.descendant(
-          of: find.byType(PlannedThisWeekBand),
-          matching: find.byIcon(FLucideIcons.calendarDays),
-        ),
-        findsOneWidget,
+        tester.widget<WeekStrip>(find.byType(WeekStrip)).size,
+        WeekStripSize.line,
       );
       expect(
         find.descendant(
@@ -289,7 +300,10 @@ void main() {
         ),
       );
       expect(
-        find.text('Planned Tue · Sat this week · edited for this week'),
+        find.descendant(
+          of: find.byType(PlannedThisWeekBand),
+          matching: find.text('edited for this week'),
+        ),
         findsOneWidget,
       );
     });
@@ -299,7 +313,7 @@ void main() {
       await _pumpPage(tester, week: _weekKey);
       await _tapPencil(tester);
       expect(find.text('Edit recipe'), findsOneWidget);
-      expect(find.text('Edit for this week · Tue & Sat only'), findsOneWidget);
+      expect(find.text('Edit for this week'), findsOneWidget);
     });
 
     testWidgets('and neither door is in the ⋯', (tester) async {
@@ -313,7 +327,7 @@ void main() {
     testWidgets('the week door opens week mode for that week', (tester) async {
       final router = await _pumpPage(tester, week: _weekKey);
       await _tapPencil(tester);
-      await tester.tap(find.text('Edit for this week · Tue & Sat only'));
+      await tester.tap(find.text('Edit for this week'));
       await tester.pumpAndSettle();
       expect(
         router.state.uri.toString(),

@@ -178,6 +178,30 @@ String cookMarkerLabel(
 String batchCaption(int cookDay, WeekShape shape, {bool frozen = false}) =>
     'from ${shape.labelFull(cookDay)}\u2019s batch${frozen ? ', frozen' : ''}';
 
+/// The meal batches a week cooks one dish in, from the days its meals are on
+/// (one per meal) and the dish's shelf life, clustered exactly as the cook plan
+/// clusters them ([clusterSessions]). For a strip of a week other than the one
+/// on screen, whose cook plan is not derived.
+List<CookSession> weekBatchesOf(
+  Iterable<int> mealDays, {
+  int? keepsForDays,
+  bool freezable = false,
+  int? freezerDays,
+}) => clusterSessions(
+  PlannedRecipe(
+    recipeId: '',
+    title: '',
+    servingsBase: 1,
+    keepsForDays: keepsForDays,
+    freezable: freezable,
+    freezerDays: freezerDays,
+    meals: [
+      for (final d in mealDays)
+        CoveredMeal(dayOfWeek: d, mealSlot: '', portions: 1),
+    ],
+  ),
+);
+
 /// What the app does not do with a meal eaten out, as said by the picker and
 /// the confirm card.
 const kNotCookedNotBought = 'not cooked, not bought';
