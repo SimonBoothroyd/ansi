@@ -1,6 +1,6 @@
 # Exec plan: a copy pass — fewer, plainer words
 
-- **Status:** active — table, redesigns and the week strip ruled 2026-10-28; being built in five lanes
+- **Status:** active — built on branch `ccr-16f48997-ss0dg1` 2026-10-28; owes `make test-sim`, the edge-function tests and landing on `main`
 - **Owner:** agent
 - **Roadmap step:** none — the backlog row [*A copy pass*](../backlog.md)
 - **Created:** 2026-10-28
@@ -382,15 +382,61 @@ says so.
 
 ## Acceptance criteria
 
-- [ ] Every row of the table applied as ruled, or a decision-log line saying
+- [x] Every row of the table applied as ruled, or a decision-log line saying
       why not.
-- [ ] F1–F10 built as described under *Redesign flags*.
-- [ ] The week strip built once and used on the five screens listed.
-- [ ] Tests move with every string; new logic (the strip’s geometry, F1’s
+- [x] F1–F10 built as described under *Redesign flags*.
+- [x] The week strip built once and used on the five screens listed.
+- [x] Tests move with every string; new logic (the strip’s geometry, F1’s
       lookup) has unit tests.
-- [ ] Board views redrawn for every screen touched.
-- [ ] `make analyze`, `make test`, `make docs-check` green on the merged branch.
-- [ ] `make test-sim` run before landing.
+- [x] Board views redrawn for every screen touched.
+- [x] `make analyze`, `make test`, `make docs-check` green on the merged branch
+      (2026-10-28: 4392 app tests pass, 18 skipped). The edge-function half of
+      `make test` did not run: this container has no `deno`.
+- [ ] `make test-sim` run before landing. The integration tests that quote
+      changed strings were updated but not run: there is no simulator here.
+
+## What the lanes did differently
+
+Each lane reported its deviations. Where the table and the build disagree, the
+build is what shipped:
+
+- **Row 7** went through lane C’s panels, not lane A’s file: the caption was
+  only drawn by the recipe panels.
+- **Rows 9–10** both read “nothing to buy yet”; the two cases still differ by
+  their link.
+- **Rows 34–35** print “Week of {date}” alone; the strip shows the days.
+- **Row 57**: the delete confirm has no body at all (`askAnsi`’s body is now
+  optional).
+- **Row 68**: the convert dialog says just “Can’t be undone.”
+- **Row 73** names the words without their amounts: “Lines using “blob”,
+  “ladle” will stop working.”
+- **Row 75**, ingredient side, is dropped rather than “Also used in {n}
+  weeks”: an ingredient measure has no week count, and printing one needs a
+  new query.
+- **Row 85** drops the leading `{fact}.`: “Use a weight, volume or count.”
+- **Row 86** names the kind, not the unit: “Add a weight yield first.” (“Add a
+  g yield” reads wrong.)
+- **Row 104**: the pack-word note shows only for a refusal.
+- **Row 111** keeps its middle clause: “$5.73 off from the total less tax
+  ($22.73). Check for a missing or doubled line.”
+- **Row 123** is dropped; the “On receipts” heading already says it. Rows 118
+  and 119 went with the form’s Price group.
+- **Rows 135–137**: the ingredient status strip now shows only on a stub.
+- **Row 165**: “{label} is taken. Try {label} ({size}).”
+- **F1**: one refused change reads “It’s only on this phone.” A change whose
+  row is gone is listed by its kind and opens nothing (tech-debt row narrowed
+  to that case).
+- **F2**: the note under the week chips shows only while a move runs, fails or
+  is offline.
+- **F5**: both buttons open the recipe editor at the top. Landing on the MAKES
+  field or the exact line needs a route parameter in `features/recipes`, and
+  is not built.
+- **F6**: the session’s own scale line is gone where the switch shows.
+- **Beyond the table**: the Cook gap card’s subtitle is just the short
+  reason; the add rows on the Shop grew 3 px of padding to keep their tap
+  target after their hints went; `product-spec.md`, `wide-screen.md` and
+  `errors-and-sync-health.md` were updated to match; the share page bundle
+  was rebuilt for row 194.
 
 ## Decision log
 
@@ -417,3 +463,10 @@ says so.
 - 2026-10-28 — Built in five lanes split by file ownership (see *Lanes*). The
   owner: subagents are trusted, and their work is not redone or retested unless
   it has to be.
+- 2026-10-28 — All five lanes merged into `ccr-16f48997-ss0dg1`. Their board
+  conflicts were status lines both sides added to; both clauses were kept.
+  A follow-up pass applied the hand-offs between lanes (the measure form’s
+  equation in `shared/`, row 7, the recipe page’s cook days, dead code) and ran
+  the merged checks once.
+- 2026-10-28 — Two board views were edited but not re-dated, because no lane
+  re-read the whole view: `ingredient-picker.html` and `quantity-measures.html`.
