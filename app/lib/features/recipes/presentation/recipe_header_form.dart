@@ -86,21 +86,13 @@ abstract interface class RecipeHeaderHost {
 /// Per-section annotations a host draws around the shared form. The review uses
 /// them to say what the page did or did not print.
 class RecipeHeaderNotes {
-  const RecipeHeaderNotes({
-    this.besideServes,
-    this.underMakes,
-    this.afterMakes,
-  });
+  const RecipeHeaderNotes({this.besideServes, this.underMakes});
 
   /// Beside the SERVES eyebrow, in the flag colour — "not printed — set it".
   final String? besideServes;
 
   /// Under the MAKES eyebrow, above the fields — "from source: …".
   final String? underMakes;
-
-  /// After the MAKES fields — the honest empty-state hint when nothing was
-  /// stated.
-  final String? afterMakes;
 }
 
 class RecipeHeaderForm extends StatelessWidget {
@@ -177,14 +169,6 @@ class RecipeHeaderForm extends StatelessWidget {
                 ),
               ),
             _MakesSection(recipe: recipe, host: host),
-            if (notes.afterMakes case final hint?)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  hint,
-                  style: ansiMono(size: 10, color: AnsiColors.muted),
-                ),
-              ),
           ],
         ),
         RecipeHeaderSection.measures => Column(

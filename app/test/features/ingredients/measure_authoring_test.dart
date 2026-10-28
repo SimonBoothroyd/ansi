@@ -71,11 +71,7 @@ void main() {
   });
 
   test('the refusal names the word and the way out', () {
-    final said = measureWordTakenRefusal(
-      label: 'can',
-      said: '794 g',
-      taken: '411 g',
-    );
+    final said = measureWordTakenRefusal(label: 'can', said: '794 g');
     expect(said, '“can” is taken. Try “can (794 g)”.');
     expect(
       said,

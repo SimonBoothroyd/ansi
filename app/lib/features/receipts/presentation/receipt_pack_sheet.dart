@@ -156,7 +156,6 @@ class ReceiptPackEditor extends HookConsumerWidget {
         : measureWordTakenRefusal(
             label: measureLabelAsAuthored(clash.label),
             said: said == null ? 'a different size' : weighs(said),
-            taken: weighs(clash.amount),
           );
 
     final canDone =
