@@ -1215,9 +1215,9 @@ void main() {
     ) async {
       final planning = await openNoteIt(tester);
       expect(
-        find.textContaining('the meal fills its slot'),
-        findsOneWidget,
-        reason: 'the fold says what a blank means before Add is tapped',
+        find.text('fill in all four or none'),
+        findsNothing,
+        reason: 'a blank fold is fine as it is, so it says nothing',
       );
 
       await _addFromTheSheet(tester);
@@ -1239,7 +1239,7 @@ void main() {
       await _typeMacro(tester, 'protein', '42');
       await _typeMacro(tester, 'carb', '55');
       await _typeMacro(tester, 'fat', '24');
-      expect(find.textContaining('counted in the day'), findsOneWidget);
+      expect(find.text('fill in all four or none'), findsNothing);
 
       await _addFromTheSheet(tester);
 
@@ -1257,10 +1257,7 @@ void main() {
       final planning = await openNoteIt(tester);
 
       await _typeMacro(tester, 'kcal', '620');
-      expect(
-        find.textContaining('a partial one is not stated'),
-        findsOneWidget,
-      );
+      expect(find.text('fill in all four or none'), findsOneWidget);
 
       await _addFromTheSheet(tester);
       expect(planning.outEntries.single.macros, isNull);

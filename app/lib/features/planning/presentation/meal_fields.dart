@@ -1,5 +1,5 @@
 /// The controls a meal is described with: the picked-meal cards, the slot
-/// picker, the eater row, the portions stepper and [MealBatchBanner]. Shared by
+/// picker, the eater row, the portions stepper and [MealBatchStrip]. Shared by
 /// `confirm_meal_sheet.dart` and `meal_editor_sheet.dart`.
 ///
 /// There is no day control: a sheet is opened with its day. Nothing here holds
@@ -17,9 +17,11 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/format.dart';
 import '../../../shared/incomplete_macros.dart';
+import '../../../shared/week_strip.dart';
 import '../../account/data/household_providers.dart';
 import '../../books/presentation/text_prompt.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../cook_plan/presentation/cook_format.dart' show CookTimelineSpec;
 import '../../ingredients/presentation/ingredient_view_models.dart'
     show MacroDraft;
 import '../../ingredients/presentation/macro_fields.dart';
@@ -298,8 +300,8 @@ class MealOutCard extends StatelessWidget {
 
 /// The optional fold for a meal eaten out: per-portion figures on the shared
 /// macro keypad ([MacroFields]). Left empty, the meal is placed uncounted; an
-/// incomplete panel is not written ([MacroDraft.isCoherent]), and the note says
-/// which state applies.
+/// incomplete panel is not written ([MacroDraft.isCoherent]), and only that
+/// state gets a note.
 class MealMacrosFold extends StatelessWidget {
   const MealMacrosFold({
     required this.draft,
@@ -312,36 +314,29 @@ class MealMacrosFold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final note = mealMacrosFoldNote(draft);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const AnsiMicroLabel('Macros · per portion', suffix: 'optional'),
         MacroFields(draft: draft, onChanged: onChanged),
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(
-            mealMacrosFoldNote(draft),
-            style: ansiMono(size: 10, color: AnsiColors.muted),
+        if (note != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              note,
+              style: ansiMono(size: 10, color: AnsiColors.muted),
+            ),
           ),
-        ),
       ],
     );
   }
 }
 
-/// The fold's note: nothing stated, an incomplete panel, or the figures that
-/// will be saved.
-String mealMacrosFoldNote(MacroDraft draft) {
-  if (draft.allBlank) {
-    return 'left empty — the meal fills its slot, and the day says it was '
-        'not counted';
-  }
-  if (!draft.isCoherent) {
-    return 'kcal, protein, carb and fat are one panel — a partial one is not '
-        'stated, and will not be saved';
-  }
-  return 'counted in the day and the week, as stated';
-}
+/// The fold's note: only an incomplete panel, which will not be saved, says
+/// anything. Null for nothing stated and for a whole panel.
+String? mealMacrosFoldNote(MacroDraft draft) =>
+    draft.allBlank || draft.isCoherent ? null : 'fill in all four or none';
 
 /// The slot picker: the default slots, any custom slot the meal already
 /// carries, and a trailing `+` for a new one (`meal_slot` is free text).
@@ -481,7 +476,7 @@ class MealPortionsStepper extends StatelessWidget {
     final tracks = portionsOverride == null;
     final note = tracks
         ? names.isEmpty
-              ? 'defaults to eaters — bump up for big appetites'
+              ? null
               : '$names — their usual'
         : eaterIds.isEmpty
         ? 'manual override'
@@ -497,8 +492,10 @@ class MealPortionsStepper extends StatelessWidget {
                 formatPortions(demand),
                 style: ansiSans(size: 15, weight: FontWeight.w600),
               ),
-              const SizedBox(height: 2),
-              Text(note, style: ansiMono(size: 10, color: AnsiColors.muted)),
+              if (note != null) ...[
+                const SizedBox(height: 2),
+                Text(note, style: ansiMono(size: 10, color: AnsiColors.muted)),
+              ],
             ],
           ),
         ),
@@ -548,66 +545,50 @@ class _StepButton extends StatelessWidget {
   }
 }
 
-/// The batch cue in prose: the dish, the day it already cooks, the shelf-life
-/// window, and the freezer hop when that is how the meal is reached.
-class MealBatchBanner extends ConsumerWidget {
-  const MealBatchBanner({
-    required this.hint,
+/// The batch a meal being added would join, as the full week strip: the cook
+/// day solid, the fridge days tinted, the new meal outlined, a freezer day when
+/// it is reached frozen. Its caption says whose batch it is from, as the week
+/// row's cook marker does; on the cook day itself it says nothing.
+class MealBatchStrip extends ConsumerWidget {
+  const MealBatchStrip({
     required this.recipe,
+    required this.plannedDays,
     required this.newDay,
     super.key,
   });
 
-  final BatchHint hint;
   final RecipeSummary recipe;
+
+  /// The days this week already plans the recipe on, one per meal.
+  final List<int> plannedDays;
   final int newDay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final title = recipe.title.isEmpty ? 'This dish' : recipe.title;
+    final session = batchSessionFor(
+      plannedDays: plannedDays,
+      newDay: newDay,
+      keepsForDays: recipe.keepsForDays,
+      freezable: recipe.freezable,
+      freezerDays: recipe.freezerDays,
+    );
+    if (session == null) return const SizedBox.shrink();
     final shape = ref.watch(weekShapeProvider);
-    final day = shape.labelFull(hint.withDay);
-    final target = shape.labelFull(newDay);
-    final keeps = recipe.keepsForDays;
-    final text = hint.frozen
-        ? '$title already cooks $day; $target is past the fridge window'
-              '${keeps != null ? ' ($keeps days)' : ''}, but it freezes — '
-              'a share goes to the freezer, so it still joins $day’s batch '
-              'instead of a second cook.'
-        : hint.withDay == newDay
-        ? '$title already cooks $target — this meal joins that batch '
-              'instead of a second cook.'
-        : '$title already cooks $day'
-              '${keeps != null ? ' and keeps $keeps days' : ''} — $target is '
-              'inside that window, so this joins $day’s batch instead of a '
-              'second cook.';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: AnsiColors.herbSoft,
-        border: Border.all(color: AnsiColors.line),
-        borderRadius: BorderRadius.circular(10),
+    final covered = session.coveredDays.toSet();
+    return WeekStrip(
+      days: CookTimelineSpec.of(session).stripDays(
+        thisMeal: newDay,
+        // Only the meals already placed eat from it; the new one is outlined.
+        eats: plannedDays.where(covered.contains),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(
-              hint.frozen ? FLucideIcons.snowflake : FLucideIcons.repeat,
-              size: 14,
-              color: AnsiColors.herbDeep,
+      shape: shape,
+      caption: newDay == session.cookDay
+          ? null
+          : batchCaption(
+              session.cookDay,
+              shape,
+              frozen: session.frozenDays.contains(newDay),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: ansiSans(size: 12, color: AnsiColors.herbDeep),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -301,6 +301,48 @@ void main() {
     });
   });
 
+  group('batchSessionFor', () {
+    test('nothing planned is no batch to join', () {
+      expect(
+        batchSessionFor(plannedDays: const [], newDay: 2, keepsForDays: 4),
+        isNull,
+      );
+    });
+
+    test('the batch the new meal lands in, with the meals beside it', () {
+      // Mon and Sat planned, keeps 3: adding Wed joins Monday's batch, and
+      // Saturday stays a cook of its own.
+      final session = batchSessionFor(
+        plannedDays: const [0, 5],
+        newDay: 2,
+        keepsForDays: 3,
+      );
+      expect(session!.cookDay, 0);
+      expect(session.coveredDays, [0, 2]);
+    });
+
+    test('a meal past the window lands in a batch of its own', () {
+      final session = batchSessionFor(
+        plannedDays: const [0],
+        newDay: 5,
+        keepsForDays: 3,
+      );
+      expect(session!.cookDay, 5);
+      expect(session.coveredDays, [5]);
+    });
+
+    test('a freezable far meal is a frozen day of the earlier batch', () {
+      final session = batchSessionFor(
+        plannedDays: const [1],
+        newDay: 5,
+        keepsForDays: 3,
+        freezable: true,
+      );
+      expect(session!.cookDay, 1);
+      expect(session.frozenDays, [5]);
+    });
+  });
+
   group('wholeBatchNudgeFor', () {
     CookSession session({double servings = 4, double portions = 3}) =>
         clusterSessions(_recipe({0: portions}, servings: servings)).single;

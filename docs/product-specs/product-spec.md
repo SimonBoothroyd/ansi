@@ -1371,10 +1371,10 @@ source-tab slot, footer slot):
   vocabulary.
 - **Confirm & place:** picked card with the honest macro line, a **slot**
   picker (the four defaults plus a `+` that names a custom one, opened on the
-  day's next unfilled default — Breakfast on an empty day), and the full
-  batch prose ("Chicken Curry already cooks Monday and keeps 4 days — Wednesday
-  is inside that window, so this joins Monday's batch instead of a second
-  cook"). The **day is not asked**: every add starts from a day card, so the
+  day's next unfilled default — Breakfast on an empty day), and, when the
+  dish already cooks that week, the week strip of the batch it joins (the cook
+  day solid, the fridge days tinted, the new meal outlined, a freezer day when
+  it is reached frozen) captioned "from Monday’s batch". The **day is not asked**: every add starts from a day card, so the
   day arrived with the flow and the sheet states it — as the subtitle ("to ·
   Wednesday") and on the button ("Add to Wednesday"). A wrong day is one
   back-tap while the sheet is open, and remove-and-re-add once it is placed.

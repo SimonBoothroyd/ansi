@@ -166,12 +166,17 @@ String cookMarkerLabel(
         ? 'cooks today · batch of ${formatFraction(marker.batchPortions)}'
         : 'cooks ${shape.labelShort(marker.cookDay)} · '
               'batch of ${formatFraction(marker.batchPortions)}',
-  CookMarkerKind.fromBatch =>
-    'from ${shape.labelFull(marker.cookDay)}\u2019s batch',
+  CookMarkerKind.fromBatch => batchCaption(marker.cookDay, shape),
   // The snowflake is drawn as an icon: no bundled face carries ❄.
   CookMarkerKind.freezerShare =>
     '${shape.labelFull(marker.cookDay)}\u2019s freezer share',
 };
+
+/// Where a meal comes from when it is not its batch's cook day: `from
+/// Monday’s batch`, or `from Monday’s batch, frozen`. The week strip's caption
+/// and the week row's marker say it the same way.
+String batchCaption(int cookDay, WeekShape shape, {bool frozen = false}) =>
+    'from ${shape.labelFull(cookDay)}\u2019s batch${frozen ? ', frozen' : ''}';
 
 /// What the app does not do with a meal eaten out, as said by the picker and
 /// the confirm card.
