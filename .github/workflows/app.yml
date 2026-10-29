@@ -26,6 +26,17 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
+      # The generated code is committed, and release.yml and sim.yml build from
+      # the committed copy without running build_runner — so it must be exactly
+      # what build_runner writes.
+      - name: Committed generated code is fresh
+        run: |
+          stale="$(git status --porcelain -- '*.g.dart' '*.freezed.dart')"
+          if [ -n "$stale" ]; then
+            echo "$stale"
+            echo "::error::generated code is stale — run make gen and commit the result"
+            exit 1
+          fi
       # Repo tests open a real PowerSyncDatabase on the runner: that needs the
       # core extension binary, and a SQLite built to load extensions (the
       # runner's libsqlite3.so is, macOS's system SQLite is not — see

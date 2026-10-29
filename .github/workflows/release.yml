@@ -103,8 +103,8 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------
-  # Android: the shippable artifacts. APK for sideloading onto our own phones,
-  # AAB because it is what Play's internal track takes.
+  # Android: the shippable artifacts. AAB because it is what Play's internal
+  # track takes; APK, cut from that same AAB, for sideloading. Both arm64.
   # ---------------------------------------------------------------------------
   android:
     name: android (apk + aab → release)
@@ -138,8 +138,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      # No build_runner: the generated code is committed, and app.yml fails a
+      # push whose committed copy is not what build_runner would write.
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
 
       # The keystore never touches the workspace: RUNNER_TEMP is outside the
       # checkout, so it cannot be picked up by a glob or left in an artifact.
@@ -205,7 +206,7 @@ jobs:
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "versionName=$name  versionCode=$code"
 
-      - name: Build APK + AAB (release, signed)
+      - name: Build the AAB (release, signed, arm64)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -215,24 +216,66 @@ jobs:
           SHARE_BASE_URL: ${{ vars.SHARE_BASE_URL }}
           BUILD_NAME: ${{ steps.version.outputs.name }}
           BUILD_NUMBER: ${{ steps.version.outputs.code }}
+        # One Gradle build, not two. The phones are Pixels, so the bundle is
+        # arm64 only: --target-platform compiles the Dart once instead of per
+        # ABI, and build.gradle.kts drops the plugins' other-ABI libraries.
+        # The APK is cut from this same bundle in the next step.
         run: |
-          args=(
-            --release
-            --build-name="$BUILD_NAME"
-            --build-number="$BUILD_NUMBER"
-            "--dart-define=SUPABASE_URL=$SUPABASE_URL"
-            "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
-            "--dart-define=POWERSYNC_URL=$POWERSYNC_URL"
+          flutter build appbundle --release \
+            --target-platform android-arm64 \
+            --build-name="$BUILD_NAME" \
+            --build-number="$BUILD_NUMBER" \
+            "--dart-define=SUPABASE_URL=$SUPABASE_URL" \
+            "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" \
+            "--dart-define=POWERSYNC_URL=$POWERSYNC_URL" \
             "--dart-define=SHARE_BASE_URL=$SHARE_BASE_URL"
-          )
-          # The APK is what the phones install, and the phones are Pixels:
-          # arm64 only. --target-platform alone trims Flutter's own libraries
-          # but the plugins' native code (barcode, SQLite, PowerSync) still
-          # ships for every ABI; --split-per-abi filters those too, and with
-          # one target platform it yields exactly one APK. A fat APK was
-          # 94 MB. The AAB keeps every ABI — that is what a bundle is for.
-          flutter build apk "${args[@]}" --target-platform android-arm64 --split-per-abi
-          flutter build appbundle "${args[@]}"
+
+      # bundletool's universal APK is the whole bundle in one installable file,
+      # signed with the upload key — seconds, where a second Gradle build was
+      # minutes. Pinned by version and checksum, like every other tool here.
+      - name: Cut the APK from the AAB (bundletool)
+        env:
+          BUNDLETOOL_VERSION: "1.18.3"
+          BUNDLETOOL_SHA256: a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          jar="$RUNNER_TEMP/bundletool.jar"
+          curl -fsSL -o "$jar" \
+            "https://github.com/google/bundletool/releases/download/$BUNDLETOOL_VERSION/bundletool-all-$BUNDLETOOL_VERSION.jar"
+          echo "$BUNDLETOOL_SHA256  $jar" | sha256sum --check --strict -
+          java -jar "$jar" build-apks --mode=universal \
+            --bundle=build/app/outputs/bundle/release/app-release.aab \
+            --output="$RUNNER_TEMP/universal.apks" \
+            --ks="$RUNNER_TEMP/upload-keystore.jks" \
+            --ks-pass="pass:$STORE_PASSWORD" \
+            --ks-key-alias="$KEY_ALIAS" \
+            --key-pass="pass:$KEY_PASSWORD"
+          unzip -p "$RUNNER_TEMP/universal.apks" universal.apk > build/app/outputs/universal.apk
+
+      # Both files must carry arm64 native code and nothing else. A stray
+      # armeabi-v7a directory makes Play offer the app to 32-bit phones it
+      # cannot run on; a missing libapp.so is an app with no Dart in it.
+      - name: Both files are arm64 only
+        run: |
+          abis() { unzip -Z1 "$1" | sed -nE "s#^$2lib/([^/]+)/.*#\1#p" | sort -u | paste -sd' '; }
+          check() { # $1 = file, $2 = path prefix inside it
+            got="$(abis "$1" "$2")"
+            [ "$got" = "arm64-v8a" ] || {
+              echo "::error::$1 carries native code for [$got], expected [arm64-v8a] only — see the abi exclude in android/app/build.gradle.kts"
+              exit 1
+            }
+            for so in libflutter.so libapp.so; do
+              unzip -Z1 "$1" | grep -qx "$2lib/arm64-v8a/$so" || {
+                echo "::error::$1 has no $2lib/arm64-v8a/$so"
+                exit 1
+              }
+            done
+            echo "✓ $1: arm64-v8a only, libflutter.so + libapp.so present"
+          }
+          check build/app/outputs/bundle/release/app-release.aab base/
+          check build/app/outputs/universal.apk ""
 
       - name: Name the artifacts for the tag
         id: stage
@@ -241,7 +284,7 @@ jobs:
           # feat/step-8 would otherwise put a "/" in the filename.
           slug="${GITHUB_REF_NAME//\//-}"
           mkdir -p "$RUNNER_TEMP/dist"
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+          cp build/app/outputs/universal.apk \
              "$RUNNER_TEMP/dist/ansi-$slug.apk"
           cp build/app/outputs/bundle/release/app-release.aab \
              "$RUNNER_TEMP/dist/ansi-$slug.aab"
@@ -397,8 +440,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      # No build_runner: the generated code is committed, and app.yml fails a
+      # push whose committed copy is not what build_runner would write.
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
 
       # Is there a host, and where? `GET /repos/{owner}/{repo}/pages` answers
       # 404 until somebody enables Pages with source "GitHub Actions"
@@ -533,8 +577,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      # No build_runner: the generated code is committed, and app.yml fails a
+      # push whose committed copy is not what build_runner would write.
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
 
       # Same defines as the Android job so this compiles the real configuration.
       # If the variables are unset the defines are all blank, which Env treats

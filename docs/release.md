@@ -182,7 +182,7 @@ That runs four jobs:
 | Job | Runner | Does | Output |
 |-----|--------|------|--------|
 | `guard` | ubuntu | §2.4 checks only | pass/fail, plus the Play notice |
-| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build apk --release --target-platform android-arm64` (the phones are Pixels; one ABI, about 35 MB instead of a 94 MB fat APK) + `appbundle --release` (every ABI) with the three dart-defines | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
+| `android` | ubuntu | decode keystore → write `android/key.properties` → `flutter build appbundle --release --target-platform android-arm64` with the three dart-defines → the APK cut from that AAB by `bundletool build-apks --mode=universal`, signed with the same key → a check that both carry arm64 native code and nothing else | `ansi-v0.1.0.apk` + `ansi-v0.1.0.aab` on the **GitHub Release** for the tag, and an `android-release` artifact |
 | `play-internal` | ubuntu | uploads that same AAB to the Play **internal** track (§3a); tag runs only | the release on the internal track |
 | `ios` | macOS | `flutter build ios --release --no-codesign` | unsigned `Runner.app` **artifact** |
 
@@ -194,6 +194,17 @@ signal.
 `play-internal` re-uses the artifact `android` produced rather than rebuilding
 — the binary on the Release and the binary on Play are byte-identical for a
 given tag.
+
+**Why arm64 only, and one Gradle build.** The phones are Pixels, and every
+Pixel is arm64. Building the AAB for arm64 alone compiles the Dart once
+instead of once per ABI, and cutting the APK from the AAB replaced a second
+full Gradle build (about 5 minutes) with a bundletool step (seconds).
+`--target-platform` does not drop the plugins' native code, so
+`app/android/app/build.gradle.kts` excludes the other ABIs from every release
+build, and the job fails if either file carries anything but `arm64-v8a`.
+What it costs: Play does not offer the app to a 32-bit phone or an Intel
+Chromebook. To serve them again, drop the target platform and the exclude
+together — a later versionCode carries them, nothing is locked in.
 
 **Why iOS is a compile proof and nothing more.** Ansi is a two-person household
 app installed from Xcode, not from the App Store. Real iOS signing in CI means
@@ -360,6 +371,11 @@ The GitHub Release still gets the APK, but it is **not an update path** for a
 Play install: Play re-signs the app with Google's key, so a sideloaded APK
 cannot install over it (nor the reverse) without uninstalling first.
 
+A sideloaded APK through `v0.36.0` carries a versionCode 2000 higher than its
+run number (`--split-per-abi` adds 1000 × the ABI's index, and arm64 is 2).
+The APK cut from the AAB carries the run number itself, so it is a
+*downgrade* to a phone holding one of those: uninstall first, once.
+
 ### 3c. The versionCode rule
 
 **Play permanently rejects a `versionCode` it has already seen.** The number
@@ -392,7 +408,8 @@ builds, but nothing enforces it.
 Append-only: one row per tag, newest last. Every tag since `v0.4.0` has put a
 signed APK and AAB on its GitHub Release; `play-internal` skipped by design
 through `v0.32.1` (whose re-run was the first upload) and uploads from `v0.32.2`; through `v0.14.0` the APK was a fat build (88–94 MB) and from the next
-tag it is arm64-only (about 35 MB). The AAB (76–83 MB) keeps every ABI. "Deploy" is the deploy-supabase run that
+tag it is arm64-only (about 35 MB). Through `v0.36.0` the AAB (76–87 MB) kept
+every ABI; after it the AAB is arm64-only too, and the APK is cut from it. "Deploy" is the deploy-supabase run that
 went first when the tag needed one.
 
 | Tag | Date | What | Runs |
