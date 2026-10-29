@@ -74,13 +74,15 @@ run() {
   echo "input methods left enabled: [$(adb shell ime list -s | tr -d '\r')]"
 
   # The app has exited by the time the test run returns, so a screenshot taken
-  # then shows the launcher. Keep the last two while it runs instead: a step
-  # that waits out its timeout leaves the screen it was stuck on.
+  # then shows the launcher. Shoot every 5 s while it runs instead, named by
+  # UTC time so a failure's log timestamp picks its frame, and keep the last
+  # five minutes: a file can fail early and run on through later tests.
+  mkdir -p "$SIM_LOGS/screens"
   (
     while sleep 5; do
-      adb exec-out screencap -p > "$SIM_LOGS/.shot.png" 2>/dev/null || continue
-      [ ! -f "$SIM_LOGS/screen.png" ] || mv "$SIM_LOGS/screen.png" "$SIM_LOGS/screen-before.png"
-      mv "$SIM_LOGS/.shot.png" "$SIM_LOGS/screen.png"
+      shot="$SIM_LOGS/screens/$(date -u +%Y%m%dT%H%M%S).png"
+      adb exec-out screencap -p > "$shot.tmp" 2>/dev/null && mv "$shot.tmp" "$shot"
+      ls -1 "$SIM_LOGS/screens"/*.png 2>/dev/null | head -n -60 | xargs -r rm -f
     done
   ) &
   shooter=$!
