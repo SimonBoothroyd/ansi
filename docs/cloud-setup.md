@@ -677,6 +677,10 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-10-29 — foods, not ingredients: `ask` prompt only
+
+- **deploy-supabase 40836577803** (on `6ad337cb`): green — `db push` found the remote up to date; `ask` redeployed with its prompt saying *food* for a vocabulary row and *ingredient* for a recipe's line ([plan 0058](./exec-plans/active/0058-foods-not-ingredients.md)), the other functions, the share Worker and the streams redeployed unchanged. No reseed; `cloud_verify.sh` was not run.
+
 ### 2026-10-26 — the Shop refresh: `ask` only, ahead of `v0.35.0`
 
 - **deploy-supabase 40430955103** (on `57198080`): green on attempt 2 — `db push` found the remote up to date; `ask` redeployed with the cost tool's trip read as the Shop's cheapest-in-90-days figure, the other functions unchanged. The first attempt's sync-streams leg failed on a PowerSync API 500 (`Unexpected end of JSON input`) after validation passed; the streams file had not changed since the run before. No reseed; `cloud_verify.sh` was not run.

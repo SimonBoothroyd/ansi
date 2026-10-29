@@ -1,6 +1,6 @@
 # Exec plan: foods, not ingredients
 
-- **Status:** active — ruled and built 2026-10-28; owes `make test-sim`, the Ask function's redeploy, and landing on `main`
+- **Status:** active — built and on `main` 2026-10-29, Ask redeployed (deploy-supabase 40836577803); owes `make test-sim`
 - **Owner:** Simon (rulings), agent (inventory and build)
 - **Roadmap step:** none — the backlog row [*Foods, not ingredients*](../backlog.md)
 - **Created:** 2026-10-28
@@ -291,6 +291,6 @@ Settings (`features/account`) prints no `ingredient`. Nothing to rule.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] `make test-sim` run on a booted simulator (the integration tests quote
       these strings), and the result recorded here.
-- [ ] The Ask function redeployed, so the model reads the new prompt.
+- [x] The Ask function redeployed, so the model reads the new prompt (deploy-supabase 40836577803, 2026-10-29).
 - [x] The backlog row *Foods, not ingredients* removed.
 - [ ] `make ci` green.
