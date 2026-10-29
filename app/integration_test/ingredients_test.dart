@@ -568,7 +568,7 @@ void main() {
       await tester.tap(pieceDefault);
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('piece needs a weight on this row'),
+        find.textContaining('piece needs a weight.'),
         findsOneWidget,
         reason: 'a piece default with no weight is a stranded default',
       );
@@ -758,10 +758,7 @@ void main() {
         reason: 'D4b: the volume family the density alone admitted is out',
       );
       expect(
-        find.text(
-          '$filledLabel — not this food · the filled numbers were '
-          'cleared',
-        ),
+        find.text('$filledLabel · not this food · numbers cleared'),
         findsOneWidget,
       );
       expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);

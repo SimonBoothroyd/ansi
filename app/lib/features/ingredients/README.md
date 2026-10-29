@@ -290,7 +290,7 @@ Doctrine is
   without the row's density; the sheet's dock says why and Done is refused.
 - **A line that is not a price is not a zero.** No pack, not food, no
   ingredient or nothing paid mean no observation, and an unreadable base price
-  is none; the Price group says `— none yet`.
+  is none; the Price group says `· none yet`.
 - **The sheet writes the base price and nothing else.** `PriceEditor` asks
   what was paid, for what pack, and — optionally — at which store, from the
   same `StoreChipRow` and store words the receipt review uses (a second tap on

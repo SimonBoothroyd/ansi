@@ -1136,8 +1136,8 @@ household from the verified token:
 - **A recall that throws does not fail the import.** The receipt arrives as the
   cascade alone would have had it, and the error is logged.
 
-The review says `as you matched it last time` beside the chosen row's `tap to
-change`; changing it *is* the correction.
+The review says `as you matched it last time` under the chosen row, and
+changing that row *is* the correction.
 
 **The memory can be read back** on the ingredient page's folded `On receipts`
 section: every distinct name the household's receipts have carried for that

@@ -53,20 +53,20 @@ bool lineShows(int i, String text) => find
 ///
 /// There are three, one per card state — an unmatched line with no candidates
 /// offers "Find or create ingredient", one with candidates offers "Something
-/// else" beside the chips, and a matched line's identity row says "tap to
-/// change" — and they all open the same sheet.
+/// else" beside the chips, and a matched line's identity row ends in a
+/// chevron — and they all open the same sheet.
 Future<void> openResolverForLine(WidgetTester tester, int i) async {
   await expandLine(tester, i);
   final door = find.descendant(
     of: reviewCard(i),
     matching: find.byWidgetPredicate(
       (w) =>
-          w is Text &&
-          const {
-            'Find or create ingredient',
-            'Something else',
-            'tap to change',
-          }.contains(w.data),
+          (w is Text &&
+              const {
+                'Find or create ingredient',
+                'Something else',
+              }.contains(w.data)) ||
+          (w is Icon && w.icon == FLucideIcons.chevronRight),
     ),
   );
   expect(door, findsWidgets, reason: 'line $i shows no way into the picker');

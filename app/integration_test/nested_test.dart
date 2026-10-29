@@ -280,7 +280,7 @@ void main() {
     expect(find.text('×¼ batch'), findsOneWidget);
     expect(
       find.text(
-        'covers Sausage Sliders · cook Fri — makes 1 cup, you need '
+        'covers Sausage Sliders · cook Fri · makes 1 cup, you need '
         '¼',
       ),
       findsOneWidget,
@@ -379,7 +379,7 @@ void main() {
     // unscaled, unconverted, quoted from the page (frame f).
     expect(
       find.text(
-        'covers Sausage Sliders · cook Fri — the line asks for '
+        'covers Sausage Sliders · cook Fri · the line asks for '
         '¼ cup',
       ),
       findsOneWidget,
@@ -396,7 +396,7 @@ void main() {
     await scrollTo(tester, notes);
     await tester.tap(notes);
     await tester.pumpAndSettle();
-    await scrollTo(tester, find.text('1 component unresolved — see Cook'));
+    await scrollTo(tester, find.text('1 component unresolved · see Cook'));
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
     expect(
       find.text('Romesco Aioli · for Sausage Sliders · cook Fri'),

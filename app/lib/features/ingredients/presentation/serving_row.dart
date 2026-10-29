@@ -248,7 +248,7 @@ class ScannedServingLine extends StatelessWidget {
       child: Text(
         'the pack prints ${formatKcal(printed.kcal)} kcal per $says · '
         'that is ${formatKcal(implied.kcal)} per 100 '
-        '${serving.basis.dbValue} — $verdict',
+        '${serving.basis.dbValue} · $verdict',
         style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
     );

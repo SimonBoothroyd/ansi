@@ -35,7 +35,7 @@ void deskWidth(WidgetTester tester) {
 
 /// The fact sheet's own group: the form draws no Price group, so this is the
 /// reading posture, on a row nobody has priced.
-const _factSheet = 'Price — none yet';
+const _factSheet = 'Price · none yet';
 
 /// A vocabulary long enough that a row near its end is nowhere near the first
 /// screen — which is the whole of what the reveal is for.

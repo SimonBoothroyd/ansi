@@ -466,7 +466,7 @@ void main() {
       await tester.pumpWidget(densityHost(curryLeaves));
       await tester.pumpAndSettle();
 
-      expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
+      expect(find.text('none yet'), findsOneWidget);
       expect(find.text('weighs'), findsOneWidget);
       expect(find.text('· change'), findsNothing);
     });

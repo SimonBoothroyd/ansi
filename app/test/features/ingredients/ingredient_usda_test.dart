@@ -118,10 +118,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('USDA · declined'), findsOneWidget);
       expect(
-        find.text(
-          'Curry leaves, raw — not this food · the filled numbers were '
-          'cleared',
-        ),
+        find.text('Curry leaves, raw · not this food · numbers cleared'),
         findsOneWidget,
       );
       expect(find.widgetWithText(FButton, 'Not this food'), findsNothing);

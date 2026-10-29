@@ -477,11 +477,11 @@ class MealPortionsStepper extends StatelessWidget {
     final note = tracks
         ? names.isEmpty
               ? null
-              : '$names — their usual'
+              : '$names · their usual'
         : eaterIds.isEmpty
         ? 'manual override'
         : 'overrides the eaters’ ${formatFraction(usual)}'
-              '${names.isEmpty ? '' : ' — $names'}';
+              '${names.isEmpty ? '' : ' · $names'}';
     return Row(
       children: [
         Expanded(

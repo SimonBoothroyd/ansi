@@ -728,7 +728,7 @@ class _UnresolvedEcho extends StatelessWidget {
           const SizedBox(width: 5),
           Flexible(
             child: Text(
-              '$count ${plural(count, 'component')} unresolved — see Cook',
+              '$count ${plural(count, 'component')} unresolved · see Cook',
               overflow: TextOverflow.ellipsis,
               style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
             ),
@@ -806,20 +806,19 @@ class OptionalLinesEcho extends ConsumerStatefulWidget {
 
   final OptionalLinesNote note;
 
-  /// `2 optional lines not listed — lime, coriander`, or
-  /// `1 line left out this week — Red wine`.
+  /// `2 optional lines not listed: lime, coriander`, or
+  /// `1 line left out this week: Red wine`.
   static String text(OptionalLinesNote note) =>
       lead(note) + note.names.join(', ');
 
-  /// The sentence up to the names — `2 optional lines not listed — `, the run
+  /// The sentence up to the names, `2 optional lines not listed: `, the run
   /// that stays plain when the names become doors.
   static String lead(OptionalLinesNote note) {
     final n = note.names.length;
     return switch (note.reason) {
       LineDropReason.optional =>
-        '$n optional ${plural(n, 'line')} not listed — ',
-      LineDropReason.thisWeek =>
-        '$n ${plural(n, 'line')} left out this week — ',
+        '$n optional ${plural(n, 'line')} not listed: ',
+      LineDropReason.thisWeek => '$n ${plural(n, 'line')} left out this week: ',
     };
   }
 

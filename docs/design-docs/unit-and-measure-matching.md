@@ -167,7 +167,7 @@ The rules, each of them the density rule read for a count:
   weighs a piece but names no size leads with `piece`.
 - **A `piece` default with no weight is a stranded default**, in the same class
   as a `cup` default with no density (D4c). The form flags it with its one-tap
-  fix — *piece needs a weight on this row — enter one below, or switch to g* —
+  fix — *piece needs a weight. Enter one below or switch to g* —
   and refuses Save. So a row cannot be saved as `piece`-default unweighed.
 - **`convert()` bridges a `piece` through the piece weight** the way it bridges
   a `cup` through the density: `2 piece × 350 g = 700 g`. No read-through rule,

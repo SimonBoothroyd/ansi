@@ -287,7 +287,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(household.flips, [DateTime.sunday]);
-      expect(find.text('couldn’t move your weeks — try again'), findsOneWidget);
+      expect(find.text('couldn’t move your weeks · try again'), findsOneWidget);
       // Still a control: the retry is the same tap.
       await tester.tap(find.text('Sun – Sat'));
       await tester.pumpAndSettle();

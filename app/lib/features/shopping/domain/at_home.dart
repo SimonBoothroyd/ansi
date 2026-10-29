@@ -259,8 +259,8 @@ String? whyNotAtHome(ShoppingItem item) {
     return 'nothing to take it from';
   }
   return measurable.contains(UnitFamily.count)
-      ? 'two units — no piece weight'
-      : 'two units — no density';
+      ? 'two units · no piece weight'
+      : 'two units · no density';
 }
 
 /// Whether [item] can take an amount at home at all: an ingredient row, not

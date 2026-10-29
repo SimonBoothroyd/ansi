@@ -489,7 +489,7 @@ void main() {
 
       expect(find.text('Office lunch'), findsWidgets);
       expect(find.byType(OutTag), findsOneWidget);
-      expect(find.text('620 kcal · 42P \u2014 as stated'), findsOneWidget);
+      expect(find.text('620 kcal · 42P · as stated'), findsOneWidget);
       // The dish beside it still has its batch sentence, so an absent marker
       // on this row is the kind's own rule.
       expect(find.byType(CookMarkerLine), findsOneWidget);
@@ -536,7 +536,7 @@ void main() {
 
     // Per meal: the badge and the reason in the shared vocabulary — the exact
     // words the recipe panel and the picker row refuse in — and no figure.
-    expect(find.text('no total — 1 stub line'), findsNWidgets(2));
+    expect(find.text('no total · 1 stub line'), findsNWidgets(2));
     // A refused day draws NO strip, on either side, and the week's band none
     // either — there is no number to draw.
     expect(find.byType(MacroStrip), findsNothing);

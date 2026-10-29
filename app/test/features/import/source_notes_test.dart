@@ -35,7 +35,7 @@ void main() {
       ),
     );
     expect(notes, hasLength(3));
-    expect(notes.first, contains('longer than we could read'));
+    expect(notes.first, contains('cut short'));
     expect(notes[1], contains('hard to read'));
     expect(notes.last, 'an amount was illegible');
   });

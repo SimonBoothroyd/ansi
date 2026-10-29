@@ -322,9 +322,9 @@ class _RecipePickerSheet extends HookConsumerWidget {
   }
 }
 
-/// `note it — “Office lunch” · not cooked, not bought`.
+/// `note “Office lunch” · not cooked, not bought`.
 String noteItLabel(String query) =>
-    'note it — “${query.trim()}” · $kNotCookedNotBought';
+    'note “${query.trim()}” · $kNotCookedNotBought';
 
 /// Whether the typed words found nothing. An empty query offers nothing;
 /// [recipeTier] is null only when no title hit at any tier; any ingredient hit
@@ -510,7 +510,7 @@ class _RecentList extends StatelessWidget {
         child: Text(
           emptyPickerLine(
             query: query,
-            bare: 'No recipes yet — add one below.',
+            bare: 'No recipes yet',
             shelf: 'the Library',
           ),
           textAlign: TextAlign.center,
@@ -542,7 +542,7 @@ class _FavoritesList extends StatelessWidget {
         child: Text(
           emptyPickerLine(
             query: query,
-            bare: 'No favorites yet — star a recipe from its page.',
+            bare: 'No favorites yet. Star a recipe from its page.',
             shelf: 'your favorites',
           ),
           textAlign: TextAlign.center,

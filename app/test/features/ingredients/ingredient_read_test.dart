@@ -245,7 +245,7 @@ void main() {
       expect(find.text('needs macros'), findsOneWidget);
       expect(macroTextContaining('0 kcal'), findsNothing);
       // The density says what it is short of in the entry's own words.
-      expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
+      expect(find.text('none yet'), findsOneWidget);
       // Which food the prefill came from, in the line the manager already
       // prints under the same row.
       expect(find.text('usda · Curry leaves, raw'), findsOneWidget);

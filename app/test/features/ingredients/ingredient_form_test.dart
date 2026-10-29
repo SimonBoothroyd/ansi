@@ -966,7 +966,7 @@ void main() {
       // The flag names the number and the other way out, and the sentence
       // that clears it is directly below.
       expect(
-        find.text('piece needs a weight on this row — enter one below, or'),
+        find.text('piece needs a weight. Enter one below or'),
         findsOneWidget,
       );
       expect(find.text('switch to g'), findsOneWidget);
@@ -1001,7 +1001,7 @@ void main() {
 
       // The chips read what the FORM holds, so the stranded line goes at once
       // — and the row is untouched until Save (W5).
-      expect(find.textContaining('needs a weight on this row'), findsNothing);
+      expect(find.textContaining('needs a weight.'), findsNothing);
       expect(
         (await repo.byId('curry'))!.pieceBasisAmount,
         isNull,
@@ -1037,7 +1037,7 @@ void main() {
       // Which strands the default — the row is counted with nothing weighing
       // one — so the form says so rather than saving it.
       expect(
-        find.text('piece needs a weight on this row — enter one below, or'),
+        find.text('piece needs a weight. Enter one below or'),
         findsOneWidget,
       );
       await tester.tap(find.text('switch to g'));
@@ -1348,7 +1348,7 @@ void main() {
 
       // The longest caption plus both phrasing chips: 55px of debug stripe on
       // the owner's 402pt device before G2.
-      expect(find.text('none yet — unlocks volume⇄weight'), findsOneWidget);
+      expect(find.text('none yet'), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       expect(find.text('weighs'), findsOneWidget);
@@ -1364,7 +1364,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('cup needs a density on this row'),
+        find.textContaining('cup needs a density. Add one below or'),
         findsOneWidget,
       );
       // Reading the form changed nothing: how a household buys a thing is
@@ -1375,7 +1375,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect((await repo.byId('rice'))!.defaultUnit, g);
-      expect(find.textContaining('needs a density on this row'), findsNothing);
+      expect(find.textContaining('needs a density.'), findsNothing);
     });
 
     testWidgets('a default the row cannot say REFUSES the save — flipping the '
@@ -1393,7 +1393,7 @@ void main() {
       await tester.tap(find.text('per 100 ml'));
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('g needs a density on this row'),
+        find.textContaining('g needs a density. Add one below or'),
         findsOneWidget,
       );
 
@@ -1445,7 +1445,7 @@ void main() {
       expect(defaultUnitChip(tester, 'cup').stranded, isTrue);
       expect(defaultUnitChip(tester, 'g').stranded, isFalse);
       expect(
-        find.textContaining('cup needs a density on this row'),
+        find.textContaining('cup needs a density. Add one below or'),
         findsOneWidget,
       );
       // The note names what a density would unlock — and never the chip
@@ -1464,7 +1464,7 @@ void main() {
 
       expect(defaultUnitChip(tester, 'cup').stranded, isFalse);
       expect(defaultUnitChip(tester, 'tbsp').enabled, isTrue);
-      expect(find.textContaining('needs a density on this row'), findsNothing);
+      expect(find.textContaining('needs a density.'), findsNothing);
       expect(find.textContaining('unlock when this row has'), findsNothing);
     });
 
@@ -1505,7 +1505,7 @@ void main() {
 
       expect(defaultUnitChip(tester, 'tsp').selected, isTrue);
       expect(defaultUnitChip(tester, 'tsp').stranded, isFalse);
-      expect(find.textContaining('needs a density on this row'), findsNothing);
+      expect(find.textContaining('needs a density.'), findsNothing);
 
       await tester.enterText(find.byType(TextField).first, 'Vanilla extract');
       await tester.pump();

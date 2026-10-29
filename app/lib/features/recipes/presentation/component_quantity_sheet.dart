@@ -230,7 +230,7 @@ class ComponentQuantityEditor extends HookConsumerWidget {
                 final fallback = _defaultUnit(yields);
                 choice.value = UnitOption(fallback);
                 retiredNote.value =
-                    '“${m.label}” retired — back to ${fallback.label}';
+                    '“${m.label}” retired. Back to ${fallback.label}.';
               }
             },
           ),
@@ -293,8 +293,7 @@ class ComponentQuantityEditor extends HookConsumerWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          note ??
-              (yields.isEmpty ? 'no yield set — amounts in batches only' : ''),
+          note ?? (yields.isEmpty ? 'no yield set · batches only' : ''),
           textAlign: TextAlign.center,
           style: ansiMono(size: 11, color: AnsiColors.muted),
         ),

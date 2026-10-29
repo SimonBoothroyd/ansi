@@ -222,13 +222,7 @@ class _Chosen extends StatelessWidget {
                   ],
                 ),
               ),
-              // A quiet hint that the row itself re-matches — the affordance is
-              // the whole tap target, not a separate control.
-              Text(
-                'tap to change',
-                style: ansiMono(size: 10, color: AnsiColors.muted),
-              ),
-              const SizedBox(width: 4),
+              // The whole row re-matches. The chevron is its only mark.
               const Icon(
                 FLucideIcons.chevronRight,
                 size: 14,
@@ -271,15 +265,9 @@ class _LinkedRecipe extends StatelessWidget {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: onTap,
-                child: Row(
-                  children: [
-                    Flexible(child: RecipeChip(title: title, size: 14)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'tap to change',
-                      style: ansiMono(size: 10, color: AnsiColors.muted),
-                    ),
-                  ],
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: RecipeChip(title: title, size: 14),
                 ),
               ),
             ),

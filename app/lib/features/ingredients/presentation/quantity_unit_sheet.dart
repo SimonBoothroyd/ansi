@@ -205,8 +205,8 @@ class QuantityUnitEditor extends HookConsumerWidget {
         choice.value = UnitOption(live.value.defaultUnit);
         unitPicked.value = true;
         deletedNote.value =
-            '“${m.label}” deleted — back to '
-            '${live.value.defaultUnit.label}';
+            '“${m.label}” deleted. Back to '
+            '${live.value.defaultUnit.label}.';
       }
     }
 
@@ -405,7 +405,7 @@ class _QuantitySurface extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'measure pending sync — it stays unless you pick a unit',
+              'measure pending sync',
               style: ansiMono(size: 10, color: AnsiColors.muted),
             ),
           ),

@@ -255,7 +255,7 @@ void main() {
 
       container.read(receiptScanControllerProvider.notifier).drop(5);
       await tester.pumpAndSettle();
-      expect(find.textContaining('— dropped'), findsOneWidget);
+      expect(find.textContaining('· dropped'), findsOneWidget);
 
       final dropped =
           (container.read(receiptScanControllerProvider) as ReceiptReviewing)
@@ -639,7 +639,7 @@ void main() {
       await tester.tap(find.text('Bananas, organic'));
       await tester.pumpAndSettle();
       expect(find.text('as you matched it last time'), findsOneWidget);
-      expect(find.text('tap to change'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Change the match')), findsOneWidget);
     });
 
     testWidgets('changing it makes it the person’s, and the note goes', (

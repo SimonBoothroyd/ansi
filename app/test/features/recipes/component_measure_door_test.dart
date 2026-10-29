@@ -289,7 +289,7 @@ void main() {
 
     await _back(tester);
     expect(_chip('blob'), findsNothing);
-    expect(find.text('“blob” retired — back to g'), findsOneWidget);
+    expect(find.text('“blob” retired. Back to g.'), findsOneWidget);
 
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();

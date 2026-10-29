@@ -166,7 +166,7 @@
                 <p class="flabel" style="margin-top:16px">The same sheet · a recipe with no yield</p>
                 <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">batch</span></div></div>
                 <div class="dock">
-                    <p class="conv-note" style="margin:0 0 9px">no yield set — amounts in batches only</p>
+                    <p class="conv-note" style="margin:0 0 9px">no yield set · batches only</p>
                     <div class="uchips"><span class="uchip on">batch</span><span class="uchip addm">＋</span></div>
                     <div class="ghostbtn" style="margin-top:2px">Set the yield</div>
                 </div>
@@ -192,7 +192,7 @@
                 <p class="flabel" style="margin-top:16px">The same sheet · a recipe that says no yield</p>
                 <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">batch</span></div></div>
                 <div class="dock" style="margin-top:0">
-                    <p class="conv-note" style="margin:0 0 9px">no yield set — amounts in batches only</p>
+                    <p class="conv-note" style="margin:0 0 9px">no yield set · batches only</p>
                     <div class="uchips"><span class="uchip on">batch</span><span class="uchip addm">＋</span></div>
                     <div class="ghostbtn" style="margin-top:2px">Set the yield</div>
                     <p class="conv-note" style="margin:8px 0 0">no measures either: a measure is an amount, and an amount says nothing about a batch until the batch has one too (<a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a>). <b>Set the yield</b> is the one door.</p>
@@ -222,13 +222,13 @@
                 <div class="dock" style="margin-top:0">
                     <p class="chip-note">the measure this line says is gone — retired on the other recipe, or not synced here yet</p>
                     <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu" style="color:var(--muted)"></span></div></div>
-                    <p class="conv-note" style="margin:0 0 9px"><b>3</b> — its measure is gone</p>
+                    <p class="conv-note" style="margin:0 0 9px"><b>3</b> · its measure is gone</p>
                     <div class="uchips"><span class="uchip">batch</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip addm">＋</span></div>
                     <p class="conv-note" style="margin:8px 0 10px">Under the row: <span style="font-family:'IBM Plex Mono',monospace">Measure deleted. Pick another.</span></p>
                     <p class="conv-note" style="margin:0 0 10px"><b>No chip is lit</b>, because nothing here is what the line says. The number is kept and the line is <b>unresolved</b> — it joins no total, and every surface names it. The pointer stays put until a chip is tapped, which is the other repair.</p>
                     <p class="chip-note">and the different case: the measure is <b>alive</b>, but the recipe stopped saying what it makes in its family</p>
                     <div class="field" style="margin-bottom:8px"><div class="qty-big"><span class="qn">3</span><span class="care"></span><span class="qu">blob (15 g)</span></div></div>
-                    <p class="conv-note" style="margin:0 0 9px"><b>3 blob</b> — unresolved — the yield is in volume, this line in weight</p>
+                    <p class="conv-note" style="margin:0 0 9px"><b>3 blob</b> · unresolved · the yield is in volume, this line in weight</p>
                     <div class="uchips"><span class="uchip">batch</span><span class="uchip">cup</span><span class="uchip">tbsp</span><span class="uchip outside">blob<span class="chip-suffix">not in filter</span></span><span class="uchip addm">＋</span></div>
                     <p class="conv-note" style="margin:0">the household’s <b>measure still reads</b>, last and marked — only the share has gone. The fix is the recipe’s MAKES rather than anything on this row, and a Save that would cause it <b>warns first</b>, up in the recipe editor.</p>
                 </div>
@@ -279,7 +279,7 @@
                 <div class="field" style="margin-top:16px">
                     <div class="addm-card" style="margin-bottom:0">
                         <div class="addm-h">＋ add measure</div>
-                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">label — “half can”</span><span class="addm-in g">7</span><span class="uchip on">oz</span><span class="addm-save">Save</span></div>
+                        <div class="addm-fields"><span class="addm-in" style="color:var(--muted)">name, like “half can”</span><span class="addm-in g">7</span><span class="uchip on">oz</span><span class="addm-save">Save</span></div>
                     </div>
                 </div>
                 <p class="conv-note" style="margin-top:14px">the amount takes <b>the unit it was weighed in</b> — a scale says 7 oz and the row stores 198.4 g. The unit is <b>one chip</b>, tapped to open the pick sheet, and it offers what this row can convert to its basis and nothing else.</p>

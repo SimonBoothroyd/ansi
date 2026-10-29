@@ -262,7 +262,7 @@ void main() {
     await tester.pumpAndSettle();
     await scrollTo(tester, find.textContaining('left out this week'));
     expect(
-      find.textContaining('1 line left out this week — All-Purpose Flour'),
+      find.textContaining('1 line left out this week: All-Purpose Flour'),
       findsOneWidget,
     );
   });

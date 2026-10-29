@@ -413,7 +413,7 @@ void main() {
           WeekShape.monday,
           denomination: (qty: 1, unit: cup),
         ),
-        'covers Sausage Sliders · cook Sat — makes 1 cup, you need ¼',
+        'covers Sausage Sliders · cook Sat · makes 1 cup, you need ¼',
       );
     });
 
@@ -511,7 +511,7 @@ void main() {
       // printed.
       expect(
         gapCoversLine(missing, WeekShape.monday),
-        'covers Sausage Sliders · cook Sat — the line asks for ¼ cup',
+        'covers Sausage Sliders · cook Sat · the line asks for ¼ cup',
       );
     });
 
@@ -522,14 +522,14 @@ void main() {
           WeekShape.monday,
         ),
         // A count prints bare, the way the recipe page says it.
-        'covers Sausage Sliders · cook Sat — the line asks for 8',
+        'covers Sausage Sliders · cook Sat · the line asks for 8',
       );
       expect(
         gapCoversLine(
           gap(const ComponentYieldMissing(), quantity: 2, unit: tbsp),
           WeekShape.monday,
         ),
-        'covers Sausage Sliders · cook Sat — the line asks for 2 tbsp',
+        'covers Sausage Sliders · cook Sat · the line asks for 2 tbsp',
       );
     });
 
@@ -570,7 +570,7 @@ void main() {
       );
       expect(
         gapCoversLine(shared, WeekShape.monday),
-        'covers Sausage Sliders + Romesco Toasts · cook Sat + Sun — '
+        'covers Sausage Sliders + Romesco Toasts · cook Sat + Sun · '
         'Sausage Sliders asks for ¼ cup · Romesco Toasts asks for 1 batch',
       );
     });

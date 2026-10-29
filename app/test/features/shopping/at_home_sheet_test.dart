@@ -103,7 +103,7 @@ void main() {
     final repo = await _open(tester, _flour);
 
     expect(find.text('this week needs'), findsOneWidget);
-    expect(find.text('nothing — it’s all at home'), findsOneWidget);
+    expect(find.text('nothing, it’s all at home'), findsOneWidget);
     // Nothing was said yet, so there is nothing to remove.
     expect(find.text('Remove'), findsNothing);
 

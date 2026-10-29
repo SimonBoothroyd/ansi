@@ -653,7 +653,7 @@ void main() {
       expect(summary.subRecipesUnresolved, 0);
     });
 
-    test('a dangling link is unresolved — nothing derives from a link whose '
+    test('a dangling link is unresolved · nothing derives from a link whose '
         'other end is gone', () {
       final summary = summarizeRecipeMacros(
         servingsBase: 2,

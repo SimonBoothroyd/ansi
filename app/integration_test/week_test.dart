@@ -606,7 +606,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('1¾ portions'), findsOneWidget);
-    expect(find.text('Ada 1 · Jun ¾ — their usual'), findsOneWidget);
+    expect(find.text('Ada 1 · Jun ¾ · their usual'), findsOneWidget);
     expect(find.textContaining('1.75'), findsNothing);
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();

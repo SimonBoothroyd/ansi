@@ -219,7 +219,7 @@ class MeasuresEditor extends HookWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Text(
-              'No measures yet — name one below.',
+              'No measures yet',
               style: ansiMono(size: 12, color: AnsiColors.muted),
             ),
           )

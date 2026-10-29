@@ -141,12 +141,7 @@ void main() {
       // stay distinct sentences.
       // The Produce header has just said "produce", so the row does not
       // repeat it — the fact line starts at what the row is short of.
-      expect(
-        find.text(
-          'no density — volume units locked · needs macros — no zeros shown',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('no density · needs macros'), findsOneWidget);
       // A stub shows no macro line at all — never a row of zeros. Only the
       // two complete rows carry one.
       expect(macroTextContaining('kcal ·'), findsNWidgets(2));

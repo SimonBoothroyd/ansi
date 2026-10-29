@@ -28,6 +28,7 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/dashed_border_box.dart';
+import '../../../shared/describe_failure.dart';
 import '../../../shared/format.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/picker_shell.dart';
@@ -184,7 +185,9 @@ class IngredientDetailView extends HookConsumerWidget {
         showBack: !embedded,
       ),
       child: switch (async) {
-        AsyncError(:final error) => _Centered('Could not open it — $error'),
+        AsyncError(:final error) => _Centered(
+          'Couldn’t open it · ${describeFailure(error)}',
+        ),
         AsyncLoading() => const _Centered('…'),
         _ => const _Centered('Deleted on another device.'),
       },
@@ -532,7 +535,7 @@ class _PriceGroup extends ConsumerWidget {
     if (prices.isEmpty) {
       return _Group(
         title: 'Price',
-        suffix: base == null ? '— none yet' : null,
+        suffix: base == null ? '· none yet' : null,
         children: [baseEntry],
       );
     }
@@ -1442,9 +1445,7 @@ class _UsdaProvenance extends StatelessWidget {
     final String line;
     if (declined) {
       header = 'USDA · declined';
-      line =
-          '${label ?? 'that USDA food'} — not this food · the filled numbers '
-          'were cleared';
+      line = '${label ?? 'that USDA food'} · not this food · numbers cleared';
     } else if (pending) {
       // The tense is the whole point: these numbers are in the fields and
       // nowhere else, and the dock's Save is what makes them the row's.
@@ -1952,8 +1953,8 @@ class _StrandedDefaultNote extends StatelessWidget {
     final fix = basisDefaultUnitFix(ingredient);
     // Two strandings (ADR-0015), each naming the number that repairs it.
     final needs = defaultUnitNeedsPieceWeight(ingredient)
-        ? 'needs a weight on this row — enter one below, or'
-        : 'needs a density on this row — add one below, or';
+        ? 'needs a weight. Enter one below or'
+        : 'needs a density. Add one below or';
     return Padding(
       padding: const EdgeInsets.only(top: 7),
       child: Wrap(
@@ -2359,7 +2360,7 @@ class _Group extends StatelessWidget {
 
   final String title;
 
-  /// A quieter clause beside the heading for the group's state: `Price — none
+  /// A quieter clause beside the heading for the group's state: `Price · none
   /// yet`.
   final String? suffix;
 

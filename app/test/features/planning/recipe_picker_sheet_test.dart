@@ -234,7 +234,7 @@ void main() {
     await _open(tester, recipes: const [_salad]); // nothing starred
     await tester.tap(find.text('Favorites'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('star a recipe'), findsOneWidget);
+    expect(find.textContaining('Star a recipe'), findsOneWidget);
   });
 
   // --- A bare shelf and a search that missed are different answers ----------
@@ -248,7 +248,7 @@ void main() {
         'typed', (tester) async {
       await _open(tester, recipes: const []);
 
-      expect(find.text('No recipes yet — add one below.'), findsOneWidget);
+      expect(find.text('No recipes yet'), findsOneWidget);
     });
 
     testWidgets('says the words back when a query matched no recipe', (
@@ -284,7 +284,7 @@ void main() {
         find.text('Nothing in your favorites matches “office lunch”.'),
         findsOneWidget,
       );
-      expect(find.textContaining('star a recipe'), findsNothing);
+      expect(find.textContaining('Star a recipe'), findsNothing);
     });
 
     testWidgets('trims the words it quotes', (tester) async {
@@ -354,18 +354,18 @@ void main() {
       filterForuiSemanticsAssertions();
 
       await _open(tester);
-      expect(find.textContaining('note it'), findsNothing);
+      expect(find.textContaining('note “'), findsNothing);
 
       // A recipe hit is an answer.
       await tester.enterText(find.byType(EditableText).first, 'chicken');
       await tester.pumpAndSettle();
-      expect(find.textContaining('note it'), findsNothing);
+      expect(find.textContaining('note “'), findsNothing);
 
       // So is an ingredient hit, even where no recipe matched.
       await tester.enterText(find.byType(EditableText).first, 'prot');
       await tester.pumpAndSettle();
       expect(find.text('Protein bar'), findsOneWidget);
-      expect(find.textContaining('note it'), findsNothing);
+      expect(find.textContaining('note “'), findsNothing);
     });
 
     testWidgets('appears when the words hit nothing, and says what the app '
@@ -396,7 +396,7 @@ void main() {
         '  Office lunch  ',
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('note it'));
+      await tester.tap(find.textContaining('note “'));
       await tester.pumpAndSettle();
 
       expect(picked, isA<PickedMealOut>());
@@ -417,7 +417,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Had instead'), findsOneWidget);
       expect(find.textContaining('new recipe'), findsNothing);
-      expect(find.textContaining('note it'), findsNothing);
+      expect(find.textContaining('note “'), findsNothing);
 
       // "prot" hits the protein bar, and the words can still be noted.
       await tester.enterText(find.byType(EditableText).first, 'prot');

@@ -230,7 +230,7 @@ String rawLineText(RawLineItem raw) =>
     joinSourceLine(raw.rawAmount, raw.ingredientText);
 
 /// What a review-minted line prints where every other line prints its source.
-const kAddedHereNote = 'added here — not on the page';
+const kAddedHereNote = 'added here';
 
 /// The compact three-part row: amount · ingredient · notes, a pencil, and (when
 /// still open) a clear "needs you" label. Tapping anywhere expands it.

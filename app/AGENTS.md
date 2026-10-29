@@ -131,6 +131,8 @@ the router hands the shells, so the shells never import the feature.
   else. Inset reads (`viewInsetsOf`, `paddingOf`) are not viewport reads and are
   fine. The whole picture:
   [`../docs/design-docs/wide-screen.md`](../docs/design-docs/wide-screen.md).
+- **Printed words follow the [copy rules](../docs/exec-plans/active/0057-copy-pass.md)**,
+  held by `test/structure/copy_rules_test.dart`: fix the string, not its allowlist.
 - **Reads come from PowerSync's local SQLite** as watched queries, surfaced as
   providers. The app does not call Supabase REST directly for synced data.
 - **Run codegen after touching any `@riverpod`, `@freezed`, or JSON type:**

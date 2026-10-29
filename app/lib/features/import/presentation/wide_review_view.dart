@@ -601,7 +601,7 @@ class _LinesColumn extends HookConsumerWidget {
                       timeCaptions: false,
                       notes: RecipeHeaderNotes(
                         besideServes: state.payload.servingsBase == null
-                            ? 'not printed — set it'
+                            ? 'not printed'
                             : null,
                         underMakes: sourceStated
                             ? 'from source:  $sourceRaw'

@@ -463,7 +463,7 @@ void main() {
       expect(
         find.textContaining(
           'the pack prints 80 kcal per 0.25 cup (28 g) · that is 286 per '
-          '100 g — these agree',
+          '100 g · these agree',
         ),
         findsOneWidget,
       );

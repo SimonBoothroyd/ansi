@@ -238,7 +238,7 @@ void main() {
     voice.available = false;
     await tester.tap(find.bySemanticsLabel('Speak'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('allow the microphone'), findsOneWidget);
+    expect(find.textContaining('Allow the microphone'), findsOneWidget);
   });
 
   /// "Plan the ragù for Friday dinner", as Ansi proposes it.

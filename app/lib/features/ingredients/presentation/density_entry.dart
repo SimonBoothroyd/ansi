@@ -215,7 +215,7 @@ class DensityEntry extends HookWidget {
               Flexible(
                 child: Text(
                   density == null
-                      ? 'none yet — unlocks volume⇄weight'
+                      ? 'none yet'
                       : densityFact(ingredient, serving: serving),
                   style: ansiMono(
                     size: 10,

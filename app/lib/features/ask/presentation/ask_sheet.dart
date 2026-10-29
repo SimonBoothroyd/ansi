@@ -299,7 +299,7 @@ String _examples(AskScreen screen) => switch (screen) {
 /// microphone refused.
 void showAskMicRefused(BuildContext context) => showAnsiFailureToast(
   context,
-  what: 'hear you — allow the microphone in Settings, or type the question',
+  what: 'hear you. Allow the microphone in Settings or type the question',
 );
 
 class _SeesChip extends StatelessWidget {

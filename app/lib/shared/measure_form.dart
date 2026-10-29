@@ -32,7 +32,7 @@ class MeasureForm extends HookWidget {
     this.icon,
     this.headline,
     this.equation = false,
-    this.hint = 'label — “half can”',
+    this.hint = 'name, like “half can”',
     this.labelFocus,
     super.key,
   });

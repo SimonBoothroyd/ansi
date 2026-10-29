@@ -116,7 +116,7 @@ void main() {
         findsOneWidget,
       );
       // The cell is still the re-match affordance it was.
-      expect(find.text('tap to change'), findsOneWidget);
+      expect(find.byIcon(FLucideIcons.chevronRight), findsOneWidget);
     });
 
     testWidgets('an edited row leads with EDITED here too', (tester) async {

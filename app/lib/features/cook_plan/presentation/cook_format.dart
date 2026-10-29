@@ -121,7 +121,7 @@ String componentCoversLine(
   final head = 'covers ${session.demandedBy.join(' + ')} · cook $days';
   if (denomination == null) return head;
   final batches = session.batchesToCook ?? 0;
-  return '$head — ${yieldText(denomination)}, '
+  return '$head · ${yieldText(denomination)}, '
       'you need ${formatQuantity(batches)}';
 }
 
@@ -161,10 +161,10 @@ String gapCoversLine(ComponentGap gap, WeekShape shape) {
   ];
   if (asks.isEmpty) return head;
   if (gap.demandedBy.length == 1) {
-    return '$head — the line asks for ${said(asks.single)}';
+    return '$head · the line asks for ${said(asks.single)}';
   }
   final clauses = asks.map((d) => '${d.title} asks for ${said(d)}').join(' · ');
-  return '$head — $clauses';
+  return '$head · $clauses';
 }
 
 /// The warn state's headline — *"Romesco Aioli doesn't say how much it

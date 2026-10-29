@@ -163,7 +163,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // The state is said where the group is named, not as a zero under it.
-      expect(find.text('Price — none yet'), findsOneWidget);
+      expect(find.text('Price · none yet'), findsOneWidget);
       expect(find.text('set a base price'), findsOneWidget);
       // Never a fabricated figure for a row nothing was ever paid for.
       expect(find.textContaining(r'$0'), findsNothing);
@@ -427,7 +427,7 @@ void main() {
       expect(find.text('BASE'), findsOneWidget);
       expectUsedForCostsOn(tester, 'BASE');
       expect(basePriceInk(tester), AnsiColors.ink);
-      expect(find.text('Price — none yet'), findsNothing);
+      expect(find.text('Price · none yet'), findsNothing);
     });
 
     testWidgets('a new price opens on the chip the row leads with, not on its '
@@ -835,7 +835,7 @@ void main() {
         expect(find.byType(PriceEditor), findsNothing);
         // The group is back to the state a row nobody has priced wears — never
         // a zero standing where the price was.
-        expect(find.text('Price — none yet'), findsOneWidget);
+        expect(find.text('Price · none yet'), findsOneWidget);
       },
     );
 

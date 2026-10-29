@@ -212,7 +212,7 @@ String outMacroLine(PlanEntry entry) {
   final macros = entry.macros;
   if (macros == null) return 'macros not stated';
   return '${formatKcal(macros.kcal)} kcal · '
-      '${formatGrams(macros.protein)}P — as stated';
+      '${formatGrams(macros.protein)}P · as stated';
 }
 
 /// A snack row's amount: `1 bar · 60 g`, `170 g`, or `no amount`. The second

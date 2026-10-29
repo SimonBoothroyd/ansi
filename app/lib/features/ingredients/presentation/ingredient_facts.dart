@@ -88,7 +88,7 @@ String allowedUnitsFact(Ingredient ingredient) =>
 /// ([densitySentenceOf]). A row with none says what the entry's headline says.
 String densityFact(Ingredient ingredient, {Measure? serving}) {
   final density = ingredient.densityGPerMl;
-  if (density == null) return 'none yet — unlocks volume⇄weight';
+  if (density == null) return 'none yet';
   final stated = '${formatDensity(density)} g/ml';
   final shown = densitySentenceOf(ingredient, serving: serving);
   if (shown == null) return stated;

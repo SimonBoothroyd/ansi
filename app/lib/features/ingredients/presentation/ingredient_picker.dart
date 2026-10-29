@@ -269,10 +269,10 @@ String vocabRowHints(
   if (ing.densityGPerMl != null)
     'has density'
   else if (advisoryDensityGap)
-    'no density — volume units locked',
+    'no density',
   if (ing.measureCount > 0)
     '${ing.measureCount} ${plural(ing.measureCount, 'measure')}',
-  if (ing.status == IngredientStatus.stub) 'needs macros — no zeros shown',
+  if (ing.status == IngredientStatus.stub) 'needs macros',
 ].join(' · ');
 
 /// One dense result row: name (+`stub` badge), hints, and a per-100 macro line

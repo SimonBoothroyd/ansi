@@ -51,14 +51,8 @@ void main() {
 
       // The card, with what it left alone named on it.
       expect(find.text('FOUND · OPEN FOOD FACTS'), findsOneWidget);
-      expect(
-        find.textContaining('kept: the name — yours stays'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('the provenance — this row already names a source'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('kept: your name'), findsOneWidget);
+      expect(find.textContaining('your source'), findsOneWidget);
       // The panel reached the FIELDS (the G1 lesson), the name did not move.
       expect(macroFieldText(tester, 'kcal'), '539');
       expect(macroFieldText(tester, 'fat'), '31');
@@ -108,7 +102,7 @@ void main() {
       // under the chips, and refused at Save. A density minted to paper over
       // it is exactly what invariant 3 forbids.
       expect(
-        find.textContaining('g needs a density on this row'),
+        find.textContaining('g needs a density. Add one below or'),
         findsOneWidget,
       );
       await tester.tap(find.byKey(kFormSaveKey));
@@ -212,10 +206,7 @@ void main() {
       await scanOnForm(tester, '3017620422003');
 
       expect(macroFieldText(tester, 'kcal'), '100');
-      expect(
-        find.textContaining('the macros — the ones already entered stay'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('your macros'), findsOneWidget);
     });
 
     testWidgets('the pack size is an offer: tapped, it becomes a measure in '

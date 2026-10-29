@@ -143,10 +143,10 @@ String unresolvedComponentText(UnresolvedComponentAmount reason) =>
       ComponentYieldMissing() => 'no yield set',
       ComponentMeasureMissing() => 'its measure is gone',
       ComponentFamilyMismatch(:final lineFamily, :final yieldFamilies) =>
-        'unresolved — the yield is in '
+        'unresolved · the yield is in '
             '${yieldFamilies.map((f) => f.said).toSet().join(' / ')}, '
             'this line in ${lineFamily.said}',
-      ComponentCycle() => 'unresolved — this recipe is used inside itself',
+      ComponentCycle() => 'unresolved · this recipe is used inside itself',
     };
 
 /// A component amount as one line: the share of a batch, or the reason there is
@@ -220,7 +220,7 @@ String? componentConversionLine({
           ? '$printed = ${batchShareText(batches)}'
           : '$printed = ${batchShareText(batches)} · ${yieldText(against)}',
     UnresolvedComponentAmount() =>
-      '$printed — ${unresolvedComponentText(amount)}',
+      '$printed · ${unresolvedComponentText(amount)}',
   };
 }
 

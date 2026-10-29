@@ -375,10 +375,10 @@ Future<void> _rematch(
     of: _card(i),
     matching: find.byWidgetPredicate(
       (w) =>
-          w is Text &&
-          (w.data == 'Find or create ingredient' ||
-              w.data == 'Something else' ||
-              w.data == 'tap to change'),
+          (w is Text &&
+              (w.data == 'Find or create ingredient' ||
+                  w.data == 'Something else')) ||
+          (w is Icon && w.icon == FLucideIcons.chevronRight),
     ),
   );
   expect(door, findsWidgets, reason: 'line $i has no way into the picker');

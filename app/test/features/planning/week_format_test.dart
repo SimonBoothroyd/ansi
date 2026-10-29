@@ -357,7 +357,7 @@ void main() {
         outMacroLine(
           out(macros: const Macros(kcal: 620, protein: 42, carb: 55, fat: 24)),
         ),
-        '620 kcal · 42P \u2014 as stated',
+        '620 kcal · 42P · as stated',
       );
     });
 
@@ -368,7 +368,7 @@ void main() {
             macros: const Macros(kcal: 619.6, protein: 41.7, carb: 55, fat: 24),
           ),
         ),
-        '620 kcal · 42P \u2014 as stated',
+        '620 kcal · 42P · as stated',
       );
     });
 

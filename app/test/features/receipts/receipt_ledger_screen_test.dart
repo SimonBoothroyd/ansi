@@ -449,7 +449,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plantains'));
       await tester.pumpAndSettle();
-      expect(find.text('tap to change'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Change the match')), findsOneWidget);
     });
   });
 

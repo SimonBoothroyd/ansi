@@ -265,7 +265,7 @@ void main() {
       expect(find.text('×¼ batch'), findsOneWidget);
       expect(
         find.text(
-          'covers Sausage Sliders · cook Sat — makes 1 cup, you need ¼',
+          'covers Sausage Sliders · cook Sat · makes 1 cup, you need ¼',
         ),
         findsOneWidget,
       );

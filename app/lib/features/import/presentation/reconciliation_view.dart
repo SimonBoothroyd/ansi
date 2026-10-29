@@ -112,7 +112,7 @@ class ReconciliationBody extends HookConsumerWidget {
                 timeCaptions: false,
                 notes: RecipeHeaderNotes(
                   besideServes: payload.servingsBase == null
-                      ? 'not printed — set it'
+                      ? 'not printed'
                       : null,
                   underMakes: sourceStated ? 'from source:  $source' : null,
                 ),
@@ -238,7 +238,7 @@ class ReviewCommitBar extends ConsumerWidget {
             // which is true and useless.
             ? 'Nothing left to save'
             : unchecked
-            ? 'Couldn’t check the lines — try again'
+            ? 'Couldn’t check the lines. Try again.'
             : '$outstanding line(s) need you',
       ),
     );
@@ -392,14 +392,13 @@ class ReviewListDoors extends ConsumerWidget {
 /// photo, and the model's [ReconciliationPayload.parseWarnings]. Empty for a
 /// clean import.
 List<String> sourceNotes(ReconciliationPayload payload) => <String?>[
-  if (payload.truncated)
-    'The source was longer than we could read — check nothing is missing.',
+  if (payload.truncated) 'The source was cut short. Check nothing is missing.',
   switch (payload.imageQuality) {
     ImportImageQuality.ok => null,
     ImportImageQuality.degraded =>
-      'The photo was hard to read — amounts especially.',
+      'The photo was hard to read. Check the amounts.',
     ImportImageQuality.poor =>
-      'The photo was very hard to read — check every line.',
+      'The photo was very hard to read. Check every line.',
   },
   ...payload.parseWarnings,
 ].whereType<String>().toList();

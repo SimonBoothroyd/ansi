@@ -62,7 +62,7 @@ void main() {
         unit: tbsp,
         yields: const [],
       );
-      expect(line, '2 tbsp — no yield set');
+      expect(line, '2 tbsp · no yield set');
       expect(line, isNot(contains('1 batch')));
     });
 
@@ -73,7 +73,7 @@ void main() {
           unit: tbsp,
           yields: [(qty: 250, unit: g)],
         ),
-        '2 tbsp — unresolved — the yield is in weight, this line in volume',
+        '2 tbsp · unresolved · the yield is in weight, this line in volume',
       );
     });
   });
@@ -243,7 +243,7 @@ void main() {
           recipeMeasureId: 'blob',
           measures: const [blob],
         ),
-        '3 blob — unresolved — the yield is in volume, this line in weight',
+        '3 blob · unresolved · the yield is in volume, this line in weight',
       );
       expect(
         componentConversionLine(
@@ -253,7 +253,7 @@ void main() {
           recipeMeasureId: 'blob',
           measures: const [blob],
         ),
-        '3 blob — no yield set',
+        '3 blob · no yield set',
       );
     });
 
@@ -266,7 +266,7 @@ void main() {
           // No measures handed in at all: the word is gone.
           recipeMeasureId: 'blob',
         ),
-        '3 — its measure is gone',
+        '3 · its measure is gone',
       );
       expect(
         unresolvedComponentText(const ComponentMeasureMissing('blob')),

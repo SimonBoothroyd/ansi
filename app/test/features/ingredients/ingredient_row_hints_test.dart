@@ -64,7 +64,7 @@ void main() {
       name: 'a stub names what it is short of, in the last clause',
       ing: _ing(category: 'baking', status: IngredientStatus.stub),
       advisory: false,
-      hints: 'baking · needs macros — no zeros shown',
+      hints: 'baking · needs macros',
     ),
     (
       name: 'the picker stays quiet about a missing density',
@@ -76,7 +76,7 @@ void main() {
       name: 'the manager, which can fix it, says so',
       ing: _ing(category: 'pantry'),
       advisory: true,
-      hints: 'pantry · no density — volume units locked',
+      hints: 'pantry · no density',
     ),
     (
       name: 'a density beats the advisory: there is no gap left to report',
@@ -93,8 +93,8 @@ void main() {
       ),
       advisory: true,
       hints:
-          'produce · no density — volume units locked · 3 measures · '
-          'needs macros — no zeros shown',
+          'produce · no density · 3 measures · '
+          'needs macros',
     ),
   ];
 
@@ -110,10 +110,10 @@ void main() {
     final all = table.map((c) => c.hints).join();
     for (final clause in [
       'has density',
-      'no density — volume units locked',
+      'no density',
       'measure',
       'measures',
-      'needs macros — no zeros shown',
+      'needs macros',
     ]) {
       expect(all, contains(clause), reason: clause);
     }

@@ -1344,7 +1344,7 @@ void main() {
     expect(find.text('SAUSAGE SLIDERS'), findsNothing);
     await _openFold(tester, ShopFold.notes);
     expect(find.text('SAUSAGE SLIDERS'), findsOneWidget);
-    expect(find.text('1 component unresolved — see Cook'), findsOneWidget);
+    expect(find.text('1 component unresolved · see Cook'), findsOneWidget);
   });
 
   testWidgets('a line at a RETIRED ingredient is named at the bottom, with '
@@ -1456,7 +1456,7 @@ void main() {
     await _openFold(tester, ShopFold.notes);
     expect(find.text('WEEKNIGHT CHICKEN CURRY'), findsOneWidget);
     expect(
-      find.textContaining('2 optional lines not listed — lime, coriander'),
+      find.textContaining('2 optional lines not listed: lime, coriander'),
       findsOneWidget,
     );
     // Muted, not amber: the unresolved echo's flag icon is not on this row.
@@ -2224,7 +2224,7 @@ void main() {
         'tap does nothing', (tester) async {
       final repo = await pumpWalk(tester);
       await enterThePass(tester);
-      expect(find.text('two units — no density'), findsOneWidget);
+      expect(find.text('two units · no density'), findsOneWidget);
       await tester.tap(find.byKey(shopHomeRowKey('butter')));
       await tester.pump();
       expect(repo.atHomeSet, isEmpty);

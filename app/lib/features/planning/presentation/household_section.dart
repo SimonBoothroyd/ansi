@@ -190,7 +190,7 @@ String? weekStartNote({
   required bool failed,
 }) {
   if (moving) return 'moving your weeks…';
-  if (failed) return 'couldn’t move your weeks — try again';
+  if (failed) return 'couldn’t move your weeks · try again';
   if (!reachable) return 'needs a connection';
   return null;
 }

@@ -21,9 +21,9 @@ import 'ingredient.dart';
 /// A field a draft could have filled and did not, because a human already
 /// had. Named so the card can say which.
 enum DraftSkip {
-  name('the name — yours stays'),
-  macros('the macros — the ones already entered stay'),
-  provenance('the provenance — this row already names a source');
+  name('your name'),
+  macros('your macros'),
+  provenance('your source');
 
   const DraftSkip(this.reason);
 

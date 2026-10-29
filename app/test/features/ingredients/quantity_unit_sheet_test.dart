@@ -607,7 +607,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // The choice fell back to the default unit, visibly.
-    expect(find.textContaining('deleted — back to piece'), findsOneWidget);
+    expect(find.textContaining('deleted. Back to piece.'), findsOneWidget);
     expect(find.text('potato, large (299 g)'), findsNothing);
 
     // Done writes the reconciled unit — never the tombstoned measure_id.

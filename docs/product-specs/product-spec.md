@@ -457,7 +457,7 @@ An `ingredient_measure` row names one countable thing and says what it weighs:
     way clearing a density strips the units it granted.
   - **A `piece` default with no weight is a stranded default**, in the same
     class as a `cup` default with no density: the form draws the flag with its
-    one-tap fix — *piece needs a weight on this row — enter one below, or switch
+    one-tap fix — *piece needs a weight. Enter one below or switch
     to g* — and **refuses Save**. Nothing is saveable as `piece`-default
     unweighed, and nothing at runtime has to decide what a `piece` meant.
   - **Measures are for every other count word** — a size, a fragment, a
@@ -504,7 +504,7 @@ its steps.
   that every derivation runs over: the macro summary and the shopping list
   leave the line out **and name it where it left** (an `OPTIONAL · Lime,
   Coriander` row under the panel, beside the imprecise one; `2 optional lines
-  not listed — lime, coriander` as the recipe's muted echo row on Shop, where
+  not listed: lime, coriander` as the recipe's muted echo row on Shop, where
   each name is a **door** — a tap writes this week's include row for that
   line), never a silent drop. **The cook plan honours the flag through the
   same seam**: an optional ingredient line changes nothing there — a batch is
@@ -1052,7 +1052,7 @@ a line starts, never whether it can be changed:
   total times — and unset otherwise (shelf life, a section); filed into the
   default book from the start so FILE UNDER shows where it will land. What
   only the review knows is drawn *around* the form, never inside a copy of
-  it: the never-invent strip above, *not printed — set it* beside SERVES,
+  it: the never-invent strip above, *not printed* beside SERVES,
   *from source: …* under MAKES. Nothing in the header gates Save; every
   column of it rides the commit.
 - **The METHOD is editable here**, with the same step cards as the recipe
@@ -1359,7 +1359,7 @@ source-tab slot, footer slot):
   component line opens this sheet, the week variant editor's amount cell
   included. A word the recipe can no longer hold is offered only where a line
   already says it, marked; a word that has been **retired** lights no chip at
-  all — the number is kept, the line reads *"3 — its measure is gone"*, and the
+  all — the number is kept, the line reads *"3 · its measure is gone"*, and the
   pointer stays until somebody picks a chip or the word comes back. Cook's
   component card quotes such a demand in the words it was written in, showing
   its work: *"3 blob → 45 g → 0.15 of a batch"*.

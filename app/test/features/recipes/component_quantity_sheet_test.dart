@@ -151,7 +151,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('no yield set — amounts in batches only'), findsOneWidget);
+    expect(find.text('no yield set · batches only'), findsOneWidget);
     expect(find.text('cup'), findsNothing);
     expect(find.text('batch'), findsWidgets);
 
@@ -177,7 +177,7 @@ void main() {
     expect(find.text('not in filter'), findsOneWidget);
     expect(
       find.text(
-        '2 tbsp — unresolved — the yield is in weight, this line in '
+        '2 tbsp · unresolved · the yield is in weight, this line in '
         'volume',
       ),
       findsOneWidget,
@@ -467,7 +467,7 @@ void main() {
 
       expect(
         find.text(
-          '3 blob — unresolved — the yield is in weight, this line in volume',
+          '3 blob · unresolved · the yield is in weight, this line in volume',
         ),
         findsOneWidget,
       );
@@ -504,8 +504,8 @@ void main() {
         find.text(ComponentQuantityEditor.kGoneWordKeepsItsNumber),
         findsOneWidget,
       );
-      // The honest line, not a number: `3 — its measure is gone`.
-      expect(find.text('3 — its measure is gone'), findsOneWidget);
+      // The honest line, not a number: `3 · its measure is gone`.
+      expect(find.text('3 · its measure is gone'), findsOneWidget);
       // Nothing claims to be what this line says — and the offer is the
       // ordinary one, because a unit tapped here is a repair, not a loss.
       expect(_chip('cup'), findsOneWidget);

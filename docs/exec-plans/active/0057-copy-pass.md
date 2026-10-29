@@ -475,3 +475,6 @@ build is what shipped:
 - 2026-10-28 — Follow-ups the owner asked for: F5's deep links (built), a
   structural test against the copy rules, and *Foods, not ingredients*
   ([plan 0058](./0058-foods-not-ingredients.md)).
+- 2026-10-29 — The four rules a scan can see (no em dash, no semicolon, no tap
+  hint, no "nothing is saved until") are now held by
+  `app/test/structure/copy_rules_test.dart`.

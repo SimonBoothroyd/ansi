@@ -314,7 +314,7 @@ class TimerDock extends ConsumerWidget {
                     vertical: 6,
                   ),
                   child: Text(
-                    'Keep this tab open — a closed tab can’t ring.',
+                    'Keep this tab open. A closed tab can’t ring.',
                     style: ansiMono(size: 11, color: AnsiColors.cautionInk),
                   ),
                 ),

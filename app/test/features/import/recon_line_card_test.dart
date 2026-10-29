@@ -256,7 +256,7 @@ void main() {
 
     // The full editable card: re-match affordance + amount + notes.
     // (an auto line is re-matchable too)
-    expect(find.text('tap to change'), findsOneWidget);
+    expect(find.byIcon(FLucideIcons.chevronRight), findsOneWidget);
     expect(find.text('AMOUNT'), findsOneWidget);
     expect(find.text('NOTES'), findsOneWidget);
   });
@@ -372,7 +372,7 @@ void main() {
 
     // Ingredient LOCKED (not gated on the amount) — the re-match affordance
     // shows, and there is no "match an ingredient" prompt.
-    expect(find.text('tap to change'), findsOneWidget);
+    expect(find.byIcon(FLucideIcons.chevronRight), findsOneWidget);
     expect(find.text('Match an ingredient'), findsNothing);
     // The unpicked range is flagged separately.
     expect(find.text('Set the amount'), findsWidgets);

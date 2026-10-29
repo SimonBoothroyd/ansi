@@ -1059,7 +1059,7 @@ void main() {
     ) async {
       await openEntrySheet(tester);
       expect(find.text('1¾ portions'), findsOneWidget);
-      expect(find.text('Ada 1 · Jun ¾ — their usual'), findsOneWidget);
+      expect(find.text('Ada 1 · Jun ¾ · their usual'), findsOneWidget);
       // The stepper's box reads the same fraction — never 1.75.
       expect(find.text('1¾'), findsOneWidget);
       expect(find.textContaining('1.75'), findsNothing);
@@ -1071,7 +1071,7 @@ void main() {
       // Twice: the grid's chip behind the sheet, and the sheet's own row.
       expect(find.text('3 portions'), findsNWidgets(2));
       expect(
-        find.text('overrides the eaters’ 1¾ — Ada 1 · Jun ¾'),
+        find.text('overrides the eaters’ 1¾ · Ada 1 · Jun ¾'),
         findsOneWidget,
       );
     });
@@ -1185,7 +1185,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(EditableText).first, 'Office lunch');
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('note it'));
+      await tester.tap(find.textContaining('note “'));
       await tester.pumpAndSettle();
       return planning;
     }
@@ -1275,7 +1275,7 @@ void main() {
 
       expect(find.text('Office lunch'), findsOneWidget);
       expect(find.byType(OutTag), findsOneWidget);
-      expect(find.text('620 kcal · 42P \u2014 as stated'), findsOneWidget);
+      expect(find.text('620 kcal · 42P · as stated'), findsOneWidget);
       expect(find.byType(CookMarkerLine), findsNothing);
       expect(find.textContaining('keeps'), findsNothing);
       expect(find.textContaining('batch'), findsNothing);

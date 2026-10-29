@@ -519,11 +519,6 @@ class _ChosenRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text(
-              'tap to change',
-              style: ansiMono(size: 10.5, color: AnsiColors.muted),
-            ),
-            const SizedBox(width: 4),
             const Icon(
               FLucideIcons.chevronRight,
               size: 13,
@@ -612,7 +607,7 @@ class _DroppedLine extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            '${draft.displayName} — dropped',
+            '${draft.displayName} · dropped',
             style: ansiMono(size: 11.5, color: AnsiColors.muted),
             overflow: TextOverflow.ellipsis,
           ),

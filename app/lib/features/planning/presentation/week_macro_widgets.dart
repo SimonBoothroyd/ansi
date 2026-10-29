@@ -188,7 +188,7 @@ class DayMacroLine extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'no total — ${excludedLine(macros)}',
+              'no total · ${excludedLine(macros)}',
               style: ansiMono(size: 10.5, color: AnsiColors.muted),
             ),
           ),
@@ -253,7 +253,7 @@ class DayEnergyLine extends StatelessWidget {
           const IncompleteBadge(),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('no total — ${excludedLine(macros)}', style: muted),
+            child: Text('no total · ${excludedLine(macros)}', style: muted),
           ),
         ],
       );
@@ -339,7 +339,7 @@ class MealMacroLine extends StatelessWidget {
       // reason.
       final reason = macros.excluded.isEmpty
           ? 'no total'
-          : 'no total — ${exclusionNote(macros.excluded.first)}';
+          : 'no total · ${exclusionNote(macros.excluded.first)}';
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -507,7 +507,7 @@ class WeekMacroBand extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'no total — ${excludedLine(macros)}',
+                        'no total · ${excludedLine(macros)}',
                         style: ansiMono(size: 10.5, color: AnsiColors.muted),
                       ),
                       // Cost and spend do not depend on the macros resolving.
@@ -642,7 +642,7 @@ class WeekFootBand extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'no total — ${excludedLine(macros)}',
+                    'no total · ${excludedLine(macros)}',
                     style: ansiMono(size: 10.5, color: AnsiColors.muted),
                   ),
                 ),

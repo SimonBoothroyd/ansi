@@ -85,7 +85,7 @@ import/
   unit somebody chose, or a word the page printed, is never overruled.
 - **Never-invent is a UI obligation.** Warnings, a printed range and
   `raw_amount` are shown; the source line sits under every open card, and a
-  line the review added says *added here — not on the page*.
+  line the review added says *added here*.
 - **A unit the row cannot carry empties the amount slot** (`amountSlotLabel`)
   and flags the line; the parsed quantity is kept, so one chip tap resolves it.
 - **The structure is the human's; the payload is the server's.** Sections ride

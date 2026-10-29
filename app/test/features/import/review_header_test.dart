@@ -142,14 +142,14 @@ void main() {
     expect(_field('Sausage Sliders'), findsOneWidget);
   });
 
-  testWidgets('"not printed — set it" sits beside SERVES when the page '
+  testWidgets('"not printed" sits beside SERVES when the page '
       'printed no serving count', (tester) async {
     filterForuiSemanticsAssertions();
     _tallViewport(tester);
     final container = await _reviewing(_payload(servingsBase: null));
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
-    expect(find.text('not printed — set it'), findsOneWidget);
+    expect(find.text('not printed'), findsOneWidget);
     expect(_state(container).header.servingsBase, 1);
   });
 
@@ -159,7 +159,7 @@ void main() {
     final container = await _reviewing(_payload());
     await tester.pumpWidget(_host(container));
     await tester.pumpAndSettle();
-    expect(find.text('not printed — set it'), findsNothing);
+    expect(find.text('not printed'), findsNothing);
     expect(_state(container).header.servingsBase, 8);
   });
 

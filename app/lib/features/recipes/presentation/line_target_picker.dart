@@ -171,7 +171,7 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
       if (!context.mounted) return;
       if (cycles) {
         refusal.value =
-            '“${target.title}” already uses this recipe — linking it '
+            '“${target.title}” already uses this recipe. Linking it '
             'would make a loop.';
         return;
       }
