@@ -105,12 +105,16 @@ String itemTotal(ShoppingItem item) {
 
 /// The need on a row that rounds, as the sub-line opens with it: `need 2½`,
 /// or `need ≈ 2¼` when the count was read back from a weight. The `≈` stays
-/// on the need, because the need is the approximate part. Empty on a row that
+/// on the need, because the need is the approximate part. On a part-have it
+/// is what is left after the amount at home, so it reads `need 2½ more`
+/// beside `1 at home`, never as the week's whole need. Empty on a row that
 /// does not round.
 String itemNeed(ShoppingItem item) {
   final round = itemRoundUp(item);
   if (round == null) return '';
-  return 'need ${round.approx ? '≈ ' : ''}${formatQuantity(round.need)}';
+  final home = item.atHome;
+  final more = home != null && home.refusal == null ? ' more' : '';
+  return 'need ${round.approx ? '≈ ' : ''}${formatQuantity(round.need)}$more';
 }
 
 /// The small line under an item's headline: the need on a row that rounds
@@ -132,7 +136,7 @@ String itemSecondary(ShoppingItem item) {
 
 /// The row's whole sub-line, in its order: what is at home ([atHomeWords]),
 /// then the need, the weight and the price ([itemSecondaryWithCost]), each
-/// only when it applies — `5 at home · need 1½ · 165 g · $1.54 at Aldi`.
+/// only when it applies — `5 at home · need 1½ more · 165 g · $1.54 at Aldi`.
 String itemSubLine(
   ShoppingItem item, {
   double? cents,

@@ -68,7 +68,8 @@ hands them with the overlay to `buildShoppingList` (pure).
   sheet and the *At home* section print the need unrounded (`itemAmount`,
   `needTotal`), because they weigh what is here against what the week asks.
 - **The sub-line's order** is at home, need, weight, price, each only when it
-  applies: `5 at home · need 1½ · 165 g · $1.54 at Aldi` (`itemSubLine`).
+  applies: `5 at home · need 1½ more · 165 g · $1.54 at Aldi` (`itemSubLine`).
+  Beside an amount at home the need is what is left, so it says `more`.
 - **A piece-weighted row is bought in pieces**
   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
   A row whose default unit is `piece` and whose contributions fold into one

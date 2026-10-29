@@ -225,10 +225,57 @@ void main() {
       );
       expect(
         itemSubLine(item, cents: 154, price: price, anyPriced: true),
-        r'5 at home · need 1½ · 165 g · $1.54 at Aldi',
+        r'5 at home · need 1½ more · 165 g · $1.54 at Aldi',
       );
       // With no price yet and nothing at home, only the need and the weight.
       expect(itemSubLine(item.copyWith(atHome: null)), 'need 1½ · 165 g');
+    });
+
+    test('a part-have says its need is what is left, never the whole', () {
+      const medium = Measure(
+        id: 'm-onion',
+        label: 'onion, medium',
+        amount: 110,
+      );
+      // One at home of 3½ asked for: 2½ more to get, so the row buys 3.
+      final need = (
+        totals: [Quantity(385, g)],
+        measureTotal: (amount: 3.5, measure: medium),
+        pieceTotal: null,
+      );
+      final item = ShoppingItem(
+        name: 'Red Onion',
+        ingredientId: 'onion',
+        totals: [Quantity(275, g)],
+        measureTotal: (amount: 2.5, measure: medium),
+        atHome: (
+          quantity: 1,
+          unit: pieces,
+          measure: medium,
+          measureId: medium.id,
+          need: need,
+          all: false,
+          refusal: null,
+        ),
+      );
+      expect(itemTotal(item), '3 onion, medium');
+      expect(itemNeed(item), 'need 2½ more');
+      expect(itemSubLine(item), '1 at home · need 2½ more · 275 g');
+      // An amount that could not come off leaves the whole need to buy.
+      final refused = item.copyWith(
+        totals: need.totals,
+        measureTotal: need.measureTotal,
+        atHome: (
+          quantity: 1,
+          unit: cup,
+          measure: null,
+          measureId: null,
+          need: need,
+          all: false,
+          refusal: 'no density',
+        ),
+      );
+      expect(itemNeed(refused), 'need 3½');
     });
   });
 
