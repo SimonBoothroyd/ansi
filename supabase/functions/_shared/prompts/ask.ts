@@ -351,8 +351,7 @@ export const ASK_TOOLS: AskTool[] = [
   },
   {
     name: "find_ingredient",
-    description:
-      "Searches the household's foods by name. Returns up to five " +
+    description: "Searches the household's foods by name. Returns up to five " +
       "{id, name, units, measures, usual} matches, best first: the unit ids " +
       "and measure names an amount of it may use, and the amount the app " +
       "uses when none is said.",
@@ -417,8 +416,7 @@ export const ASK_TOOLS: AskTool[] = [
   },
   {
     name: "prices",
-    description:
-      "A food's latest purchases — where, when, what was paid and " +
+    description: "A food's latest purchases — where, when, what was paid and " +
       "for what pack — and the price its costs use. Take the id from " +
       "find_ingredient.",
     input_schema: {
