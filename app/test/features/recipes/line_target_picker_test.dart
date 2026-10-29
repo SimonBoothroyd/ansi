@@ -186,7 +186,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('YOUR RECIPES'), findsNothing);
     expect(find.textContaining('as a new recipe'), findsNothing);
-    expect(find.textContaining('as a new food'), findsOneWidget);
+    expect(
+      find.text('can’t find it? add "rom" as a new ingredient'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('it says ingredient, where the vocabulary picker says food', (
+    tester,
+  ) async {
+    // What this picker adds is a line of the recipe: its empty list and its
+    // footer name an ingredient, as ruled.
+    await _open(
+      tester,
+      editingRecipeId: 'sliders',
+      vocabulary: const [],
+      suppressRecipes: true,
+    );
+    expect(find.text('No ingredients yet.'), findsOneWidget);
+    expect(find.textContaining('food'), findsNothing);
   });
 
   testWidgets('the recipe being edited is never offered as its own component', (

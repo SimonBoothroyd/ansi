@@ -154,6 +154,7 @@ class IngredientResultList extends StatelessWidget {
     this.trailing = const [],
     this.noteFor,
     this.labelIngredients = true,
+    this.emptyLabel = 'No foods yet.',
     super.key,
   });
 
@@ -178,9 +179,15 @@ class IngredientResultList extends StatelessWidget {
   /// section but the end of the same answer.
   final bool labelIngredients;
 
+  /// What an empty list says before anything is typed, in the host's noun:
+  /// the line picker adds an ingredient, the vocabulary picker a food.
+  final String emptyLabel;
+
   @override
   Widget build(BuildContext context) {
-    if (results.isEmpty && trailing.isEmpty) return _EmptyState(query: query);
+    if (results.isEmpty && trailing.isEmpty) {
+      return _EmptyState(query: query, label: emptyLabel);
+    }
     return ListView(
       children: [
         if (showingRecents)
@@ -215,9 +222,10 @@ class IngredientResultList extends StatelessWidget {
 /// An empty result list is an answer, not a failure. When the query was also
 /// too short to guess at, it says so.
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.query});
+  const _EmptyState({required this.query, required this.label});
 
   final String query;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +240,7 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            query.isEmpty ? 'No foods yet.' : 'No match for "$query".',
+            query.isEmpty ? label : 'No match for "$query".',
             textAlign: TextAlign.center,
             style: ansiMono(size: 12, color: AnsiColors.muted),
           ),

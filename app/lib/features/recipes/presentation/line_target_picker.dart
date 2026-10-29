@@ -190,6 +190,7 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
         showingRecents: search.showingRecents,
         guessed: search.guessed,
         onPick: (ing) => Navigator.of(context).pop(PickedIngredient(ing)),
+        emptyLabel: 'No ingredients yet.',
         trailing: [
           if (offered.isNotEmpty) ...[
             // Each section has its own tier: ingredient rows may be spellings
@@ -229,6 +230,9 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
         children: [
           AddNewIngredientRow(
             query: search.query,
+            // What the picker adds is a line of the recipe, so it says
+            // ingredient where the vocabulary picker says food.
+            label: (name) => 'can’t find it? add "$name" as a new ingredient',
             onCreated: (ing) =>
                 Navigator.of(context).pop(PickedIngredient(ing)),
           ),

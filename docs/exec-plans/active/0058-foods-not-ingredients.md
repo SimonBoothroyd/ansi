@@ -97,8 +97,8 @@ The barcode, USDA and label lookups print no `ingredient` today (`USDA · for
 | 11 | `features/ingredients/presentation/ingredient_picker.dart:126` | Search ingredients | Search foods | The vocabulary picker's field. Opened from the receipt review (`What is this line?`, a receipt line's match and its add-a-line door). Rule: food. |
 | 12 | `features/ingredients/presentation/ingredient_picker.dart:37` | Add an ingredient | Add a food | The vocabulary picker's default title. Both callers pass their own title, so it is never seen today. Rule: food. |
 | 13 | `features/ingredients/presentation/ingredient_picker.dart:199` | INGREDIENTS | **stays** | The section header over the vocabulary hits when a second section (recipes) follows. Drawn in the recipe editor's line picker (#16). Boundary: the hits are foods, the pick becomes a line. Rule: food. |
-| 14 | `features/ingredients/presentation/ingredient_picker.dart:235` | No ingredients yet. | No foods yet. | Every picker's empty list. Rule: food. |
-| 15 | `features/ingredients/presentation/ingredient_picker.dart:467` | can’t find it? add "{name}" as a new ingredient | can’t find it? add "{name}" as a new food | The add-new row at a picker's foot: the receipt picker, the recipe editor's and week mode's line picker. Rule: food. |
+| 14 | `features/ingredients/presentation/ingredient_picker.dart:235` | No ingredients yet. | No foods yet. (the line picker: **stays**) | Every picker's empty list. Rule: food, and ingredient in the line picker (#16). |
+| 15 | `features/ingredients/presentation/ingredient_picker.dart:467` | can’t find it? add "{name}" as a new ingredient | can’t find it? add "{name}" as a new food (the line picker: **stays**) | The add-new row at a picker's foot: the receipt picker, the recipe editor's and week mode's line picker. Rule: food, and ingredient in the line picker (#16). |
 | 16 | `features/recipes/presentation/line_target_picker.dart:67` and `recipe_editor_view.dart:602` | Add an ingredient | **stays** | The line picker's title. Opened from the recipe editor's Add ingredient, the import review's `＋ ingredient`, the method editor's `＋ ingredient` (a line to chip) and week mode's Add ingredient. Boundary: what is added is a line of the recipe. Rule: ingredient. |
 | 17 | `features/recipes/presentation/line_target_picker.dart:184` | Search ingredients | **stays** | The same picker's field. It searches the vocabulary and the recipes. Boundary: it searches foods, to add a line. Rule: unclear, either reading holds. |
 | 18 | `features/import/presentation/recon_resolver.dart:440` | Search ingredients | **stays** | The import review's match picker (`Match "{line}"`). Searches the vocabulary for one review line. Boundary as #17. |
@@ -263,6 +263,8 @@ Settings (`features/account`) prints no `ingredient`. Nothing to rule.
 - 2026-10-28 — `Match an ingredient — or link your recipe` becomes `Match an
   ingredient or link your recipe`: one thought with two answers reads better
   as one fragment than as two sentences.
+- 2026-10-28 — The line picker's footer and empty state stay ingredient, as
+  ruled.
 
 ## Notes / open questions
 
