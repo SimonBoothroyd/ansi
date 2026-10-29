@@ -636,13 +636,8 @@ void main() {
       find.text('covers Mon + Wed breakfast · 4 portions'),
     );
     await scrollTo(tester, find.text('covers Sat breakfast · 1¾ portions'));
-    expect(
-      find.text(
-        'cook ×1 instead — covers 2 portions · ¼ portion left over · '
-        'shopping still buys ×⅞',
-      ),
-      findsWidgets,
-    );
+    expect(find.text('×⅞ exact'), findsWidgets);
+    expect(find.text('×1 whole batch'), findsWidgets);
     await scrollTo(tester, find.text('covers Sun breakfast · 1¾ portions'));
     expect(
       find.text('1¾ portions across the week · keeps 2 d'),

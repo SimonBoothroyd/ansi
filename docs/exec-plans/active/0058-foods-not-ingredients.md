@@ -292,5 +292,5 @@ Settings (`features/account`) prints no `ingredient`. Nothing to rule.
 - [ ] `make test-sim` run on a booted simulator (the integration tests quote
       these strings), and the result recorded here.
 - [ ] The Ask function redeployed, so the model reads the new prompt.
-- [ ] The backlog row *Foods, not ingredients* removed.
+- [x] The backlog row *Foods, not ingredients* removed.
 - [ ] `make ci` green.
