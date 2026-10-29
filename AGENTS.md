@@ -116,6 +116,11 @@ Two traps this repo has actually paid for:
   the run's users, the simulator or the app in a state the next run inherits,
   and you will spend longer diagnosing the wreckage than the run had left.
 
+When flutter runs as root (cloud containers), put
+`$(dirname $(which flutter))/cache/dart-sdk/bin` first on `PATH`, or `dart run
+custom_lint` exits 1 with no issues. Run `make powersync-core` before a bare
+`flutter test`.
+
 ```
 make gen          # codegen (Riverpod/Freezed/json)
 make analyze      # dart analyze + custom_lint — must be clean
