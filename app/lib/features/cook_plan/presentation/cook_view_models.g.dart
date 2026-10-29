@@ -47,18 +47,18 @@ final class CurrentCookPlanProvider
 
 String _$currentCookPlanHash() => r'096c0fdd63465de1374ef5724f5d87306e691ac1';
 
-/// Whether a session tile shows the whole-batch view (×N + leftover line)
-/// instead of the honest raw factor. Display-only and ephemeral by design.
+/// Whether a session shows the whole batch (×N, with the portions spare)
+/// instead of the exact factor. Display-only and ephemeral by design.
 
 @ProviderFor(WholeBatchDisplay)
 const wholeBatchDisplayProvider = WholeBatchDisplayFamily._();
 
-/// Whether a session tile shows the whole-batch view (×N + leftover line)
-/// instead of the honest raw factor. Display-only and ephemeral by design.
+/// Whether a session shows the whole batch (×N, with the portions spare)
+/// instead of the exact factor. Display-only and ephemeral by design.
 final class WholeBatchDisplayProvider
     extends $NotifierProvider<WholeBatchDisplay, bool> {
-  /// Whether a session tile shows the whole-batch view (×N + leftover line)
-  /// instead of the honest raw factor. Display-only and ephemeral by design.
+  /// Whether a session shows the whole batch (×N, with the portions spare)
+  /// instead of the exact factor. Display-only and ephemeral by design.
   const WholeBatchDisplayProvider._({
     required WholeBatchDisplayFamily super.from,
     required String super.argument,
@@ -103,10 +103,10 @@ final class WholeBatchDisplayProvider
   }
 }
 
-String _$wholeBatchDisplayHash() => r'13937e7076a9284e2341c022dfa4dddf851367a3';
+String _$wholeBatchDisplayHash() => r'240aee7ba05f06f3a6510fbb44434110472eda66';
 
-/// Whether a session tile shows the whole-batch view (×N + leftover line)
-/// instead of the honest raw factor. Display-only and ephemeral by design.
+/// Whether a session shows the whole batch (×N, with the portions spare)
+/// instead of the exact factor. Display-only and ephemeral by design.
 
 final class WholeBatchDisplayFamily extends $Family
     with $ClassFamilyOverride<WholeBatchDisplay, bool, bool, bool, String> {
@@ -119,8 +119,8 @@ final class WholeBatchDisplayFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Whether a session tile shows the whole-batch view (×N + leftover line)
-  /// instead of the honest raw factor. Display-only and ephemeral by design.
+  /// Whether a session shows the whole batch (×N, with the portions spare)
+  /// instead of the exact factor. Display-only and ephemeral by design.
 
   WholeBatchDisplayProvider call(String sessionKey) =>
       WholeBatchDisplayProvider._(argument: sessionKey, from: this);
@@ -129,8 +129,8 @@ final class WholeBatchDisplayFamily extends $Family
   String toString() => r'wholeBatchDisplayProvider';
 }
 
-/// Whether a session tile shows the whole-batch view (×N + leftover line)
-/// instead of the honest raw factor. Display-only and ephemeral by design.
+/// Whether a session shows the whole batch (×N, with the portions spare)
+/// instead of the exact factor. Display-only and ephemeral by design.
 
 abstract class _$WholeBatchDisplay extends $Notifier<bool> {
   late final _$args = ref.$arg as String;

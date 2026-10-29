@@ -306,7 +306,8 @@ mixin _$PlanEntry {
  String? get insteadOf;/// What each member had instead of this meal: member id → the
 /// substitute. Never cooked, bought or costed; counted only in what that
 /// member ate.
- Map<String, PlanEntry> get had;/// When the row was written. A substitute's eaten time is read from it.
+ Map<String, PlanEntry> get had;/// When the row was written. A substitute without a time of its own in
+/// [eatenAt] was eaten when it was said ([hadAt]).
  DateTime? get createdAt;
 /// Create a copy of PlanEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -589,7 +590,8 @@ class _PlanEntry extends PlanEntry {
   return EqualUnmodifiableMapView(_had);
 }
 
-/// When the row was written. A substitute's eaten time is read from it.
+/// When the row was written. A substitute without a time of its own in
+/// [eatenAt] was eaten when it was said ([hadAt]).
 @override final  DateTime? createdAt;
 
 /// Create a copy of PlanEntry
