@@ -1,7 +1,7 @@
 /// Sim smoke — AUTH: the sign-in gate → /connecting → the Library with the
-/// synced household. Local gate only (`make test-sim FILE=auth`), never CI.
-/// Needs the local backend running (`make db-up`) and the usual
-/// `--dart-define`s (the Makefile passes them from `.env.local`).
+/// synced household. Local gate `make test-sim FILE=auth`; CI runs it only on
+/// demand (`sim.yml`). Needs the local backend running (`make db-up`) and the
+/// usual `--dart-define`s (the Makefile passes them from `.env.local`).
 ///
 /// This is the ONE file that drives the gate: it starts its stack signed out
 /// and types the provisioned credentials into the real form. Every other

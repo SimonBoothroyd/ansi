@@ -208,7 +208,7 @@ It has no allow-list on purpose: the fix is to rewrite the comment.
 make gen             # build_runner
 make analyze         # flutter analyze + custom_lint (must be clean)
 make test-app        # flutter test (fetches the PowerSync core extension first)
-make test-sim        # integration smoke on a booted iOS sim (local gate); FILE=week DEVICE=<udid> narrow it
+make test-sim        # integration smoke on a booted iOS sim (local gate; CI on demand: sim.yml); FILE=week DEVICE=<udid> narrow it
 make powersync-core  # fetch the PowerSync SQLite core extension for host tests
 make run             # flutter run with --dart-define from .env.local
 make ci-full         # the whole gate incl. migrations + pgTAP (needs Docker)
@@ -253,7 +253,11 @@ picks the simulator, and each file's own header says what it drives. Every file
 is **self-provisioning**: it creates its own throwaway household over HTTP and
 seeds what its flow needs through the app's repositories, never by driving
 another flow's UI. `support/` holds the shared boot, waits, finders and drivers.
-Deliberately *not* in CI — macOS runners are slow and expensive at hobby scale.
+*Not* run on push. CI runs it **on demand** — Actions → `sim` → *Run workflow*,
+optionally naming one file — on an Android emulator, one runner per file
+(`.github/workflows/sim.yml`, `scripts/sim_ci.sh`): iOS is out because the
+stack is Docker and the macOS runners have none. It is a second opinion on
+someone else's machine, not a replacement for the local run before landing.
 
 **It is a gate, not a step.** Nine files, about **27 minutes** on an unloaded
 machine — so run `FILE=<name>` while you are fixing, and the whole suite once

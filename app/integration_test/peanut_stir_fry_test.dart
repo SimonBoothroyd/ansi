@@ -11,8 +11,9 @@
 /// The import repository is overridden to the local one, so NO edge function
 /// and NO LLM is called — see `SmokeStack.openLibraryWithLocalImport`.
 ///
-/// Local gate only (`make test-sim FILE=peanut_stir_fry`), never CI. Needs the
-/// local backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=peanut_stir_fry`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'package:ansi/features/import/data/sample_payloads.dart'

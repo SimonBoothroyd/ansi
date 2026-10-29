@@ -8,8 +8,9 @@
 /// yield is un-stated and every derived number becomes the named gap, never
 /// a `×1`.
 ///
-/// Local gate only (`make test-sim FILE=nested`), never CI. Needs the local
-/// backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=nested`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'package:ansi/features/recipes/presentation/component_quantity_sheet.dart'

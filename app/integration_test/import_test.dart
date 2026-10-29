@@ -16,8 +16,9 @@
 /// and reaching the real matcher would mean the edge function and an LLM. It
 /// is host-tested instead.
 ///
-/// Local gate only (`make test-sim FILE=import`), never CI. Needs the local
-/// backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=import`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'dart:convert';

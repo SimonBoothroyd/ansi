@@ -4,4 +4,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug builds talk to the local stack over plain http (127.0.0.1,
+         reversed into the emulator by scripts/sim_ci.sh), which Android
+         blocks by default. Release builds only ever reach https. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

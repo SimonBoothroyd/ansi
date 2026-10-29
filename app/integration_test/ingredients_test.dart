@@ -42,8 +42,9 @@
 /// camera to point at a pack, so the typed field is the Simulator's path to
 /// the identical downstream handler.
 ///
-/// Local gate only (`make test-sim FILE=ingredients`), never CI. Needs the
-/// local backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=ingredients`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'dart:convert';

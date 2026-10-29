@@ -13,8 +13,9 @@
 /// the upload queue drains, so the rename and the reorder are proven to have
 /// reached the server and come back down.
 ///
-/// Local gate only (`make test-sim FILE=library`), never CI. Needs the local
-/// backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=library`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'package:ansi/features/books/data/book_repository_impl.dart';

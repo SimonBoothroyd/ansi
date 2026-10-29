@@ -105,7 +105,9 @@ doubt.
 
 The full simulator suite is a **gate, not a step**: run it once before landing a
 branch, not after each fix inside it. When it goes red, re-run the failing file
-alone until it is green, then the suite once to confirm nothing else moved.
+alone until it is green, then the suite once to confirm nothing else moved. CI
+runs the same files on an Android emulator only when dispatched (Actions →
+`sim`), never on push.
 
 Two traps this repo has actually paid for:
 

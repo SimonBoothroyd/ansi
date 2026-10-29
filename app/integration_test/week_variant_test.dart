@@ -17,8 +17,9 @@
 /// assertions are about the SHOP, and a stub line would be honestly dropped
 /// before it got there.
 ///
-/// Local gate only (`make test-sim FILE=week_variant`), never CI. Needs the
-/// local backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=week_variant`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'package:ansi/core/units/units.dart' show g;

@@ -1,0 +1,179 @@
+name: sim
+
+# The simulator smoke (app/integration_test) on demand: Actions → sim → Run
+# workflow, optionally naming one file. Never on push — the local
+# `make test-sim` stays the gate before landing (AGENTS.md); this is the same
+# suite on a machine that is not yours, nine files at once.
+#
+# Android, not iOS: every file needs the local Supabase + PowerSync stack, which
+# runs in Docker, and GitHub's macOS runners have none. The phones are Pixels,
+# so Android is also the platform that ships.
+#
+# Each file gets its own runner, stack and emulator; the files already make
+# their own household, so nothing is shared at run time. Inside a job the slow
+# parts overlap: the backend starts in the background while the debug build
+# warms Gradle, and the emulator boots from a cached snapshot.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "One file to run, e.g. week (app/integration_test/week_test.dart). Blank runs all."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: "3.47.1" # exact — matches app.yml, release.yml and local
+  # The AVD both the snapshot and the run boot. Change any of these and the
+  # cache key below changes with them.
+  AVD_API_LEVEL: "34"
+  AVD_TARGET: google_apis
+  AVD_PROFILE: pixel_6 # 411 × 914 dp — close to the iPhone the suite was written on
+
+jobs:
+  # The matrix is the directory, read at run time, so a new smoke file is
+  # picked up without editing this workflow.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      files: ${{ steps.files.outputs.files }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: app/integration_test
+      - id: files
+        env:
+          FILE: ${{ inputs.file }}
+        run: |
+          all="$(cd app/integration_test && ls *_test.dart | sed 's/_test\.dart$//' | jq -Rsc 'split("\n") | map(select(length > 0))')"
+          if [ -z "$FILE" ]; then
+            echo "files=$all" >> "$GITHUB_OUTPUT"
+          elif jq -e --arg f "$FILE" 'index($f) != null' <<< "$all" > /dev/null; then
+            echo "files=$(jq -cn --arg f "$FILE" '[$f]')" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::no app/integration_test/${FILE}_test.dart — one of: $all"
+            exit 1
+          fi
+
+  sim:
+    name: sim (${{ matrix.file }})
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false # one red file must not hide the other eight
+      matrix:
+        file: ${{ fromJSON(needs.plan.outputs.files) }}
+    env:
+      SIM_FILE: ${{ matrix.file }}
+      LANG: en_US.UTF-8 # what `make test-sim` sets
+      LC_ALL: en_US.UTF-8
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: echo "SIM_LOGS=$RUNNER_TEMP/sim-logs" >> "$GITHUB_ENV"
+
+      # Pinned with backend.yml and the README: local and CI move together.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+
+      # Backgrounded: the image pulls and migrations run while Gradle builds.
+      # scripts/sim_ci.sh run waits on the status file this writes.
+      - name: Start the local backend (background)
+        working-directory: .
+        run: |
+          mkdir -p "$SIM_LOGS"
+          nohup scripts/sim_ci.sh backend > "$SIM_LOGS/backend.log" 2>&1 &
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('app/pubspec.lock') }}
+          restore-keys: pub-${{ runner.os }}-
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      # No build_runner: the generated code is committed (app.yml holds it
+      # fresh).
+      - run: flutter pub get
+
+      # The real build needs the backend's anon key, which exists only once
+      # Supabase is up. This one builds the same target for the same ABI
+      # without it, so the run's own build finds Gradle warm and redoes
+      # only the Dart.
+      - name: Warm the debug build (while the backend starts)
+        run: flutter build apk --debug --target-platform android-x64 --target "integration_test/${SIM_FILE}_test.dart"
+
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # One snapshot, made by whichever job misses first and restored by every
+      # job after: a booted emulator in seconds instead of a cold boot.
+      - name: Restore the AVD snapshot
+        id: avd-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.AVD_API_LEVEL }}-${{ env.AVD_TARGET }}-x86_64-${{ env.AVD_PROFILE }}-v1
+
+      # No camera: the barcode leg asserts the scan sheet's no-camera notice,
+      # as on the iOS Simulator.
+      - name: Make the AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.AVD_API_LEVEL }}
+          target: ${{ env.AVD_TARGET }}
+          arch: x86_64
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: false
+          script: echo "AVD snapshot made"
+
+      # Animations stay on: a phone has them, and the suite was written
+      # against them.
+      - name: Run the smoke file
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.AVD_API_LEVEL }}
+          target: ${{ env.AVD_TARGET }}
+          arch: x86_64
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-animations: false
+          script: scripts/sim_ci.sh run
+
+      # A screenshot first: an app that "goes quiet" is diagnosed by looking
+      # at the device (tech-debt tracker, test-sim).
+      - name: Keep the logs and a screenshot
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-${{ matrix.file }}
+          path: ${{ env.SIM_LOGS }}
+          if-no-files-found: ignore

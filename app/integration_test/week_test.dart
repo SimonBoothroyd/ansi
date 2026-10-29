@@ -25,8 +25,9 @@
 /// the curry's count lines are honestly incomplete and a refused total names
 /// no share.
 ///
-/// Local gate only (`make test-sim FILE=week`), never CI. Needs the local
-/// backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=week`; CI runs it only on demand (`sim.yml`).
+/// Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'dart:convert';

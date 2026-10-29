@@ -15,8 +15,9 @@
 /// the picker, and back on it the quantity sheet opens on the units that form
 /// set. Each leg is asserted in the local db after the sync round trip.
 ///
-/// Local gate only (`make test-sim FILE=recipe_editor`), never CI. Needs the
-/// local backend running (`make db-up`) and the usual `--dart-define`s.
+/// Local gate `make test-sim FILE=recipe_editor`; CI runs it only on demand
+/// (`sim.yml`). Needs the local backend running (`make db-up`) and the usual
+/// `--dart-define`s.
 library;
 
 import 'dart:convert';
