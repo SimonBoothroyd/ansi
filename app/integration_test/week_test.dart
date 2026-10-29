@@ -46,7 +46,7 @@ import 'package:ansi/features/shopping/presentation/shop_add_field.dart'
     show kShopAddFieldKey, kShopAddResultsKey;
 import 'package:ansi/features/shopping/presentation/shopping_view.dart'
     show ShoppingView, shopChevronTargetKey, shopTickTargetKey;
-import 'package:ansi/shared/week_strip.dart' show WeekStrip;
+import 'package:ansi/shared/week_strip.dart' show WeekStrip, WeekStripFill;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -448,12 +448,18 @@ void main() {
     await pumpUntilFound(tester, find.text('Everyone'));
     await addMealOn(tester, 'Saturday', 'Chicken Curry');
 
-    // The cook plan re-derives: two sessions, flagged as a split.
+    // The cook plan re-derives: two sessions.
     await tapTab(tester, FLucideIcons.cookingPot);
     await pumpUntilFound(tester, find.text('Cook Sat'));
     expect(find.text('Cook Mon'), findsOneWidget);
     expect(find.textContaining('Cook '), findsNWidgets(2));
-    expect(find.textContaining('cook it again, fresh'), findsOneWidget);
+    // The split is drawn, not said: each session carries its own week strip,
+    // Monday's batch cooked on Monday and Saturday's on Saturday (the week is
+    // Monday-first here, so Saturday is day 5).
+    final strips = tester.widgetList<WeekStrip>(find.byType(WeekStrip));
+    expect(strips, hasLength(2));
+    expect(strips.first.days[0].fill, WeekStripFill.cooked);
+    expect(strips.last.days[5].fill, WeekStripFill.cooked);
 
     final count = await db.get(
       'SELECT COUNT(*) AS c FROM plan_entry pe '

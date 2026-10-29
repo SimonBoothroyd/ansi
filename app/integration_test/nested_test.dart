@@ -275,7 +275,6 @@ void main() {
       find.text('Romesco Aioli · for Sausage Sliders'),
     );
     await scrollTo(tester, find.text('Romesco Aioli · for Sausage Sliders'));
-    expect(find.text('derived from a component line'), findsOneWidget);
     // Ready BY the demanding parent's cook day, denominated in batches.
     expect(find.text('Cook by Fri'), findsOneWidget);
     expect(find.text('×¼ batch'), findsOneWidget);
@@ -285,11 +284,6 @@ void main() {
         '¼',
       ),
       findsOneWidget,
-    );
-    expect(
-      find.textContaining('Nothing here tracks the leftover'),
-      findsOneWidget,
-      reason: 'a fractional batch says so out loud (an 8.6 non-goal)',
     );
 
     await tapTab(tester, FLucideIcons.shoppingBasket);
@@ -370,10 +364,7 @@ void main() {
       find.text('Romesco Aioli doesn’t say how much it makes'),
     );
     await scrollTo(tester, find.text('Romesco Aioli · for Sausage Sliders'));
-    expect(
-      find.text('derived from a component line · yield not set'),
-      findsOneWidget,
-    );
+    expect(find.text('yield not set'), findsOneWidget);
     expect(find.text('no scale'), findsOneWidget);
     expect(find.text('Set the yield'), findsOneWidget);
     // The one number a gap CAN state is what the demanding line printed —

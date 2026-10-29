@@ -28,14 +28,14 @@ backend() {
 }
 
 collect() {
-  adb exec-out screencap -p > "$SIM_LOGS/screen.png" 2>/dev/null || true
   adb logcat -d > "$SIM_LOGS/logcat.txt" 2>/dev/null || true
   docker logs ansi-powersync > "$SIM_LOGS/powersync.log" 2>&1 || true
 }
 
 run() {
   : "${SIM_FILE:?set SIM_FILE to an integration_test file name, e.g. week}"
-  trap 'rc=$?; [ "$rc" -eq 0 ] || collect; exit "$rc"' EXIT
+  shooter=""
+  trap 'rc=$?; [ -z "$shooter" ] || kill "$shooter" 2>/dev/null; [ "$rc" -eq 0 ] || collect; exit "$rc"' EXIT
 
   echo "waiting for the backend…"
   for _ in $(seq 600); do [ -s "$status_file" ] && break; sleep 1; done
@@ -61,6 +61,29 @@ run() {
   # run uses against the iOS Simulator.
   adb reverse tcp:54321 tcp:54321
   adb reverse tcp:8080 tcp:8080
+
+  # The iOS Simulator the suite is written on types through a hardware
+  # keyboard, so no on-screen keyboard ever covers the form. Android's does —
+  # it took the taps meant for the shelf-life stepper and the ingredient
+  # form's Save. With every input method disabled the emulator draws none;
+  # enterText still types, since it talks to the framework, not a keyboard.
+  for ime in $(adb shell ime list -s | tr -d '\r'); do
+    adb shell pm disable-user --user 0 "${ime%%/*}" > /dev/null ||
+      echo "::warning::could not disable the input method $ime"
+  done
+  echo "input methods left enabled: [$(adb shell ime list -s | tr -d '\r')]"
+
+  # The app has exited by the time the test run returns, so a screenshot taken
+  # then shows the launcher. Keep the last two while it runs instead: a step
+  # that waits out its timeout leaves the screen it was stuck on.
+  (
+    while sleep 5; do
+      adb exec-out screencap -p > "$SIM_LOGS/.shot.png" 2>/dev/null || continue
+      [ ! -f "$SIM_LOGS/screen.png" ] || mv "$SIM_LOGS/screen.png" "$SIM_LOGS/screen-before.png"
+      mv "$SIM_LOGS/.shot.png" "$SIM_LOGS/screen.png"
+    done
+  ) &
+  shooter=$!
 
   # tee, not tail: with pipefail the run's exit status is the test's.
   cd app
