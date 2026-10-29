@@ -183,7 +183,7 @@ String usedInAmountLine({
 
 /// The quantity sheet's live conversion line: "0.25 cup = 0.25 of a batch ·
 /// makes 1 cup", "3 blob = 0.15 of a batch · a blob is 15 g", or the refusal
-/// ("3 blob — no yield set", "3 — its measure is gone"). Null with no number
+/// ("3 blob · no yield set", "3 · its measure is gone"). Null with no number
 /// yet, or for a line already in batches.
 ///
 /// The word is read off the recipe's live measures, not the resolution: a live

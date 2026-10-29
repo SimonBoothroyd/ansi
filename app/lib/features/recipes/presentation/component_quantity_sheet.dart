@@ -190,7 +190,7 @@ class ComponentQuantityEditor extends HookConsumerWidget {
       yields: yields,
       recipeMeasureId: measureId,
       // The live words, not the resolution's: a live but unresolvable word must
-      // still read "3 blob — unresolved".
+      // still read "3 blob · unresolved".
       measures: known,
     );
 

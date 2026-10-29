@@ -15,31 +15,25 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Quantity &amp; measures</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/ingredients</code> · <code>presentation/unit_chips.dart</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · the ＋ on a component’s dock hosts the <a href="./recipe-editor.html">recipe editor</a>’s own MEASURES list · wide: same, as a dialog from 640 · copy pass: matches code 2026-10-28 for the component dock and a recipe’s measures · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
+    <p class="view-status">built · matches code 2026-10-28 · <code>features/ingredients</code> · <code>presentation/unit_chips.dart</code> · <a href="../../decisions/0008-unit-admission-model.md">ADR-0008</a> · <a href="../../decisions/0009-density-unlocks-both-families.md">ADR-0009</a> · <a href="../../decisions/0014-all-to-all-admission.md">ADR-0014</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../exec-plans/completed/0042-piece-weight.md">plan 0042</a> · <a href="../../design-docs/unit-and-measure-matching.md">units &amp; measures</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · the ＋ on a component’s dock hosts the <a href="./recipe-editor.html">recipe editor</a>’s own MEASURES list · wide: same, as a dialog from 640 · copy pass: matches code 2026-10-28 for the component dock and a recipe’s measures · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
     <p class="view-blurb">One dock everywhere an amount is set: <b>one chip row</b>, handed the offer the surface’s own rule builds — an ingredient’s admitted units and its named measures, or a sub-recipe’s <i>batch</i>, its yields’ families and the recipe’s own measures — with the conversion said out loud above them.</p>
 </header>
 
 <div class="board">
 
         <div class="frame" id="pv2-b1">
-            <p class="frame-name"><b>The everyday surface</b> · this ingredient’s units as chips over the keypad, nothing else; <b>its own measures lead</b>, then the default unit and its family; the conversion line names the density it used</p>
+            <p class="frame-name"><b>The everyday surface</b> · this ingredient’s units as chips over Done, nothing else; <b>its own measures lead</b>, then the default unit and its family; the conversion line names the density it used</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
                 <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Coconut milk, canned</div>
-                    <div class="mline">197 kcal · 2P 20F 3C <span class="per">/100 g</span></div></div></div>
+                    <div class="mline">197 kcal · 2P 3C 20F <span class="per">/100 g</span></div></div></div>
                 <p class="flabel" style="margin-top:14px">Quantity</p>
                 <div class="field"><div class="qty-big"><span class="qn">600</span><span class="care"></span><span class="qu">ml</span></div></div>
                 <div class="dock">
                     <p class="conv-note" style="margin:0 0 9px">≈ <b>610 g</b> · via density 1.02 g/ml</p>
                     <p class="chip-note">the row scrolls: the measures lead, then the default unit&rsquo;s family, then the family a density opened</p>
                     <div class="uchips"><span class="uchip"><span class="srcdot typ"></span>can</span><span class="uchip on">ml</span><span class="uchip">tsp</span><span class="uchip">tbsp</span><span class="uchip">fl oz</span><span class="uchip">cup</span><span class="uchip">l</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip addm">＋</span></div>
-                    <div class="kbd numpad">
-                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
-                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
-                        <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
-                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
-                        <div class="kbd-row"><span class="key done">Done</span></div>
-                    </div>
+                    <div class="btn primary" style="margin:12px 0 0">Done</div>
                 </div>
             </div></div>
         </div>
@@ -53,7 +47,7 @@
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
             <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Broccoli</div>
-                <div class="mline">34 kcal · 3P 0F 7C <span class="per">/100 g</span></div></div></div>
+                <div class="mline">34 kcal · 3P 7C 0F <span class="per">/100 g</span></div></div></div>
             <p class="flabel" style="margin-top:14px">Quantity</p>
             <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">piece</span></div></div>
             <div class="dock">
@@ -77,9 +71,9 @@
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
             <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Lime</div>
-                <div class="mline">30 kcal · 1P 0F 11C <span class="per">/100 g</span></div></div></div>
+                <div class="mline">30 kcal · 1P 11C 0F <span class="per">/100 g</span></div></div></div>
             <p class="flabel" style="margin-top:14px">Quantity</p>
-            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime, whole</span></div></div>
+            <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime, whole (67 g)</span></div></div>
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">1 × 67 g = <b>67 g</b></p>
                 <p class="chip-note">a whole measure on the row — it leads, and it is what the sheet opens on; piece follows with the same figure</p>
@@ -100,19 +94,13 @@
             <div class="grab"></div>
             <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
             <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Curry leaves</div>
-                <div class="mline">108 kcal · 6P 1F 19C <span class="per">/100 g</span></div></div></div>
+                <div class="mline">108 kcal · 6P 19C 1F <span class="per">/100 g</span></div></div></div>
             <p class="flabel" style="margin-top:14px">Quantity</p>
             <div class="field"><div class="qty-big"><span class="qn">6</span><span class="care"></span><span class="qu">sprig (1 g)</span></div></div>
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">≈ <b>6 g</b></p>
                 <div class="uchips"><span class="uchip on"><span class="srcdot you" style="background:#fff"></span>sprig</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip addm">＋</span></div>
-                <div class="kbd numpad">
-                    <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
-                    <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
-                    <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
-                    <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
-                    <div class="kbd-row"><span class="key done">Done</span></div>
-                </div>
+                <div class="btn primary" style="margin:12px 0 0">Done</div>
             </div>
             <p class="conv-note" style="text-align:center;margin-top:10px">exactly the chips the form admitted — nothing curated is missing, because the form came first</p>
         </div></div>
@@ -124,27 +112,21 @@
             <div class="grab"></div>
             <div class="abar" style="padding-top:0"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
             <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle">Lime</div>
-                <div class="mline">30 kcal · 1P 0F 11C <span class="per">/100 g</span></div></div></div>
+                <div class="mline">30 kcal · 1P 11C 0F <span class="per">/100 g</span></div></div></div>
             <p class="flabel" style="margin-top:14px">Quantity</p>
             <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">lime (67 g)</span></div></div>
             <div class="dock">
                 <p class="conv-note" style="margin:0 0 9px">≈ <b>67 g</b></p>
                 <div class="uchips"><span class="uchip on"><span class="srcdot usda" style="background:#fff"></span>lime</span><span class="uchip">piece (67 g)</span><span class="uchip">g</span><span class="uchip">kg</span><span class="uchip">oz</span><span class="uchip">lb</span><span class="uchip">ml</span><span class="uchip">cup</span><span class="uchip-sep"></span><span class="uchip impr">handful</span><span class="uchip addm">＋</span></div>
                 <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>not counted</small></span><span class="fsw"></span></div>
-                <div class="kbd numpad">
-                    <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
-                    <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
-                    <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
-                    <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
-                    <div class="kbd-row"><span class="key done">Done</span></div>
-                </div>
+                <div class="btn primary" style="margin:12px 0 0">Done</div>
             </div>
             <p class="conv-note" style="text-align:center;margin-top:10px">the same sheet at review, so the import card gets the toggle for free — seeded from the extractor’s <b>optional</b> flag</p>
         </div></div>
     </div>
 
         <div class="frame">
-            <p class="frame-name"><b>A component’s amount, on a recipe that coins no measure</b> · the same chips over the same keypad, and the same Optional row; the conversion line reads batches, and a yieldless recipe offers only <i>batch</i>. <b>It keeps this control</b> — a component restates the sub-recipe’s stated yield, there is no density for a recipe, and the chip row is what shows an off-filter pick</p>
+            <p class="frame-name"><b>A component’s amount, on a recipe that coins no measure</b> · the same chips over the same Done, and the same Optional row; the conversion line reads batches, and a yieldless recipe offers only <i>batch</i>. <b>It keeps this control</b> — a component restates the sub-recipe’s stated yield, there is no density for a recipe, and the chip row is what shows an off-filter pick</p>
             <div class="phone"><div class="notch"></div><div class="screen">
                 <div class="abar"><span class="back">✕</span><span class="ttl"></span><span class="dots"></span></div>
                 <div class="picked" style="margin-top:0"><div style="flex:1"><div class="ptitle"><span class="ichip">↪ Romesco Aioli</span></div>
@@ -155,13 +137,7 @@
                     <p class="conv-note" style="margin:0 0 9px"><b>¼ cup</b> = ¼ of a batch · makes 1 cup</p>
                     <div class="uchips"><span class="uchip">batch</span><span class="uchip on">cup</span><span class="uchip">tbsp</span><span class="uchip">tsp</span><span class="uchip">ml</span><span class="uchip">pt</span><span class="uchip">qt</span><span class="uchip addm">＋</span></div>
                     <div class="crow" style="margin:0 0 10px;background:var(--frame)"><span class="cl">Optional<small>not counted</small></span><span class="fsw"></span></div>
-                    <div class="kbd numpad">
-                        <div class="kbd-row"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
-                        <div class="kbd-row"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
-                        <div class="kbd-row"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
-                        <div class="kbd-row"><span class="key">.</span><span class="key">0</span><span class="key">⌫</span></div>
-                        <div class="kbd-row"><span class="key done">Done</span></div>
-                    </div>
+                    <div class="btn primary" style="margin:12px 0 0">Done</div>
                 </div>
                 <p class="flabel" style="margin-top:16px">The same sheet · a recipe with no yield</p>
                 <div class="field"><div class="qty-big"><span class="qn">1</span><span class="care"></span><span class="qu">batch</span></div></div>
@@ -292,7 +268,7 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The unit pick sheet</b> · what a unit <b>chip</b> in a sentence opens — the same offer as the dock above, laid out rather than scrolled, because nothing here sits over a keypad</p>
+        <p class="frame-name"><b>The unit pick sheet</b> · what a unit <b>chip</b> in a sentence opens — the same offer as the dock above, laid out rather than scrolled, because nothing else shares the sheet</p>
         <div class="phone"><div class="notch"></div><div class="screen sheet">
             <div class="grab"></div>
             <p class="c-h" style="font-size:18px">Unit</p>
