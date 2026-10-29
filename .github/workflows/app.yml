@@ -34,6 +34,7 @@ jobs:
           stale="$(git status --porcelain -- '*.g.dart' '*.freezed.dart')"
           if [ -n "$stale" ]; then
             echo "$stale"
+            git --no-pager diff -- '*.g.dart' '*.freezed.dart'
             echo "::error::generated code is stale — run make gen and commit the result"
             exit 1
           fi

@@ -26,6 +26,7 @@ permissions:
 
 env:
   FLUTTER_VERSION: "3.47.1" # exact — matches app.yml, release.yml and local
+  NDK_VERSION: "28.2.13676358" # flutter.ndkVersion for that Flutter
   # The AVD both the snapshot and the run boot. Change any of these and the
   # cache key below changes with them.
   AVD_API_LEVEL: "34"
@@ -96,6 +97,19 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
+
+      # Flutter needs this exact NDK (flutter.ndkVersion) and installs it
+      # itself, inside Gradle, when it is missing — and the runner image
+      # does not carry it: a 1 GB download and unzip, about 4.5 minutes, on
+      # every job. Flutter skips the install when the directory exists.
+      # Bump NDK_VERSION with FLUTTER_VERSION (FlutterExtension.kt).
+      - run: echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ANDROID_SDK }}/ndk/${{ env.NDK_VERSION }}
+            ${{ env.ANDROID_SDK }}/cmake/3.22.1
+          key: ndk-${{ env.NDK_VERSION }}-cmake-3.22.1
 
       - uses: actions/cache@v4
         with:

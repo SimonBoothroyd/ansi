@@ -61,27 +61,26 @@ android {
 
     buildTypes {
         release {
+            // Release builds are arm64 only: the phones are Pixels, and CI
+            // cuts the sideload APK from the AAB (docs/release.md §3).
+            // `--target-platform` compiles only arm64 Dart, but the plugins'
+            // native code (barcode, SQLite, PowerSync) would still ship for
+            // every ABI, and a bundle with a plugin's armeabi-v7a library and
+            // no libflutter.so is offered to 32-bit phones and crashes there.
+            // This only takes because gradle.properties sets
+            // disable-abi-filtering: otherwise the Flutter plugin resets
+            // defaultConfig's filters to all three ABIs, and AGP unions them
+            // with these. Debug builds keep every ABI (the CI emulator is
+            // x86_64).
+            ndk {
+                abiFilters += "arm64-v8a"
+            }
             signingConfig = if (keystoreProperties.isNotEmpty()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
         }
-    }
-}
-
-// Release builds are arm64 only: the phones are Pixels, and CI cuts the
-// sideload APK from the AAB (docs/release.md §3). `--target-platform` trims
-// Flutter's own libraries but not the plugins' native code (barcode, SQLite,
-// PowerSync), and a bundle carrying a plugin's armeabi-v7a library without
-// libflutter.so would be offered to a 32-bit phone and crash there. So the
-// other ABIs are dropped when native libraries are merged, for the APK and the
-// AAB alike. Debug builds keep every ABI (the CI emulator is x86_64).
-androidComponents {
-    onVariants(selector().withBuildType("release")) { variant ->
-        variant.packaging.jniLibs.excludes.addAll(
-            listOf("**/armeabi-v7a/*", "**/x86/*", "**/x86_64/*"),
-        )
     }
 }
 

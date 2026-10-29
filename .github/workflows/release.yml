@@ -17,6 +17,7 @@ concurrency:
 env:
   # Pinned to match app.yml — the SDK everything is verified against.
   FLUTTER_VERSION: "3.47.1" # exact — matches app.yml and local
+  NDK_VERSION: "28.2.13676358" # flutter.ndkVersion for that Flutter
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -126,6 +127,19 @@ jobs:
           java-version: "17"
           cache: gradle # the single biggest release-build cost when cold
 
+      # Flutter needs this exact NDK (flutter.ndkVersion) and installs it
+      # itself, inside Gradle, when it is missing — and the runner image
+      # does not carry it: a 1 GB download and unzip, about 4.5 minutes, on
+      # every job. Flutter skips the install when the directory exists.
+      # Bump NDK_VERSION with FLUTTER_VERSION (FlutterExtension.kt).
+      - run: echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ANDROID_SDK }}/ndk/${{ env.NDK_VERSION }}
+            ${{ env.ANDROID_SDK }}/cmake/3.22.1
+          key: ndk-${{ env.NDK_VERSION }}-cmake-3.22.1
+
       - uses: actions/cache@v4
         with:
           path: ~/.pub-cache
@@ -218,7 +232,8 @@ jobs:
           BUILD_NUMBER: ${{ steps.version.outputs.code }}
         # One Gradle build, not two. The phones are Pixels, so the bundle is
         # arm64 only: --target-platform compiles the Dart once instead of per
-        # ABI, and build.gradle.kts drops the plugins' other-ABI libraries.
+        # ABI, and build.gradle.kts filters out the plugins' other-ABI
+        # libraries.
         # The APK is cut from this same bundle in the next step.
         run: |
           flutter build appbundle --release \
@@ -263,7 +278,7 @@ jobs:
           check() { # $1 = file, $2 = path prefix inside it
             got="$(abis "$1" "$2")"
             [ "$got" = "arm64-v8a" ] || {
-              echo "::error::$1 carries native code for [$got], expected [arm64-v8a] only — see the abi exclude in android/app/build.gradle.kts"
+              echo "::error::$1 carries native code for [$got], expected [arm64-v8a] only — see the release abiFilters in android/app/build.gradle.kts"
               exit 1
             }
             for so in libflutter.so libapp.so; do

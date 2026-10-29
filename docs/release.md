@@ -199,12 +199,20 @@ given tag.
 Pixel is arm64. Building the AAB for arm64 alone compiles the Dart once
 instead of once per ABI, and cutting the APK from the AAB replaced a second
 full Gradle build (about 5 minutes) with a bundletool step (seconds).
-`--target-platform` does not drop the plugins' native code, so
-`app/android/app/build.gradle.kts` excludes the other ABIs from every release
-build, and the job fails if either file carries anything but `arm64-v8a`.
-What it costs: Play does not offer the app to a 32-bit phone or an Intel
-Chromebook. To serve them again, drop the target platform and the exclude
-together — a later versionCode carries them, nothing is locked in.
+`--target-platform` does not drop the plugins' native code, so the release
+build type in `app/android/app/build.gradle.kts` filters to arm64 — which
+only takes with `disable-abi-filtering=true` in `gradle.properties`, because
+the Flutter plugin otherwise resets the filters to all three ABIs. The job
+fails if either file carries anything but `arm64-v8a` (it caught exactly
+that the first time). What it costs: Play does not offer the app to a 32-bit
+phone or an Intel Chromebook. To serve them again, drop the target platform,
+the filter and the property together — a later versionCode carries them,
+nothing is locked in.
+
+**The NDK is cached.** Flutter needs one exact NDK and installs it inside
+Gradle when it is missing; the runner image does not carry it, which cost
+about 4.5 minutes a build. The `android` job (and `sim.yml`) restore it from
+the Actions cache, keyed on `NDK_VERSION` — bump that with `FLUTTER_VERSION`.
 
 **Why iOS is a compile proof and nothing more.** Ansi is a two-person household
 app installed from Xcode, not from the App Store. Real iOS signing in CI means
