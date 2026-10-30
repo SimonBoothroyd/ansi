@@ -43,6 +43,15 @@ stamp() { while IFS= read -r line; do printf '%s %s\n' "$(date -u +%T)" "$line";
 
 backend() {
   trap 'echo $? > "$status_file"' EXIT
+  # Pulling the stack's images was most of the backend's time (3m25s of
+  # 3m43s, with the registry rate-limiting nine jobs at once). The workflow
+  # restores them as one tar from the Actions cache; with SIM_SAVE_IMAGES set
+  # (one job, on a cache miss), this writes that tar for the workflow to save.
+  local tar="${SIM_IMAGES_TAR:-}"
+  if [ -n "$tar" ] && [ -f "$tar" ]; then
+    echo "$(date -u +%T) docker load"
+    docker load -i "$tar" | stamp
+  fi
   # No smoke file reaches an edge function, storage, realtime or the
   # dashboard (import runs over the local repository — see
   # SmokeStack.openLibraryWithLocalImport), so those images are never pulled.
@@ -51,6 +60,16 @@ backend() {
   # No --env-file: compose.yaml's defaults are the local stack's values.
   docker compose --file docker/compose.yaml up -d 2>&1 | stamp
   echo "$(date -u +%T) backend done"
+  if [ -n "${SIM_SAVE_IMAGES:-}" ] && [ -n "$tar" ]; then
+    # Status first: the save must not hold up the run waiting on it.
+    echo 0 > "$status_file"
+    if docker images --format '{{.Repository}}:{{.Tag}}' | grep -E 'supabase/|powersync' |
+      xargs docker save -o "$tar.tmp" && mv "$tar.tmp" "$tar"; then
+      echo "$(date -u +%T) images saved: $(du -h "$tar" | cut -f1)"
+    else
+      echo "::warning::could not save the backend's images; the next run pulls them"
+    fi
+  fi
 }
 
 build() {
@@ -58,10 +77,11 @@ build() {
   trap 'echo $? > "$build_status"' EXIT
   set_defines "$default_anon"
   cd app
-  # flutter test appends this define to an integration test's own (Flutter
-  # 3.47.1, commands/test.dart); without it here, its build is a rebuild.
+  # flutter test makes the file's path absolute and appends this define to
+  # an integration test's own (Flutter 3.47.1, commands/test.dart). Either
+  # difference here makes its build a rebuild.
   flutter build apk --debug --target-platform android-x64 \
-    --target "integration_test/${SIM_FILE}_test.dart" "${defines[@]}" \
+    --target "$PWD/integration_test/${SIM_FILE}_test.dart" "${defines[@]}" \
     --dart-define=INTEGRATION_TEST_SHOULD_REPORT_RESULTS_TO_NATIVE=false
   echo "$(date -u +%T) build done"
 }
@@ -139,11 +159,23 @@ run() {
   ) &
   shooter=$!
 
+  # An app that never becomes active hangs flutter test with no output at all
+  # (once here: sixteen minutes after install, not even setUpAll). An "isn't
+  # responding" dialog is the usual cause on a loaded emulator; the error
+  # dialogs are hidden, and a hang is bounded so it fails with the screens
+  # and logcat instead of eating the job.
+  adb shell settings put global hide_error_dialogs 1
+
   # tee, not tail: with pipefail the run's exit status is the test's.
   set_defines "$anon"
   cd app
-  flutter test "integration_test/${SIM_FILE}_test.dart" -d emulator-5554 \
-    "${defines[@]}" 2>&1 | tee "$SIM_LOGS/flutter-test.log"
+  local rc=0
+  timeout "${SIM_TEST_TIMEOUT:-15m}" flutter test "integration_test/${SIM_FILE}_test.dart" \
+    -d emulator-5554 "${defines[@]}" 2>&1 | tee "$SIM_LOGS/flutter-test.log" || rc=$?
+  if [ "$rc" -eq 124 ]; then
+    echo "::error::flutter test made no end in ${SIM_TEST_TIMEOUT:-15m} — see screens/ in the sim-${SIM_FILE} artifact"
+  fi
+  return "$rc"
 }
 
 case "${1:-}" in

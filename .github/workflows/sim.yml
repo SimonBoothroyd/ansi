@@ -84,10 +84,24 @@ jobs:
         with:
           version: 2.115.0
 
-      # Backgrounded, like the build below: the image pulls and migrations run
-      # while Gradle builds. scripts/sim_ci.sh run waits on both.
+      # The stack's images as one tar: pulling them was most of the backend's
+      # time, and the registry rate-limits nine jobs pulling at once. Keyed
+      # on the CLI (which pins every Supabase image) and compose.yaml.
+      - run: echo "SIM_IMAGES_TAR=$RUNNER_TEMP/backend-images.tar" >> "$GITHUB_ENV"
+      - name: Restore the backend's images
+        id: images
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.SIM_IMAGES_TAR }}
+          key: backend-images-supabase-2.115.0-${{ hashFiles('docker/compose.yaml') }}
+
+      # Backgrounded, like the build below: the backend comes up while Gradle
+      # builds. scripts/sim_ci.sh run waits on both. On a cache miss one job
+      # (auth) also saves the images for the step at the end.
       - name: Start the local backend (background)
         working-directory: .
+        env:
+          SIM_SAVE_IMAGES: ${{ steps.images.outputs.cache-hit != 'true' && matrix.file == 'auth' && '1' || '' }}
         run: |
           mkdir -p "$SIM_LOGS"
           nohup scripts/sim_ci.sh backend > "$SIM_LOGS/backend.log" 2>&1 &
@@ -194,8 +208,25 @@ jobs:
 
       # A screenshot first: an app that "goes quiet" is diagnosed by looking
       # at the device (tech-debt tracker, test-sim).
-      - name: Keep the logs and a screenshot
-        if: failure()
+      # The tar is written in the background once the stack is up; wait for it.
+      - name: Save the backend's images
+        if: steps.images.outputs.cache-hit != 'true' && matrix.file == 'auth'
+        working-directory: .
+        run: |
+          for _ in $(seq 300); do [ -f "$SIM_IMAGES_TAR" ] && exit 0; sleep 1; done
+          echo "::warning::no image tar to save"; exit 1
+        continue-on-error: true
+      - if: steps.images.outputs.cache-hit != 'true' && matrix.file == 'auth'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.SIM_IMAGES_TAR }}
+          key: backend-images-supabase-2.115.0-${{ hashFiles('docker/compose.yaml') }}
+        continue-on-error: true
+
+      # cancelled() too: a job that hits its time limit is cancelled, and a
+      # hang is exactly when the screens are wanted.
+      - name: Keep the logs and screenshots
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: sim-${{ matrix.file }}
