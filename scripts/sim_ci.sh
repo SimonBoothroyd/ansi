@@ -20,15 +20,15 @@ mkdir -p "$SIM_LOGS"
 status_file="$SIM_LOGS/backend.status"
 build_status="$SIM_LOGS/build.status"
 
-# The local stack's anon key is a shared default — the supabase-demo JWT,
-# signed with the CLI's default secret — so the build need not wait for the
-# backend to read it. `run` still reads the real one from `supabase status`;
-# if they ever differ, flutter test rebuilds with it (slower, still right).
-default_anon=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+# The stack's images come from GitHub's registry, where Supabase mirrors
+# them (the CLI's own fallback list names it). Its default, public.ecr.aws,
+# rate-limits nine jobs pulling at once, and once refused one outright
+# ("toomanyrequests: Data limit exceeded"), failing the run.
+export SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io
 
-# The same defines for `build` and `run`, so flutter test's own build finds
-# nothing to do. The emulator reaches the runner's ports through adb reverse,
-# so these are the URLs a laptop run uses against the iOS Simulator.
+# The URLs the app is built with. The emulator reaches the runner's ports
+# through adb reverse, so they are the ones a laptop run uses against the
+# iOS Simulator.
 set_defines() { # $1 = anon key
   defines=(
     --dart-define=SUPABASE_URL=http://127.0.0.1:54321
@@ -53,14 +53,14 @@ backend() {
 build() {
   : "${SIM_FILE:?set SIM_FILE to an integration_test file name, e.g. week}"
   trap 'echo $? > "$build_status"' EXIT
-  set_defines "$default_anon"
   cd app
-  # flutter test makes the file's path absolute and appends this define to
-  # an integration test's own (Flutter 3.47.1, commands/test.dart). Either
-  # difference here makes its build a rebuild.
+  # This warms Gradle — the plugins' Kotlin and Java, dexing, the NDK — so
+  # flutter test's build is only its Dart. That compile cannot be shared:
+  # flutter test builds a generated listener.dart in a fresh temp directory
+  # around the test file, never the file itself, so no build made
+  # beforehand matches it. The defines need not match either.
   flutter build apk --debug --target-platform android-x64 \
-    --target "$PWD/integration_test/${SIM_FILE}_test.dart" "${defines[@]}" \
-    --dart-define=INTEGRATION_TEST_SHOULD_REPORT_RESULTS_TO_NATIVE=false
+    --target "integration_test/${SIM_FILE}_test.dart"
   echo "$(date -u +%T) build done"
 }
 
@@ -87,8 +87,6 @@ run() {
   # The legacy anon JWT, as `.env.local` holds it (see .env.local.template).
   anon="$(supabase status -o env | sed -nE 's/^ANON_KEY="?([^"]*)"?$/\1/p')"
   [ -n "$anon" ] || { echo "::error::no ANON_KEY in supabase status"; exit 1; }
-  [ "$anon" = "$default_anon" ] ||
-    echo "::warning::the local anon key is not the shared default; flutter test rebuilds with it"
 
   echo "waiting for the build…"
   for _ in $(seq 1200); do [ -s "$build_status" ] && break; sleep 1; done
@@ -150,12 +148,6 @@ run() {
   local rc=0
   timeout "${SIM_TEST_TIMEOUT:-15m}" flutter test "integration_test/${SIM_FILE}_test.dart" \
     -d emulator-5554 "${defines[@]}" 2>&1 | tee "$SIM_LOGS/flutter-test.log" || rc=$?
-  # Written by the workflow's Gradle init script: the tasks that did work.
-  if [ -f "$SIM_LOGS/gradle-tasks.log" ]; then
-    echo "::group::Gradle: each build's -P properties, and the tasks that did work"
-    cat "$SIM_LOGS/gradle-tasks.log"
-    echo "::endgroup::"
-  fi
   if [ "$rc" -eq 124 ]; then
     echo "::error::flutter test made no end in ${SIM_TEST_TIMEOUT:-15m} — see screens/ in the sim-${SIM_FILE} artifact"
   fi

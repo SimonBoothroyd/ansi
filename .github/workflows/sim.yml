@@ -85,9 +85,9 @@ jobs:
           version: 2.115.0
 
       # Backgrounded, like the build below: the backend comes up while Gradle
-      # builds. scripts/sim_ci.sh run waits on both. Its images are pulled,
-      # not cached: a cached tar took 2.5–4.5 minutes to `docker load`,
-      # longer than the pull it replaced, and slowed the build beside it.
+      # builds. scripts/sim_ci.sh run waits on both. Its images are pulled
+      # from ghcr.io (see the script), not cached: a cached tar took 2.5–4.5
+      # minutes to `docker load`, longer than the pull, and slowed the build.
       - name: Start the local backend (background)
         working-directory: .
         run: |
@@ -109,31 +109,6 @@ jobs:
         with:
           cache-read-only: ${{ matrix.file != 'auth' }}
       - run: mkdir -p ~/.gradle && echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-      # Which tasks do work, and with what -P properties, in each build:
-      # flutter test's own build should do almost none. scripts/sim_ci.sh
-      # run prints the log.
-      - name: Log the Gradle tasks that do work
-        run: |
-          mkdir -p ~/.gradle/init.d
-          cat > ~/.gradle/init.d/sim-tasks.gradle <<'GRADLE'
-          def log = new File(System.getenv('SIM_LOGS') ?: '/tmp', 'gradle-tasks.log')
-          def now = { new Date().format('HH:mm:ss') }
-          // The -P properties this build was given, dart-defines decoded:
-          // two builds that differ here compile the Dart twice.
-          gradle.settingsEvaluated {
-            def props = new TreeMap(gradle.startParameter.projectProperties)
-            def defines = props.remove('dart-defines')
-            log << "${now()} BUILD ${gradle.startParameter.taskNames} ${props}\n"
-            defines?.split(',')?.each { log << "${now()}   define ${new String(it.decodeBase64())}\n" }
-          }
-          gradle.beforeProject { p ->
-            p.tasks.configureEach { t ->
-              // Lifecycle tasks have no actions of their own; skip them.
-              t.doLast { if (t.actions.size() > 1) log << "${now()} ${t.path}\n" }
-            }
-          }
-          GRADLE
-
       # Flutter needs this exact NDK (flutter.ndkVersion) and installs it
       # itself, inside Gradle, when it is missing — and the runner image
       # does not carry it: a 1 GB download and unzip on every job. Flutter
@@ -164,8 +139,8 @@ jobs:
       - run: flutter pub get
 
       # Backgrounded so the emulator boots while it builds; the run step
-      # prints its log. Built with the stack's default anon key and the run's
-      # own defines, so flutter test's build finds nothing left to do.
+      # prints its log. It warms Gradle, so flutter test's build is only its
+      # Dart (scripts/sim_ci.sh says why that part cannot be shared).
       - name: Start the debug build (background)
         working-directory: .
         run: nohup scripts/sim_ci.sh build > "$SIM_LOGS/build.log" 2>&1 &
