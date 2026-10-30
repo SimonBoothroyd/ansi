@@ -117,6 +117,29 @@ Future<void> _toggle(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+/// Garlic twice on one row: 20 g, then [second].
+Recipe _garlicTwoWays(LineItem second) => Recipe(
+  id: 'r1',
+  title: 'Garlic Two Ways',
+  servingsBase: 2,
+  groups: [
+    IngredientGroup(
+      id: 'g1',
+      items: [
+        const LineItem(
+          id: 'i1',
+          ingredientId: 'garlic',
+          ingredientName: 'Garlic',
+          unit: g,
+          quantity: 20,
+          note: 'finely chopped',
+        ),
+        second,
+      ],
+    ),
+  ],
+);
+
 void main() {
   testWidgets('off by default: no line carries macros of its own', (
     tester,
@@ -193,43 +216,47 @@ void main() {
     expect(find.text('not counted'), findsNothing);
   });
 
-  testWidgets('a folded multi-use row prints figures only when EVERY use '
-      'joined — never a partial', (tester) async {
-    const folded = Recipe(
-      id: 'r1',
-      title: 'Garlic Two Ways',
-      servingsBase: 2,
-      groups: [
-        IngredientGroup(
-          id: 'g1',
-          items: [
-            LineItem(
-              id: 'i1',
-              ingredientId: 'garlic',
-              ingredientName: 'Garlic',
-              unit: g,
-              quantity: 20,
-              note: 'finely chopped',
-            ),
-            LineItem(
-              id: 'i2',
-              ingredientId: 'garlic',
-              ingredientName: 'Garlic',
-              unit: handful,
-              note: 'sliced',
-            ),
-          ],
+  testWidgets('a folded row prints what its weighed uses add up to, passing '
+      'over a handful as the total does', (tester) async {
+    await _pump(
+      tester,
+      recipe: _garlicTwoWays(
+        const LineItem(
+          id: 'i2',
+          ingredientId: 'garlic',
+          ingredientName: 'Garlic',
+          unit: handful,
+          note: 'sliced',
         ),
-      ],
+      ),
     );
-    await _pump(tester, recipe: folded);
     await _toggle(tester, 'Show line figures');
 
-    // The 20 g use resolved and the handful did not, so the row prints no
-    // figure rather than the half it could add up, and no reason either: a
-    // handful has nothing to fix.
-    expect(macroText('20 kcal · 2P 4C 1F'), findsNothing);
+    // The 20 g is in the total and the handful is not, so the row says the
+    // same: the 20 g alone, and no reason, since a handful has nothing to fix.
+    expect(macroText('20 kcal · 2P 4C 1F'), findsOneWidget);
     expect(find.text('not counted'), findsNothing);
+  });
+
+  testWidgets('a folded row with a use the total is waiting on prints no '
+      'figure — never a partial', (tester) async {
+    await _pump(
+      tester,
+      recipe: _garlicTwoWays(
+        const LineItem(
+          id: 'i2',
+          ingredientId: 'garlic',
+          ingredientName: 'Garlic',
+          unit: g,
+          note: 'sliced',
+        ),
+      ),
+    );
+    await _toggle(tester, 'Show line figures');
+
+    // The second use has no amount, which is fixable: the half the row could
+    // add up would read as the whole garlic.
+    expect(macroText('20 kcal · 2P 4C 1F'), findsNothing);
   });
 
   testWidgets('the toggle is offered only from the tab it changes', (

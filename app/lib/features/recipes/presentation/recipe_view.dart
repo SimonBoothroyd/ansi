@@ -1189,9 +1189,11 @@ class _IngredientsTab extends ConsumerWidget {
   /// at the amount shown, or the reason there are none.
   ///
   /// Figures are the summation's per-line record scaled by the page's factor,
-  /// so nothing is converted twice. A folded multi-use row prints figures only
-  /// when every use joined. [marked] and optional rows say nothing here; they
-  /// already say it elsewhere.
+  /// so nothing is converted twice. A folded multi-use row prints the sum of
+  /// the uses that joined, passing over a use out by rule (a handful, an
+  /// optional line), which the total passes over too; a use the total is
+  /// waiting on leaves the row no figure. [marked] and optional rows say
+  /// nothing here; they already say it elsewhere.
   ({Macros? figures, String? note}) _macroLine(
     LineUses uses,
     RecipeMacroSummary summary,
@@ -1203,6 +1205,7 @@ class _IngredientsTab extends ConsumerWidget {
     // `fiber: 0` is the additive identity, so folding one use does not strip
     // the fibre a row does state ([Macros.fiber]).
     var total = const Macros(kcal: 0, protein: 0, carb: 0, fat: 0, fiber: 0);
+    var joined = false;
     for (final use in uses.uses) {
       final contribution = summary.lineMacros[use.id];
       if (contribution == null) {
@@ -1211,30 +1214,33 @@ class _IngredientsTab extends ConsumerWidget {
             .where((n) => n.lineId == use.id)
             .firstOrNull
             ?.reason;
-        // Out by rule, with nothing to fix: the line says nothing.
-        return reason == null || byRuleReasons.contains(reason)
-            ? nothing
-            : (figures: null, note: incompleteLineNote(reason));
+        if (reason == null) return nothing;
+        // Out by rule, with nothing to fix: passed over, as the total does.
+        if (byRuleReasons.contains(reason)) continue;
+        return (figures: null, note: incompleteLineNote(reason));
       }
       total += contribution;
+      joined = true;
     }
-    return (figures: total.scaledBy(factor), note: null);
+    return joined ? (figures: total.scaledBy(factor), note: null) : nothing;
   }
 
   /// The second line when the panel is reading cost: what the row comes to at
   /// the amount shown, the unit price, and where and when, or the reason
-  /// the row was left out. Scaled from the summation's per-line record, like
-  /// [_macroLine].
+  /// the row was left out. Scaled from the summation's per-line record, and
+  /// folded like [_macroLine].
   String? _costLine(LineUses uses, double factor) {
     final summary = cost;
     if (!showLineFigures || !costReading || summary == null) return null;
     var total = 0.0;
+    var joined = false;
     UnitPrice? price;
     for (final use in uses.uses) {
       final contribution = summary.lineCosts[use.id];
       if (contribution == null) {
-        // A line out by rule (`notCounted`) has nothing to fix and says
-        // nothing.
+        // A use out by rule (`notCounted`) has nothing to fix: passed over,
+        // as the total does.
+        if (summary.notCounted.any((n) => n.lineId == use.id)) continue;
         final reason = summary.unpriced
             .where((n) => n.lineId == use.id)
             .firstOrNull
@@ -1242,8 +1248,10 @@ class _IngredientsTab extends ConsumerWidget {
         return reason == null ? null : costLineNote(reason);
       }
       total += contribution.cents;
+      joined = true;
       price ??= contribution.price;
     }
+    if (!joined) return null;
     return lineCostText(
       CostLine(cents: total, price: price),
       factor: factor,

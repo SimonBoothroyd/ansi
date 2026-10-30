@@ -127,12 +127,16 @@ class _FakeRecipeRepo extends FakeRecipeRepository {
   ]);
 }
 
-Future<void> _pump(WidgetTester tester, {bool priceEverything = false}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  bool priceEverything = false,
+  Recipe recipe = _recipe,
+}) async {
   await tester.pumpAnsiApp(
     const RecipeView(recipeId: 'r1'),
     overrides: [
       recipeRepositoryProvider.overrideWithValue(
-        _FakeRecipeRepo(_recipe, priceEverything: priceEverything),
+        _FakeRecipeRepo(recipe, priceEverything: priceEverything),
       ),
     ],
   );
@@ -235,6 +239,41 @@ void main() {
       expect(find.text(r"$6.60 · $1.10 / 100 g · TJ's, Sep"), findsOneWidget);
       expect(find.text('no price yet'), findsOneWidget);
       // The handful of parsley has nothing to fix, so its line says nothing.
+      expect(find.text('not counted'), findsNothing);
+    });
+
+    testWidgets('a folded row costs its weighed uses, passing over a '
+        'handful as the total does', (tester) async {
+      const twice = Recipe(
+        id: 'r1',
+        title: 'Chicken Two Ways',
+        servingsBase: 4,
+        groups: [
+          IngredientGroup(
+            id: 'g1',
+            items: [
+              LineItem(
+                id: 'i1',
+                ingredientId: 'chicken',
+                ingredientName: 'Chicken thigh',
+                unit: g,
+                quantity: 600,
+              ),
+              LineItem(
+                id: 'i2',
+                ingredientId: 'chicken',
+                ingredientName: 'Chicken thigh',
+                unit: handful,
+              ),
+            ],
+          ),
+        ],
+      );
+      await _pump(tester, recipe: twice);
+      await _menu(tester, 'Show line figures');
+      await _flipToCost(tester);
+
+      expect(find.text(r"$6.60 · $1.10 / 100 g · TJ's, Sep"), findsOneWidget);
       expect(find.text('not counted'), findsNothing);
     });
 

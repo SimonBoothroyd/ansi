@@ -550,11 +550,15 @@ its steps.
     each line's own `197 kcal · 2P 3C 20F` under its name — protein, carb,
     fat, the panel's own order, one size down. These are the line
     *as displayed*, so unlike the per-serving strip they **do** move with the
-    servings scaler. A line the total left out prints its reason instead of
-    figures, in `incompleteLineNote`'s exact words — never a zero, and a
-    folded multi-use row prints figures only when every use joined, so a
-    partial is never shown either. A line whose amber marker is already
-    printing that reason does not print it twice.
+    servings scaler. A line the total is waiting on prints its reason
+    instead of figures, in `incompleteLineNote`'s exact words — never a
+    zero. A line out by rule (a handful, an optional line) prints nothing.
+    A folded multi-use row prints what its weighed uses add up to, passing
+    over a use out by rule exactly as the total does (20 g of garlic and a
+    handful read as the 20 g); a use the total is waiting on leaves the row
+    no figure, so a partial is never shown. Cost folds the same way. A line
+    whose amber marker is already printing that reason does not print it
+    twice.
   - **The refusal NAMES its causes** (plan 0024 seam D5). The count line the
     picker rows print is kept verbatim, and under it the panel lists the
     lines the total is waiting on — `Dragon fruit · needs a piece weight`,
