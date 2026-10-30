@@ -124,12 +124,18 @@ Two traps this repo has actually paid for:
 
 No `flutter` on `PATH` (a fresh cloud container)? Install the version `app.yml`
 pins before claiming any of the above ran; never report a check you skipped.
+**Run `make hooks` once per clone** (`scripts/bootstrap.sh` does it): the
+pre-commit hook runs `dart format` on the staged Dart files and refuses the
+commit if it would change them — the commonest way an agent's push turns CI
+red. It skips, saying so, when `dart` is missing; that is not a pass. Analyze
+and the tests stay above, not in the hook.
 When flutter runs as root (cloud containers), put
 `$(dirname $(which flutter))/cache/dart-sdk/bin` first on `PATH`, or `dart run
 custom_lint` exits 1 with no issues. Run `make powersync-core` before a bare
 `flutter test`.
 
 ```
+make hooks        # once per clone: pre-commit runs dart format on staged Dart
 make gen          # codegen (Riverpod/Freezed/json)
 make analyze      # dart analyze + custom_lint — must be clean
 make test         # flutter test + edge-function tests

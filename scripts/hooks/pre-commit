@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# The repo's pre-commit hook; `make hooks` (or scripts/bootstrap.sh) points git
+# here. It runs the one check that is fully mechanical and that CI fails on
+# most — `dart format` — on the Dart files this commit stages under app/, and
+# nothing slow: analyze and the tests stay in "verify before you claim done"
+# (AGENTS.md). CI (app.yml) is still the enforcement; this only moves the red
+# from a push to the commit.
+#
+# It checks the working-tree copy of each staged file, so a file staged in
+# part is judged on all of it. It never blocks for a missing tool: without
+# `dart` on PATH, or before app's package config exists (without it the
+# formatter falls back to an old language version and flags correct files —
+# see the Makefile's `format`), it says so and lets the commit through.
+set -uo pipefail
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root/app" 2>/dev/null || exit 0
+
+# --relative: paths under app/, as the formatter wants them from here.
+mapfile -t files < <(git diff --cached --name-only --relative --diff-filter=ACMR -- '*.dart')
+[ "${#files[@]}" -eq 0 ] && exit 0
+
+if ! command -v dart > /dev/null 2>&1; then
+  echo "pre-commit: no dart on PATH — dart format skipped; CI will check it." >&2
+  exit 0
+fi
+if [ ! -f .dart_tool/package_config.json ]; then
+  echo "pre-commit: app has no package config yet (make deps) — dart format skipped." >&2
+  exit 0
+fi
+
+if ! out="$(dart format --output=none --set-exit-if-changed "${files[@]}" 2>&1)"; then
+  echo "$out" >&2
+  echo >&2
+  echo "pre-commit: dart format would change the files above — CI fails on that." >&2
+  echo "  Fix: (cd app && dart format <files>), re-stage, commit again." >&2
+  exit 1
+fi

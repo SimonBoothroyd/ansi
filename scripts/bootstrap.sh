@@ -31,6 +31,12 @@ else
 fi
 
 echo
+# The repo's hooks (scripts/hooks): pre-commit runs dart format on staged
+# Dart files. Same as `make hooks`.
+git config core.hooksPath scripts/hooks
+echo "  ✓ git hooks: scripts/hooks"
+
+echo
 if [ "$ok" -eq 1 ] && command -v flutter >/dev/null 2>&1; then
   echo "Fetching Flutter packages…"
   ( cd app && flutter pub get ) || echo "  (pub get failed — resolve versions in app/pubspec.yaml)"

@@ -36,6 +36,10 @@ help: ## Show this help
 bootstrap: ## Check tooling + install deps
 	./scripts/bootstrap.sh
 
+.PHONY: hooks
+hooks: ## Use the repo's git hooks (pre-commit: dart format on staged Dart files)
+	git config core.hooksPath scripts/hooks
+
 .PHONY: deps
 deps: ## Fetch Flutter packages
 	cd $(APP) && flutter pub get

@@ -48,7 +48,7 @@ Architecture: `ARCHITECTURE.md`. Roadmap + status: `docs/exec-plans/roadmap.md`.
 ## Quick start
 
 ```bash
-scripts/bootstrap.sh          # checks tooling, installs deps, copies env template
+scripts/bootstrap.sh          # checks tooling, installs deps, copies env template, sets git hooks
 cp .env.local.template .env.local   # then fill in Supabase + PowerSync values
 make db-up                    # supabase start + local PowerSync service
 make run                      # launch the Flutter app
