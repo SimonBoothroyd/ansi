@@ -180,13 +180,7 @@ void main() {
     // chip row offers the vocab measures cloned at onboarding — but first,
     // author a manual measure through the sheet's manage state (the 7.7
     // measure editor) and prove it lands with source 'manual'.
-    await scrollTo(tester, find.text('Add ingredient'));
-    await tester.tap(find.text('Add ingredient'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(EditableText).last, 'garlic');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Garlic').last);
-    await tester.pumpAndSettle();
+    await pickVocab(tester, 'garlic', 'Garlic');
     await tester.enterText(find.byType(EditableText).last, '3');
     await tester.pump();
     // Manage measures: add "big clove = 5 g" (saved as yours), which lands
@@ -263,7 +257,7 @@ void main() {
     }
 
     await scrollTo(tester, find.text('Save'), delta: -150);
-    await tester.tap(find.text('Save'));
+    await tapEditorSave(tester);
     await pumpUntilFound(tester, find.text('OUR COOKBOOK · WEEKNIGHT'));
     expect(find.text('Chicken Curry'), findsOneWidget); // the rendered title
 
@@ -396,7 +390,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Save'));
+    await tapEditorSave(tester);
     await pumpUntilFound(tester, find.text('OUR COOKBOOK · WEEKNIGHT'));
 
     // Ingredients survive the edit's server round-trip: rendered and live in

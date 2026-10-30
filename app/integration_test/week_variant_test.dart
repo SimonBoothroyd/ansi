@@ -49,6 +49,7 @@ import 'package:powersync/powersync.dart' hide Column;
 import 'package:uuid/uuid.dart';
 
 import 'support/drive.dart';
+import 'support/editor.dart';
 import 'support/stack.dart';
 import 'support/week.dart';
 
@@ -204,7 +205,7 @@ void main() {
       containsPair('n', 0),
     );
 
-    await tester.tap(find.text('Save'));
+    await tapEditorSave(tester);
     await tester.pumpAndSettle();
     await waitForDb(
       tester,

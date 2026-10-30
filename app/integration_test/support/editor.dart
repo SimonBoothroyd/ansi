@@ -56,14 +56,7 @@ Future<void> addIngredient(
   String qty, {
   String? chip,
 }) async {
-  await scrollTo(tester, find.text('Add ingredient'));
-  await tester.tap(find.text('Add ingredient'));
-  await tester.pumpAndSettle();
-  // The picker sheet's search field is the last EditableText (overlay).
-  await tester.enterText(find.byType(EditableText).last, name.toLowerCase());
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(name).last);
-  await tester.pumpAndSettle();
+  await pickVocab(tester, name.toLowerCase(), name);
   // The quantity sheet: its qty field is the overlay's last EditableText.
   await tester.enterText(find.byType(EditableText).last, qty);
   await tester.pump();
@@ -91,6 +84,22 @@ Future<void> addVocabLine(
   String name,
   String qty,
 ) async {
+  await pickVocab(tester, query, name);
+  await tester.enterText(find.byType(EditableText).last, qty);
+  await tester.pump();
+  await tester.tap(find.text('Done'));
+  await tester.pumpAndSettle();
+}
+
+/// The picker half of every vocab line: opens it from the editor's "Add
+/// ingredient", searches [query], waits for the [name] row and takes it,
+/// and waits for the quantity sheet it opens.
+///
+/// Every step waits on what it is about to touch. The search answers from
+/// an async SQLite query that `pumpAndSettle` does not wait for — it returns
+/// once no frame is pending — so tapping the row straight after a settle
+/// raced the query, and lost on the slower Android emulator.
+Future<void> pickVocab(WidgetTester tester, String query, String name) async {
   await scrollTo(tester, find.text('Add ingredient'));
   await tester.tap(find.text('Add ingredient'));
   await pumpUntilFound(tester, find.text('Add an ingredient'));
@@ -120,10 +129,6 @@ Future<void> addVocabLine(
   }
   await tester.tap(find.text(name).last);
   await pumpUntilFound(tester, find.byType(QuantityUnitEditor));
-  await tester.enterText(find.byType(EditableText).last, qty);
-  await tester.pump();
-  await tester.tap(find.text('Done'));
-  await tester.pumpAndSettle();
 }
 
 /// Opens the editor's picker, searches [query], and takes the "Your recipes"
@@ -228,9 +233,23 @@ Future<void> tapToolbarItem(WidgetTester tester, String item) async {
 /// recipe lands with whatever the editor was opened from still under it —
 /// which is why [backFromRecipe] below is a real pop now.
 Future<void> saveRecipe(WidgetTester tester) async {
-  await tester.tap(find.text('Save'));
+  await tapEditorSave(tester);
   await pumpUntilFound(tester, find.text('OUR COOKBOOK'));
   await tester.pumpAndSettle();
+}
+
+/// Taps the editor's Save with no field focused.
+///
+/// Save replaces the editor's route. A field still holding focus keeps its
+/// text-input connection, and on a slow device the field's per-frame caret
+/// update (EditableText._updateComposingRectIfNeeded) can run once its
+/// render object has detached: Flutter asserts `attached` there, in debug
+/// builds only, and the test fails on an error that is the framework's, not
+/// the app's. Seen on the CI emulator, never on a laptop simulator.
+Future<void> tapEditorSave(WidgetTester tester) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.tap(find.text('Save'));
 }
 
 /// Back out of a pushed page, one step: the header's back action pops to the

@@ -272,7 +272,10 @@ down live, so a finder can miss simply because its row has not arrived. Use
 neighbour. Waiting for the ingredient's *name* and then tapping its *amount*
 is how the `3 clove` flake lived in the tracker for a round: the name arrives
 with the line, the amount only once the measure row does, and until then the
-cell honestly reads `piece · measure pending sync`.
+cell honestly reads `piece · measure pending sync`. And `pumpAndSettle` is not a
+wait for data: it returns once no frame is pending, with a SQLite query still in
+flight. A search result is waited on by name (`pickVocab` in
+`support/editor.dart`), never tapped after a settle.
 
 Notes:
 
