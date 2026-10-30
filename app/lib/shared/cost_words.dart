@@ -77,9 +77,10 @@ String lineCostText(CostLine line, {double factor = 1}) {
 String? unpricedNames(RecipeCostSummary summary) {
   final names = <String>{
     for (final n in summary.unpriced)
-      n.reason == CostLineReason.noPrice
-          ? n.name
-          : '${n.name} · ${costLineNote(n.reason)}',
+      if (n.reason == CostLineReason.noPrice)
+        n.name
+      else
+        '${n.name} · ${costLineNote(n.reason)}',
   };
   return names.isEmpty ? null : names.join(', ');
 }
