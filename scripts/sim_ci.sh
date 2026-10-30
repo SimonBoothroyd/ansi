@@ -43,33 +43,11 @@ stamp() { while IFS= read -r line; do printf '%s %s\n' "$(date -u +%T)" "$line";
 
 backend() {
   trap 'echo $? > "$status_file"' EXIT
-  # Pulling the stack's images was most of the backend's time (3m25s of
-  # 3m43s, with the registry rate-limiting nine jobs at once). The workflow
-  # restores them as one tar from the Actions cache; with SIM_SAVE_IMAGES set
-  # (one job, on a cache miss), this writes that tar for the workflow to save.
-  local tar="${SIM_IMAGES_TAR:-}"
-  if [ -n "$tar" ] && [ -f "$tar" ]; then
-    echo "$(date -u +%T) docker load"
-    docker load -i "$tar" | stamp
-  fi
-  # No smoke file reaches an edge function, storage, realtime or the
-  # dashboard (import runs over the local repository — see
-  # SmokeStack.openLibraryWithLocalImport), so those images are never pulled.
   echo "$(date -u +%T) supabase start"
   supabase start -x studio,imgproxy,edge-runtime,storage-api,realtime,logflare,vector,postgres-meta,supavisor 2>&1 | stamp
   # No --env-file: compose.yaml's defaults are the local stack's values.
   docker compose --file docker/compose.yaml up -d 2>&1 | stamp
   echo "$(date -u +%T) backend done"
-  if [ -n "${SIM_SAVE_IMAGES:-}" ] && [ -n "$tar" ]; then
-    # Status first: the save must not hold up the run waiting on it.
-    echo 0 > "$status_file"
-    if docker images --format '{{.Repository}}:{{.Tag}}' | grep -E 'supabase/|powersync' |
-      xargs docker save -o "$tar.tmp" && mv "$tar.tmp" "$tar"; then
-      echo "$(date -u +%T) images saved: $(du -h "$tar" | cut -f1)"
-    else
-      echo "::warning::could not save the backend's images; the next run pulls them"
-    fi
-  fi
 }
 
 build() {
@@ -174,7 +152,7 @@ run() {
     -d emulator-5554 "${defines[@]}" 2>&1 | tee "$SIM_LOGS/flutter-test.log" || rc=$?
   # Written by the workflow's Gradle init script: the tasks that did work.
   if [ -f "$SIM_LOGS/gradle-tasks.log" ]; then
-    echo "::group::Gradle tasks that did work ($(wc -l < "$SIM_LOGS/gradle-tasks.log"))"
+    echo "::group::Gradle: each build's -P properties, and the tasks that did work"
     cat "$SIM_LOGS/gradle-tasks.log"
     echo "::endgroup::"
   fi

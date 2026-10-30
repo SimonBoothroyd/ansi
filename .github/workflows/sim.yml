@@ -84,24 +84,12 @@ jobs:
         with:
           version: 2.115.0
 
-      # The stack's images as one tar: pulling them was most of the backend's
-      # time, and the registry rate-limits nine jobs pulling at once. Keyed
-      # on the CLI (which pins every Supabase image) and compose.yaml.
-      - run: echo "SIM_IMAGES_TAR=$RUNNER_TEMP/backend-images.tar" >> "$GITHUB_ENV"
-      - name: Restore the backend's images
-        id: images
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.SIM_IMAGES_TAR }}
-          key: backend-images-supabase-2.115.0-${{ hashFiles('docker/compose.yaml') }}
-
       # Backgrounded, like the build below: the backend comes up while Gradle
-      # builds. scripts/sim_ci.sh run waits on both. On a cache miss one job
-      # (auth) also saves the images for the step at the end.
+      # builds. scripts/sim_ci.sh run waits on both. Its images are pulled,
+      # not cached: a cached tar took 2.5–4.5 minutes to `docker load`,
+      # longer than the pull it replaced, and slowed the build beside it.
       - name: Start the local backend (background)
         working-directory: .
-        env:
-          SIM_SAVE_IMAGES: ${{ steps.images.outputs.cache-hit != 'true' && matrix.file == 'auth' && '1' || '' }}
         run: |
           mkdir -p "$SIM_LOGS"
           nohup scripts/sim_ci.sh backend > "$SIM_LOGS/backend.log" 2>&1 &
@@ -121,16 +109,27 @@ jobs:
         with:
           cache-read-only: ${{ matrix.file != 'auth' }}
       - run: mkdir -p ~/.gradle && echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-      # Which tasks do work, and in which build: flutter test's own build
-      # should do almost none. scripts/sim_ci.sh run prints the list.
+      # Which tasks do work, and with what -P properties, in each build:
+      # flutter test's own build should do almost none. scripts/sim_ci.sh
+      # run prints the log.
       - name: Log the Gradle tasks that do work
         run: |
           mkdir -p ~/.gradle/init.d
           cat > ~/.gradle/init.d/sim-tasks.gradle <<'GRADLE'
           def log = new File(System.getenv('SIM_LOGS') ?: '/tmp', 'gradle-tasks.log')
+          def now = { new Date().format('HH:mm:ss') }
+          // The -P properties this build was given, dart-defines decoded:
+          // two builds that differ here compile the Dart twice.
+          gradle.settingsEvaluated {
+            def props = new TreeMap(gradle.startParameter.projectProperties)
+            def defines = props.remove('dart-defines')
+            log << "${now()} BUILD ${gradle.startParameter.taskNames} ${props}\n"
+            defines?.split(',')?.each { log << "${now()}   define ${new String(it.decodeBase64())}\n" }
+          }
           gradle.beforeProject { p ->
             p.tasks.configureEach { t ->
-              t.doLast { log << "${new Date().format('HH:mm:ss')} ${t.path}\n" }
+              // Lifecycle tasks have no actions of their own; skip them.
+              t.doLast { if (t.actions.size() > 1) log << "${now()} ${t.path}\n" }
             }
           }
           GRADLE
@@ -221,21 +220,6 @@ jobs:
 
       # A screenshot first: an app that "goes quiet" is diagnosed by looking
       # at the device (tech-debt tracker, test-sim).
-      # The tar is written in the background once the stack is up; wait for it.
-      - name: Save the backend's images
-        if: steps.images.outputs.cache-hit != 'true' && matrix.file == 'auth'
-        working-directory: .
-        run: |
-          for _ in $(seq 300); do [ -f "$SIM_IMAGES_TAR" ] && exit 0; sleep 1; done
-          echo "::warning::no image tar to save"; exit 1
-        continue-on-error: true
-      - if: steps.images.outputs.cache-hit != 'true' && matrix.file == 'auth'
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.SIM_IMAGES_TAR }}
-          key: backend-images-supabase-2.115.0-${{ hashFiles('docker/compose.yaml') }}
-        continue-on-error: true
-
       # cancelled() too: a job that hits its time limit is cancelled, and a
       # hang is exactly when the screens are wanted.
       - name: Keep the logs and screenshots
