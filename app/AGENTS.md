@@ -256,8 +256,23 @@ another flow's UI. `support/` holds the shared boot, waits, finders and drivers.
 *Not* run on push. CI runs it **on demand** — Actions → `sim` → *Run workflow*,
 optionally naming one file — on an Android emulator, one runner per file
 (`.github/workflows/sim.yml`, `scripts/sim_ci.sh`): iOS is out because the
-stack is Docker and the macOS runners have none. It is a second opinion on
-someone else's machine, not a replacement for the local run before landing.
+stack is Docker and the macOS runners have none. With a Mac it is a second
+opinion, not a replacement for the local run before landing; without one (a
+cloud session) it is the gate — see the root `AGENTS.md`.
+
+**Reading a red `sim` run.** Each file's job prints two groups before the
+tests: *the local backend* (every line timestamped) and *the debug build*. A red
+or cancelled job uploads `sim-<file>`: `flutter-test.log`, `logcat.txt`,
+`powersync.log`, and `screens/` — a frame every 5 s for the last five minutes,
+named by UTC time, so the failure's log timestamp picks the frame it happened
+on. A run that hangs fails at 15 minutes rather than eating the job. Two
+Android differences are neutralised on purpose, because the iOS Simulator never
+has them: the emulator has **no on-screen keyboard** (its input methods are
+disabled — a keyboard covered taps the suite was written to make) and its
+**error dialogs are hidden**. Any other Android-only red is real: most often a
+race the slower emulator exposes (both recipe_editor flakes were a tap that
+did not wait for what it touched — see the next paragraph), otherwise a finding
+about the app.
 
 **It is a gate, not a step.** Nine files, about **27 minutes** on an unloaded
 machine — so run `FILE=<name>` while you are fixing, and the whole suite once

@@ -107,7 +107,11 @@ The full simulator suite is a **gate, not a step**: run it once before landing a
 branch, not after each fix inside it. When it goes red, re-run the failing file
 alone until it is green, then the suite once to confirm nothing else moved. CI
 runs the same files on an Android emulator only when dispatched (Actions →
-`sim`), never on push.
+`sim`), never on push. **With no iOS Simulator (a cloud session), that dispatch
+is your gate**, on your own branch and under the same rule — the file you
+touched while fixing, all nine once before landing (~8 minutes):
+`gh workflow run sim.yml --ref <branch> -f file=<name>`, blank for all. Reading
+a red one: [`app/AGENTS.md`](./app/AGENTS.md).
 
 Two traps this repo has actually paid for:
 
@@ -118,6 +122,8 @@ Two traps this repo has actually paid for:
   the run's users, the simulator or the app in a state the next run inherits,
   and you will spend longer diagnosing the wreckage than the run had left.
 
+No `flutter` on `PATH` (a fresh cloud container)? Install the version `app.yml`
+pins before claiming any of the above ran; never report a check you skipped.
 When flutter runs as root (cloud containers), put
 `$(dirname $(which flutter))/cache/dart-sdk/bin` first on `PATH`, or `dart run
 custom_lint` exits 1 with no issues. Run `make powersync-core` before a bare
