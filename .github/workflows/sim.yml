@@ -121,6 +121,19 @@ jobs:
         with:
           cache-read-only: ${{ matrix.file != 'auth' }}
       - run: mkdir -p ~/.gradle && echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+      # Which tasks do work, and in which build: flutter test's own build
+      # should do almost none. scripts/sim_ci.sh run prints the list.
+      - name: Log the Gradle tasks that do work
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cat > ~/.gradle/init.d/sim-tasks.gradle <<'GRADLE'
+          def log = new File(System.getenv('SIM_LOGS') ?: '/tmp', 'gradle-tasks.log')
+          gradle.beforeProject { p ->
+            p.tasks.configureEach { t ->
+              t.doLast { log << "${new Date().format('HH:mm:ss')} ${t.path}\n" }
+            }
+          }
+          GRADLE
 
       # Flutter needs this exact NDK (flutter.ndkVersion) and installs it
       # itself, inside Gradle, when it is missing — and the runner image

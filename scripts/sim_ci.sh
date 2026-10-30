@@ -172,6 +172,12 @@ run() {
   local rc=0
   timeout "${SIM_TEST_TIMEOUT:-15m}" flutter test "integration_test/${SIM_FILE}_test.dart" \
     -d emulator-5554 "${defines[@]}" 2>&1 | tee "$SIM_LOGS/flutter-test.log" || rc=$?
+  # Written by the workflow's Gradle init script: the tasks that did work.
+  if [ -f "$SIM_LOGS/gradle-tasks.log" ]; then
+    echo "::group::Gradle tasks that did work ($(wc -l < "$SIM_LOGS/gradle-tasks.log"))"
+    cat "$SIM_LOGS/gradle-tasks.log"
+    echo "::endgroup::"
+  fi
   if [ "$rc" -eq 124 ]; then
     echo "::error::flutter test made no end in ${SIM_TEST_TIMEOUT:-15m} — see screens/ in the sim-${SIM_FILE} artifact"
   fi
