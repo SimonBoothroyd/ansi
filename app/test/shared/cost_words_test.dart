@@ -115,8 +115,65 @@ void main() {
       ],
     );
 
-    test('UNPRICED names the line and says what is missing', () {
-      expect(unpricedNames(unpriced), 'Chopped tomatoes · no price yet');
+    test('UNPRICED names the line; the label says what is missing', () {
+      expect(unpricedNames(unpriced), 'Chopped tomatoes');
+    });
+
+    test('UNPRICED says a reason only where it is not the label', () {
+      const mixed = RecipeCostSummary(
+        unpriced: [
+          (
+            lineId: 'li-1',
+            name: 'Rice Vinegar',
+            reason: CostLineReason.noPrice,
+            unit: null,
+          ),
+          (
+            lineId: 'li-2',
+            name: 'Cucumber',
+            reason: CostLineReason.noPathToBasis,
+            unit: null,
+          ),
+          (
+            lineId: 'li-3',
+            name: 'Sesame Seeds',
+            reason: CostLineReason.noPrice,
+            unit: null,
+          ),
+        ],
+      );
+      expect(
+        unpricedNames(mixed),
+        'Rice Vinegar, Cucumber · no way to price this amount, Sesame Seeds',
+      );
+    });
+
+    test('UNPRICED names an ingredient on two lines once', () {
+      const twice = RecipeCostSummary(
+        unpriced: [
+          (
+            lineId: 'li-1',
+            name: 'Kosher Salt',
+            reason: CostLineReason.noPrice,
+            unit: null,
+          ),
+          (
+            lineId: 'li-2',
+            name: 'Rice Vinegar',
+            reason: CostLineReason.noPrice,
+            unit: null,
+          ),
+          (
+            lineId: 'li-3',
+            name: 'Kosher Salt',
+            reason: CostLineReason.noPrice,
+            unit: null,
+          ),
+        ],
+      );
+      expect(unpricedNames(twice), 'Kosher Salt, Rice Vinegar');
+      // The count is of lines, as the refusal has always said.
+      expect(costRefusal(twice), '3 lines unpriced');
     });
 
     test('the refusal counts the lines', () {

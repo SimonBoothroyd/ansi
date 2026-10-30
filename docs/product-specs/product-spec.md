@@ -1520,7 +1520,10 @@ less any discount. The doctrine is
   rule, and named. A line with no price, or no honest path from its amount to
   the basis, is **unpriced**: the recipe has no cost at all, the cells go, and
   the lines it is waiting on are named — a total that quietly skipped the
-  tomatoes would understate the recipe by the tomatoes.
+  tomatoes would understate the recipe by the tomatoes. The `UNPRICED` row
+  names them in the page's order, each ingredient once, and says a reason
+  only where it is not the label's own (`Rice · no way to price this
+  amount`).
   - **A partly priced recipe still says what it has reached**, as a floor:
     `at least $1.65 a serving · at least $6.60 the recipe`, each figure
     wearing its own `at least`, under the refusal rather than in place of it.

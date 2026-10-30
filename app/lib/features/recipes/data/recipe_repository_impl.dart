@@ -127,7 +127,9 @@ class SqliteRecipeRepository implements RecipeRepository {
       'ON im.id = li.measure_id AND im.deleted_at IS NULL '
       'LEFT JOIN recipe sub '
       'ON sub.id = li.sub_recipe_id AND sub.deleted_at IS NULL '
-      'WHERE li.deleted_at IS NULL',
+      'WHERE li.deleted_at IS NULL '
+      // The page's order: a refusal names its lines in it.
+      'ORDER BY g.sort_order, g.created_at, li.sort_order, li.created_at',
     );
 
     final linesByRecipe = <String, List<LineItem>>{};
@@ -302,7 +304,8 @@ class SqliteRecipeRepository implements RecipeRepository {
       'LEFT JOIN recipe sub '
       'ON sub.id = li.sub_recipe_id AND sub.deleted_at IS NULL '
       'WHERE g.recipe_id = ? AND li.deleted_at IS NULL '
-      'ORDER BY li.sort_order, li.created_at',
+      // A line's sort_order counts within its group, so the group leads.
+      'ORDER BY g.sort_order, g.created_at, li.sort_order, li.created_at',
       [id],
     );
 
@@ -767,7 +770,9 @@ loadRecipeMacroNodes(SqliteConnection db) async {
     'ON im.id = li.measure_id AND im.deleted_at IS NULL '
     'LEFT JOIN recipe sub '
     'ON sub.id = li.sub_recipe_id AND sub.deleted_at IS NULL '
-    'WHERE li.deleted_at IS NULL',
+    'WHERE li.deleted_at IS NULL '
+    // The page's order: a refusal names its lines in it.
+    'ORDER BY g.sort_order, g.created_at, li.sort_order, li.created_at',
   );
 
   final linesByRecipe = <String, List<LineItem>>{};

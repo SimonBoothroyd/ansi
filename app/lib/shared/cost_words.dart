@@ -64,12 +64,20 @@ String lineCostText(CostLine line, {double factor = 1}) {
   return '$cents · ${unitPriceWord(price)} · ${priceProvenance(price)}';
 }
 
-/// `Chopped tomatoes · no price yet`: the panel's `UNPRICED` row. Null when
-/// nothing is unpriced.
+/// `Chopped tomatoes, Rice · no way to price this amount`: the panel's
+/// `UNPRICED` row. Null when nothing is unpriced.
+///
+/// The label already says a line has no price, so a plain
+/// [CostLineReason.noPrice] prints the name alone; any other reason says
+/// what the fix is. A name twice for the same reason is one fix and prints
+/// once.
 String? unpricedNames(RecipeCostSummary summary) {
-  final names = [
-    for (final n in summary.unpriced) '${n.name} · ${costLineNote(n.reason)}',
-  ];
+  final names = <String>{
+    for (final n in summary.unpriced)
+      n.reason == CostLineReason.noPrice
+          ? n.name
+          : '${n.name} · ${costLineNote(n.reason)}',
+  };
   return names.isEmpty ? null : names.join(', ');
 }
 

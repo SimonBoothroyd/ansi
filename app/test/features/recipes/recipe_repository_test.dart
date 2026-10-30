@@ -169,6 +169,35 @@ void main() {
     expect(tombstones, hasLength(3));
   });
 
+  test('a refusal names its lines in page order, after a reorder', () async {
+    await repo.saveRecipe(_sampleRecipe());
+    final before = await repo.watchRecipe('r1').first;
+    // The groups swap and the first group's lines swap: every row keeps its
+    // place on disk, so only `sort_order` says the new order.
+    await repo.saveRecipe(
+      before!.copyWith(
+        groups: [
+          before.groups[1],
+          before.groups[0].copyWith(
+            items: before.groups[0].items.reversed.toList(),
+          ),
+        ],
+      ),
+    );
+
+    // Salt is `to taste`, named apart from the gaps.
+    List<String> gaps(Iterable<String> names) =>
+        names.where((n) => n != 'Salt').toList();
+    const pageOrder = ['Rice', 'Onion'];
+
+    final cost = (await repo.watchRecipeCosts().first)['r1']!;
+    expect(cost.unpriced.map((n) => n.name), pageOrder);
+    final page = await repo.watchRecipe('r1').first;
+    expect(gaps(page!.macros!.notes.map((n) => n.name)), pageOrder);
+    final summary = (await repo.watchRecipes().first).single;
+    expect(gaps(summary.macros!.notes.map((n) => n.name)), pageOrder);
+  });
+
   test('optional survives save → load, and a flipped flag is a child-diff '
       'UPDATE on the same row', () async {
     final recipe = _sampleRecipe();

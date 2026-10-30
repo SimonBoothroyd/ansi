@@ -108,10 +108,11 @@ lines, chosen by a `Macros | Cost` chip pair held for the session
 - **Cost** (`recipe_cost.dart`) is the same walk through the same conversion
   (`line_basis.dart`) with a price per basis unit multiplied in
   ([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
-  A line with no price is named under `UNPRICED` and takes the recipe's figure
-  with it; what the priced lines come to prints as an `at least` floor
-  (`pricedCents`), a field of its own, so the week, the shop and a parent
-  recipe still read null. `OLDEST` names the stalest price month.
+  A line with no price is named under `UNPRICED` (in page order, once per
+  ingredient, the reason only where it is not plain `no price`) and takes
+  the recipe's figure with it; what the priced lines come to prints as an
+  `at least` floor (`pricedCents`), a field of its own, so the week, the
+  shop and a parent recipe still read null. `OLDEST` names the stalest price month.
 - Money never enters the macro record nor macros the cost one
   (`test/structure/cost_and_macros_stay_apart_test.dart`). Costs ride their own
   streams (`watchRecipeCosts`, `watchVariantRecipeCosts`) because a cost moves

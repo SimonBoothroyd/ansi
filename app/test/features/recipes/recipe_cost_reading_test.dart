@@ -12,6 +12,7 @@ import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_cost.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
+import 'package:ansi/features/recipes/presentation/recipe_macro_panel.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -172,7 +173,16 @@ void main() {
 
     expect(find.text('A SERVING'), findsNothing);
     expect(find.text('UNPRICED'), findsOneWidget);
-    expect(find.text('Chopped tomatoes · no price yet'), findsOneWidget);
+    // The label says what is missing, so the row prints the name alone. Read
+    // in the row: the ingredient list prints the same name.
+    expect(
+      find.descendant(
+        of: find.byType(PanelNoteRow),
+        matching: find.text('Chopped tomatoes'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Chopped tomatoes · no price yet'), findsNothing);
     // Out by the macro rule, named in its own row and never as a gap.
     expect(find.text('NOT COUNTED'), findsOneWidget);
     expect(find.text('Parsley · handful'), findsOneWidget);

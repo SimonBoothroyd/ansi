@@ -151,7 +151,7 @@ void main() {
         json['at_least'],
         r'at least $1.65 a serving · at least $6.60 the recipe',
       );
-      expect(json['unpriced'], 'Tamari · no price yet');
+      expect(json['unpriced'], 'Tamari');
     });
 
     test('a week: the cost to cook, and what was spent, never reconciled', () {

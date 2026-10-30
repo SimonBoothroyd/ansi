@@ -76,7 +76,7 @@ void main() {
 
     expect(find.text('A SERVING'), findsNothing);
     expect(find.text('UNPRICED'), findsOneWidget);
-    expect(find.text('Chopped tomatoes · no price yet'), findsOneWidget);
+    expect(find.text('Chopped tomatoes'), findsOneWidget);
     expect(find.text('1 line unpriced'), findsOneWidget);
     // Nothing is priced, so there is no floor to print: `at least $0` would
     // read as a free recipe rather than as an unknown one.
@@ -115,7 +115,7 @@ void main() {
     expect(find.text('A SERVING'), findsNothing);
     expect(find.text(r'$6.60'), findsNothing);
     expect(find.text('1 line unpriced'), findsOneWidget);
-    expect(find.text('Chopped tomatoes · no price yet'), findsOneWidget);
+    expect(find.text('Chopped tomatoes'), findsOneWidget);
     expect(find.text('Some lines have no price'), findsOneWidget);
   });
 
