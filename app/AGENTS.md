@@ -265,11 +265,12 @@ tests: *the local backend* (every line timestamped) and *the debug build*. A red
 or cancelled job uploads `sim-<file>`: `flutter-test.log`, `logcat.txt`,
 `powersync.log`, and `screens/` — a frame every 5 s for the last five minutes,
 named by UTC time, so the failure's log timestamp picks the frame it happened
-on. A run that hangs fails at 15 minutes rather than eating the job. Two
+on. A run that hangs fails at 15 minutes rather than eating the job. Three
 Android differences are neutralised on purpose, because the iOS Simulator never
 has them: the emulator has **no on-screen keyboard** (its input methods are
-disabled — a keyboard covered taps the suite was written to make) and its
-**error dialogs are hidden**. Any other Android-only red is real: most often a
+disabled — a keyboard covered taps the suite was written to make), its **error
+dialogs are hidden**, and it runs **AOSP without Google Play services**, whose
+post-boot churn relaunched the app's activity under a running test. Any other Android-only red is real: most often a
 race the slower emulator exposes (both recipe_editor flakes were a tap that
 did not wait for what it touched — see the next paragraph), otherwise a finding
 about the app.

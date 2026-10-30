@@ -30,7 +30,11 @@ env:
   # The AVD both the snapshot and the run boot. Change any of these and the
   # cache key below changes with them.
   AVD_API_LEVEL: "34"
-  AVD_TARGET: google_apis
+  # AOSP, not google_apis: nothing in the suite uses Google Play services,
+  # and after a snapshot boot they churn — PACKAGE_CHANGED bursts that change
+  # running apps' asset paths, so Android relaunched the app's activity under
+  # a test that had already attached to it, and the run hung on the splash.
+  AVD_TARGET: default
   AVD_PROFILE: pixel_6 # 411 × 914 dp — close to the iPhone the suite was written on
 
 jobs:

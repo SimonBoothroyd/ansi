@@ -135,11 +135,12 @@ run() {
   ) &
   shooter=$!
 
-  # An app that never becomes active hangs flutter test with no output at all
-  # (once here: sixteen minutes after install, not even setUpAll). An "isn't
-  # responding" dialog is the usual cause on a loaded emulator; the error
-  # dialogs are hidden, and a hang is bounded so it fails with the screens
-  # and logcat instead of eating the job.
+  # A run whose app never reports hangs flutter test with no output at all.
+  # Twice here it was Google Play services relaunching the app's activity
+  # under the test (the AVD is AOSP now, see AVD_TARGET); an "isn't
+  # responding" dialog over the app would look the same. Error dialogs are
+  # hidden, and a hang is bounded so it fails with the screens and logcat
+  # instead of eating the job.
   adb shell settings put global hide_error_dialogs 1
 
   # tee, not tail: with pipefail the run's exit status is the test's.

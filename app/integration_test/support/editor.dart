@@ -238,18 +238,30 @@ Future<void> saveRecipe(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Taps the editor's Save with no field focused.
+/// Taps the editor's Save with no field focused, and waits for the editor to
+/// leave — which it does only once the save has been written.
 ///
-/// Save replaces the editor's route. A field still holding focus keeps its
-/// text-input connection, and on a slow device the field's per-frame caret
-/// update (EditableText._updateComposingRectIfNeeded) can run once its
-/// render object has detached: Flutter asserts `attached` there, in debug
-/// builds only, and the test fails on an error that is the framework's, not
-/// the app's. Seen on the CI emulator, never on a laptop simulator.
+/// No field focused: Save replaces the editor's route. A field still holding
+/// focus keeps its text-input connection, and on a slow device the field's
+/// per-frame caret update (EditableText._updateComposingRectIfNeeded) can run
+/// once its render object has detached: Flutter asserts `attached` there, in
+/// debug builds only, and the test fails on an error that is the framework's,
+/// not the app's.
+///
+/// Wait for the editor to go, not for something the page shows: the page's
+/// filing line (`OUR COOKBOOK · …`) is also the editor's own FILE UNDER line,
+/// so waiting on it passed before the save had committed, and the database
+/// read after it found no row. Both seen on the CI emulator, never on a
+/// laptop simulator.
 Future<void> tapEditorSave(WidgetTester tester) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pump();
   await tester.tap(find.text('Save'));
+  await pumpUntilGone(
+    tester,
+    find.byType(RecipeEditorView),
+    timeout: const Duration(seconds: 30),
+  );
 }
 
 /// Back out of a pushed page, one step: the header's back action pops to the
