@@ -210,8 +210,8 @@ the filter and the property together — a later versionCode carries them,
 nothing is locked in.
 
 **The NDK is cached.** Flutter needs one exact NDK and installs it inside
-Gradle when it is missing; the runner image does not carry it, which cost
-about 4.5 minutes a build. The `android` job (and `sim.yml`) restore it from
+Gradle when it is missing; the runner image does not carry it, so every
+build downloaded and unzipped 1 GB. The `android` job (and `sim.yml`) restore it from
 the Actions cache, keyed on `NDK_VERSION` — bump that with `FLUTTER_VERSION`.
 
 **Why iOS is a compile proof and nothing more.** Ansi is a two-person household

@@ -11,8 +11,8 @@ name: sim
 #
 # Each file gets its own runner, stack and emulator; the files already make
 # their own household, so nothing is shared at run time. Inside a job the slow
-# parts overlap: the backend starts in the background while the debug build
-# warms Gradle, and the emulator boots from a cached snapshot.
+# parts overlap: the backend starts and the debug build runs in the
+# background while the emulator boots from a cached snapshot.
 on:
   workflow_dispatch:
     inputs:
@@ -84,8 +84,8 @@ jobs:
         with:
           version: 2.115.0
 
-      # Backgrounded: the image pulls and migrations run while Gradle builds.
-      # scripts/sim_ci.sh run waits on the status file this writes.
+      # Backgrounded, like the build below: the image pulls and migrations run
+      # while Gradle builds. scripts/sim_ci.sh run waits on both.
       - name: Start the local backend (background)
         working-directory: .
         run: |
@@ -96,12 +96,22 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-          cache: gradle
+
+      # Gradle's own action caches the Gradle distribution, the dependencies
+      # AND the build cache, which setup-java's cache does not: with the build
+      # cache on (CI only — the runner's own gradle.properties, below), the
+      # forty-odd plugin modules come from cache instead of recompiling, the
+      # bulk of a cold build. One file writes, so nine jobs don't store nine
+      # copies; every job reads.
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ matrix.file != 'auth' }}
+      - run: mkdir -p ~/.gradle && echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
 
       # Flutter needs this exact NDK (flutter.ndkVersion) and installs it
       # itself, inside Gradle, when it is missing — and the runner image
-      # does not carry it: a 1 GB download and unzip, about 4.5 minutes, on
-      # every job. Flutter skips the install when the directory exists.
+      # does not carry it: a 1 GB download and unzip on every job. Flutter
+      # skips the install when the directory exists.
       # Bump NDK_VERSION with FLUTTER_VERSION (FlutterExtension.kt).
       - run: echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
@@ -127,12 +137,12 @@ jobs:
       # fresh).
       - run: flutter pub get
 
-      # The real build needs the backend's anon key, which exists only once
-      # Supabase is up. This one builds the same target for the same ABI
-      # without it, so the run's own build finds Gradle warm and redoes
-      # only the Dart.
-      - name: Warm the debug build (while the backend starts)
-        run: flutter build apk --debug --target-platform android-x64 --target "integration_test/${SIM_FILE}_test.dart"
+      # Backgrounded so the emulator boots while it builds; the run step
+      # prints its log. Built with the stack's default anon key and the run's
+      # own defines, so flutter test's build finds nothing left to do.
+      - name: Start the debug build (background)
+        working-directory: .
+        run: nohup scripts/sim_ci.sh build > "$SIM_LOGS/build.log" 2>&1 &
 
       - name: Enable KVM
         working-directory: .

@@ -129,8 +129,8 @@ jobs:
 
       # Flutter needs this exact NDK (flutter.ndkVersion) and installs it
       # itself, inside Gradle, when it is missing — and the runner image
-      # does not carry it: a 1 GB download and unzip, about 4.5 minutes, on
-      # every job. Flutter skips the install when the directory exists.
+      # does not carry it: a 1 GB download and unzip on every job. Flutter
+      # skips the install when the directory exists.
       # Bump NDK_VERSION with FLUTTER_VERSION (FlutterExtension.kt).
       - run: echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
