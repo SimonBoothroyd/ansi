@@ -331,14 +331,25 @@ void main() {
       );
       expect(
         ingredientPortionCost(_snack('e1', known: false), _price()).reason,
-        CostLineReason.noPathToBasis,
+        CostLineReason.unknownIngredient,
+      );
+      expect(
+        ingredientPortionCost(_snack('e1', quantity: null), _price()).reason,
+        CostLineReason.noAmount,
       );
       expect(
         ingredientPortionCost(
           _snack('e1', quantity: 100, unit: ml),
           _price(),
         ).reason,
-        CostLineReason.noPathToBasis,
+        CostLineReason.needsDensity,
+      );
+      expect(
+        ingredientPortionCost(
+          _snack('e1', quantity: 2, unit: pieces),
+          _price(),
+        ).reason,
+        CostLineReason.needsWeight,
       );
       expect(
         ingredientPortionCost(

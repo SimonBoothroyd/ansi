@@ -32,10 +32,21 @@ enum CostLineReason {
   /// sheet is the fix.
   noPrice,
 
-  /// The line's amount cannot reach the row's basis unit: no density, no piece
-  /// weight, no amount, an unsynced measure, or a stub, unknown or retired
-  /// ingredient.
-  noPathToBasis,
+  /// The line's ingredient is not in this device's vocabulary.
+  unknownIngredient,
+
+  /// The line's ingredient was retired; the fix is the line, not the row.
+  removedIngredient,
+
+  /// The line states no amount.
+  noAmount,
+
+  /// A bare count, and the row has no piece weight (ADR-0015).
+  needsWeight,
+
+  /// The amount cannot reach the row's basis without a density, including a
+  /// measure not synced yet — the macro walk's rule for the same line.
+  needsDensity,
 
   /// The price was recorded against a different basis than the row states now.
   /// Re-denominating would need an unstated density, so the line waits for a
@@ -90,6 +101,14 @@ class CostLine {
   @override
   String toString() => 'CostLine($cents¢)';
 }
+
+/// Why [line]'s amount reached no basis, named by its fix: the reasons the
+/// macro walk gives the same line, so the two readings agree.
+CostLineReason _unbridged(LineItem line) => isBareCount(line)
+    ? CostLineReason.needsWeight
+    : line.quantity == null
+    ? CostLineReason.noAmount
+    : CostLineReason.needsDensity;
 
 /// The oldest priced line in a recipe, named — the panel's `OLDEST` row.
 typedef OldestPrice = ({String name, UnitPrice price});
@@ -222,9 +241,9 @@ class RecipeCostSummary {
 
 /// Sums [lines] into a [RecipeCostSummary]. [pricingOf] resolves an ingredient
 /// id to its basis facts and latest price; null (unknown row) reads as
-/// [CostLineReason.noPathToBasis]. [subRecipeOf] resolves a component's target;
-/// when null every component line is unresolved. A [servingsBase] at or below
-/// zero yields an incomplete summary.
+/// [CostLineReason.unknownIngredient]. [subRecipeOf] resolves a component's
+/// target; when null every component line is unresolved. A [servingsBase] at
+/// or below zero yields an incomplete summary.
 RecipeCostSummary summarizeRecipeCost({
   required double servingsBase,
   required Iterable<LineItem> lines,
@@ -317,12 +336,18 @@ _Walk _summarize({
     final ingredientId = line.ingredientId;
     final pricing = ingredientId == null ? null : pricingOf(ingredientId);
     if (pricing == null) {
-      note(unpriced, line, CostLineReason.noPathToBasis);
+      note(
+        unpriced,
+        line,
+        line.ingredientDeleted
+            ? CostLineReason.removedIngredient
+            : CostLineReason.unknownIngredient,
+      );
       continue;
     }
     final amount = lineAmountInBasis(line, pricing.row);
     if (amount == null) {
-      note(unpriced, line, CostLineReason.noPathToBasis);
+      note(unpriced, line, _unbridged(line));
       continue;
     }
     final price = pricing.price;

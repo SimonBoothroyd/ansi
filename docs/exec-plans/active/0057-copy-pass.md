@@ -478,3 +478,12 @@ build is what shipped:
 - 2026-10-29 — The four rules a scan can see (no em dash, no semicolon, no tap
   hint, no "nothing is saved until") are now held by
   `app/test/structure/copy_rules_test.dart`.
+- 2026-10-30 — The recipe panels, from a screenshot of the cost refusal. The
+  owner: *"Fix duplicate in some lines have no price"*, so rows 52 and 53 are
+  gone and the count beside the badge is the whole refusal. *"Cucumber · no
+  way to price this amount is meaningless to me"*, so a line out of reach
+  says its fix in the macro reading's words (`needs a piece weight`). *"I
+  don't want to show missing macros for handful or dash"*, so the
+  `NOT COUNTED` rows and the line's `not counted` note are gone from Macros
+  and Cost. `UNPRICED` names each ingredient once, in page order, with no
+  `· no price yet` after each name.

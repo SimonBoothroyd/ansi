@@ -526,7 +526,7 @@ void main() {
       final costs = await repo.watchVariantRecipeCosts(_thisWeek).first;
       expect(
         costs['r1']!.unpriced.map((n) => n.reason),
-        isNot(contains(CostLineReason.noPathToBasis)),
+        isNot(contains(CostLineReason.unknownIngredient)),
       );
     });
   });

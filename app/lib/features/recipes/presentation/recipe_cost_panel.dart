@@ -135,30 +135,22 @@ class _Refusal extends StatelessWidget {
               ),
             ],
           ),
+          // The count beside the badge is the whole reason: no second line
+          // restates it.
           if (floor != null) ...[
             const SizedBox(height: 8),
             // A cell's weight, one size down to fit its `at least` wording.
             Text(floor, style: ansiMono(size: 13, weight: FontWeight.w500)),
           ],
-          const SizedBox(height: 6),
-          Text(
-            _why(summary),
-            style: ansiSans(size: 12, color: AnsiColors.muted, height: 1.35),
-          ),
         ],
       ),
     );
   }
-
-  /// The line under the badge, in the state's own terms.
-  String _why(RecipeCostSummary summary) {
-    if (summary.noLines) return 'No ingredients yet';
-    if (summary.nothingCountable) return 'Nothing to price';
-    return 'Some lines have no price';
-  }
 }
 
-/// `UNPRICED`, `OLDEST`, `NOT COUNTED`, `OPTIONAL` rows.
+/// `UNPRICED`, `OLDEST` and `OPTIONAL` rows. An imprecise line (`handful`,
+/// `to taste`) is left out of the figure by rule and goes unnamed: there is
+/// nothing to fix.
 class _Named extends StatelessWidget {
   const _Named({required this.summary});
 
@@ -168,12 +160,8 @@ class _Named extends StatelessWidget {
   Widget build(BuildContext context) {
     final unpriced = unpricedNames(summary);
     final oldest = oldestPriceLine(summary);
-    final imprecise = impreciseCostNames(summary);
     final optional = optionalCostNames(summary);
-    if (unpriced == null &&
-        oldest == null &&
-        imprecise == null &&
-        optional == null) {
+    if (unpriced == null && oldest == null && optional == null) {
       return const SizedBox.shrink();
     }
     return Padding(
@@ -190,8 +178,6 @@ class _Named extends StatelessWidget {
               labelColor: AnsiColors.aging,
             ),
           if (oldest != null) PanelNoteRow(label: 'OLDEST', names: oldest),
-          if (imprecise != null)
-            PanelNoteRow(label: 'NOT COUNTED', names: imprecise),
           if (optional != null)
             PanelNoteRow(label: 'OPTIONAL', names: optional),
         ],

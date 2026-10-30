@@ -20,9 +20,12 @@ String approxMoneyWhole(double cents) => '≈ ${formatMoneyWhole(cents)}';
 /// What one line prints when it has no cost.
 String costLineNote(CostLineReason reason) => switch (reason) {
   CostLineReason.noPrice => 'no price yet',
-  // Not "no density": the missing fact may also be a piece weight or an
-  // amount, and the macro reading beside it names which.
-  CostLineReason.noPathToBasis => 'no way to price this amount',
+  // The macro reading's words for the same fix (`incompleteLineNote`).
+  CostLineReason.unknownIngredient => 'not in your foods yet',
+  CostLineReason.removedIngredient => 'ingredient removed · pick again',
+  CostLineReason.noAmount => 'no amount',
+  CostLineReason.needsWeight => 'needs a piece weight',
+  CostLineReason.needsDensity => 'needs a density',
   CostLineReason.priceOffBasis => 'priced in another unit',
   CostLineReason.subRecipeUnresolved => 'sub-recipe has no yield',
   CostLineReason.subRecipeUnpriced => 'sub-recipe unpriced',
@@ -64,7 +67,7 @@ String lineCostText(CostLine line, {double factor = 1}) {
   return '$cents · ${unitPriceWord(price)} · ${priceProvenance(price)}';
 }
 
-/// `Chopped tomatoes, Rice · no way to price this amount`: the panel's
+/// `Chopped tomatoes, Cucumber · needs a piece weight`: the panel's
 /// `UNPRICED` row. Null when nothing is unpriced.
 ///
 /// The label already says a line has no price, so a plain
@@ -104,8 +107,9 @@ String? oldestPriceLine(RecipeCostSummary summary) {
       : '${oldest.name} · ${priceProvenance(oldest.price)}';
 }
 
-/// `Parsley · handful, Kosher Salt · to taste`: the imprecise lines under a
-/// cost total, in the macro reading's grammar.
+/// `Parsley · handful, Kosher Salt · to taste`: the imprecise lines a cost
+/// total left out, in the macro reading's grammar. Ask reads it; the panel
+/// names none.
 String? impreciseCostNames(RecipeCostSummary summary) {
   final names = [
     for (final n in summary.notCounted)

@@ -6,7 +6,7 @@
 /// scale-invariant: the panel takes only the summary, never a scale factor. An
 /// `incomplete` summary replaces the strip with the shared badge, the count
 /// note, and up to four named lines (`+N more`), each a door to its fix. A real
-/// total names what it left out in `NOT COUNTED` and `OPTIONAL` rows; opened
+/// total names the optional lines it left out in an `OPTIONAL` row; opened
 /// from a week, an `INCLUDED` row names the optional lines that week ticked in.
 library;
 
@@ -98,10 +98,12 @@ class RecipeMacroPanel extends StatelessWidget {
 /// What the total left out, one labelled row per reason:
 ///
 /// ```text
-/// NOT COUNTED   Cilantro · handful, Kosher Salt · to taste
 /// OPTIONAL      Lime, Coriander
 /// INCLUDED      Pickled Red Onions · for this week
 /// ```
+///
+/// An imprecise line (`handful`, `to taste`) is left out by rule and goes
+/// unnamed: there is nothing to fix.
 ///
 /// `INCLUDED` names lines the total does cover, so it wears the herb label.
 /// Missing fibre has its own row.
@@ -118,7 +120,6 @@ class _NotCounted extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imprecise = impreciseNotCountedNames(summary.notes);
     final optional = optionalNames.isNotEmpty
         ? optionalNames.join(', ')
         : optionalNotCountedNames(summary.notes);
@@ -128,8 +129,7 @@ class _NotCounted extends StatelessWidget {
     // Fibre's absence in words: the lines are counted, the figure is not
     // stated.
     final fibre = fiberNotCountedNote(summary);
-    final excluded = imprecise != null || optional != null;
-    if (!excluded && included == null && fibre == null) {
+    if (optional == null && included == null && fibre == null) {
       return const SizedBox.shrink();
     }
     return Padding(
@@ -137,8 +137,6 @@ class _NotCounted extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (imprecise != null)
-            PanelNoteRow(label: 'NOT COUNTED', names: imprecise),
           if (optional != null)
             PanelNoteRow(label: 'OPTIONAL', names: optional),
           if (included != null)

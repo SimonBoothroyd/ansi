@@ -83,8 +83,9 @@ List<MacroLineNote> fixableNotes(RecipeMacroSummary summary) => [
 ];
 
 /// `Cilantro · handful, Kosher Salt · to taste`: the imprecise lines a total
-/// prints under itself, labelled `NOT COUNTED`, each with the unit word its
-/// source printed. Null when there are none.
+/// left out, each with the unit word its source printed. Ask reads it; the
+/// panel names none, since a handful has nothing to fix. Null when there are
+/// none.
 String? impreciseNotCountedNames(List<MacroLineNote> notes) {
   final names = [
     for (final n in notes)

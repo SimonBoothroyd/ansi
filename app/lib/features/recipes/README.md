@@ -101,15 +101,17 @@ lines, chosen by a `Macros | Cost` chip pair held for the session
 (`CostReading`); `ShowLineFigures` prints whichever under each line.
 
 - **Macros** come from `summarizeRecipeMacros`, the summation the pickers share.
-  An incomplete recipe shows the badge and its reason, never a number; `NOT
-  COUNTED` and `OPTIONAL` name what the total left out by rule. Each reason is
+  An incomplete recipe shows the badge and its reason, never a number;
+  `OPTIONAL` names the optional lines the total left out, and an imprecise
+  line (`handful`) goes unnamed, having nothing to fix. Each reason is
   a door to its fix — `needs a piece weight` opens the **ingredient's** form
   ([ADR-0015](../../../../docs/decisions/0015-piece-weight-is-a-row-fact.md)).
 - **Cost** (`recipe_cost.dart`) is the same walk through the same conversion
   (`line_basis.dart`) with a price per basis unit multiplied in
   ([ADR-0017](../../../../docs/decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)).
   A line with no price is named under `UNPRICED` (in page order, once per
-  ingredient, the reason only where it is not plain `no price`) and takes
+  ingredient, the reason only where it is not plain `no price`, in the macro
+  reading's words for the same fix) and takes
   the recipe's figure with it; what the priced lines come to prints as an
   `at least` floor (`pricedCents`), a field of its own, so the week, the
   shop and a parent recipe still read null. `OLDEST` names the stalest price month.

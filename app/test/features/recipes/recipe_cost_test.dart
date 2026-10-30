@@ -195,31 +195,51 @@ void main() {
       expect(summary.lineCosts.containsKey('li-y'), isFalse);
     });
 
-    test('a volume line on a gram row with no density has no path', () {
+    test('a volume line on a gram row with no density needs one', () {
       final summary = summarizeRecipeCost(
         servingsBase: 1,
         lines: [_line('x', quantity: 100, unit: ml)],
         pricingOf: _vocab(price: _price()),
       );
-      expect(summary.unpriced.single.reason, CostLineReason.noPathToBasis);
+      expect(summary.unpriced.single.reason, CostLineReason.needsDensity);
     });
 
-    test('a line with no amount has no path', () {
+    test('a line with no amount says so', () {
       final summary = summarizeRecipeCost(
         servingsBase: 1,
         lines: [_line('x')],
         pricingOf: _vocab(price: _price()),
       );
-      expect(summary.unpriced.single.reason, CostLineReason.noPathToBasis);
+      expect(summary.unpriced.single.reason, CostLineReason.noAmount);
     });
 
-    test('an ingredient this device does not know has no path', () {
+    test('an ingredient this device does not know is named as unknown', () {
       final summary = summarizeRecipeCost(
         servingsBase: 1,
         lines: [_line('missing', quantity: 10)],
         pricingOf: _vocab(price: _price()),
       );
-      expect(summary.unpriced.single.reason, CostLineReason.noPathToBasis);
+      expect(summary.unpriced.single.reason, CostLineReason.unknownIngredient);
+    });
+
+    test('a bare count on a row with no piece weight needs one', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [_line('x', quantity: 3, unit: pieces)],
+        pricingOf: _vocab(price: _price()),
+      );
+      expect(summary.unpriced.single.reason, CostLineReason.needsWeight);
+    });
+
+    test('a retired ingredient is named as removed', () {
+      final summary = summarizeRecipeCost(
+        servingsBase: 1,
+        lines: [
+          _line('missing', quantity: 10).copyWith(ingredientDeleted: true),
+        ],
+        pricingOf: _vocab(price: _price()),
+      );
+      expect(summary.unpriced.single.reason, CostLineReason.removedIngredient);
     });
 
     test('a price against another basis is refused, never re-denominated', () {
@@ -237,7 +257,7 @@ void main() {
         lines: [_line('x', quantity: 2, measureId: 'not-here')],
         pricingOf: _vocab(price: _price()),
       );
-      expect(summary.unpriced.single.reason, CostLineReason.noPathToBasis);
+      expect(summary.unpriced.single.reason, CostLineReason.needsDensity);
     });
   });
 

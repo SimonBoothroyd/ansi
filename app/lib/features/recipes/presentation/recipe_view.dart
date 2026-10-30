@@ -1211,7 +1211,8 @@ class _IngredientsTab extends ConsumerWidget {
             .where((n) => n.lineId == use.id)
             .firstOrNull
             ?.reason;
-        return reason == null || reason == MacroLineReason.optional
+        // Out by rule, with nothing to fix: the line says nothing.
+        return reason == null || byRuleReasons.contains(reason)
             ? nothing
             : (figures: null, note: incompleteLineNote(reason));
       }
@@ -1232,10 +1233,12 @@ class _IngredientsTab extends ConsumerWidget {
     for (final use in uses.uses) {
       final contribution = summary.lineCosts[use.id];
       if (contribution == null) {
-        final reason = [
-          ...summary.unpriced,
-          ...summary.notCounted,
-        ].where((n) => n.lineId == use.id).firstOrNull?.reason;
+        // A line out by rule (`notCounted`) has nothing to fix and says
+        // nothing.
+        final reason = summary.unpriced
+            .where((n) => n.lineId == use.id)
+            .firstOrNull
+            ?.reason;
         return reason == null ? null : costLineNote(reason);
       }
       total += contribution.cents;

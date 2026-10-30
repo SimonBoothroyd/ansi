@@ -183,9 +183,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Chopped tomatoes · no price yet'), findsNothing);
-    // Out by the macro rule, named in its own row and never as a gap.
-    expect(find.text('NOT COUNTED'), findsOneWidget);
-    expect(find.text('Parsley · handful'), findsOneWidget);
+    // Out by the macro rule, with nothing to fix: never named as a gap, nor
+    // at all.
+    expect(find.text('NOT COUNTED'), findsNothing);
+    expect(find.text('Parsley · handful'), findsNothing);
     // The chicken IS priced, so what it comes to is printed — as a floor, in
     // the words that say so: 600 g at $1.10 / 100 g, over four servings.
     expect(
@@ -233,7 +234,8 @@ void main() {
       // Under Cost: the whole chain — figure, unit price, store and month.
       expect(find.text(r"$6.60 · $1.10 / 100 g · TJ's, Sep"), findsOneWidget);
       expect(find.text('no price yet'), findsOneWidget);
-      expect(find.text('not counted'), findsOneWidget);
+      // The handful of parsley has nothing to fix, so its line says nothing.
+      expect(find.text('not counted'), findsNothing);
     });
 
     testWidgets('the menu item names the state it will leave', (tester) async {

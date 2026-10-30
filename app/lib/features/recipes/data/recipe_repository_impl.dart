@@ -840,9 +840,9 @@ loadRecipeMacroNodes(SqliteConnection db) async {
 /// The cost walk's ingredient lookup, from the vocab's dimension facts and the
 /// price each row's cost reads (`costPriceOf`).
 ///
-/// An unknown ingredient resolves to null ([CostLineReason.noPathToBasis]); a
-/// known row with no price resolves with a null price
-/// ([CostLineReason.noPrice]).
+/// An unknown ingredient resolves to null
+/// ([CostLineReason.unknownIngredient]); a known row with no price resolves
+/// with a null price ([CostLineReason.noPrice]).
 IngredientPricing? Function(String) pricingResolver(
   Map<String, IngredientNutrition> nutrition,
   Map<String, UnitPrice> prices,

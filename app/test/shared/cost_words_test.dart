@@ -131,7 +131,7 @@ void main() {
           (
             lineId: 'li-2',
             name: 'Cucumber',
-            reason: CostLineReason.noPathToBasis,
+            reason: CostLineReason.needsWeight,
             unit: null,
           ),
           (
@@ -144,7 +144,17 @@ void main() {
       );
       expect(
         unpricedNames(mixed),
-        'Rice Vinegar, Cucumber · no way to price this amount, Sesame Seeds',
+        'Rice Vinegar, Cucumber · needs a piece weight, Sesame Seeds',
+      );
+    });
+
+    test('a line out of reach says its fix, in the macro words', () {
+      expect(costLineNote(CostLineReason.needsWeight), 'needs a piece weight');
+      expect(costLineNote(CostLineReason.needsDensity), 'needs a density');
+      expect(costLineNote(CostLineReason.noAmount), 'no amount');
+      expect(
+        costLineNote(CostLineReason.unknownIngredient),
+        'not in your foods yet',
       );
     });
 
@@ -235,7 +245,7 @@ void main() {
       expect(oldestPriceLine(summary), 'Smoked paprika · Whole Foods, Jul');
     });
 
-    test('NOT COUNTED keeps the word the source printed', () {
+    test('the imprecise names keep the word the source printed', () {
       const summary = RecipeCostSummary(
         notCounted: [
           (

@@ -116,7 +116,8 @@ void main() {
     expect(find.text(r'$6.60'), findsNothing);
     expect(find.text('1 line unpriced'), findsOneWidget);
     expect(find.text('Chopped tomatoes'), findsOneWidget);
-    expect(find.text('Some lines have no price'), findsOneWidget);
+    // The count beside the badge is said once, never restated under it.
+    expect(find.text('Some lines have no price'), findsNothing);
   });
 
   testWidgets('a whole recipe prints its cells and no floor', (tester) async {
@@ -165,7 +166,7 @@ void main() {
     expect(find.text('Smoked paprika · Whole Foods, Jul'), findsOneWidget);
   });
 
-  testWidgets('a real total still says what it left out by rule', (
+  testWidgets('an imprecise line out of a real total goes unnamed', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -187,8 +188,10 @@ void main() {
       ),
     );
 
-    expect(find.text('NOT COUNTED'), findsOneWidget);
-    expect(find.text('Parsley · handful'), findsOneWidget);
+    // Nothing to fix, so nothing to say: the cells stand alone.
+    expect(find.text(r'$10.17'), findsOneWidget);
+    expect(find.text('NOT COUNTED'), findsNothing);
+    expect(find.textContaining('Parsley'), findsNothing);
   });
 
   testWidgets('no lines refuses rather than costing nothing', (tester) async {

@@ -151,14 +151,15 @@ void main() {
     expect(macroText('600 kcal · 60P 120C 30F'), findsNothing);
   });
 
-  testWidgets('a line excluded BY RULE says why, in the panel’s words — never '
-      'a zero', (tester) async {
+  testWidgets('a line excluded BY RULE says nothing — never a zero', (
+    tester,
+  ) async {
     await _pump(tester);
     await _toggle(tester, 'Show line figures');
 
-    // The handful says why. The optional lime says nothing here: its tag
-    // already said it, and twice on one line is once too many.
-    expect(find.text('not counted'), findsOneWidget);
+    // The handful has nothing to fix, so its line stays quiet. The optional
+    // lime's tag already says why it is out.
+    expect(find.text('not counted'), findsNothing);
     expect(find.text('optional'), findsOneWidget);
     expect(macroText('0 kcal · 0P 0C 0F'), findsNothing);
   });
@@ -224,10 +225,11 @@ void main() {
     await _pump(tester, recipe: folded);
     await _toggle(tester, 'Show line figures');
 
-    // The 20 g use resolved and the handful did not, so the row says the
-    // exclusion rather than printing the half it could add up.
+    // The 20 g use resolved and the handful did not, so the row prints no
+    // figure rather than the half it could add up, and no reason either: a
+    // handful has nothing to fix.
     expect(macroText('20 kcal · 2P 4C 1F'), findsNothing);
-    expect(find.text('not counted'), findsOneWidget);
+    expect(find.text('not counted'), findsNothing);
   });
 
   testWidgets('the toggle is offered only from the tab it changes', (

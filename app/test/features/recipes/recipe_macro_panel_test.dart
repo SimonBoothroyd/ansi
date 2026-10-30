@@ -320,7 +320,7 @@ void main() {
 
   // --- seam D6: a total, and what it left out -------------------------------
 
-  testWidgets('a real total names the imprecise lines in a row of its own', (
+  testWidgets('a real total leaves the imprecise lines unnamed', (
     tester,
   ) async {
     const summary = RecipeMacroSummary(
@@ -346,12 +346,10 @@ void main() {
     // The number is shown — this state was unreachable before D6.
     expect(find.text('418'), findsOneWidget);
     expect(find.byType(IncompleteBadge), findsNothing);
-    expect(find.text('NOT COUNTED'), findsOneWidget);
-    expect(
-      find.text('Parsley · handful, Sesame seeds · to taste'),
-      findsOneWidget,
-    );
-    // Nothing optional here, so no second row and no empty label.
+    // A handful has nothing to fix, so the total says nothing about it.
+    expect(find.text('NOT COUNTED'), findsNothing);
+    expect(find.textContaining('Parsley'), findsNothing);
+    // Nothing optional here, so no row and no empty label.
     expect(find.text('OPTIONAL'), findsNothing);
   });
 
@@ -385,7 +383,9 @@ void main() {
     expect(find.textContaining('Lime · '), findsNothing);
   });
 
-  testWidgets('both kinds at once are two rows', (tester) async {
+  testWidgets('with both kinds out, only the optional is named', (
+    tester,
+  ) async {
     const summary = RecipeMacroSummary(
       perServing: Macros(kcal: 418, protein: 16, carb: 54, fat: 13),
       impreciseLines: 1,
@@ -407,8 +407,8 @@ void main() {
     );
     await tester.pumpWidget(_host(const RecipeMacroPanel(summary: summary)));
 
-    expect(find.text('NOT COUNTED'), findsOneWidget);
-    expect(find.text('Parsley · handful'), findsOneWidget);
+    expect(find.text('NOT COUNTED'), findsNothing);
+    expect(find.textContaining('Parsley'), findsNothing);
     expect(find.text('OPTIONAL'), findsOneWidget);
     expect(find.text('Lime'), findsOneWidget);
   });

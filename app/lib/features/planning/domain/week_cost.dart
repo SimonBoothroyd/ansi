@@ -9,6 +9,7 @@ library;
 
 import '../../../core/result/result.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/units.dart';
 import '../../ingredients/domain/price.dart';
 import '../../recipes/domain/line_basis.dart';
 import '../../recipes/domain/recipe_cost.dart';
@@ -39,8 +40,12 @@ PortionCost ingredientPortionCost(PlanEntry entry, UnitPrice? price) {
   final quantity = entry.quantity;
   final unit = entry.unit;
   // Only dimension facts are read here, nothing nutritional (ADR-0017).
-  if (nutrition == null || quantity == null || unit == null) {
-    return (cents: null, reason: CostLineReason.noPathToBasis);
+  // The reasons `ingredientPortionMacros` gives the same meal.
+  if (nutrition == null) {
+    return (cents: null, reason: CostLineReason.unknownIngredient);
+  }
+  if (quantity == null || unit == null) {
+    return (cents: null, reason: CostLineReason.noAmount);
   }
   final row = (
     basis: nutrition.basis,
@@ -68,7 +73,13 @@ PortionCost ingredientPortionCost(PlanEntry entry, UnitPrice? price) {
     amount = quantityInBasis(quantity, unit, row);
   }
   if (amount == null) {
-    return (cents: null, reason: CostLineReason.noPathToBasis);
+    return (
+      cents: null,
+      // A bare count is fixed on the ingredient; an unsynced measure is not.
+      reason: unit.family == UnitFamily.count && entry.measureId == null
+          ? CostLineReason.needsWeight
+          : CostLineReason.needsDensity,
+    );
   }
   if (price == null) return (cents: null, reason: CostLineReason.noPrice);
   if (price.basis != row.basis) {

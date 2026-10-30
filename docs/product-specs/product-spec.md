@@ -570,14 +570,15 @@ its steps.
   - **Imprecise lines never gate the total** (seam **D6**). `to taste`,
     `pinch`, `dash` and `handful` are unweighable BY NATURE — no measure and
     no density turns a handful into grams — so they are excluded **by rule**,
-    the total is shown, and the exclusion is printed under it by name, every
-    time, in a labelled row of its own: `NOT COUNTED · Parsley · handful,
-    Sesame seeds · to taste`, with the optional lines in a second row under
-    it and one caption under both.
-    Invariant 3 holds in both halves and is read the *stronger* way: nothing
-    is invented (a handful contributes zero because zero grams of it were
-    claimed, not because a number was guessed) and nothing is silent (a
-    reader can see exactly what the figure covers). The imprecise family is
+    the total is shown, and the exclusion goes **unnamed**: no row under the
+    panel, no note on the line, in Macros and Cost alike. There is nothing to
+    fix, so naming it only reads as something missing (the owner, 2026-10-30:
+    *"I don't want to show missing macros for handful or dash"*). The
+    optional lines keep their `OPTIONAL` row, and Ask still knows what a
+    figure left out.
+    Invariant 3 holds: nothing is invented (a handful contributes zero
+    because zero grams of it were claimed, not because a number was
+    guessed). The imprecise family is
     already excluded everywhere else on purpose — `convert` refuses it,
     `scale` leaves it alone — so the macro engine treating the same word as a
     fixable defect was the outlier. **One guard:** a recipe whose lines are
@@ -1522,8 +1523,9 @@ less any discount. The doctrine is
   the lines it is waiting on are named — a total that quietly skipped the
   tomatoes would understate the recipe by the tomatoes. The `UNPRICED` row
   names them in the page's order, each ingredient once, and says a reason
-  only where it is not the label's own (`Rice · no way to price this
-  amount`).
+  only where it is not the label's own, in the macro reading's words for the
+  same fix (`Cucumber · needs a piece weight`). The count beside the badge
+  is the whole refusal; no line under it restates it.
   - **A partly priced recipe still says what it has reached**, as a floor:
     `at least $1.65 a serving · at least $6.60 the recipe`, each figure
     wearing its own `at least`, under the refusal rather than in place of it.
