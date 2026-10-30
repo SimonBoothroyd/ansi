@@ -38,14 +38,19 @@ set_defines() { # $1 = anon key
   )
 }
 
+# Prefixes each line with the UTC time, so a slow phase can be found.
+stamp() { while IFS= read -r line; do printf '%s %s\n' "$(date -u +%T)" "$line"; done; }
+
 backend() {
   trap 'echo $? > "$status_file"' EXIT
   # No smoke file reaches an edge function, storage, realtime or the
   # dashboard (import runs over the local repository — see
   # SmokeStack.openLibraryWithLocalImport), so those images are never pulled.
-  supabase start -x studio,imgproxy,edge-runtime,storage-api,realtime,logflare,vector,postgres-meta,supavisor
+  echo "$(date -u +%T) supabase start"
+  supabase start -x studio,imgproxy,edge-runtime,storage-api,realtime,logflare,vector,postgres-meta,supavisor 2>&1 | stamp
   # No --env-file: compose.yaml's defaults are the local stack's values.
-  docker compose --file docker/compose.yaml up -d
+  docker compose --file docker/compose.yaml up -d 2>&1 | stamp
+  echo "$(date -u +%T) backend done"
 }
 
 build() {
@@ -53,8 +58,12 @@ build() {
   trap 'echo $? > "$build_status"' EXIT
   set_defines "$default_anon"
   cd app
+  # flutter test appends this define to an integration test's own (Flutter
+  # 3.47.1, commands/test.dart); without it here, its build is a rebuild.
   flutter build apk --debug --target-platform android-x64 \
-    --target "integration_test/${SIM_FILE}_test.dart" "${defines[@]}"
+    --target "integration_test/${SIM_FILE}_test.dart" "${defines[@]}" \
+    --dart-define=INTEGRATION_TEST_SHOULD_REPORT_RESULTS_TO_NATIVE=false
+  echo "$(date -u +%T) build done"
 }
 
 collect() {
@@ -69,9 +78,11 @@ run() {
 
   echo "waiting for the backend…"
   for _ in $(seq 600); do [ -s "$status_file" ] && break; sleep 1; done
+  echo "::group::the local backend"
+  cat "$SIM_LOGS/backend.log" || true
+  echo "::endgroup::"
   if [ "$(cat "$status_file" 2>/dev/null)" != 0 ]; then
-    echo "::error::the local backend did not start — see backend.log"
-    cat "$SIM_LOGS/backend.log" || true
+    echo "::error::the local backend did not start — see the backend group above"
     exit 1
   fi
 
