@@ -17,6 +17,8 @@ shopping/
                               price, a rounded row on what you buy
     at_home.dart              what is already at home: leftToBuy,
                               amountForAll, whyNotAtHome
+    spare_offer.dart          last week's spare food offered as at home,
+                              in the row's own words
     shopping_repository.dart  read/write contract
   data/           SqliteShoppingRepository (derive + overlay) + providers
   presentation/

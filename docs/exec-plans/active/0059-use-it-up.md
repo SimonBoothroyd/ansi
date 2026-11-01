@@ -1,6 +1,6 @@
 # Exec plan: Use it up
 
-- **Status:** active — phases 1–4 built on branch `ccr-fe69369e-7z4nha`, not yet on main; migration `0059` not yet on cloud; the board frames and the simulator run still owed
+- **Status:** active — phases 1–4 built on branch `ccr-fe69369e-7z4nha`, not yet on main; migration `0059` not yet on cloud; the simulator run and the owner's look on a phone still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); continues [plan 0054](./0054-eaten-vs-planned.md)'s leftover question
 - **Created:** 2026-11-01

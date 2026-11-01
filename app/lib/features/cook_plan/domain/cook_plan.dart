@@ -45,8 +45,9 @@ abstract class CoveredMeal with _$CoveredMeal {
   }) = _CoveredMeal;
 }
 
-/// What became of a batch's uneaten portions, once its days are over: kept,
-/// binned (the only waste) or eaten after all (a forgotten tick).
+/// What became of a cooked batch's leftover, said once it is past its use-by:
+/// binned (the only waste) or eaten after all. `kept` is only ever an older
+/// answer, and reads as no answer (`leftovers.dart`).
 typedef LeftoverAnswer = ({double kept, double binned, double eaten});
 
 /// A recipe as it appears across the week, before clustering: its shelf life
@@ -180,11 +181,6 @@ abstract class CookSession with _$CookSession {
 
   /// The planned meal a leftover answer is keyed to: the batch's first.
   String? get leftoverKey => covers.isEmpty ? null : covers.first.entryId;
-
-  /// Whether every day this batch covers is behind us, given how many of the
-  /// week's days have fully passed (0 for a week still to come, 7 for one
-  /// gone).
-  bool isOverAfter(int daysPassed) => lastCoveredDay < daysPassed;
 
   /// The multiplier the recipe's lines scale by: `total_portions /
   /// servings_base`, unrounded, for a meal session; the batch count for a

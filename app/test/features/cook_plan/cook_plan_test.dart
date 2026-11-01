@@ -1237,11 +1237,6 @@ void main() {
       },
     );
 
-    test('a batch is over once its last day is behind us', () {
-      expect(session().isOverAfter(1), isFalse);
-      expect(session().isOverAfter(2), isTrue);
-    });
-
     test('everything ticked leaves nothing', () {
       expect(session(eatenTue: 2).uneatenPortions, 0);
     });

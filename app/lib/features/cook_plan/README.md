@@ -5,8 +5,11 @@
 
 The **Cook** screen: the derived counterpart to the Week. It groups the active
 week's meals by recipe and splits each into **cook sessions** bounded by shelf
-life (spec §4). Read-only — nothing here is planned or persisted; edit the Week
-and this re-derives.
+life (spec §4). Nothing here is planned; edit the Week and this re-derives.
+The one write is Cook's answer about a cooked batch's leftover once it is past
+its use-by (`batch_leftover`), and the leftovers themselves are derived —
+which batches were cooked (a tick), what is left and until when — and offered
+back by the planning picker's *Use up*.
 
 ## Layout
 
@@ -16,11 +19,14 @@ cook_plan/
     cook_plan.dart              CoveredMeal · PlannedRecipe · CookSession ·
                                 RecipeCookPlan · CookPlan; clusterSessions +
                                 buildCookPlan + batchHintFor
-    cook_plan_repository.dart   read-only contract
+    leftovers.dart              BatchLeftover, wasCooked, useByOf,
+                                batchLeftovers
+    cook_plan_repository.dart   the plan, the leftovers and Cook's answer
   data/           SqliteCookPlanRepository (watch → buildCookPlan) + providers
   presentation/   CookView (each session draws the compact week strip,
                   shared/week_strip.dart) + CookSheet; cook_format.dart (copy
-                  + strip geometry, pure Dart); cook_view_models.dart
+                  + strip geometry, pure Dart); cook_view_models.dart;
+                  leftover_question.dart (the one question, phone and desk)
 ```
 
 ## The clustering rule (spec §4)
