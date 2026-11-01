@@ -75,61 +75,32 @@ List<BatchLeftover> leftoversGoodOn(Ref ref, DateTime day) {
   ]..sort((a, b) => a.useBy.compareTo(b.useBy));
 }
 
-/// How many of the viewed week's days are fully behind us: 0 for a week still
-/// to come, 7 for one gone. A batch is over once its last day is.
-@riverpod
-int viewedWeekDaysPassed(Ref ref) {
-  final start = ref.watch(viewedWeekStartProvider);
-  final today = ref.watch(todayProvider);
-  final days = DateTime(
-    today.year,
-    today.month,
-    today.day,
-  ).difference(DateTime(start.year, start.month, start.day)).inDays;
-  return days.clamp(0, 7);
-}
-
 /// The viewed week's leftovers in one line for the Week band — `1 portion
-/// binned · 1 kept · 2 left` — counting only batches whose days are over.
-/// Null when nothing is left over.
+/// binned · 2 left`. Null when nothing is left over.
 @riverpod
 String? weekLeftoverLine(Ref ref) {
-  final plan = ref.watch(currentCookPlanProvider).asData?.value;
-  if (plan == null) return null;
   final answers =
       ref.watch(viewedWeekLeftoversProvider).asData?.value ?? const {};
-  return leftoverLineFor(
-    plan,
-    answers: answers,
-    daysPassed: ref.watch(viewedWeekDaysPassedProvider),
-  );
+  final leftovers =
+      ref
+          .watch(weekBatchLeftoversProvider(ref.watch(viewedWeekStartProvider)))
+          .asData
+          ?.value ??
+      const <BatchLeftover>[];
+  return leftoverLineFor(answers: answers, leftovers: leftovers);
 }
 
-/// [weekLeftoverLine]'s arithmetic, pure: answered batches by what became of
-/// them, unanswered ones as simply left.
-String? leftoverLineFor(
-  CookPlan plan, {
+/// [weekLeftoverLine]'s arithmetic, pure: what was binned (the only waste) and
+/// eaten after all, by Cook's answers, then what cooked batches still have
+/// left ([batchLeftovers]).
+String? leftoverLineFor({
   required Map<String, LeftoverAnswer> answers,
-  required int daysPassed,
+  required List<BatchLeftover> leftovers,
 }) {
-  var kept = 0.0;
-  var binned = 0.0;
-  var left = 0.0;
-  for (final recipe in plan.recipes) {
-    for (final s in recipe.mealSessions) {
-      if (!s.isOverAfter(daysPassed) || s.uneatenPortions <= 0) continue;
-      final a = answers[s.leftoverKey];
-      if (a == null) {
-        left += s.uneatenPortions;
-      } else {
-        kept += a.kept;
-        binned += a.binned;
-      }
-    }
-  }
+  final binned = answers.values.fold<double>(0, (n, a) => n + a.binned);
+  final left = leftovers.fold<double>(0, (n, l) => n + l.portions);
   final parts = [
     if (binned > 0) (binned, 'binned'),
-    if (kept > 0) (kept, 'kept'),
     if (left > 0) (left, 'left'),
   ];
   if (parts.isEmpty) return null;

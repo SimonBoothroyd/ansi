@@ -26,6 +26,8 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
+import '../../planning/presentation/use_up_block.dart'
+    show goodUntil, leftoverRowLine;
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -33,6 +35,7 @@ import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../data/cook_plan_providers.dart';
 import '../domain/cook_plan.dart';
+import '../domain/leftovers.dart';
 import 'cook_format.dart';
 import 'cook_sheet.dart';
 import 'cook_view_models.dart';
@@ -107,6 +110,7 @@ class CookView extends ConsumerWidget {
               const EdgeInsets.only(top: 6, bottom: 24),
             ),
             children: [
+              const LastWeekPastItsDate(),
               if (data.isEmpty)
                 const _NothingToCookLine()
               else
@@ -119,6 +123,7 @@ class CookView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 6, bottom: 24),
       children: [
+        const LastWeekPastItsDate(),
         if (data.isEmpty) const _NothingToCookLine(),
         for (final recipe in data.recipes) ...[
           // A recipe both planned and demanded as a component shows two cards,
@@ -482,9 +487,12 @@ class _SessionTile extends ConsumerWidget {
   }
 }
 
-/// Once a batch's days are over and fewer portions were ticked than planned:
-/// what became of the rest — kept, binned, or eaten after all. Either member
-/// may answer; it is about the pot, not a person.
+/// What became of a cooked batch's leftover (plan 0059). Until its use-by it
+/// is only said — `1 portion left · good until Mon` — because the picker
+/// offers it; once past, Cook asks once: **Binned** or **We ate it**. An
+/// answer reads as a line, and a tap takes it back. A batch nobody ticked was
+/// never cooked and is never asked about. Either member may answer; it is
+/// about the pot, not a person.
 class LeftoverQuestion extends ConsumerWidget {
   const LeftoverQuestion({required this.session, super.key});
 
@@ -493,24 +501,24 @@ class LeftoverQuestion extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final key = session.leftoverKey;
-    final left = session.uneatenPortions;
-    if (key == null ||
-        left <= 0 ||
-        !session.isOverAfter(ref.watch(viewedWeekDaysPassedProvider))) {
-      return const SizedBox.shrink();
-    }
+    if (key == null) return const SizedBox.shrink();
     final answer = ref.watch(viewedWeekLeftoversProvider).asData?.value[key];
     final repo = ref.read(cookPlanRepositoryProvider);
 
-    void answerAll(LeftoverAnswer? a, String what) =>
-        unawaited(ref.write(context, what, () => repo.setLeftover(key, a)));
-
-    if (answer != null) {
+    // Binned or eaten is an answer; a `kept` said before plan 0059 is not,
+    // since keeping is what a leftover does until its date.
+    if (answer != null && (answer.binned > 0 || answer.eaten > 0)) {
       final said = leftoverAnswerLine(answer);
       return Padding(
         padding: const EdgeInsets.only(top: 10),
         child: AnsiTap(
-          onTap: () => answerAll(null, 'change that'),
+          onTap: () => unawaited(
+            ref.write(
+              context,
+              'change that',
+              () => repo.setLeftover(key, null),
+            ),
+          ),
           semanticsLabel: 'Change what happened to the leftovers',
           child: Row(
             children: [
@@ -532,35 +540,138 @@ class LeftoverQuestion extends ConsumerWidget {
       );
     }
 
+    final weekStart = ref.watch(viewedWeekStartProvider);
+    final left = ref
+        .watch(weekBatchLeftoversProvider(weekStart))
+        .asData
+        ?.value
+        .where((l) => l.key == key)
+        .firstOrNull;
+    if (left == null) return const SizedBox.shrink();
+    if (!left.isDueOn(ref.watch(todayProvider))) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(
+          '${formatPortions(left.portions)} left · '
+          '${goodUntil(left, ref.watch(weekShapeProvider))}',
+          style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            '${formatPortions(left)} left',
-            style: ansiSans(size: 12.5, weight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              for (final (i, (label, answer)) in [
-                ('Kept', (kept: left, binned: 0.0, eaten: 0.0)),
-                ('Binned', (kept: 0.0, binned: left, eaten: 0.0)),
-                ('Eaten', (kept: 0.0, binned: 0.0, eaten: left)),
-              ].indexed) ...[
-                if (i > 0) const SizedBox(width: 6),
-                AnsiChip(
-                  label: label,
-                  selected: false,
-                  expand: true,
-                  onTap: () => answerAll(answer, 'say what happened'),
-                ),
-              ],
-            ],
-          ),
-        ],
+      child: PastItsDate(
+        heading: '${formatPortions(left.portions)} past its date',
+        left: left,
       ),
+    );
+  }
+}
+
+/// The one question, asked once a cooked leftover's use-by has passed with
+/// portions still unplanned: **Binned** or **We ate it**, for all of them.
+class PastItsDate extends ConsumerWidget {
+  const PastItsDate({required this.heading, required this.left, super.key});
+
+  final String heading;
+  final BatchLeftover left;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.read(cookPlanRepositoryProvider);
+    final n = left.portions;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(heading, style: ansiSans(size: 12.5, weight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            for (final (i, (label, answer)) in [
+              ('Binned', (kept: 0.0, binned: n, eaten: 0.0)),
+              ('We ate it', (kept: 0.0, binned: 0.0, eaten: n)),
+            ].indexed) ...[
+              if (i > 0) const SizedBox(width: 6),
+              AnsiChip(
+                label: label,
+                selected: false,
+                expand: true,
+                onTap: () => unawaited(
+                  ref.write(
+                    context,
+                    'say what happened',
+                    () => repo.setLeftover(left.key, answer),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// On the week containing today, last week's cooked leftovers that ran out of
+/// time unplanned: each asks the one question, so it is not missed for being
+/// filed under a week nobody is looking at.
+class LastWeekPastItsDate extends ConsumerWidget {
+  const LastWeekPastItsDate({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final viewed = ref.watch(viewedWeekStartProvider);
+    final current = ref.watch(currentWeekStartProvider);
+    if (viewed != current) return const SizedBox.shrink();
+    final shape = ref.watch(weekShapeProvider);
+    final today = ref.watch(todayProvider);
+    final lastWeek = shape.weekStartOf(
+      DateTime(current.year, current.month, current.day - 7),
+    );
+    final due = [
+      for (final l
+          in ref.watch(weekBatchLeftoversProvider(lastWeek)).asData?.value ??
+              const <BatchLeftover>[])
+        if (l.isDueOn(today)) l,
+    ];
+    if (due.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final l in due)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: AnsiColors.paper,
+              border: Border.all(color: AnsiColors.line),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'FROM LAST WEEK',
+                  style: ansiMono(
+                    size: 9.5,
+                    color: AnsiColors.muted,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(l.title, style: ansiSerif(size: AnsiType.row)),
+                const SizedBox(height: 2),
+                Text(
+                  '${shape.labelShort(shape.offsetOf(l.cookDate))}\u2019s '
+                  'batch · ${leftoverRowLine(l, shape)}',
+                  style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                ),
+                const SizedBox(height: 10),
+                PastItsDate(heading: 'Past its date', left: l),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

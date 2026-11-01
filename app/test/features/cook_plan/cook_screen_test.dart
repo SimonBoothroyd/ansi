@@ -4,10 +4,10 @@ import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_sheet.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
-import 'package:ansi/features/cook_plan/presentation/cook_view_models.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
@@ -643,7 +643,7 @@ void main() {
     });
   });
 
-  group('what a finished batch left over', () {
+  group('what a cooked batch left over', () {
     // Curry for Mon and Tue, 2 portions each; 3 of the 4 were ticked.
     PlannedRecipe curry() => const PlannedRecipe(
       recipeId: 'curry',
@@ -668,34 +668,60 @@ void main() {
       ],
     );
 
+    final today = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+    final thisWeek = WeekShape.monday.weekStartOf(today);
+    final lastWeek = WeekShape.monday.weekStartOf(
+      today.subtract(const Duration(days: 7)),
+    );
+
+    BatchLeftover left({required int useByInDays, String key = 'mon'}) =>
+        BatchLeftover(
+          key: key,
+          recipeId: 'curry',
+          title: 'Curry',
+          cookDate: today.subtract(const Duration(days: 6)),
+          useBy: today.add(Duration(days: useByInDays)),
+          portions: 1,
+        );
+
     Future<FakeCookPlanRepository> pump(
       WidgetTester tester, {
-      required int daysPassed,
+      List<BatchLeftover> leftovers = const [],
+      List<BatchLeftover> fromLastWeek = const [],
       Map<String, LeftoverAnswer> answers = const {},
     }) async {
-      final repo = FakeCookPlanRepository.of([curry()])..leftovers = answers;
+      final repo = FakeCookPlanRepository.of([curry()])
+        ..leftovers = answers
+        ..batchLeftovers = {thisWeek: leftovers, lastWeek: fromLastWeek};
       await tester.pumpWidget(
-        _host([
-          cookPlanRepositoryProvider.overrideWithValue(repo),
-          viewedWeekDaysPassedProvider.overrideWithValue(daysPassed),
-        ]),
+        _host([cookPlanRepositoryProvider.overrideWithValue(repo)]),
       );
       await tester.pumpAndSettle();
       return repo;
     }
 
-    testWidgets('asks nothing while the batch still has days to come', (
+    testWidgets('until its use-by it is only said, never asked', (
       tester,
     ) async {
-      await pump(tester, daysPassed: 1);
-      expect(find.text('1 portion left'), findsNothing);
+      await pump(tester, leftovers: [left(useByInDays: 2)]);
+      final day = WeekShape.monday.labelShort(
+        WeekShape.monday.offsetOf(today.add(const Duration(days: 2))),
+      );
+      expect(find.text('1 portion left · good until $day'), findsOneWidget);
+      expect(find.text('Binned'), findsNothing);
+      expect(find.text('Kept'), findsNothing);
     });
 
-    testWidgets('once its days are over, asks what became of the rest', (
+    testWidgets('past its use-by, Cook asks once: Binned or We ate it', (
       tester,
     ) async {
-      final repo = await pump(tester, daysPassed: 2);
-      expect(find.text('1 portion left'), findsOneWidget);
+      final repo = await pump(tester, leftovers: [left(useByInDays: -1)]);
+      expect(find.text('1 portion past its date'), findsOneWidget);
+      expect(find.text('Kept'), findsNothing);
       await tester.tap(find.text('Binned'));
       await tester.pumpAndSettle();
       expect(repo.leftoverWrites, [
@@ -703,19 +729,42 @@ void main() {
       ]);
     });
 
+    testWidgets('a batch nobody ticked, or with nothing left, says nothing', (
+      tester,
+    ) async {
+      await pump(tester);
+      expect(find.textContaining('left'), findsNothing);
+      expect(find.textContaining('past its date'), findsNothing);
+      expect(find.text('Binned'), findsNothing);
+    });
+
     testWidgets('an answer reads as a line, and a tap takes it back', (
       tester,
     ) async {
       final repo = await pump(
         tester,
-        daysPassed: 7,
-        answers: {'mon': (kept: 1.0, binned: 0.0, eaten: 0.0)},
+        answers: {'mon': (kept: 0.0, binned: 1.0, eaten: 0.0)},
       );
-      expect(find.text('1 portion kept'), findsOneWidget);
+      expect(find.text('1 portion binned'), findsOneWidget);
       expect(find.text('Binned'), findsNothing);
-      await tester.tap(find.text('1 portion kept'));
+      await tester.tap(find.text('1 portion binned'));
       await tester.pumpAndSettle();
       expect(repo.leftoverWrites, [('mon', null)]);
+    });
+
+    testWidgets('this week asks about the batches last week left to run out '
+        'of time', (tester) async {
+      final repo = await pump(
+        tester,
+        fromLastWeek: [left(useByInDays: -1, key: 'old')],
+      );
+      expect(find.text('FROM LAST WEEK'), findsOneWidget);
+      expect(find.text('Past its date'), findsOneWidget);
+      await tester.tap(find.text('We ate it'));
+      await tester.pumpAndSettle();
+      expect(repo.leftoverWrites, [
+        ('old', (kept: 0.0, binned: 0.0, eaten: 1.0)),
+      ]);
     });
   });
 }

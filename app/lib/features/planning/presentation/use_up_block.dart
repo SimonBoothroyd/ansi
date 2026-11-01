@@ -16,8 +16,11 @@ import '../../cook_plan/domain/leftovers.dart';
 /// `1¾ portions · good until Mon`: what is left of a batch and the last day it
 /// is good, by the household's own day names.
 String leftoverRowLine(BatchLeftover left, WeekShape shape) =>
-    '${formatPortions(left.portions)} · good until '
-    '${shape.labelShort(shape.offsetOf(left.useBy))}';
+    '${formatPortions(left.portions)} · ${goodUntil(left, shape)}';
+
+/// `good until Mon`: a leftover's use-by by the household's own day names.
+String goodUntil(BatchLeftover left, WeekShape shape) =>
+    'good until ${shape.labelShort(shape.offsetOf(left.useBy))}';
 
 /// The *Use up* block at the head of the planning picker.
 class UseUpBlock extends ConsumerWidget {

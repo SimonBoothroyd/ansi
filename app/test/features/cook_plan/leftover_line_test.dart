@@ -1,52 +1,56 @@
 /// The week's leftovers in one line, and one batch's answer in words.
 library;
 
-import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-PlannedRecipe _recipe(String id, int day, {double eaten = 0}) => PlannedRecipe(
-  recipeId: id,
-  title: id,
-  servingsBase: 2,
-  meals: [
-    CoveredMeal(
-      dayOfWeek: day,
-      mealSlot: 'Dinner',
-      portions: 2,
-      entryId: '$id-$day',
-      eatenPortions: eaten,
-    ),
-  ],
+BatchLeftover _left(String key, double portions) => BatchLeftover(
+  key: key,
+  recipeId: key,
+  title: key,
+  cookDate: DateTime(2026, 10, 26),
+  useBy: DateTime(2026, 10, 30),
+  portions: portions,
 );
 
 void main() {
-  final plan = buildCookPlan([
-    _recipe('ragu', 1),
-    _recipe('curry', 2, eaten: 1),
-    _recipe('soup', 5),
-  ]);
-
-  test('answered batches by what became of them, the rest as left', () {
+  test('what was binned, then what cooked batches still have left', () {
     expect(
       leftoverLineFor(
-        plan,
-        answers: {'ragu-1': (kept: 0, binned: 2, eaten: 0)},
-        daysPassed: 3,
+        answers: {'ragu': (kept: 0, binned: 2, eaten: 0)},
+        leftovers: [_left('curry', 1)],
       ),
       '2 portions binned · 1 left',
     );
   });
 
-  test('a batch with days to come is not counted yet', () {
-    expect(leftoverLineFor(plan, answers: const {}, daysPassed: 0), isNull);
+  test('eaten after all is not waste, and a kept answer is no answer', () {
+    expect(
+      leftoverLineFor(
+        answers: {
+          'ragu': (kept: 0, binned: 0, eaten: 2),
+          'dal': (kept: 1, binned: 0, eaten: 0),
+        },
+        leftovers: [_left('dal', 1)],
+      ),
+      '1 portion left',
+    );
+  });
+
+  test('nothing binned and nothing left says nothing', () {
+    expect(leftoverLineFor(answers: const {}, leftovers: const []), isNull);
   });
 
   test('an answer said in words', () {
     expect(
-      leftoverAnswerLine((kept: 1, binned: 0, eaten: 0)),
-      '1 portion kept',
+      leftoverAnswerLine((kept: 0, binned: 1, eaten: 0)),
+      '1 portion binned',
+    );
+    expect(
+      leftoverAnswerLine((kept: 0, binned: 0, eaten: 2)),
+      '2 portions eaten after all',
     );
     expect(
       leftoverAnswerLine((kept: 1, binned: 0.5, eaten: 0)),
