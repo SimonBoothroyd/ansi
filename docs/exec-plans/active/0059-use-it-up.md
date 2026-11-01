@@ -1,6 +1,6 @@
 # Exec plan: Use it up
 
-- **Status:** draft — rulings taken, nothing built; phase 0 (the board) first
+- **Status:** active — phases 1–4 built on branch `ccr-fe69369e-7z4nha`, not yet on main; migration `0059` not yet on cloud; the board frames and the simulator run still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); continues [plan 0054](./0054-eaten-vs-planned.md)'s leftover question
 - **Created:** 2026-11-01
@@ -196,12 +196,40 @@ Append-only.
   Plan 0054's *Not in v1* (a kept portion offered back in the picker, and
   one taking a meal off the next shop) is this plan's phases 1 and 4.
 
+- 2026-11-01 — Phases 1–4 built in one pass, the board frames after rather
+  than before (the canvas linked above stood in for them). What the build
+  settled that the plan left open:
+  - **The question's place.** A batch's card asks on its own week; the week
+    containing today also asks, in a `FROM LAST WEEK` card, about last
+    week's batches that ran out of time unplanned, so a question is not
+    missed for being filed under a week nobody is looking at.
+  - **Before the use-by** the batch's card says the leftover in one quiet
+    line, `1 portion left · good until Mon`, rather than nothing.
+  - **An old `kept` answer** reads as unanswered; only binned or eaten is
+    an answer.
+  - **An unknown fridge life** is good until the batch's last meal, so such
+    a batch is asked about as soon as its days are over and never offered.
+  - **A batch still to come is not spare.** Planning next week mid-week,
+    this week's later batches are not yet ticked; only a batch whose days
+    are all behind us and that nobody ticked counts as never cooked.
+  - **Spare is `need − toBuy + bought − usedCooked`** per ingredient in the
+    row's basis unit: what was at home, plus what was bought (the week's
+    receipt packs where a receipt carries the row, else the shop's whole
+    count, else whole packs of the size its price states), less what the
+    cooked meals and bare items used — the list derived a second time
+    without the never-cooked batches' meals.
+  - **The suggestions are scored for everyone's usual meal** (Σ portion
+    factors), since the picker does not know the eaters until the confirm
+    sheet; a recipe's optional lines and its components' lines are not
+    counted.
+  - **The shop's offer is in grams or millilitres** (the row's basis unit),
+    taken off a counted row through its piece weight; a row that will not
+    weigh is offered nothing.
+  - **Receipt packs are read in the price repository** (`loadBoughtPacks`),
+    the one file that owns what a receipt line means.
+
 ## Notes / open questions
 
-- **Where the question shows for last week's batch** while the viewed week
-  is next week: on the week containing today, or on the batch's own week.
-- **Answers already stored as `kept`** under plan 0054: read as unanswered
-  until the use-by, then asked.
 - **The *what's left* pane** stays behind its link; drop it if it goes
   unused in the field.
 - **A substitute from a leftover** (plan 0054's open question: ate Monday's

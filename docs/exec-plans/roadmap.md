@@ -27,7 +27,9 @@ The detail is in the plan; the landing dates are in the
    (`run_ask_live.ts`).
 6. Step 11 (anti-waste): [plan 0059](./active/0059-use-it-up.md), *Use it
    up* — last week's leftovers and spare fresh food offered first in the
-   picker and as at home in the shop. Drafted; its board frames come first.
+   picker and as at home in the shop. Built on its branch with migration
+   `0059` (**pending cloud push**); owed before main: the simulator run and
+   the owner's look on a phone.
 7. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.

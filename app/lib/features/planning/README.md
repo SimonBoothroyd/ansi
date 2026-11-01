@@ -22,13 +22,20 @@ planning/
     plan_change.dart              a change set written whole or not at all
                                   (Ask Ansi's card), PlanChangedError
     week_variant_repository.dart  this week's variant, WordlessOverrideError
-  data/           SqlitePlanningRepository, SqliteWeekVariantRepository, providers
+    use_up.dart                   last week's spare food, scoreUseUp, rankUseUp
+    use_up_repository.dart        what Use up reads about last week, one read
+  data/           SqlitePlanningRepository, SqliteWeekVariantRepository,
+                  SqliteUseUpRepository (last week through the cook plan,
+                  the shop's derivation and the receipt packs), providers
   presentation/
     week_view.dart            the phone Week: day cards, the add flow, the band
     week_wide.dart            the wide Week: agenda left, day pane right
     week_header.dart          the week switcher
     week_in_the_location.dart the viewed week in the URL, shared by Week/Cook/Shop
     recipe_picker_sheet.dart  the add flow's one door (Recent · Books · Favorites)
+    use_up_block.dart         Use up: leftovers, then recipes using spare food
+    whats_left_sheet.dart     the spare food and the ranking's cut
+    use_up_view_models.dart   useUp: last week's spare, scored and offered
     confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal out
     meal_editor_sheet.dart    edit a placed meal; the variant door at its foot
     meal_fields.dart          controls both sheets share
@@ -95,7 +102,10 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 
 1. **`showRecipePickerSheet`** — one door for all three kinds. Typed words
    search recipes and the household vocabulary; when they hit nothing, the
-   footer offers `＋ note it` for a meal eaten out. Returns a `PickedMeal`.
+   footer offers `＋ note it` for a meal eaten out. With nothing typed it
+   leads with *Use up*: cooked leftovers still good for the day
+   (`PickedLeftover`, written with `leftover_of`), then the recipes that use
+   the most of last week's spare food. Returns a `PickedMeal`.
 2. **The quantity sheet**, for an ingredient only, opened filled in with its
    usual amount (`ingredients/domain/default_amount.dart`): the last meal of
    it that stated one, else one of its word for one (`1 pot`), else one

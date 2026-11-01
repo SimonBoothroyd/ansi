@@ -399,6 +399,13 @@ Append-only.
   what was cooked and bought. The cheaper fix (rename the switch, hide it
   once something else is said) was declined.
 
+- 2026-11-01 — **The leftover question moved on** in
+  [plan 0059](./0059-use-it-up.md): a batch nobody ticked is no longer asked
+  about (it was never cooked; its food is spare), Cook asks only once a
+  cooked leftover is past its use-by, and the answers are **Binned · We ate
+  it** — *Kept* is gone. This plan's *Not in v1* (a kept portion offered in
+  the picker, and taken off the next shop) is that plan's *Use up*.
+
 ## Phase 4 — the phone checklist
 
 On an Android 14+ phone (or Android Studio's emulator, API 34+), with a build

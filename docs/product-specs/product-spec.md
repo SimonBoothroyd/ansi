@@ -773,6 +773,15 @@ go. There is no re-chip — tokenization happens only inside the import call.
   setting one takes back the other. A substitute is timed by its
   `created_at` on the meal's day until its member changes the time, which
   writes a `meal_eaten` row on the substitute itself.
+- `plan_entry.leftover_of` (migration 0059, [plan 0059](../exec-plans/active/0059-use-it-up.md))
+  — **a meal eaten from a cooked batch's leftover**: a recipe meal naming the
+  batch's key (its first covered meal, the key `batch_leftover` uses). It is
+  planned and eaten like any meal — ticks, macros, Health Connect — but the
+  cook plan, the shop and the week's cost pass over it: it was cooked,
+  bought and costed in its own week. Its Week row reads `leftover · not
+  cooked again` where a cook marker would be, and the batch strip, the
+  variant door and the add hint count only the days a dish is cooked. A copy
+  of the week carries it as a plain recipe meal.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·
@@ -834,17 +843,27 @@ into **cook sessions** bounded by shelf life:
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
 - **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) — display only, per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
-- **What a finished batch left over (plan 0054, migration 0057):** a planned
-  meal is assumed bought, so a batch's planned portions less the shares its
-  eaters ticked are **left over** — derived, never stored. Once every day the
-  batch covers is behind us and something is left, its session asks: `1
-  portion left` · **Kept · Binned · Eaten** (the last for a forgotten tick).
-  Either member answers, for the whole leftover; the answer
-  (`batch_leftover`, keyed to the batch's first covered meal) reads as one
-  line — `2 portions binned ›` — and a tap takes it back. Only *binned* is
-  waste. The Week band carries the week in one line, `2 portions binned · 1
-  left`, counting only finished batches. A bare item or a meal eaten out is
-  never asked: the first keeps in the fridge, the second bought nothing.
+- **What a cooked batch left over** (plan 0054 asked; [plan 0059](../exec-plans/active/0059-use-it-up.md)
+  decides when): **the ticks say what was cooked.** A batch anybody ticked
+  was cooked; one nobody ticked was never cooked, so it has no leftover and
+  is never asked about — its ingredients are last week's spare food (Shop
+  and *Use up*, below). A cooked batch's leftover is the portions of its
+  meals already behind us that nobody ate, less what Cook was told and less
+  the meals planned from it since — derived, never stored. It is good until
+  its **use-by**: the cook day plus the recipe's fridge life, never before
+  its own last meal (an unknown fridge life is the last meal's day). Each
+  batch has its own: curry cooked Monday and again Thursday is two
+  leftovers with two dates. Until the use-by the batch's card only says it,
+  `1 portion left · good until Mon`, because the planning picker offers it;
+  once past, Cook asks once — **Binned · We ate it** — for all of it, and
+  the answer (`batch_leftover`) reads as one line, `1 portion binned ›`, a
+  tap taking it back. On the week containing today, last week's batches that
+  ran out of time unplanned ask the same question in a card of their own,
+  `FROM LAST WEEK`. *Kept* is not an answer — keeping is what a leftover does
+  until its date — and an older *kept* answer reads as unanswered. Only
+  *Binned* is waste. The Week band carries the week in one line, `2
+  portions binned · 1 left`. A bare item or a meal eaten out is never
+  asked: the first keeps in the fridge, the second bought nothing.
 
 ### Recipe additions for the above
 - `keeps_for_days` (fridge shelf life) — **core**; drives clustering + freshness.
@@ -912,6 +931,14 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   cost, receipts and the tick are untouched, and a row moving to *At home*
   never plays the last tick. With nothing open and nothing ticked the list
   closes on *everything's at home*.
+- **Last week's spare food, offered as at home** ([plan 0059](../exec-plans/active/0059-use-it-up.md)):
+  a row whose ingredient has spare fresh food from the week before (*Use
+  up*, below) carries `300 g left from last week?` with **Use it**, which
+  writes the at-home amount above — the spare, never more than the row
+  still buys, in the row's basis unit — and one **Use all** above the
+  aisles (`2 things left from last week's shop`) says every offer at once.
+  Nothing is taken without a tap: a guest or a forgotten tick would leave
+  the household short.
 - **Priced at the cheapest seen** ([ADR-0017](../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md)
   rule 1): an open row prints its figure plain and to the cent with where the
   price was seen, `550 g · $1.80 at Aldi`, because the cheapest seen may send
@@ -1368,6 +1395,28 @@ source-tab slot, footer slot):
   pointer stays until somebody picks a chip or the word comes back. Cook's
   component card quotes such a demand in the words it was written in, showing
   its work: *"3 blob → 45 g → 0.15 of a batch"*.
+- **Use up** ([plan 0059](../exec-plans/active/0059-use-it-up.md)): with
+  nothing typed, the planning picker leads with what last week left. First
+  the **leftovers** still good for the day (cooked this week or last, the day
+  on or before the use-by, and not behind us), each with its portions and
+  date — `1¾ portions · good until Wed` — and the `leftover` tag; a pick
+  opens the confirm sheet on a leftover card, *Not cooked again, not
+  bought*, whose portions say what the meal leaves (`¾ still left after
+  this`, `uses all of it`) and will not plan more than is left. Then the
+  recipes that **use last week's shop**: spare food is last week's fresh
+  food (produce, dairy, proteins) left once its cooked meals are counted —
+  what was in the house (at home, plus what the receipt's packs bought,
+  else the shop's whole count or the pack its price states) less what was
+  used, a batch whose days passed unticked counting as never cooked — all
+  weighed in the row's basis unit, a row that will not weigh left out. A
+  recipe scores by what the amounts it would use cost at the row's unit
+  price (ADR-0017), for the household's usual meal and never past what is
+  spare — so a bulk jar adds what a spoonful costs and half an onion next
+  to nothing; up to three are offered, each scoring at least half the best,
+  naming what each uses as chips (`spinach 300 g · tofu 150 g`). *what's
+  left ›* opens the one pane that shows the food, how it was worked out
+  (`500 g in · 200 g used`) and where the cut falls. *Had instead* is
+  offered neither.
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
   "already this week" quick picks; rows carry filing, last-planned recency,
   shelf-life chips, and per-serving macros or the `incomplete` badge with
