@@ -25,8 +25,9 @@ The detail is in the plan; the landing dates are in the
    shipped in `v0.32.0`. Phase 4 (Health Connect) wants its phone checklist
    on an Android phone, and Ask's `had_instead` its paid eval
    (`run_ask_live.ts`).
-6. Step 11 (anti-waste), still stretch; plan 0054's leftover question is its
-   first slice.
+6. Step 11 (anti-waste): [plan 0059](./active/0059-use-it-up.md), *Use it
+   up* — last week's leftovers and spare fresh food offered first in the
+   picker and as at home in the shop. Drafted; its board frames come first.
 7. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
