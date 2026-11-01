@@ -1,6 +1,6 @@
 # Exec plan: Use it up
 
-- **Status:** active — phases 1–4 built on branch `ccr-fe69369e-7z4nha`, not yet on main; migration `0059` not yet on cloud; the simulator run and the owner's look on a phone still owed
+- **Status:** active — phases 1–4 built on branch `ccr-fe69369e-7z4nha`, not yet on main; migration `0059` not yet on cloud; the simulator run green; the owner's look on a phone still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); continues [plan 0054](./0054-eaten-vs-planned.md)'s leftover question
 - **Created:** 2026-11-01
@@ -264,8 +264,9 @@ done and moving this file to `completed/`.
       deliberately deferred.
 - [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
-      can't reach), and the result recorded here.
+- [x] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
+      can't reach), and the result recorded here. All nine files green on
+      the Android emulator (`sim` dispatch, run 41306323147, on `c8985e8`).
 - [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
 - [ ] New migrations or seed changes? Say in the roadmap row whether they have
