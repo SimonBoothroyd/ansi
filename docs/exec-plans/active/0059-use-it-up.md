@@ -1,6 +1,6 @@
 # Exec plan: Use it up
 
-- **Status:** active — phases 1–4 on main, migration `0059` on cloud (deploy 41308689885), the simulator run green; the owner's look on a phone, then a tag
+- **Status:** active — shipped in `v0.37.0` (release 41310213479) with migration `0059` on cloud; the owner's look on a phone still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); continues [plan 0054](./0054-eaten-vs-planned.md)'s leftover question
 - **Created:** 2026-11-01

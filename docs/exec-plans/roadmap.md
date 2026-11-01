@@ -26,8 +26,8 @@ The detail is in the plan; the landing dates are in the
    on an Android phone, and Ask's `had_instead` its paid eval
    (`run_ask_live.ts`).
 6. Step 11 (anti-waste): [plan 0059](./active/0059-use-it-up.md), *Use it
-   up* — on main with migration `0059` on cloud and the simulator run green;
-   the owner's look on a phone, then a tag.
+   up* — shipped in `v0.37.0`; the owner's look on a phone, then the plan
+   moves to `completed/`.
 7. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
@@ -39,11 +39,7 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-| What | Plan |
-|------|------|
-| Use it up — the picker leads with last week's cooked leftovers still good for the day (a meal from one is not cooked, bought or costed again) and the recipes that would use the most of last week's spare fresh food; the Shop offers that spare as at home; Cook asks *Binned · We ate it* once a leftover is past its use-by. Migration `0059`, on cloud | [0059](./active/0059-use-it-up.md) |
-| Already got it — a *check what's at home* pass from the Shop's foot (a house where the tick was; the row says all of it, its amount asks how much, the pane at expanded), an amount stored as said and taken off the need honestly, a part-have on the row's sub-line and an *At home* section under the basket; Ask's `shopping` tool names it. Migration `0058`, on cloud | [0055](./active/0055-already-got-it.md) |
-| Eaten vs planned, from the owner's look at `v0.32.0` — the tick (and your swap) replaces the avatar's initial, where it can no longer be covered; Cook's Kept · Binned · Eaten are the app's pills; Account's row reads *Send my meals*; *Had instead* always offers the typed words, so an ad-hoc lunch can be said; and a Health Connect pass that does not get through says so under the switch with *Try again*, is retried on returning to the app, sends a refused batch one meal at a time, and waits for the recipes' figures. No migrations, no deploy | [0054](./active/0054-eaten-vs-planned.md) |
+Nothing: every change on main is in a tag.
 
 ## Shipped
 
@@ -127,6 +123,7 @@ rows below, in that order.)
 | — | Eaten vs planned — tick the meals you ate (a tick on your avatar, *I ate this* in the meal sheet with its time, an EATEN line on the band); say what you had instead (the planning picker, shown on your own phone only), in the sheet or to Ask (*I ate out last night*); once a batch's days are over, Cook asks what became of its leftovers (Kept · Binned · Eaten); and on Android, one switch in Account sends what you ate to Health Connect (write-only, not yet tried on a phone). Undo after `−` restores the same meal. Migrations `0055`–`0057`, on cloud | `v0.32.0` | [0054](./active/0054-eaten-vs-planned.md) |
 | — | Already got it — a pass at home says what is already in the cupboard, all of a row or an amount; a part-have shortens the row, a whole-have moves to *At home*. Migration `0058` | `v0.34.0` | [0055](./active/0055-already-got-it.md) |
 | — | The Shop refresh — a row leads with what you buy and opens its breakdown from the amount; the basket, *At home* and the plan's notes fold; a `To buy · At home?` toggle and one search field at the top; scanning on the receipts ledger; a row priced at the cheapest seen in 90 days, by store. Also an offline token refresh kept off the crash toast | `v0.35.0` | [0056](./active/0056-shop-refresh.md) |
+| — | Use it up — the picker leads with last week's cooked leftovers still good for the day (a meal from one is not cooked, bought or costed again) and the recipes that would use the most of last week's spare fresh food, scored by what the amounts they use cost; the Shop offers that spare as at home, in the row's own words; Cook asks *Binned · We ate it* once a leftover is past its use-by. Migration `0059` | `v0.37.0` | [0059](./active/0059-use-it-up.md) |
 
 ## Stretch
 
