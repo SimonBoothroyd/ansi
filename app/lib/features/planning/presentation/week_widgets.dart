@@ -433,13 +433,22 @@ class RemoveTarget extends ConsumerWidget {
   }
 }
 
-/// The lens: `Everyone · Ada · Jun` — whose numbers the week is read as.
-/// Selecting a person dims the meals they are not eating rather than removing
-/// them.
+/// The lens: `Everyone · Ada · Jun` — whose numbers the week is read as. It
+/// opens on the person signed in (see `WeekView`). Selecting a person dims the
+/// meals they are not eating rather than removing them.
 class WeekLensRow extends StatelessWidget {
-  const WeekLensRow({required this.lens, required this.roster, super.key});
+  const WeekLensRow({
+    required this.lens,
+    required this.onLens,
+    required this.roster,
+    super.key,
+  });
 
-  final ValueNotifier<String?> lens;
+  /// null = Everyone; a member id = that person's lens.
+  final String? lens;
+
+  /// Picks the lens: null = Everyone.
+  final ValueChanged<String?> onLens;
   final List<Member> roster;
 
   @override
@@ -452,17 +461,17 @@ class WeekLensRow extends StatelessWidget {
           const SizedBox(width: 8),
           AnsiChip(
             label: 'Everyone',
-            selected: lens.value == null,
-            onTap: () => lens.value = null,
+            selected: lens == null,
+            onTap: () => onLens(null),
           ),
           for (final (i, m) in roster.indexed)
             Padding(
               padding: const EdgeInsets.only(left: 8),
               child: AnsiChip(
                 label: m.displayName,
-                selected: lens.value == m.id,
+                selected: lens == m.id,
                 icon: EaterAvatar(member: m, color: memberColor(i)),
-                onTap: () => lens.value = m.id,
+                onTap: () => onLens(m.id),
               ),
             ),
         ],

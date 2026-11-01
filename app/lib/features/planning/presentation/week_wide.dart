@@ -127,6 +127,7 @@ class WeekWide extends StatelessWidget {
     required this.plan,
     required this.roster,
     required this.lens,
+    required this.onLens,
     required this.scope,
     required this.cookPlan,
     required this.todayDayOfWeek,
@@ -142,7 +143,10 @@ class WeekWide extends StatelessWidget {
   final List<Member> roster;
 
   /// null = Everyone; a member id = that person's lens.
-  final ValueNotifier<String?> lens;
+  final String? lens;
+
+  /// Picks the lens: null = Everyone.
+  final ValueChanged<String?> onLens;
 
   /// Whose numbers these are — `Everyone` or a member's display name.
   final String scope;
@@ -170,7 +174,7 @@ class WeekWide extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        WeekLensRow(lens: lens, roster: roster),
+        WeekLensRow(lens: lens, onLens: onLens, roster: roster),
         CopyLastWeekNotice(weekStart: weekStart),
         if (copy != null)
           Padding(
@@ -191,7 +195,7 @@ class WeekWide extends StatelessWidget {
                     weekStart: weekStart,
                     plan: plan,
                     roster: roster,
-                    lens: lens.value,
+                    lens: lens,
                     scope: scope,
                     todayDayOfWeek: todayDayOfWeek,
                     selectedDay: day,
@@ -205,7 +209,7 @@ class WeekWide extends StatelessWidget {
                   dayOfWeek: day,
                   entries: plan?.entriesForDay(day) ?? const [],
                   roster: roster,
-                  lens: lens.value,
+                  lens: lens,
                   scope: scope,
                   cookPlan: cookPlan,
                   todayDayOfWeek: todayDayOfWeek,

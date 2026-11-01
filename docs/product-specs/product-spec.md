@@ -1514,7 +1514,11 @@ say what each tap means without one.
   navigates* and so competed with the row itself.
 - **The lens** (`Everyone · Ada · Jun`) sits with the numbers and **dims** the
   meals a person is not eating rather than removing them: a day somebody else
-  cooks for themselves is not an empty day.
+  cooks for themselves is not an empty day. It **opens on the person signed in
+  on this phone**, because macros are read one body at a time — a household
+  total of calories is a number nobody eats. `Everyone` is still a tap away
+  (it is the household's cost to cook), and is where the lens rests only while
+  the phone does not yet know who it is.
 
 **On a wide screen (≥ 1024) the same week is one day beside the week that
 scrolls.** A fixed 560 px **day pane** on the left draws ONE day at reading size

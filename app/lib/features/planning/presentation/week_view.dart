@@ -15,6 +15,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/sync/session.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/week_shape.dart';
@@ -122,9 +123,18 @@ class WeekView extends HookConsumerWidget {
 
     final lastWeek = ref.watch(lastWeekProvider).asData?.value;
 
-    // null = Everyone; a member id = that person's lens. The lens stays out of
-    // the URL so a shared link is never silently scoped to one eater.
-    final lens = useState<String?>(null);
+    // null = Everyone; a member id = that person's lens. Macros are read per
+    // person, so the lens opens on whoever is signed in on this phone, and
+    // falls back to Everyone only while that is unknown. A tap pins the choice
+    // (`(id: null)` is a tapped Everyone). The lens stays out of the URL so a
+    // shared link is never silently scoped to one eater.
+    final me = ref.watch(currentMemberIdProvider);
+    final picked = useState<({String? id})?>(null);
+    final lens = switch (picked.value) {
+      (:final id) => id,
+      null => roster.any((m) => m.id == me) ? me : null,
+    };
+    void onLens(String? id) => picked.value = (id: id);
     // The wide day pane's day from `?day=`; null means the default (see
     // [WeekWide]).
     final chosen = dayKey == null ? null : DateTime.tryParse(dayKey!);
@@ -134,7 +144,7 @@ class WeekView extends HookConsumerWidget {
     final day = selectedDay ?? todayDayOfWeek ?? 0;
     final scope =
         roster
-            .where((m) => m.id == lens.value)
+            .where((m) => m.id == lens)
             .map((m) => m.displayName)
             .firstOrNull ??
         'Everyone';
@@ -178,6 +188,7 @@ class WeekView extends HookConsumerWidget {
                 plan: plan,
                 roster: roster,
                 lens: lens,
+                onLens: onLens,
                 scope: scope,
                 cookPlan: cookPlan,
                 todayDayOfWeek: todayDayOfWeek,
@@ -216,23 +227,23 @@ class WeekView extends HookConsumerWidget {
                     ),
                   ),
                 CopyLastWeekNotice(weekStart: weekStart),
-                WeekLensRow(lens: lens, roster: roster),
+                WeekLensRow(lens: lens, onLens: onLens, roster: roster),
                 for (var d = 0; d < 7; d++)
                   _DayCard(
                     weekStart: weekStart,
                     dayOfWeek: d,
                     entries: plan?.entriesForDay(d) ?? const [],
                     roster: roster,
-                    lens: lens.value,
+                    lens: lens,
                     scope: scope,
                     cookPlan: cookPlan,
                     todayDayOfWeek: todayDayOfWeek,
                   ),
                 WeekMacroBand(
-                  macros: ref.watch(weekMacrosProvider(lens.value)),
-                  eaten: ref.watch(weekEatenMacrosProvider(lens.value)),
+                  macros: ref.watch(weekMacrosProvider(lens)),
+                  eaten: ref.watch(weekEatenMacrosProvider(lens)),
                   leftovers: ref.watch(weekLeftoverLineProvider),
-                  cost: ref.watch(weekCostProvider(lens.value)),
+                  cost: ref.watch(weekCostProvider(lens)),
                   // Never reconciled with the planned cost (ADR-0017).
                   spent: ref.watch(receiptsForWeekProvider(weekStart)),
                   shape: shape,

@@ -1113,6 +1113,44 @@ void main() {
       expect(find.text('1 meal · Jun · ¾ of 1¾ portions'), findsWidgets);
       expect(macroTextContaining('875 kcal'), findsNothing);
     });
+
+    testWidgets('the lens opens on whoever is signed in, and Everyone is still '
+        'a tap away', (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _plannedWeek(eaters: const ['m1', 'm2']),
+          roster: _factoredRoster,
+        ),
+        recipes: _recipesRepo(complete),
+        extra: [currentMemberIdProvider.overrideWithValue('m1')],
+      );
+
+      // Ada's phone: her one serving, not the household's 1¾.
+      expect(macroTextContaining('500 kcal'), findsWidgets);
+      expect(find.textContaining('1 meal · Ada'), findsWidgets);
+      expect(macroTextContaining('875 kcal'), findsNothing);
+
+      await tester.tap(find.text('Everyone'));
+      await tester.pumpAndSettle();
+      expect(macroTextContaining('875 kcal'), findsWidgets);
+      expect(find.text('1 meal'), findsWidgets);
+    });
+
+    testWidgets('a signed-in member the roster does not hold yet reads as '
+        'Everyone', (tester) async {
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(
+          week: _plannedWeek(eaters: const ['m1', 'm2']),
+          roster: _factoredRoster,
+        ),
+        recipes: _recipesRepo(complete),
+        extra: [currentMemberIdProvider.overrideWithValue('m9')],
+      );
+      expect(macroTextContaining('875 kcal'), findsWidgets);
+      expect(find.text('1 meal'), findsWidgets);
+    });
   });
 
   // --- A row that is visibly not a recipe (step 8.14 / A-D5) ----------------
