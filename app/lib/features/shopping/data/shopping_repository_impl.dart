@@ -99,9 +99,20 @@ class SqliteShoppingRepository implements ShoppingRepository {
         .asyncMap((_) => _load(key));
   }
 
-  Future<ShoppingList> _load(String weekKey) async {
+  /// The list for the week beginning [weekStart], once, leaving out the
+  /// recipe meals in [leaveOut]. With the meals of a batch nobody ticked left
+  /// out, it is what the week's cooked meals used: *Use up*'s spare food.
+  Future<ShoppingList> loadShoppingList(
+    DateTime weekStart, {
+    Set<String> leaveOut = const {},
+  }) => _load(_weekKey(weekStart), leaveOut: leaveOut);
+
+  Future<ShoppingList> _load(
+    String weekKey, {
+    Set<String> leaveOut = const {},
+  }) async {
     final (cook, unresolved, optional, retiredLines) =
-        await _deriveCookContributions(weekKey);
+        await _deriveCookContributions(weekKey, leaveOut: leaveOut);
     // The week's own entries, not only its cook sessions.
     final (planned, retiredPlanned) = await _derivePlannedIngredients(weekKey);
     final (entries, manual, atHome) = await _loadOverlay(weekKey);
@@ -225,9 +236,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
       List<RetiredIngredientNote>,
     )
   >
-  _deriveCookContributions(String weekKey) async {
-    final rows = await _db.getAll(
-      'SELECT pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
+  _deriveCookContributions(
+    String weekKey, {
+    Set<String> leaveOut = const {},
+  }) async {
+    final all = await _db.getAll(
+      'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
       'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '
       'r.freezable, r.freezer_days '
       'FROM week_plan wp '
@@ -243,6 +257,12 @@ class SqliteShoppingRepository implements ShoppingRepository {
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );
+    final rows = leaveOut.isEmpty
+        ? all
+        : [
+            for (final r in all)
+              if (!leaveOut.contains(r['id'])) r,
+          ];
     if (rows.isEmpty) {
       return (
         const <CookContributionInput>[],

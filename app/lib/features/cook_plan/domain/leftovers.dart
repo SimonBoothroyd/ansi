@@ -1,4 +1,4 @@
-/// What a cooked batch has left, and until when (plan 0059). Pure Dart.
+/// What a cooked batch has left, and until when. Pure Dart.
 ///
 /// A batch — one meal [CookSession] — counts as **cooked** once anybody ticked
 /// any meal it covers; the household ticks reliably, so a batch nobody ticked

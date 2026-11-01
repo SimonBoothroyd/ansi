@@ -39,10 +39,13 @@ import '../../ingredients/presentation/macros_format.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/planning.dart';
+import '../domain/use_up.dart';
 import 'use_up_block.dart';
+import 'use_up_view_models.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
+import 'whats_left_sheet.dart';
 
 /// What the picker resolved to: a recipe, a bare ingredient, or a meal out.
 sealed class PickedMeal {
@@ -62,7 +65,7 @@ final class PickedIngredientMeal extends PickedMeal {
 }
 
 /// A cooked batch's leftover, eaten rather than cooked: offered first, in *Use
-/// up*, while it is good for the day (plan 0059).
+/// up*, while it is good for the day.
 final class PickedLeftover extends PickedMeal {
   const PickedLeftover(this.leftover, this.recipe);
 
@@ -171,7 +174,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
       }
     }
 
-    // What last week left that this day can still eat (plan 0059).
+    // What last week left that this day can still eat.
     final start = weekStart;
     final leftovers = start == null || instead
         ? const <BatchLeftover>[]
@@ -180,6 +183,12 @@ class _RecipePickerSheet extends HookConsumerWidget {
               DateTime(start.year, start.month, start.day + dayOfWeek),
             ),
           );
+
+    // And the recipes that would use the most of last week's spare food.
+    final useUp = start == null || instead
+        ? null
+        : ref.watch(useUpProvider(start)).asData?.value;
+    final offered = useUp?.offered ?? const <UseUpSuggestion>[];
 
     void pick(RecipeSummary r) => Navigator.of(context).pop(PickedRecipe(r));
 
@@ -274,10 +283,27 @@ class _RecipePickerSheet extends HookConsumerWidget {
             const SizedBox(height: 12),
             const DidYouMeanHeader(),
           ],
-          if (leftovers.isNotEmpty && query.value.isEmpty) ...[
+          if ((leftovers.isNotEmpty || offered.isNotEmpty) &&
+              query.value.isEmpty) ...[
             const SizedBox(height: 12),
             UseUpBlock(
               leftovers: leftovers,
+              suggestions: offered,
+              onPickRecipe: (s) {
+                final real = recipes.where((r) => r.id == s.recipeId);
+                pick(
+                  real.isNotEmpty
+                      ? real.first
+                      : RecipeSummary(
+                          id: s.recipeId,
+                          title: s.title,
+                          servingsBase: 1,
+                        ),
+                );
+              },
+              onWhatsLeft: useUp == null
+                  ? null
+                  : () => unawaited(showWhatsLeftSheet(context, useUp)),
               onPick: (left) {
                 final real = recipes.where((r) => r.id == left.recipeId);
                 Navigator.of(context).pop(

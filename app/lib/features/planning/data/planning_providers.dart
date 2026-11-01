@@ -5,9 +5,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/sync/database.dart';
 import '../../../core/sync/session.dart';
+import '../../account/data/household_providers.dart';
 import '../domain/planning_repository.dart';
+import '../domain/use_up_repository.dart';
 import '../domain/week_variant_repository.dart';
 import 'planning_repository_impl.dart';
+import 'use_up_repository_impl.dart';
 import 'week_variant_repository_impl.dart';
 
 part 'planning_providers.g.dart';
@@ -16,6 +19,13 @@ part 'planning_providers.g.dart';
 PlanningRepository planningRepository(Ref ref) => SqlitePlanningRepository(
   ref.watch(databaseProvider),
   householdId: ref.watch(currentHouseholdIdProvider),
+);
+
+@Riverpod(keepAlive: true)
+UseUpRepository useUpRepository(Ref ref) => SqliteUseUpRepository(
+  ref.watch(databaseProvider),
+  householdId: ref.watch(currentHouseholdIdProvider),
+  weekShape: ref.watch(weekShapeProvider),
 );
 
 @Riverpod(keepAlive: true)

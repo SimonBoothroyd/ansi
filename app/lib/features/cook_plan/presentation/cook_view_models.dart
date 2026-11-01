@@ -47,7 +47,7 @@ Stream<Map<String, LeftoverAnswer>> viewedWeekLeftovers(Ref ref) => ref
     .watchLeftovers(ref.watch(viewedWeekStartProvider));
 
 /// The cooked batches of the week beginning [weekStart] with portions still
-/// left today, live (plan 0059).
+/// left today, live.
 @riverpod
 Stream<List<BatchLeftover>> weekBatchLeftovers(Ref ref, DateTime weekStart) =>
     ref

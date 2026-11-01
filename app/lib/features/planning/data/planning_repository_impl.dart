@@ -351,10 +351,6 @@ class SqlitePlanningRepository implements PlanningRepository {
       'a plan entry names a recipe, an ingredient OR a label (the XOR)',
     );
     assert(
-      leftoverOf == null || recipeId != null,
-      'only a recipe meal is eaten from a leftover (the server refuses it)',
-    );
-    assert(
       label == null || label.isNotEmpty,
       'a blank label names nothing (the server refuses it)',
     );

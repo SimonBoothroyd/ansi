@@ -512,3 +512,26 @@ Future<Map<String, UnitPrice>> loadCostPrices(SqliteConnection db) async =>
         'ORDER BY i.id, r.purchased_at DESC, l.created_at DESC, l.id DESC',
       ),
     );
+
+/// What one receipt line bought: its row, the packs it rang up weighed in the
+/// row's basis unit (`pack × count`), and when, as the paper dates it.
+typedef BoughtPack = ({String ingredientId, double amount, DateTime when});
+
+/// Every priced item line on a live receipt as an amount bought, not a price:
+/// what *Use up* weighs a week's shop by. Read here because this file owns
+/// what a receipt line means.
+Future<List<BoughtPack>> loadBoughtPacks(SqliteConnection db) async => [
+  for (final l in await db.getAll(
+    'SELECT l.ingredient_id, l.pack_basis_amount, l.count, r.purchased_at '
+    'FROM receipt_line l JOIN receipt r ON r.id = l.receipt_id '
+    "WHERE l.deleted_at IS NULL AND r.deleted_at IS NULL AND l.kind = 'item' "
+    'AND l.ingredient_id IS NOT NULL AND l.pack_basis_amount IS NOT NULL',
+  ))
+    (
+      ingredientId: l['ingredient_id'] as String,
+      amount:
+          (l['pack_basis_amount'] as num).toDouble() *
+          ((l['count'] as int?) ?? 1),
+      when: receiptInstant(l['purchased_at']),
+    ),
+];

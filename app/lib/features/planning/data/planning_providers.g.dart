@@ -57,6 +57,48 @@ final class PlanningRepositoryProvider
 String _$planningRepositoryHash() =>
     r'132ed2490d08143a764890c252a0fb773f968d53';
 
+@ProviderFor(useUpRepository)
+const useUpRepositoryProvider = UseUpRepositoryProvider._();
+
+final class UseUpRepositoryProvider
+    extends
+        $FunctionalProvider<UseUpRepository, UseUpRepository, UseUpRepository>
+    with $Provider<UseUpRepository> {
+  const UseUpRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'useUpRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$useUpRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<UseUpRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  UseUpRepository create(Ref ref) {
+    return useUpRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(UseUpRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<UseUpRepository>(value),
+    );
+  }
+}
+
+String _$useUpRepositoryHash() => r'cc43b6392b112e553dc0ac269c7ef1ad1b68f94e';
+
 @ProviderFor(weekVariantRepository)
 const weekVariantRepositoryProvider = WeekVariantRepositoryProvider._();
 

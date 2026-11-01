@@ -487,7 +487,7 @@ class _SessionTile extends ConsumerWidget {
   }
 }
 
-/// What became of a cooked batch's leftover (plan 0059). Until its use-by it
+/// What became of a cooked batch's leftover. Until its use-by it
 /// is only said — `1 portion left · good until Mon` — because the picker
 /// offers it; once past, Cook asks once: **Binned** or **We ate it**. An
 /// answer reads as a line, and a tap takes it back. A batch nobody ticked was
@@ -505,7 +505,7 @@ class LeftoverQuestion extends ConsumerWidget {
     final answer = ref.watch(viewedWeekLeftoversProvider).asData?.value[key];
     final repo = ref.read(cookPlanRepositoryProvider);
 
-    // Binned or eaten is an answer; a `kept` said before plan 0059 is not,
+    // Binned or eaten is an answer; an older `kept` answer is not,
     // since keeping is what a leftover does until its date.
     if (answer != null && (answer.binned > 0 || answer.eaten > 0)) {
       final said = leftoverAnswerLine(answer);

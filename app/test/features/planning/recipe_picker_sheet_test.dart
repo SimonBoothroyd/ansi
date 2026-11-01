@@ -14,6 +14,8 @@ import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/domain/use_up.dart';
+import 'package:ansi/features/planning/domain/use_up_repository.dart';
 import 'package:ansi/features/planning/presentation/recipe_picker_sheet.dart';
 import 'package:ansi/features/planning/presentation/use_up_block.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
@@ -77,6 +79,19 @@ class _FakeBookRepo extends FakeBookRepository {
   const _FakeBookRepo() : super(const [Book(id: 'b1', name: 'Our Cookbook')]);
 }
 
+/// Last week's spare food, canned.
+class _FakeUseUp implements UseUpRepository {
+  const _FakeUseUp(this.facts);
+
+  final UseUpFacts facts;
+
+  @override
+  Future<UseUpFacts> lastWeekFor(
+    DateTime weekStart, {
+    required DateTime today,
+  }) async => facts;
+}
+
 /// The one door's second corpus (step 8.14 / C-D1): the household vocabulary,
 /// searched by the same call the editor's line picker makes.
 const _bar = Ingredient(
@@ -107,8 +122,10 @@ Widget _host({
   DateTime? weekStart,
   Map<DateTime, List<BatchLeftover>> leftovers = const {},
   DateTime? now,
+  UseUpFacts spare = (spare: const [], recipes: const []),
 }) => ProviderScope(
   overrides: [
+    useUpRepositoryProvider.overrideWithValue(_FakeUseUp(spare)),
     cookPlanRepositoryProvider.overrideWithValue(
       FakeCookPlanRepository()..batchLeftovers = leftovers,
     ),
@@ -505,6 +522,94 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       expect(find.text('Use up'), findsNothing);
+    });
+  });
+
+  group("Uses last week's shop", () {
+    // 300 g of spinach and 150 g of tofu left; the curry uses both, the salad
+    // only a little coriander-sized nothing.
+    final spare = spareOf([
+      (
+        ingredientId: 'spinach',
+        name: 'Spinach',
+        category: 'produce',
+        unit: g,
+        need: 200,
+        toBuy: 200,
+        bought: 500,
+        usedCooked: 200,
+        centsPerUnit: 0.7,
+      ),
+      (
+        ingredientId: 'tofu',
+        name: 'Firm Tofu',
+        category: 'proteins',
+        unit: g,
+        need: 250,
+        toBuy: 250,
+        bought: 400,
+        usedCooked: 250,
+        centsPerUnit: 1.6,
+      ),
+    ]);
+    final facts = (
+      spare: spare,
+      recipes: [
+        (
+          recipeId: 'r1',
+          title: 'Weeknight Chicken Curry',
+          servingsBase: 4.0,
+          perBatch: {'spinach': 600.0, 'tofu': 300.0},
+        ),
+        (
+          recipeId: 'r2',
+          title: 'Halloumi Salad',
+          servingsBase: 2.0,
+          perBatch: {'spinach': 10.0},
+        ),
+      ],
+    );
+
+    Widget host({void Function(PickedMeal?)? onPicked}) => _host(
+      onPicked: onPicked,
+      weekStart: DateTime.utc(2026, 11, 2),
+      now: DateTime(2026, 11, 1, 10),
+      spare: (spare: facts.spare, recipes: facts.recipes),
+    );
+
+    testWidgets('offers the recipes that use the most of it, naming what '
+        'each uses, and a pick is the recipe', (tester) async {
+      filterForuiSemanticsAssertions();
+      PickedMeal? picked;
+      await tester.pumpWidget(host(onPicked: (p) => picked = p));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Use up'), findsOneWidget);
+      // Two eaters at factor 1: half the curry's batch, all that is spare.
+      expect(find.text('firm tofu 150 g'), findsOneWidget);
+      expect(find.text('spinach 300 g'), findsOneWidget);
+      // The salad's 10 g scores far under half the curry's: not offered.
+      expect(find.text('spinach 10 g'), findsNothing);
+
+      await tester.tap(find.text('spinach 300 g'));
+      await tester.pumpAndSettle();
+      expect(picked, isA<PickedRecipe>());
+      expect((picked! as PickedRecipe).recipe.id, 'r1');
+    });
+
+    testWidgets("what's left shows the food and the cut", (tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(host());
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("what's left ›"));
+      await tester.pumpAndSettle();
+
+      expect(find.text("What's left"), findsOneWidget);
+      expect(find.text('500 g in · 200 g used'), findsOneWidget);
+      expect(find.text('NOT SUGGESTED'), findsOneWidget);
+      expect(find.text('spinach 10 g'), findsOneWidget);
     });
   });
 

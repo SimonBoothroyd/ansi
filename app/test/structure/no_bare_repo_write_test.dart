@@ -44,6 +44,7 @@ const _readVerbs = {
   'isShared',
   'lastIngredientAmount',
   'lastTopUp',
+  'lastWeekFor',
 };
 
 /// Deliberate exceptions, keyed `<path>:<method>`, each with its reason.

@@ -66,7 +66,7 @@ final class SnackMeal extends MealTarget {
   final Measure? measure;
 }
 
-/// A meal eaten from a cooked batch's leftover (plan 0059): a recipe meal that
+/// A meal eaten from a cooked batch's leftover: a recipe meal that
 /// is not cooked or bought, and may not take more than is left.
 final class LeftoverMeal extends MealTarget {
   const LeftoverMeal({required this.recipe, required this.leftover});
