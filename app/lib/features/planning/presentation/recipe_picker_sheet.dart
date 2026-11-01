@@ -29,6 +29,9 @@ import '../../account/data/household_providers.dart';
 import '../../books/domain/book.dart';
 import '../../books/domain/library_search.dart';
 import '../../books/presentation/book_view_models.dart';
+import '../../cook_plan/domain/leftovers.dart';
+import '../../cook_plan/presentation/cook_view_models.dart'
+    show leftoversGoodOnProvider;
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart'
     show IngredientRow, useIngredientSearch;
@@ -36,6 +39,7 @@ import '../../ingredients/presentation/macros_format.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/planning.dart';
+import 'use_up_block.dart';
 import 'week_format.dart';
 import 'week_view_models.dart';
 import 'week_widgets.dart';
@@ -57,6 +61,17 @@ final class PickedIngredientMeal extends PickedMeal {
   final Ingredient ingredient;
 }
 
+/// A cooked batch's leftover, eaten rather than cooked: offered first, in *Use
+/// up*, while it is good for the day (plan 0059).
+final class PickedLeftover extends PickedMeal {
+  const PickedLeftover(this.leftover, this.recipe);
+
+  final BatchLeftover leftover;
+
+  /// The recipe it is a batch of, for the confirm sheet's card.
+  final RecipeSummary recipe;
+}
+
 /// A meal eaten out. Offered only when the typed words match no recipe and no
 /// ingredient — or, for what was had instead, whenever something is typed.
 final class PickedMealOut extends PickedMeal {
@@ -73,16 +88,24 @@ final class PickedMealOut extends PickedMeal {
 /// [instead] is for what someone had instead of a planned meal: whatever is
 /// typed can always be noted as it is, since a lunch out rarely matches
 /// nothing in the whole vocabulary, and there is no new recipe to build.
+///
+/// With [weekStart] — planning, not *Had instead* — the leftovers still good
+/// on that day lead the list, in *Use up*.
 Future<PickedMeal?> showRecipePickerSheet(
   BuildContext context, {
   required int dayOfWeek,
   required String slot,
   bool instead = false,
+  DateTime? weekStart,
 }) {
   return showAnsiSheet<PickedMeal>(
     context: context,
-    builder: (_) =>
-        _RecipePickerSheet(dayOfWeek: dayOfWeek, slot: slot, instead: instead),
+    builder: (_) => _RecipePickerSheet(
+      dayOfWeek: dayOfWeek,
+      slot: slot,
+      instead: instead,
+      weekStart: weekStart,
+    ),
   );
 }
 
@@ -91,11 +114,13 @@ class _RecipePickerSheet extends HookConsumerWidget {
     required this.dayOfWeek,
     required this.slot,
     required this.instead,
+    required this.weekStart,
   });
 
   final int dayOfWeek;
   final String slot;
   final bool instead;
+  final DateTime? weekStart;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -145,6 +170,16 @@ class _RecipePickerSheet extends HookConsumerWidget {
         alreadyThisWeek[recipeId] = (title: e.recipeTitle!, day: e.dayOfWeek);
       }
     }
+
+    // What last week left that this day can still eat (plan 0059).
+    final start = weekStart;
+    final leftovers = start == null || instead
+        ? const <BatchLeftover>[]
+        : ref.watch(
+            leftoversGoodOnProvider(
+              DateTime(start.year, start.month, start.day + dayOfWeek),
+            ),
+          );
 
     void pick(RecipeSummary r) => Navigator.of(context).pop(PickedRecipe(r));
 
@@ -238,6 +273,27 @@ class _RecipePickerSheet extends HookConsumerWidget {
           if (guessing) ...[
             const SizedBox(height: 12),
             const DidYouMeanHeader(),
+          ],
+          if (leftovers.isNotEmpty && query.value.isEmpty) ...[
+            const SizedBox(height: 12),
+            UseUpBlock(
+              leftovers: leftovers,
+              onPick: (left) {
+                final real = recipes.where((r) => r.id == left.recipeId);
+                Navigator.of(context).pop(
+                  PickedLeftover(
+                    left,
+                    real.isNotEmpty
+                        ? real.first
+                        : RecipeSummary(
+                            id: left.recipeId,
+                            title: left.title,
+                            servingsBase: 1,
+                          ),
+                  ),
+                );
+              },
+            ),
           ],
           if (alreadyThisWeek.isNotEmpty && query.value.isEmpty) ...[
             const SizedBox(height: 12),

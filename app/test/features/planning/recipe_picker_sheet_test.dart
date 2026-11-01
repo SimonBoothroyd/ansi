@@ -7,12 +7,16 @@ import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
+import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/ingredient_repository.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/recipe_picker_sheet.dart';
+import 'package:ansi/features/planning/presentation/use_up_block.dart';
+import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
@@ -23,6 +27,7 @@ import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../helpers/fake_book_repository.dart';
+import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
@@ -92,13 +97,22 @@ class _FakeVocab extends ReadOnlyIngredientRepo {
       : (rows: const <Ingredient>[], guessed: false);
 }
 
-/// A host whose button opens the picker sheet for Wednesday dinner.
+/// A host whose button opens the picker sheet for Wednesday dinner. With
+/// [weekStart] it plans into that week, where [leftovers] (per week start) and
+/// a clock at [now] decide what *Use up* offers.
 Widget _host({
   List<RecipeSummary> recipes = const [_curry, _salad],
   void Function(PickedMeal?)? onPicked,
   bool instead = false,
+  DateTime? weekStart,
+  Map<DateTime, List<BatchLeftover>> leftovers = const {},
+  DateTime? now,
 }) => ProviderScope(
   overrides: [
+    cookPlanRepositoryProvider.overrideWithValue(
+      FakeCookPlanRepository()..batchLeftovers = leftovers,
+    ),
+    if (now != null) clockProvider.overrideWithValue(() => now),
     recipeRepositoryProvider.overrideWithValue(
       FakeRecipeRepository(summaries: recipes),
     ),
@@ -119,6 +133,7 @@ Widget _host({
                   dayOfWeek: 2,
                   slot: 'Dinner',
                   instead: instead,
+                  weekStart: weekStart,
                 );
                 onPicked?.call(picked);
               },
@@ -428,6 +443,86 @@ void main() {
 
       expect(picked, isA<PickedMealOut>());
       expect((picked! as PickedMealOut).label, 'prot');
+    });
+  });
+
+  group('Use up', () {
+    // Planning Wednesday 4 November on Sunday 1 November: last week cooked a
+    // curry good until that Wednesday, and a dal only good until Monday.
+    final lastWeek = DateTime.utc(2026, 10, 26);
+    final curry = BatchLeftover(
+      key: 'e-curry',
+      recipeId: 'r1',
+      title: 'Weeknight Chicken Curry',
+      cookDate: DateTime(2026, 10, 29),
+      useBy: DateTime(2026, 11, 4),
+      portions: 1.75,
+    );
+    final dal = BatchLeftover(
+      key: 'e-dal',
+      recipeId: 'r9',
+      title: 'Red Lentil Dal',
+      cookDate: DateTime(2026, 10, 27),
+      useBy: DateTime(2026, 11, 2),
+      portions: 1,
+    );
+
+    Widget host({void Function(PickedMeal?)? onPicked, bool instead = false}) =>
+        _host(
+          onPicked: onPicked,
+          instead: instead,
+          weekStart: DateTime.utc(2026, 11, 2),
+          leftovers: {
+            lastWeek: [curry, dal],
+          },
+          now: DateTime(2026, 11, 1, 10),
+        );
+
+    testWidgets('leads with the leftovers still good for the day, and picks '
+        'one as a leftover', (tester) async {
+      filterForuiSemanticsAssertions();
+      PickedMeal? picked;
+      await tester.pumpWidget(host(onPicked: (p) => picked = p));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Use up'), findsOneWidget);
+      expect(find.text('1¾ portions · good until Wed'), findsOneWidget);
+      // Gone by Wednesday: not offered.
+      expect(find.text('Red Lentil Dal'), findsNothing);
+
+      await tester.tap(find.text('1¾ portions · good until Wed'));
+      await tester.pumpAndSettle();
+      expect(picked, isA<PickedLeftover>());
+      final left = picked! as PickedLeftover;
+      expect(left.leftover.key, 'e-curry');
+      expect(left.recipe.id, 'r1');
+    });
+
+    testWidgets('is never offered for what was had instead', (tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(host(instead: true));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Use up'), findsNothing);
+    });
+  });
+
+  group('leftoverAfterLine', () {
+    test('says what the meal leaves, refusing more than is left', () {
+      expect(leftoverAfterLine(left: 1.75, demand: 0), isNull);
+      expect(leftoverAfterLine(left: 1.75, demand: 1.75), (
+        text: 'uses all of it',
+        tooMuch: false,
+      ));
+      expect(leftoverAfterLine(left: 1.75, demand: 1), (
+        text: '¾ still left after this',
+        tooMuch: false,
+      ));
+      expect(leftoverAfterLine(left: 1, demand: 1.75), (
+        text: 'only 1 portion left',
+        tooMuch: true,
+      ));
     });
   });
 }

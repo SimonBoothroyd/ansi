@@ -60,6 +60,7 @@ Future<void> _addMealFlow(
     context,
     dayOfWeek: dayOfWeek,
     slot: slot,
+    weekStart: weekStart,
   );
   if (picked == null) return;
 
@@ -67,6 +68,8 @@ Future<void> _addMealFlow(
   switch (picked) {
     case PickedRecipe(:final recipe):
       target = RecipeMeal(recipe);
+    case PickedLeftover(:final leftover, :final recipe):
+      target = LeftoverMeal(recipe: recipe, leftover: leftover);
     case PickedIngredientMeal(:final ingredient):
       final snack = await askSnackAmount(container, host, ingredient);
       // Backing out of the amount backs out of the whole add.

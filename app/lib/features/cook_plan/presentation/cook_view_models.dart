@@ -8,9 +8,11 @@ library;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/units/portions.dart';
+import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/cook_plan_providers.dart';
 import '../domain/cook_plan.dart';
+import '../domain/leftovers.dart';
 
 part 'cook_view_models.g.dart';
 
@@ -43,6 +45,35 @@ class WholeBatchDisplay extends _$WholeBatchDisplay {
 Stream<Map<String, LeftoverAnswer>> viewedWeekLeftovers(Ref ref) => ref
     .watch(cookPlanRepositoryProvider)
     .watchLeftovers(ref.watch(viewedWeekStartProvider));
+
+/// The cooked batches of the week beginning [weekStart] with portions still
+/// left today, live (plan 0059).
+@riverpod
+Stream<List<BatchLeftover>> weekBatchLeftovers(Ref ref, DateTime weekStart) =>
+    ref
+        .watch(cookPlanRepositoryProvider)
+        .watchBatchLeftovers(weekStart, today: ref.watch(todayProvider));
+
+/// The leftovers a meal on [day] can be planned from, soonest use-by first:
+/// cooked this week or last, still good on [day], and [day] not behind us.
+/// Empty while either week loads.
+@riverpod
+List<BatchLeftover> leftoversGoodOn(Ref ref, DateTime day) {
+  final today = ref.watch(todayProvider);
+  if (DateTime(day.year, day.month, day.day).isBefore(today)) return const [];
+  final shape = ref.watch(weekShapeProvider);
+  final week = shape.weekStartOf(day);
+  final before = shape.weekStartOf(
+    DateTime(week.year, week.month, week.day - 7),
+  );
+  return [
+    for (final w in [before, week])
+      for (final left
+          in ref.watch(weekBatchLeftoversProvider(w)).asData?.value ??
+              const <BatchLeftover>[])
+        if (left.isGoodOn(day) && !left.isDueOn(today)) left,
+  ]..sort((a, b) => a.useBy.compareTo(b.useBy));
+}
 
 /// How many of the viewed week's days are fully behind us: 0 for a week still
 /// to come, 7 for one gone. A batch is over once its last day is.

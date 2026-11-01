@@ -13,6 +13,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
@@ -22,6 +24,7 @@ import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../cook_plan/domain/leftovers.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_view_models.dart'
@@ -30,8 +33,9 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../../ingredients/presentation/usual_amount.dart';
 import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
-import '../domain/planning.dart' show defaultMealSlot;
+import '../domain/planning.dart' show Member, defaultMealSlot, eatersDemand;
 import 'meal_fields.dart';
+import 'use_up_block.dart';
 import 'week_view_models.dart';
 
 /// What this sheet is about to place on the week.
@@ -60,6 +64,15 @@ final class SnackMeal extends MealTarget {
   final double? quantity;
   final Unit? unit;
   final Measure? measure;
+}
+
+/// A meal eaten from a cooked batch's leftover (plan 0059): a recipe meal that
+/// is not cooked or bought, and may not take more than is left.
+final class LeftoverMeal extends MealTarget {
+  const LeftoverMeal({required this.recipe, required this.leftover});
+
+  final RecipeSummary recipe;
+  final BatchLeftover leftover;
 }
 
 /// A meal eaten out: the typed words. Its figures are asked for on this sheet,
@@ -175,6 +188,22 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             freezerDays: recipe.freezerDays,
           );
 
+    // A leftover says what this meal leaves of it, at the meal's own demand.
+    final leftover = target is LeftoverMeal
+        ? (target as LeftoverMeal).leftover
+        : null;
+    final after = leftover == null
+        ? null
+        : leftoverAfterLine(
+            left: leftover.portions,
+            demand:
+                portionsOverride.value?.toDouble() ??
+                eatersDemand(eaters.value, {
+                  for (final m in members.asData?.value ?? const <Member>[])
+                    m.id: m,
+                }),
+          );
+
     useEffect(() {
       members.whenData((list) {
         if (eaters.value.isEmpty) {
@@ -199,6 +228,15 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
             portions: portionsOverride.value,
+          ),
+          LeftoverMeal(:final recipe, :final leftover) => repo.addEntry(
+            weekStart: weekStart,
+            dayOfWeek: dayOfWeek,
+            mealSlot: slotState.value,
+            recipeId: recipe.id,
+            eaterIds: eaters.value.toList(),
+            portions: portionsOverride.value,
+            leftoverOf: leftover.key,
           ),
           SnackMeal(:final ingredient, :final quantity, :final unit) =>
             repo.addIngredientEntry(
@@ -241,6 +279,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         const SizedBox(height: 14),
         switch (target) {
           RecipeMeal(:final recipe) => MealRecipeCard(recipe: recipe),
+          LeftoverMeal(:final leftover) => LeftoverMealCard(leftover: leftover),
           final SnackMeal snack => MealSnackCard(snack: snack),
           OutMeal(:final label) => MealOutCard(label: label),
         },
@@ -281,6 +320,17 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           roster: members.asData?.value ?? const [],
           onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
         ),
+        if (after != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              after.text,
+              style: ansiMono(
+                size: 11,
+                color: after.tooMuch ? AnsiColors.gone : AnsiColors.herbDeep,
+              ),
+            ),
+          ),
         // Only a meal out is asked its figures; left empty it is placed
         // uncounted.
         if (target is OutMeal) ...[
@@ -292,7 +342,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         ],
         const SizedBox(height: 20),
         FButton(
-          onPress: add,
+          // A meal cannot eat more of a leftover than is left.
+          onPress: (after?.tooMuch ?? false) ? null : add,
           child: Text('Add to ${shape.labelFull(dayOfWeek)}'),
         ),
       ],

@@ -204,6 +204,200 @@ final class ViewedWeekLeftoversProvider
 String _$viewedWeekLeftoversHash() =>
     r'ed50e568a58e30f2704c0c3ca1e75a617cc50a39';
 
+/// The cooked batches of the week beginning [weekStart] with portions still
+/// left today, live (plan 0059).
+
+@ProviderFor(weekBatchLeftovers)
+const weekBatchLeftoversProvider = WeekBatchLeftoversFamily._();
+
+/// The cooked batches of the week beginning [weekStart] with portions still
+/// left today, live (plan 0059).
+
+final class WeekBatchLeftoversProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<BatchLeftover>>,
+          List<BatchLeftover>,
+          Stream<List<BatchLeftover>>
+        >
+    with
+        $FutureModifier<List<BatchLeftover>>,
+        $StreamProvider<List<BatchLeftover>> {
+  /// The cooked batches of the week beginning [weekStart] with portions still
+  /// left today, live (plan 0059).
+  const WeekBatchLeftoversProvider._({
+    required WeekBatchLeftoversFamily super.from,
+    required DateTime super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekBatchLeftoversProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekBatchLeftoversHash();
+
+  @override
+  String toString() {
+    return r'weekBatchLeftoversProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<BatchLeftover>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<BatchLeftover>> create(Ref ref) {
+    final argument = this.argument as DateTime;
+    return weekBatchLeftovers(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekBatchLeftoversProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekBatchLeftoversHash() =>
+    r'cf549ae50dadd16331e4c3267a81246216521715';
+
+/// The cooked batches of the week beginning [weekStart] with portions still
+/// left today, live (plan 0059).
+
+final class WeekBatchLeftoversFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<BatchLeftover>>, DateTime> {
+  const WeekBatchLeftoversFamily._()
+    : super(
+        retry: null,
+        name: r'weekBatchLeftoversProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The cooked batches of the week beginning [weekStart] with portions still
+  /// left today, live (plan 0059).
+
+  WeekBatchLeftoversProvider call(DateTime weekStart) =>
+      WeekBatchLeftoversProvider._(argument: weekStart, from: this);
+
+  @override
+  String toString() => r'weekBatchLeftoversProvider';
+}
+
+/// The leftovers a meal on [day] can be planned from, soonest use-by first:
+/// cooked this week or last, still good on [day], and [day] not behind us.
+/// Empty while either week loads.
+
+@ProviderFor(leftoversGoodOn)
+const leftoversGoodOnProvider = LeftoversGoodOnFamily._();
+
+/// The leftovers a meal on [day] can be planned from, soonest use-by first:
+/// cooked this week or last, still good on [day], and [day] not behind us.
+/// Empty while either week loads.
+
+final class LeftoversGoodOnProvider
+    extends
+        $FunctionalProvider<
+          List<BatchLeftover>,
+          List<BatchLeftover>,
+          List<BatchLeftover>
+        >
+    with $Provider<List<BatchLeftover>> {
+  /// The leftovers a meal on [day] can be planned from, soonest use-by first:
+  /// cooked this week or last, still good on [day], and [day] not behind us.
+  /// Empty while either week loads.
+  const LeftoversGoodOnProvider._({
+    required LeftoversGoodOnFamily super.from,
+    required DateTime super.argument,
+  }) : super(
+         retry: null,
+         name: r'leftoversGoodOnProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$leftoversGoodOnHash();
+
+  @override
+  String toString() {
+    return r'leftoversGoodOnProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<List<BatchLeftover>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  List<BatchLeftover> create(Ref ref) {
+    final argument = this.argument as DateTime;
+    return leftoversGoodOn(ref, argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<BatchLeftover> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<BatchLeftover>>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LeftoversGoodOnProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$leftoversGoodOnHash() => r'e1721828159cd4deff12d9f77c714f3602989773';
+
+/// The leftovers a meal on [day] can be planned from, soonest use-by first:
+/// cooked this week or last, still good on [day], and [day] not behind us.
+/// Empty while either week loads.
+
+final class LeftoversGoodOnFamily extends $Family
+    with $FunctionalFamilyOverride<List<BatchLeftover>, DateTime> {
+  const LeftoversGoodOnFamily._()
+    : super(
+        retry: null,
+        name: r'leftoversGoodOnProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The leftovers a meal on [day] can be planned from, soonest use-by first:
+  /// cooked this week or last, still good on [day], and [day] not behind us.
+  /// Empty while either week loads.
+
+  LeftoversGoodOnProvider call(DateTime day) =>
+      LeftoversGoodOnProvider._(argument: day, from: this);
+
+  @override
+  String toString() => r'leftoversGoodOnProvider';
+}
+
 /// How many of the viewed week's days are fully behind us: 0 for a week still
 /// to come, 7 for one gone. A batch is over once its last day is.
 

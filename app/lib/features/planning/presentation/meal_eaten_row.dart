@@ -205,6 +205,9 @@ class MealEatenRow extends ConsumerWidget {
     switch (picked) {
       case PickedRecipe(:final recipe):
         meal = InsteadRecipe(recipe.id);
+      // *Had instead* is never offered a leftover; were it, it is the dish.
+      case PickedLeftover(:final recipe):
+        meal = InsteadRecipe(recipe.id);
       case PickedIngredientMeal(:final ingredient):
         final snack = await askSnackAmount(container, host, ingredient);
         if (snack == null) return;
