@@ -3,6 +3,7 @@
 library;
 
 import 'cook_plan.dart';
+import 'leftovers.dart';
 
 abstract interface class CookPlanRepository {
   /// The derived cook plan for the week beginning [weekStart] (the week's own
@@ -18,4 +19,13 @@ abstract interface class CookPlanRepository {
   /// [entryId], or — with null — takes the answer back. Either member may
   /// answer.
   Future<void> setLeftover(String entryId, LeftoverAnswer? answer);
+
+  /// The cooked batches of the week beginning [weekStart] that still have
+  /// portions left on [today] ([batchLeftovers]): less what Cook's answers
+  /// accounted for and less the meals planned from each since, in any week.
+  /// Live.
+  Stream<List<BatchLeftover>> watchBatchLeftovers(
+    DateTime weekStart, {
+    required DateTime today,
+  });
 }

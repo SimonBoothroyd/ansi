@@ -260,6 +260,26 @@ void main() {
     });
   });
 
+  test(
+    'cookedDaysOf is the days a dish is cooked for, never a leftover meal',
+    () {
+      const entries = [
+        PlanEntry(id: 'a', dayOfWeek: 3, mealSlot: 'Dinner', recipeId: 'r'),
+        PlanEntry(id: 'b', dayOfWeek: 1, mealSlot: 'Dinner', recipeId: 'r'),
+        PlanEntry(id: 'c', dayOfWeek: 1, mealSlot: 'Lunch', recipeId: 'r'),
+        PlanEntry(
+          id: 'd',
+          dayOfWeek: 5,
+          mealSlot: 'Lunch',
+          recipeId: 'r',
+          leftoverOf: 'b',
+        ),
+        PlanEntry(id: 'e', dayOfWeek: 2, mealSlot: 'Dinner', recipeId: 'other'),
+      ];
+      expect(cookedDaysOf(entries, 'r'), [1, 3]);
+    },
+  );
+
   group('defaultEatenAt', () {
     final thursday = DateTime(2026, 8, 27);
 

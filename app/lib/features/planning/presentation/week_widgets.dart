@@ -654,6 +654,22 @@ class OutMealLine extends StatelessWidget {
   );
 }
 
+/// A meal eaten from a cooked batch's leftover says so where a cook marker
+/// would: it is not cooked again, so it has no batch of its own.
+class LeftoverMealLine extends StatelessWidget {
+  const LeftoverMealLine({this.size = 10.5, super.key});
+
+  /// The line's size — the phone row's 10.5, the wide day pane's 11.
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    kLeftoverMealLine,
+    overflow: TextOverflow.ellipsis,
+    style: ansiMono(size: size, color: AnsiColors.herbDeep),
+  );
+}
+
 /// The fresh→gone gradient at 26px, with a notch where this day sits in the
 /// batch's fridge window.
 class MiniFreshBar extends StatelessWidget {

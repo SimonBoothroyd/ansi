@@ -540,7 +540,7 @@ final class WeekRecipePlacementProvider
 }
 
 String _$weekRecipePlacementHash() =>
-    r'7c7b56e13dd1ee1e4eb8ff1483d5f0d1b3a1c0fa';
+    r'0a7f05d62d3428d48e0753963c4149b4ce3452aa';
 
 final class WeekRecipePlacementFamily extends $Family
     with $FunctionalFamilyOverride<WeekRecipePlacement, (String, String)> {

@@ -77,7 +77,8 @@ class SqlitePlanningRepository implements PlanningRepository {
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
       // `pe.macros` is aliased: it is per portion as stated, while the vocab
       // row's `macros` below is per 100 of a basis.
-      'pe.label, pe.macros AS stated_macros, pe.instead_of, pe.created_at, '
+      'pe.label, pe.macros AS stated_macros, pe.instead_of, pe.leftover_of, '
+      'pe.created_at, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -184,6 +185,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     eaterIds: (jsonDecode(e['eaters'] as String? ?? '[]') as List)
         .cast<String>(),
     portions: e['portions'] as int?,
+    leftoverOf: e['leftover_of'] as String?,
     createdAt: DateTime.tryParse(e['created_at'] as String? ?? '')?.toLocal(),
   );
 
@@ -274,6 +276,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
+    String? leftoverOf,
   }) => _insertEntry(
     weekStart: weekStart,
     dayOfWeek: dayOfWeek,
@@ -281,6 +284,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     recipeId: recipeId,
     eaterIds: eaterIds,
     portions: portions,
+    leftoverOf: leftoverOf,
   );
 
   @override
@@ -340,10 +344,15 @@ class SqlitePlanningRepository implements PlanningRepository {
     String? unit,
     String? measureId,
     int? portions,
+    String? leftoverOf,
   }) async {
     assert(
       [recipeId, ingredientId, label].where((t) => t != null).length == 1,
       'a plan entry names a recipe, an ingredient OR a label (the XOR)',
+    );
+    assert(
+      leftoverOf == null || recipeId != null,
+      'only a recipe meal is eaten from a leftover (the server refuses it)',
     );
     assert(
       label == null || label.isNotEmpty,
@@ -368,6 +377,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         unit: unit,
         measureId: measureId,
         portions: portions,
+        leftoverOf: leftoverOf,
       ),
     );
     return id;
@@ -390,6 +400,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     String? unit,
     String? measureId,
     int? portions,
+    String? leftoverOf,
   }) async {
     final now = _now();
     final weekId = await _getOrCreateWeek(tx, weekKey);
@@ -402,8 +413,9 @@ class SqlitePlanningRepository implements PlanningRepository {
     await tx.execute(
       'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
       'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
-      'measure_id, eaters, portions, sort_order, created_at, updated_at) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'measure_id, eaters, portions, leftover_of, sort_order, created_at, '
+      'updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         _householdId,
@@ -419,6 +431,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         measureId,
         eaters,
         portions,
+        leftoverOf,
         order,
         now,
         now,

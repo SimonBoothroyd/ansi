@@ -75,6 +75,7 @@ class FakePlanningRepository implements PlanningRepository {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
+    String? leftoverOf,
   }) async => 'e';
 
   @override

@@ -133,6 +133,13 @@ PlannedCost sumPlannedCost(
       continue;
     }
 
+    // A meal from a leftover was bought and costed in the week it was cooked:
+    // like a meal out, neither a cost nor a gap here.
+    if (entry.leftoverOf != null) {
+      considered--;
+      continue;
+    }
+
     // Every kind is handled explicitly. A meal eaten out is neither a cost nor
     // a gap: it is skipped unnamed and uncounted.
     final double? perServing;

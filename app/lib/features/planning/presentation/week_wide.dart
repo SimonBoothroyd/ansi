@@ -400,9 +400,10 @@ class _PaneMeal extends ConsumerWidget {
     final snack = kind == PlanEntryKind.ingredient;
     final out = kind == PlanEntryKind.out;
     final plan = cookPlan;
-    // Only a recipe has a cook marker; a snack shows its amount and a meal out
-    // its tag and figures instead.
-    final marker = plan == null || kind != PlanEntryKind.recipe
+    // Only a cooked recipe has a cook marker; a snack shows its amount, a meal
+    // out its tag and figures, and a meal from a leftover says so instead.
+    final leftover = entry.leftoverOf != null;
+    final marker = plan == null || kind != PlanEntryKind.recipe || leftover
         ? null
         : cookMarkerFor(
             plan,
@@ -514,6 +515,11 @@ class _PaneMeal extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: OutMealLine(entry: entry, size: 11),
+              ),
+            if (leftover)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: LeftoverMealLine(size: 11),
               ),
             HadInsteadLine(entry: entry, size: 11),
             // Read through the day total's own function so the parts match the

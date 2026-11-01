@@ -168,6 +168,11 @@ abstract class PlanEntry with _$PlanEntry {
     /// member ate.
     @Default(<String, PlanEntry>{}) Map<String, PlanEntry> had,
 
+    /// Set on a meal planned from a cooked batch's leftover: that batch's key
+    /// (its first covered meal). It is eaten like any recipe meal, but never
+    /// cooked, bought or costed again — it was all three in its own week.
+    String? leftoverOf,
+
     /// When the row was written. A substitute without a time of its own in
     /// [eatenAt] was eaten when it was said ([hadAt]).
     DateTime? createdAt,
@@ -216,6 +221,13 @@ abstract class PlanEntry with _$PlanEntry {
   DateTime dateIn(DateTime weekStart) =>
       DateTime(weekStart.year, weekStart.month, weekStart.day + dayOfWeek);
 }
+
+/// The days [entries] cook [recipeId] on, ascending and distinct: its meals,
+/// less any eaten from a leftover, which belong to the batch they came from.
+List<int> cookedDaysOf(Iterable<PlanEntry> entries, String? recipeId) => <int>{
+  for (final e in entries)
+    if (e.recipeId == recipeId && e.leftoverOf == null) e.dayOfWeek,
+}.toList()..sort();
 
 /// When something said at [now] to be eaten, for a meal on [mealDay], was
 /// eaten: now, on the meal's day; otherwise the meal's day at now's clock

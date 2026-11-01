@@ -1568,6 +1568,39 @@ void main() {
     expect((await repo.watchShoppingList(_week).first).groups, isEmpty);
   });
 
+  test('a meal planned from a leftover is never bought for again', () async {
+    await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);
+    final mon = await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a', 'b'],
+    );
+    final next = _week.add(const Duration(days: 7));
+    await planning.addEntry(
+      weekStart: next,
+      dayOfWeek: 1,
+      mealSlot: 'Lunch',
+      recipeId: 'curry',
+      eaterIds: ['a'],
+      leftoverOf: mon,
+    );
+    expect((await repo.watchShoppingList(next).first).groups, isEmpty);
+    // Its own week still buys for the batch, unchanged.
+    expect(
+      (await repo.watchShoppingList(_week).first)
+          .groups
+          .single
+          .items
+          .single
+          .totals
+          .single
+          .amount,
+      3,
+    );
+  });
+
   // --- A planned ingredient is bought, though nothing cooks it (8.14 / A-D4) -
 
   group('a planned INGREDIENT meal', () {

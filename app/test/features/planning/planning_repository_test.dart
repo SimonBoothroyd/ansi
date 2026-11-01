@@ -171,6 +171,27 @@ void main() {
       expect(await repo.watchWeek(_thisWeek).first, isNull);
     });
 
+    test('a meal from a leftover keeps the batch it came from', () async {
+      await _insertRecipe(db, 'r1', 'Curry');
+      final batch = await repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 0,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: ['m1'],
+      );
+      await repo.addEntry(
+        weekStart: _thisWeek,
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        recipeId: 'r1',
+        eaterIds: ['m1'],
+        leftoverOf: batch,
+      );
+      final entries = (await repo.watchWeek(_thisWeek).first)!.entries;
+      expect([for (final e in entries) e.leftoverOf], [null, batch]);
+    });
+
     test('addEntry creates the week lazily and appears in watchWeek', () async {
       await _insertRecipe(db, 'r1', 'Curry');
       await repo.addEntry(

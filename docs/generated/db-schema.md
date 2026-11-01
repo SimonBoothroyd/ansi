@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (59 migrations, 26 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (60 migrations, 26 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -248,8 +248,9 @@ introduced in `0005_planning.sql` · RLS enabled · in the `powersync` publicati
 | `label` | `text` | yes | check (label is null or length(btrim(label)) > 0) *(added in `0045_plan_entry_out.sql`)* |
 | `macros` | `jsonb` | yes | *(added in `0045_plan_entry_out.sql`)* |
 | `instead_of` | `uuid` | yes | references plan_entry(id) on delete cascade *(added in `0056_plan_entry_instead_of.sql`)* |
+| `leftover_of` | `uuid` | yes | references plan_entry(id) on delete set null *(added in `0059_plan_entry_leftover_of.sql`)* |
 
-Table constraints: `constraint plan_entry_amount_is_for_ingredients check ( ingredient_id is not null or num_nonnulls(quantity, unit, measure_id) = 0 )`; `constraint plan_entry_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint plan_entry_measure_needs_amount check (measure_id is null or quantity is not null)`; `constraint plan_entry_target_xor check (num_nonnulls(recipe_id, ingredient_id, label) = 1)`; `constraint plan_entry_macros_is_for_label check (label is not null or macros is null)`; `constraint plan_entry_instead_of_not_self check (instead_of is null or instead_of <> id)`
+Table constraints: `constraint plan_entry_amount_is_for_ingredients check ( ingredient_id is not null or num_nonnulls(quantity, unit, measure_id) = 0 )`; `constraint plan_entry_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint plan_entry_measure_needs_amount check (measure_id is null or quantity is not null)`; `constraint plan_entry_target_xor check (num_nonnulls(recipe_id, ingredient_id, label) = 1)`; `constraint plan_entry_macros_is_for_label check (label is not null or macros is null)`; `constraint plan_entry_instead_of_not_self check (instead_of is null or instead_of <> id)`; `constraint plan_entry_leftover_of_not_self check (leftover_of is null or leftover_of <> id)`; `constraint plan_entry_leftover_of_is_a_recipe check (leftover_of is null or recipe_id is not null)`
 
 ## `shopping_list_entry`
 

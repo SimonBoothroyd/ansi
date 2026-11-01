@@ -8,6 +8,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:sqlite3/common.dart' show Row;
 import 'package:sqlite_async/sqlite_async.dart';
 import 'package:uuid/uuid.dart';
 
@@ -24,6 +25,7 @@ import '../../recipes/data/recipe_measure_repository_impl.dart'
 import '../../recipes/domain/component_math.dart';
 import '../domain/cook_plan.dart';
 import '../domain/cook_plan_repository.dart';
+import '../domain/leftovers.dart';
 
 class SqliteCookPlanRepository implements CookPlanRepository {
   const SqliteCookPlanRepository(this._db);
@@ -74,8 +76,9 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
       'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
       'AND pe.recipe_id IS NOT NULL '
-      // What a member had instead of a meal was never cooked.
-      'AND pe.instead_of IS NULL '
+      // What a member had instead of a meal was never cooked, and a meal from
+      // a leftover was cooked in its own batch.
+      'AND pe.instead_of IS NULL AND pe.leftover_of IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );
@@ -155,29 +158,89 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     );
   }
 
+  /// The answers given for one week's batches, keyed by the week's start: SQL
+  /// and its mapping, shared by the live answers and the live leftovers.
+  static const _answersSql =
+      // A column from every joined table, so each re-fires a watch.
+      'SELECT bl.plan_entry_id, bl.kept, bl.binned, bl.eaten, pe.id, wp.id '
+      'FROM batch_leftover bl '
+      'JOIN plan_entry pe ON pe.id = bl.plan_entry_id '
+      'JOIN week_plan wp ON wp.id = pe.week_plan_id '
+      'WHERE wp.week_start_date = ? AND bl.deleted_at IS NULL '
+      // Oldest first, so the newest answer for a batch is written last.
+      'ORDER BY bl.updated_at';
+
+  static Map<String, LeftoverAnswer> _answersFrom(Iterable<Row> rows) => {
+    for (final r in rows)
+      r['plan_entry_id'] as String: (
+        kept: (r['kept'] as num? ?? 0).toDouble(),
+        binned: (r['binned'] as num? ?? 0).toDouble(),
+        eaten: (r['eaten'] as num? ?? 0).toDouble(),
+      ),
+  };
+
   @override
   Stream<Map<String, LeftoverAnswer>> watchLeftovers(DateTime weekStart) => _db
-      .watch(
-        // A column from every joined table, so each re-fires the watch.
-        'SELECT bl.plan_entry_id, bl.kept, bl.binned, bl.eaten, pe.id, wp.id '
-        'FROM batch_leftover bl '
-        'JOIN plan_entry pe ON pe.id = bl.plan_entry_id '
-        'JOIN week_plan wp ON wp.id = pe.week_plan_id '
-        'WHERE wp.week_start_date = ? AND bl.deleted_at IS NULL '
-        // Oldest first, so the newest answer for a batch is written last.
-        'ORDER BY bl.updated_at',
-        parameters: [isoDateOf(weekStart)],
-      )
-      .map(
-        (rows) => {
-          for (final r in rows)
-            r['plan_entry_id'] as String: (
-              kept: (r['kept'] as num? ?? 0).toDouble(),
-              binned: (r['binned'] as num? ?? 0).toDouble(),
-              eaten: (r['eaten'] as num? ?? 0).toDouble(),
-            ),
-        },
+      .watch(_answersSql, parameters: [isoDateOf(weekStart)])
+      .map(_answersFrom);
+
+  @override
+  Stream<List<BatchLeftover>> watchBatchLeftovers(
+    DateTime weekStart, {
+    required DateTime today,
+  }) {
+    final key = isoDateOf(weekStart);
+    // What moves a leftover: the week's meals and recipes, who ate them, the
+    // answers, the meals planned from a batch (in any week — `lo`) and the
+    // portion factors their demand is read with.
+    return _db
+        .watch(
+          'SELECT wp.id, pe.id, me.id, bl.id, lo.id, r.keeps_for_days, hm.id '
+          'FROM week_plan wp '
+          'LEFT JOIN plan_entry pe '
+          'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
+          'LEFT JOIN meal_eaten me ON me.plan_entry_id = pe.id '
+          'LEFT JOIN batch_leftover bl ON bl.plan_entry_id = pe.id '
+          'LEFT JOIN plan_entry lo ON lo.leftover_of = pe.id '
+          'LEFT JOIN recipe r ON r.id = pe.recipe_id '
+          'LEFT JOIN household_member hm ON 1 = 1 '
+          'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL LIMIT 1',
+          parameters: [key],
+        )
+        .asyncMap(
+          (_) async => batchLeftovers(
+            await _load(key),
+            weekStart: weekStart,
+            today: today,
+            answers: _answersFrom(await _db.getAll(_answersSql, [key])),
+            plannedFrom: await _plannedFrom(),
+          ),
+        );
+  }
+
+  /// The demand of every live meal planned from a leftover, summed per batch
+  /// key: the same demand the cook plan reads, the override winning.
+  Future<Map<String, double>> _plannedFrom() async {
+    final rows = await _db.getAll(
+      'SELECT leftover_of, eaters, portions FROM plan_entry '
+      'WHERE leftover_of IS NOT NULL AND deleted_at IS NULL',
+    );
+    if (rows.isEmpty) return const {};
+    final members = {for (final m in await loadMembers(_db)) m.id: m};
+    final sums = <String, double>{};
+    for (final r in rows) {
+      final eaters = (jsonDecode(r['eaters'] as String? ?? '[]') as List)
+          .cast<String>();
+      final demand =
+          (r['portions'] as int?)?.toDouble() ?? eatersDemand(eaters, members);
+      sums.update(
+        r['leftover_of'] as String,
+        (v) => v + demand,
+        ifAbsent: () => demand,
       );
+    }
+    return sums;
+  }
 
   @override
   Future<void> setLeftover(String entryId, LeftoverAnswer? answer) async {

@@ -138,10 +138,7 @@ WeekRecipePlacement weekRecipePlacement(
   final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
   if (weekStart == null) return const (days: <int>[], edited: false);
   final plan = ref.watch(weekPlanForProvider(weekKey)).asData?.value;
-  final days = <int>{
-    for (final e in plan?.entries ?? const <PlanEntry>[])
-      if (e.recipeId == recipeId) e.dayOfWeek,
-  }.toList()..sort();
+  final days = cookedDaysOf(plan?.entries ?? const <PlanEntry>[], recipeId);
   final overrides =
       ref.watch(weekOverridesForProvider(weekKey)).asData?.value ?? const {};
   return (days: days, edited: (overrides[recipeId] ?? const []).isNotEmpty);

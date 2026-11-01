@@ -797,5 +797,67 @@ void main() {
         expect(await repo.watchLeftovers(_week).first, isEmpty);
       },
     );
+
+    test('a meal planned from a leftover is never cooked again', () async {
+      final mon = await curryFor(0);
+      await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        recipeId: 'curry',
+        eaterIds: const ['a'],
+        leftoverOf: mon,
+      );
+      final plan = await repo.watchCookPlan(_week).first;
+      final session = plan.recipes.single.sessions.single;
+      expect(session.covers.map((m) => m.entryId), [mon]);
+      expect(session.totalPortions, 1.75);
+    });
+
+    test('a cooked batch leaves what nobody ate, less the meals planned from '
+        'it and what Cook was told', () async {
+      final mon = await curryFor(0);
+      final wednesday = DateTime(2026, 8, 26);
+      // Nobody ticked: never cooked, so nothing is left.
+      expect(
+        await repo.watchBatchLeftovers(_week, today: wednesday).first,
+        isEmpty,
+      );
+
+      // Jun ate their ¾; Ada's 1 is left, good for the curry's fridge life.
+      await planning.setMealEaten(
+        mon,
+        memberId: 'b',
+        eatenAt: DateTime.utc(2026, 8, 24, 19),
+      );
+      final left = await repo
+          .watchBatchLeftovers(_week, today: wednesday)
+          .first;
+      expect(left.single.key, mon);
+      expect(left.single.portions, 1);
+      expect(left.single.title, 'Curry');
+
+      // Jun plans their usual ¾ from it, the week after.
+      await planning.addEntry(
+        weekStart: _week.add(const Duration(days: 7)),
+        dayOfWeek: 0,
+        mealSlot: 'Lunch',
+        recipeId: 'curry',
+        eaterIds: const ['b'],
+        leftoverOf: mon,
+      );
+      expect(
+        (await repo.watchBatchLeftovers(_week, today: wednesday).first)
+            .single
+            .portions,
+        closeTo(0.25, 1e-9),
+      );
+
+      await repo.setLeftover(mon, (kept: 0, binned: 0.25, eaten: 0));
+      expect(
+        await repo.watchBatchLeftovers(_week, today: wednesday).first,
+        isEmpty,
+      );
+    });
   });
 }

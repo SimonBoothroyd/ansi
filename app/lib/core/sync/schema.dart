@@ -131,6 +131,10 @@ const schema = Schema([
     // one eater. Null on every planned meal; a substitute is never cooked,
     // bought or costed.
     Column.text('instead_of'),
+    // → plan_entry.id: the cooked batch (its first covered meal) this recipe
+    // meal is eaten from. Null on a meal that is cooked; a leftover meal is
+    // never cooked, bought or costed again.
+    Column.text('leftover_of'),
     ..._audit,
   ]),
   // A member saying they ate a planned meal (0055). Written only for the
