@@ -933,9 +933,11 @@ stored ([ADR-0007](../decisions/0007-shopping-list-thin-overlay.md)):
   closes on *everything's at home*.
 - **Last week's spare food, offered as at home** ([plan 0059](../exec-plans/active/0059-use-it-up.md)):
   a row whose ingredient has spare fresh food from the week before (*Use
-  up*, below) carries `300 g left from last week?` with **Use it**, which
-  writes the at-home amount above — the spare, never more than the row
-  still buys, in the row's basis unit — and one **Use all** above the
+  up*, below) carries `300 g left from last week?` — or `½ onion, medium
+  left from last week?`, in whatever words the row says its own amount —
+  with **Use it**, which writes the at-home amount above: the spare, never
+  more than the row still buys, a count coming down to the quarter below
+  rather than up past what is spare. One **Use all** above the
   aisles (`2 things left from last week's shop`) says every offer at once.
   Nothing is taken without a tap: a guest or a forgotten tick would leave
   the household short.
@@ -1409,13 +1411,15 @@ source-tab slot, footer slot):
   else the shop's whole count or the pack its price states) less what was
   used, a batch whose days passed unticked counting as never cooked — all
   weighed in the row's basis unit, a row that will not weigh left out. A
-  recipe scores by what the amounts it would use cost at the row's unit
-  price (ADR-0017), for the household's usual meal and never past what is
-  spare — so a bulk jar adds what a spoonful costs and half an onion next
+  recipe — its own lines and its sub-recipes' shares of theirs, optional
+  lines left out as the shop leaves them — scores by what the amounts it
+  would use cost at the row's unit price (ADR-0017), for the household's
+  usual meal and never past what is spare — so a bulk jar adds what a spoonful costs and half an onion next
   to nothing; up to three are offered, each scoring at least half the best,
-  naming what each uses as chips (`spinach 300 g · tofu 150 g`). *what's
-  left ›* opens the one pane that shows the food, how it was worked out
-  (`500 g in · 200 g used`) and where the cut falls. *Had instead* is
+  naming what each uses as chips (`300 g baby spinach · ½ yellow onion` —
+  a count where the row states a piece weight). *what's left ›* opens the
+  one pane that shows the food, how it was worked out (`500 g in · 200 g
+  used`) and where the cut falls. *Had instead* is
   offered neither.
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
   "already this week" quick picks; rows carry filing, last-planned recency,

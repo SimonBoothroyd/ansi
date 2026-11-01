@@ -2444,6 +2444,16 @@ void main() {
       ]);
     });
 
+    testWidgets('at a desk too', (tester) async {
+      deskWidth(tester);
+      final repo = await pump(tester);
+      expect(find.text('300 g left from last week?'), findsOneWidget);
+      expect(find.text("2 things left from last week's shop"), findsOneWidget);
+      await tester.tap(find.text('Use it').first);
+      await tester.pumpAndSettle();
+      expect(repo.atHomeSet.map((a) => a.ingredientId), ['spinach']);
+    });
+
     testWidgets('Use all says every offer at once', (tester) async {
       final repo = await pump(tester);
       await tester.tap(find.text('Use all'));

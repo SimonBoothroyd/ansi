@@ -19,6 +19,7 @@ import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
 import 'cook_format.dart';
 import 'cook_view_models.dart';
+import 'leftover_question.dart';
 import 'whole_batch_switch.dart';
 
 /// The sheet's maximum width: the recipe column, seven days at 66 px and the
@@ -262,6 +263,8 @@ class _MealRow extends ConsumerWidget {
                   )
                   .show(whole: whole),
             ),
+            // What became of the batch's leftover, asked as on the phone.
+            LeftoverQuestion(session: session),
           ],
         ],
       ),

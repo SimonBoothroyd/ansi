@@ -729,6 +729,22 @@ void main() {
       ]);
     });
 
+    testWidgets('the desk schedule sheet asks the same question', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1440, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final repo = await pump(tester, leftovers: [left(useByInDays: -1)]);
+      expect(find.byType(CookSheet), findsOneWidget);
+      expect(find.text('1 portion past its date'), findsOneWidget);
+      await tester.tap(find.text('We ate it'));
+      await tester.pumpAndSettle();
+      expect(repo.leftoverWrites, [
+        ('mon', (kept: 0.0, binned: 0.0, eaten: 1.0)),
+      ]);
+    });
+
     testWidgets('a batch nobody ticked, or with nothing left, says nothing', (
       tester,
     ) async {

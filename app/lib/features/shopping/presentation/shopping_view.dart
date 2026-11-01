@@ -193,7 +193,7 @@ Widget _shoppingList(
               const _EverythingAtHomeLine()
             else if (data.allTicked)
               const _EverythingInBasketLine(),
-            if (selection == null) const _SpareBanner(),
+            const _SpareBanner(),
             for (final group in data.openGroups)
               _Group(group: group, selection: selection),
             // The folded lines close the walk, set off from the last aisle.
@@ -1082,6 +1082,14 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
       ),
     );
 
+    // Last week's spare food, offered under the row at every width.
+    final offer = item.ingredientId == null
+        ? null
+        : ref.watch(shopSpareOffersProvider)[item.ingredientId];
+    final offerLine = offer == null
+        ? null
+        : _SpareOfferLine(item: item, offer: offer);
+
     final Widget body;
     if (selection != null) {
       body = Column(
@@ -1114,14 +1122,16 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
             Padding(padding: const EdgeInsets.only(left: 31), child: subLine),
             // The bottom half of the padding the tick target took, put back
             // under a tail that would otherwise sit on the hairline.
-            const SizedBox(height: 11),
+            if (offerLine == null) const SizedBox(height: 11),
           ],
+          if (offerLine != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
+              child: offerLine,
+            ),
         ],
       );
     } else {
-      final offer = item.ingredientId == null
-          ? null
-          : ref.watch(shopSpareOffersProvider)[item.ingredientId];
       return _phoneRow(
         identity: identity,
         name: name,
@@ -1130,7 +1140,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         canOpen: canOpen,
         open: open,
         flip: flip,
-        offer: offer == null ? null : _SpareOfferLine(item: item, offer: offer),
+        offer: offerLine,
       );
     }
 

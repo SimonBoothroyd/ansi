@@ -2,8 +2,8 @@
 library;
 
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
-import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view_models.dart';
+import 'package:ansi/features/cook_plan/presentation/leftover_question.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 BatchLeftover _left(String key, double portions) => BatchLeftover(

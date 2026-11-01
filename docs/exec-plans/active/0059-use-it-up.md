@@ -228,6 +228,21 @@ Append-only.
   - **Receipt packs are read in the price repository** (`loadBoughtPacks`),
     the one file that owns what a receipt line means.
 
+- 2026-11-01 — Three corners from the first pass, put right on the
+  owner's reading of them:
+  - **Spare food is said in the row's own words.** The Shop's offer was in
+    grams (`75 g left from last week?` on an onion row); it is now a count
+    of the row's measure or of pieces, else the total's unit (`½ onion,
+    medium left from last week?`), stored that way, a count coming down to
+    the quarter below. The picker's chips and the pane say a count where
+    the row states a piece weight, amount first (`½ yellow onion`).
+  - **A recipe's use counts its sub-recipes**, scaled by the batches of
+    each a line asks for (`perBatchUse`), as the shop buys the dish.
+    Optional lines still count only where a week ticks them in.
+  - **The wide layouts ask and offer too**: the schedule sheet asks under
+    each batch's words, and the wide Shop walk carries the offer and *Use
+    all*. Only the at-home pass does not offer.
+
 ## Notes / open questions
 
 - **The *what's left* pane** stays behind its link; drop it if it goes
