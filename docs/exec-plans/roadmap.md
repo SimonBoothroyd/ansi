@@ -26,10 +26,8 @@ The detail is in the plan; the landing dates are in the
    on an Android phone, and Ask's `had_instead` its paid eval
    (`run_ask_live.ts`).
 6. Step 11 (anti-waste): [plan 0059](./active/0059-use-it-up.md), *Use it
-   up* — last week's leftovers and spare fresh food offered first in the
-   picker and as at home in the shop. Built on its branch with migration
-   `0059` (**pending cloud push**); owed before main: the simulator run and
-   the owner's look on a phone.
+   up* — on main with migration `0059` on cloud and the simulator run green;
+   the owner's look on a phone, then a tag.
 7. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
@@ -43,7 +41,8 @@ operator statement is owed there.
 
 | What | Plan |
 |------|------|
-| Already got it — a *check what's at home* pass from the Shop's foot (a house where the tick was; the row says all of it, its amount asks how much, the pane at expanded), an amount stored as said and taken off the need honestly, a part-have on the row's sub-line and an *At home* section under the basket; Ask's `shopping` tool names it. Migration `0058`, **pending cloud push** | [0055](./active/0055-already-got-it.md) |
+| Use it up — the picker leads with last week's cooked leftovers still good for the day (a meal from one is not cooked, bought or costed again) and the recipes that would use the most of last week's spare fresh food; the Shop offers that spare as at home; Cook asks *Binned · We ate it* once a leftover is past its use-by. Migration `0059`, on cloud | [0059](./active/0059-use-it-up.md) |
+| Already got it — a *check what's at home* pass from the Shop's foot (a house where the tick was; the row says all of it, its amount asks how much, the pane at expanded), an amount stored as said and taken off the need honestly, a part-have on the row's sub-line and an *At home* section under the basket; Ask's `shopping` tool names it. Migration `0058`, on cloud | [0055](./active/0055-already-got-it.md) |
 | Eaten vs planned, from the owner's look at `v0.32.0` — the tick (and your swap) replaces the avatar's initial, where it can no longer be covered; Cook's Kept · Binned · Eaten are the app's pills; Account's row reads *Send my meals*; *Had instead* always offers the typed words, so an ad-hoc lunch can be said; and a Health Connect pass that does not get through says so under the switch with *Try again*, is retried on returning to the app, sends a refused batch one meal at a time, and waits for the recipes' figures. No migrations, no deploy | [0054](./active/0054-eaten-vs-planned.md) |
 
 ## Shipped

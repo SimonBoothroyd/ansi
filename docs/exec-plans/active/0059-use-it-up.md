@@ -1,6 +1,6 @@
 # Exec plan: Use it up
 
-- **Status:** active — phases 1–4 built on branch `ccr-fe69369e-7z4nha`, not yet on main; migration `0059` not yet on cloud; the simulator run green; the owner's look on a phone still owed
+- **Status:** active — phases 1–4 on main, migration `0059` on cloud (deploy 41308689885), the simulator run green; the owner's look on a phone, then a tag
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); continues [plan 0054](./0054-eaten-vs-planned.md)'s leftover question
 - **Created:** 2026-11-01
@@ -269,8 +269,9 @@ done and moving this file to `completed/`.
       the Android emulator (`sim` dispatch, run 41306323147, on `c8985e8`).
 - [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
-- [ ] New migrations or seed changes? Say in the roadmap row whether they have
+- [x] New migrations or seed changes? Say in the roadmap row whether they have
       reached **cloud** yet, and append a `docs/cloud-setup.md` ledger entry
-      when they do. A "pending cloud push" note nobody clears becomes a false
+      when they do. `0059` reached cloud in deploy 41308689885; ledger entry
+      2026-11-01. A "pending cloud push" note nobody clears becomes a false
       claim the moment the push happens.
 - [ ] `make ci` green.

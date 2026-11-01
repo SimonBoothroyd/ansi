@@ -677,6 +677,10 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-11-01 — use it up: migration `0059`
+
+- **deploy-supabase 41308689885** (on `6fafbc95`): green — `db push` applied `0059_plan_entry_leftover_of` (a recipe meal eaten from a cooked batch's leftover, [plan 0059](./exec-plans/active/0059-use-it-up.md)); `ask` redeployed with only the `deno fmt` reflow of its prompt (`2e1dc75`) that had not been deployed, the other functions, the share Worker and the streams unchanged. No reseed; `cloud_verify.sh` was not run.
+
 ### 2026-10-29 — foods, not ingredients: `ask` prompt only
 
 - **deploy-supabase 40836577803** (on `6ad337cb`): green — `db push` found the remote up to date; `ask` redeployed with its prompt saying *food* for a vocabulary row and *ingredient* for a recipe's line ([plan 0058](./exec-plans/active/0058-foods-not-ingredients.md)), the other functions, the share Worker and the streams redeployed unchanged. No reseed; `cloud_verify.sh` was not run.
