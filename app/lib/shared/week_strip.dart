@@ -152,7 +152,11 @@ class WeekStripCell extends StatelessWidget {
 
   Widget _line() {
     final cooked = day.fill == WeekStripFill.cooked;
+    // Centred, or the initial sits at the column's left edge while the mark
+    // under it spans the column: the letter is only as wide as its glyph, so
+    // its own textAlign has nothing to centre in.
     return Stack(
+      alignment: Alignment.topCenter,
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 5),

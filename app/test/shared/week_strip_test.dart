@@ -123,6 +123,41 @@ void main() {
     expect(right.right - left.left, 7 * 18);
   });
 
+  testWidgets('the line size centres each initial over its underline or dot', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      const WeekStrip(
+        days: [
+          _cook,
+          WeekStripDay(eats: true),
+          _none,
+          _none,
+          _none,
+          _none,
+          _none,
+        ],
+        shape: WeekShape.monday,
+        size: WeekStripSize.line,
+      ),
+    );
+    Rect inCell(int day, Finder of) => tester.getRect(
+      find.descendant(
+        of: find.byKey(ValueKey('week-strip-$day')),
+        matching: of,
+      ),
+    );
+
+    final cookLetter = inCell(0, find.text('M'));
+    final underline = inCell(0, find.byType(ColoredBox));
+    expect(cookLetter.center.dx, closeTo(underline.center.dx, 0.01));
+
+    final eatLetter = inCell(1, find.text('T'));
+    final dot = inCell(1, find.byType(ClipOval));
+    expect(eatLetter.center.dx, closeTo(dot.center.dx, 0.01));
+  });
+
   testWidgets('one caption at most, in the freezer ink when this meal is '
       'frozen', (tester) async {
     await _pump(
