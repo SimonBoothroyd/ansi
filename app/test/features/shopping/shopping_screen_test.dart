@@ -2364,9 +2364,21 @@ void main() {
               ingredientId: 'lime',
               totals: [Quantity(3, pieces)],
             ),
+            ShoppingItem(
+              name: 'Yellow Onion',
+              ingredientId: 'onion',
+              totals: [Quantity(3.5, pieces)],
+            ),
           ],
         ),
       ],
+    );
+    const onion = Ingredient(
+      id: 'onion',
+      canonicalName: 'Yellow Onion',
+      defaultUnit: pieces,
+      status: IngredientStatus.complete,
+      pieceBasisAmount: 150,
     );
     const spinach = Ingredient(
       id: 'spinach',
@@ -2381,7 +2393,7 @@ void main() {
         _host([
           shoppingRepositoryProvider.overrideWithValue(repo),
           ingredientRepositoryProvider.overrideWithValue(
-            FakeIngredientRepo([spinach]),
+            FakeIngredientRepo([spinach, onion]),
           ),
           measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
           useUpRepositoryProvider.overrideWithValue(
@@ -2394,6 +2406,15 @@ void main() {
                   amount: 300,
                   bought: 500,
                   used: 200,
+                ),
+                SpareFood(
+                  ingredientId: 'onion',
+                  name: 'Yellow Onion',
+                  unit: g,
+                  pieceBasisAmount: 150,
+                  amount: 75,
+                  bought: 600,
+                  used: 525,
                 ),
               ],
               recipes: [],
@@ -2410,11 +2431,13 @@ void main() {
     ) async {
       final repo = await pump(tester);
       expect(find.text('300 g left from last week?'), findsOneWidget);
-      expect(find.text("1 thing left from last week's shop"), findsOneWidget);
+      // A counted row is offered a count, in its own words.
+      expect(find.text('½ piece left from last week?'), findsOneWidget);
+      expect(find.text("2 things left from last week's shop"), findsOneWidget);
       // Nothing is taken without a tap.
       expect(repo.atHomeSet, isEmpty);
 
-      await tester.tap(find.text('Use it'));
+      await tester.tap(find.text('Use it').first);
       await tester.pumpAndSettle();
       expect(repo.atHomeSet, [
         (ingredientId: 'spinach', quantity: 300.0, unit: g, measureId: null),
@@ -2425,7 +2448,10 @@ void main() {
       final repo = await pump(tester);
       await tester.tap(find.text('Use all'));
       await tester.pumpAndSettle();
-      expect(repo.atHomeSet.map((a) => a.ingredientId), ['spinach']);
+      expect(repo.atHomeSet, [
+        (ingredientId: 'spinach', quantity: 300.0, unit: g, measureId: null),
+        (ingredientId: 'onion', quantity: 0.5, unit: pieces, measureId: null),
+      ]);
     });
   });
 }

@@ -8,13 +8,13 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../core/units/units.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/cost_price.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../planning/presentation/use_up_view_models.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/shopping_providers.dart';
+import '../domain/at_home.dart';
 import '../domain/shopping.dart';
 import '../domain/shopping_cost.dart';
 import '../domain/spare_offer.dart';
@@ -130,15 +130,11 @@ class ShopOpen extends _$ShopOpen {
   }
 }
 
-/// What of last week's spare food a row could take as at home: an amount in
-/// the row's basis unit.
-typedef SpareOffer = ({double amount, Unit unit});
-
 /// The offer each open row of the viewed week's list carries, keyed by
 /// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
-/// the row still buys. Empty while either side loads.
+/// the row still buys, in the row's own words. Empty while either side loads.
 @riverpod
-Map<String, SpareOffer> shopSpareOffers(Ref ref) {
+Map<String, AtHomeAmount> shopSpareOffers(Ref ref) {
   final list = ref.watch(currentShoppingListProvider).asData?.value;
   final view = ref
       .watch(useUpProvider(ref.watch(viewedWeekStartProvider)))
@@ -154,7 +150,7 @@ Map<String, SpareOffer> shopSpareOffers(Ref ref) {
           if (spare[id] case final s?)
             if (pricing[id]?.row case final row?)
               if (spareOfferFor(item, spare: s.amount, row: row)
-                  case final amount?)
-                id: (amount: amount, unit: s.unit),
+                  case final offer?)
+                id: offer,
   };
 }

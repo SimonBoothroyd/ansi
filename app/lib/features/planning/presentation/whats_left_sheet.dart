@@ -8,20 +8,16 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/number_format.dart';
-import '../../../core/units/units.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../domain/use_up.dart';
-import 'use_up_block.dart' show spareUseLabel;
+import 'use_up_block.dart' show spareAmount, spareUseLabel;
 import 'use_up_view_models.dart';
 
 /// `500 g in · 200 g used`: how a spare amount was worked out.
 String spareHowLine(SpareFood s) =>
-    '${_amount(s.bought, s.unit)} in · ${_amount(s.used, s.unit)} used';
-
-String _amount(double amount, Unit unit) =>
-    '${formatAmountIn(amount, unit)} ${unit.label}';
+    '${spareAmount(s.bought, s.unit, s.pieceBasisAmount)} in · '
+    '${spareAmount(s.used, s.unit, s.pieceBasisAmount)} used';
 
 /// Opens *what's left* over [view].
 Future<void> showWhatsLeftSheet(BuildContext context, UseUpView view) =>
@@ -61,7 +57,7 @@ class _WhatsLeftSheet extends StatelessWidget {
           _Line(
             name: s.name,
             how: spareHowLine(s),
-            amount: _amount(s.amount, s.unit),
+            amount: spareAmount(s.amount, s.unit, s.pieceBasisAmount),
           ),
         if (view.scored.isNotEmpty) ...[
           const SizedBox(height: 18),

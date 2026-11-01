@@ -15,6 +15,7 @@ SpareInput _row(
   name: id,
   category: category,
   unit: g,
+  pieceBasisAmount: null,
   need: need,
   toBuy: toBuy ?? need,
   bought: bought,

@@ -534,6 +534,7 @@ void main() {
         name: 'Spinach',
         category: 'produce',
         unit: g,
+        pieceBasisAmount: null,
         need: 200,
         toBuy: 200,
         bought: 500,
@@ -545,6 +546,7 @@ void main() {
         name: 'Firm Tofu',
         category: 'proteins',
         unit: g,
+        pieceBasisAmount: null,
         need: 250,
         toBuy: 250,
         bought: 400,
@@ -587,12 +589,12 @@ void main() {
 
       expect(find.text('Use up'), findsOneWidget);
       // Two eaters at factor 1: half the curry's batch, all that is spare.
-      expect(find.text('firm tofu 150 g'), findsOneWidget);
-      expect(find.text('spinach 300 g'), findsOneWidget);
+      expect(find.text('150 g firm tofu'), findsOneWidget);
+      expect(find.text('300 g spinach'), findsOneWidget);
       // The salad's 10 g scores far under half the curry's: not offered.
-      expect(find.text('spinach 10 g'), findsNothing);
+      expect(find.text('10 g spinach'), findsNothing);
 
-      await tester.tap(find.text('spinach 300 g'));
+      await tester.tap(find.text('300 g spinach'));
       await tester.pumpAndSettle();
       expect(picked, isA<PickedRecipe>());
       expect((picked! as PickedRecipe).recipe.id, 'r1');
@@ -609,8 +611,15 @@ void main() {
       expect(find.text("What's left"), findsOneWidget);
       expect(find.text('500 g in · 200 g used'), findsOneWidget);
       expect(find.text('NOT SUGGESTED'), findsOneWidget);
-      expect(find.text('spinach 10 g'), findsOneWidget);
+      expect(find.text('10 g spinach'), findsOneWidget);
     });
+  });
+
+  test('spare food is said as a count where the row has a piece weight', () {
+    expect(spareAmount(75, g, 150), '½');
+    expect(spareAmount(300, g, null), '300 g');
+    // Too little to say a quarter of: its weight.
+    expect(spareAmount(10, g, 150), '10 g');
   });
 
   group('leftoverAfterLine', () {

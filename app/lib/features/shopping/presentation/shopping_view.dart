@@ -13,7 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/number_format.dart';
+import '../../../core/units/units.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
@@ -1292,10 +1292,21 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
   }
 }
 
-/// `300 g left from last week?`: what a row's offer says.
-String spareOfferWords(SpareOffer offer) =>
-    '${formatAmountIn(offer.amount, offer.unit)} ${offer.unit.label} '
-    'left from last week?';
+/// `300 g left from last week?`, `½ onion, medium left from last week?`: what
+/// a row's offer says, in the words the row prints its amount in.
+String spareOfferWords(AtHomeAmount offer) =>
+    '${spareOfferAmount(offer)} left from last week?';
+
+/// An offer's amount as the row says it: a count of its measure, a count of
+/// pieces, or its total's unit.
+String spareOfferAmount(AtHomeAmount offer) {
+  final measure = offer.measure;
+  if (measure != null) return formatMeasureCount(offer.quantity, measure);
+  if (offer.unit == pieces) {
+    return formatPieceCount((count: offer.quantity, approx: false));
+  }
+  return formatTotal(Quantity(offer.quantity, offer.unit));
+}
 
 /// Last week's spare food, offered under its row as already at home: **Use
 /// it** says so, at the offered amount, and nothing is taken without it.
@@ -1303,7 +1314,7 @@ class _SpareOfferLine extends ConsumerWidget {
   const _SpareOfferLine({required this.item, required this.offer});
 
   final ShoppingItem item;
-  final SpareOffer offer;
+  final AtHomeAmount offer;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Container(
@@ -1334,8 +1345,9 @@ class _SpareOfferLine extends ConsumerWidget {
                   .read(shoppingRepositoryProvider)
                   .setAtHome(
                     ingredientId: item.ingredientId!,
-                    quantity: offer.amount,
+                    quantity: offer.quantity,
                     unit: offer.unit,
+                    measureId: offer.measure?.id,
                     weekStart: ref.read(viewedWeekStartProvider),
                   ),
             ),
@@ -1382,8 +1394,9 @@ class _SpareBanner extends ConsumerWidget {
                 for (final MapEntry(key: id, value: offer) in offers.entries) {
                   await repo.setAtHome(
                     ingredientId: id,
-                    quantity: offer.amount,
+                    quantity: offer.quantity,
                     unit: offer.unit,
+                    measureId: offer.measure?.id,
                     weekStart: week,
                   );
                 }

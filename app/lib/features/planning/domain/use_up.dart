@@ -37,6 +37,10 @@ typedef SpareInput = ({
   /// The row's basis unit, g or ml, every amount here is in.
   Unit unit,
 
+  /// What one piece of it weighs in [unit], when the row states it: the
+  /// amounts are then said as a count.
+  double? pieceBasisAmount,
+
   /// What last week's meals asked for, all of them.
   double need,
 
@@ -64,6 +68,7 @@ class SpareFood {
     required this.bought,
     required this.used,
     this.centsPerUnit,
+    this.pieceBasisAmount,
   });
 
   final String ingredientId;
@@ -71,6 +76,9 @@ class SpareFood {
 
   /// The row's basis unit, g or ml, [amount], [bought] and [used] are in.
   final Unit unit;
+
+  /// What one piece weighs in [unit], when the row states it.
+  final double? pieceBasisAmount;
 
   /// What is spare, in the row's basis unit.
   final double amount;
@@ -90,6 +98,7 @@ class SpareFood {
       other.ingredientId == ingredientId &&
       other.name == name &&
       other.unit == unit &&
+      other.pieceBasisAmount == pieceBasisAmount &&
       other.amount == amount &&
       other.bought == bought &&
       other.used == used &&
@@ -117,6 +126,7 @@ List<SpareFood> spareOf(Iterable<SpareInput> rows) {
         ingredientId: r.ingredientId,
         name: r.name,
         unit: r.unit,
+        pieceBasisAmount: r.pieceBasisAmount,
         amount: left,
         bought: inHouse,
         used: r.usedCooked,
@@ -145,6 +155,7 @@ typedef SpareUse = ({
   String name,
   double amount,
   Unit unit,
+  double? pieceBasisAmount,
 });
 
 /// A recipe worth cooking to use up [uses], scored by what they cost.
@@ -189,7 +200,13 @@ List<UseUpSuggestion> scoreUseUp({
       if (s == null || perBatch <= 0) continue;
       final amount = perBatch * scale < s.amount ? perBatch * scale : s.amount;
       uses.add((
-        (ingredientId: id, name: s.name, amount: amount, unit: s.unit),
+        (
+          ingredientId: id,
+          name: s.name,
+          amount: amount,
+          unit: s.unit,
+          pieceBasisAmount: s.pieceBasisAmount,
+        ),
         amount * (s.centsPerUnit ?? 0),
       ));
     }

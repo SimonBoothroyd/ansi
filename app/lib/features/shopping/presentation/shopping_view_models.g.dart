@@ -367,26 +367,26 @@ abstract class _$ShopOpen extends $Notifier<Set<Object>> {
 
 /// The offer each open row of the viewed week's list carries, keyed by
 /// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
-/// the row still buys. Empty while either side loads.
+/// the row still buys, in the row's own words. Empty while either side loads.
 
 @ProviderFor(shopSpareOffers)
 const shopSpareOffersProvider = ShopSpareOffersProvider._();
 
 /// The offer each open row of the viewed week's list carries, keyed by
 /// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
-/// the row still buys. Empty while either side loads.
+/// the row still buys, in the row's own words. Empty while either side loads.
 
 final class ShopSpareOffersProvider
     extends
         $FunctionalProvider<
-          Map<String, SpareOffer>,
-          Map<String, SpareOffer>,
-          Map<String, SpareOffer>
+          Map<String, AtHomeAmount>,
+          Map<String, AtHomeAmount>,
+          Map<String, AtHomeAmount>
         >
-    with $Provider<Map<String, SpareOffer>> {
+    with $Provider<Map<String, AtHomeAmount>> {
   /// The offer each open row of the viewed week's list carries, keyed by
   /// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
-  /// the row still buys. Empty while either side loads.
+  /// the row still buys, in the row's own words. Empty while either side loads.
   const ShopSpareOffersProvider._()
     : super(
         from: null,
@@ -403,22 +403,22 @@ final class ShopSpareOffersProvider
 
   @$internal
   @override
-  $ProviderElement<Map<String, SpareOffer>> $createElement(
+  $ProviderElement<Map<String, AtHomeAmount>> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  Map<String, SpareOffer> create(Ref ref) {
+  Map<String, AtHomeAmount> create(Ref ref) {
     return shopSpareOffers(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, SpareOffer> value) {
+  Override overrideWithValue(Map<String, AtHomeAmount> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, SpareOffer>>(value),
+      providerOverride: $SyncValueProvider<Map<String, AtHomeAmount>>(value),
     );
   }
 }
 
-String _$shopSpareOffersHash() => r'b828dea471956b8fca74909db36e7491a6bf746f';
+String _$shopSpareOffersHash() => r'ea516258fdcf245f2f790c0cdb8c4e51194c4cb7';

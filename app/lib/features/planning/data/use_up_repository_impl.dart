@@ -108,6 +108,7 @@ class SqliteUseUpRepository implements UseUpRepository {
         name: row.name,
         category: row.category,
         unit: row.basis.basis.baseUnit,
+        pieceBasisAmount: row.basis.pieceBasisAmount,
         need: need,
         toBuy: toBuy,
         bought: bought[id] ?? _estimate(item, toBuy, samePrice),

@@ -11,6 +11,7 @@ import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
+import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../account/data/household_providers.dart';
@@ -26,10 +27,22 @@ String leftoverRowLine(BatchLeftover left, WeekShape shape) =>
 String goodUntil(BatchLeftover left, WeekShape shape) =>
     'good until ${shape.labelShort(shape.offsetOf(left.useBy))}';
 
-/// `spinach 300 g`: one spare ingredient a suggestion uses, in its basis unit.
+/// `300 g spinach`, `½ onion`: one spare ingredient a suggestion uses.
 String spareUseLabel(SpareUse use) =>
-    '${use.name.toLowerCase()} ${formatAmountIn(use.amount, use.unit)} '
-    '${use.unit.label}';
+    '${spareAmount(use.amount, use.unit, use.pieceBasisAmount)} '
+    '${use.name.toLowerCase()}';
+
+/// An amount of spare food as a kitchen says it: a count when the row states
+/// a piece weight (`½`, to the nearest quarter), else its weight or volume
+/// (`300 g`). A count too small to say a quarter of falls back to the weight.
+String spareAmount(double amount, Unit unit, double? pieceBasisAmount) {
+  final piece = pieceBasisAmount;
+  if (piece != null && piece > 0) {
+    final count = (amount / piece * 4).round() / 4;
+    if (count > 0) return formatFraction(count);
+  }
+  return '${formatAmountIn(amount, unit)} ${unit.label}';
+}
 
 /// The *Use up* block at the head of the planning picker: cooked leftovers
 /// good for the day, then the recipes that would use the most of last week's
