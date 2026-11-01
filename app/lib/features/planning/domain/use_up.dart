@@ -20,6 +20,8 @@ library;
 import 'package:meta/meta.dart';
 
 import '../../../core/units/units.dart';
+import '../../recipes/domain/component_math.dart';
+import '../../recipes/domain/line_basis.dart';
 
 /// The categories whose food is offered back: the ones that go off.
 const kFreshCategories = {'produce', 'dairy', 'proteins', 'protein'};
@@ -148,6 +150,60 @@ typedef RecipeUse = ({
   double servingsBase,
   Map<String, double> perBatch,
 });
+
+/// What one batch of the recipe [recipeId] uses of each ingredient, in each
+/// row's basis unit: its own lines, and every sub-recipe's, scaled by the
+/// batches of it a line asks for — the whole dish, as the shop buys it.
+///
+/// An optional line is not cooked unless a week ticks it in, so it is not
+/// counted, at any depth. A line whose amount will not weigh, a component
+/// whose share cannot be resolved, and a cycle are left out, never guessed.
+Map<String, double> perBatchUse(
+  String recipeId,
+  Map<String, SubRecipeNode> nodes,
+  IngredientBasis? Function(String ingredientId) rowOf,
+) => _perBatchUse(recipeId, nodes, rowOf, {recipeId});
+
+Map<String, double> _perBatchUse(
+  String recipeId,
+  Map<String, SubRecipeNode> nodes,
+  IngredientBasis? Function(String ingredientId) rowOf,
+  Set<String> visited,
+) {
+  final node = nodes[recipeId];
+  if (node == null) return const {};
+  final out = <String, double>{};
+  void add(String id, double amount) =>
+      out.update(id, (v) => v + amount, ifAbsent: () => amount);
+  for (final line in node.lines) {
+    if (line.optional) continue;
+    if (line.subRecipeId case final sub?) {
+      final target = nodes[sub];
+      if (target == null || visited.contains(sub)) continue;
+      final share = resolveComponentAmount(
+        quantity: line.quantity,
+        unit: line.unit,
+        yields: target.yields,
+        recipeMeasureId: line.recipeMeasureId,
+        measures: target.measures,
+      );
+      if (share is! ResolvedComponentAmount) continue;
+      for (final MapEntry(key: id, value: amount) in _perBatchUse(
+        sub,
+        nodes,
+        rowOf,
+        {...visited, sub},
+      ).entries) {
+        add(id, amount * share.batches);
+      }
+    } else if (line.ingredientId case final id?) {
+      final row = rowOf(id);
+      if (row == null) continue;
+      if (lineAmountInBasis(line, row) case final amount?) add(id, amount);
+    }
+  }
+  return out;
+}
 
 /// One spare ingredient a suggestion uses, and how much of it.
 typedef SpareUse = ({

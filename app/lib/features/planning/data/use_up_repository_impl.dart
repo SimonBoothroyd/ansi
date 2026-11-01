@@ -187,9 +187,8 @@ class SqliteUseUpRepository implements UseUpRepository {
       ),
   };
 
-  /// Every live recipe's own ingredient lines, per batch, in each row's basis
-  /// unit. An optional line is not cooked unless a week ticks it in, and a
-  /// component's lines belong to the component, so neither counts.
+  /// Every live recipe's use of each ingredient per batch, sub-recipes and
+  /// all ([perBatchUse]).
   Future<List<RecipeUse>> _recipeUses(Map<String, _Row> rows) async {
     final (nodes, _) = await loadRecipeMacroNodes(_db);
     final titles = {
@@ -205,14 +204,7 @@ class SqliteUseUpRepository implements UseUpRepository {
             recipeId: id,
             title: title,
             servingsBase: node.servingsBase,
-            perBatch: {
-              for (final line in node.lines)
-                if (!line.optional)
-                  if (line.ingredientId case final ingredientId?)
-                    if (rows[ingredientId] case final row?)
-                      if (lineAmountInBasis(line, row.basis) case final a?)
-                        ingredientId: a,
-            },
+            perBatch: perBatchUse(id, nodes, (i) => rows[i]?.basis),
           ),
     ];
   }

@@ -1,5 +1,8 @@
+import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/planning/domain/use_up.dart';
+import 'package:ansi/features/recipes/domain/line_basis.dart';
+import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 SpareInput _row(
@@ -134,6 +137,65 @@ void main() {
         rankUseUp(scoreUseUp(recipes: recipes, spare: unpriced, portions: 2)),
         isEmpty,
       );
+    });
+  });
+
+  group('perBatchUse', () {
+    const grams = (
+      basis: MacrosBasis.perG,
+      densityGPerMl: null,
+      pieceBasisAmount: null,
+    );
+    LineItem food(String id, double grams, {bool optional = false}) => LineItem(
+      id: 'l-$id',
+      ingredientName: id,
+      ingredientId: id,
+      quantity: grams,
+      unit: g,
+      optional: optional,
+    );
+    LineItem part(String sub, double grams) => LineItem(
+      id: 'l-$sub',
+      ingredientName: sub,
+      subRecipeId: sub,
+      quantity: grams,
+      unit: g,
+    );
+    final nodes = <String, SubRecipeNode>{
+      // The pie: its own spinach, an optional crumble of tofu, and half a
+      // batch of pastry (250 g of a 500 g batch).
+      'pie': (
+        servingsBase: 4,
+        lines: [
+          food('spinach', 300),
+          food('tofu', 50, optional: true),
+          part('pastry', 250),
+        ],
+        yields: const [],
+        measures: const [],
+      ),
+      // The pastry makes 500 g, and (by a bad edit) names the pie: a cycle.
+      'pastry': (
+        servingsBase: 1,
+        lines: [food('flour', 300), food('margarine', 200), part('pie', 100)],
+        yields: [(qty: 500, unit: g)],
+        measures: const [],
+      ),
+    };
+
+    test('a recipe uses its own lines and a share of each sub-recipe', () {
+      expect(perBatchUse('pie', nodes, (_) => grams), {
+        'spinach': 300,
+        'flour': 150,
+        'margarine': 100,
+      });
+    });
+
+    test('a food that will not weigh is left out', () {
+      expect(perBatchUse('pie', nodes, (id) => id == 'flour' ? null : grams), {
+        'spinach': 300,
+        'margarine': 100,
+      });
     });
   });
 }
