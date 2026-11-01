@@ -13,6 +13,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
+import '../../../core/units/number_format.dart';
 import '../../../core/words.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
@@ -192,6 +193,7 @@ Widget _shoppingList(
               const _EverythingAtHomeLine()
             else if (data.allTicked)
               const _EverythingInBasketLine(),
+            if (selection == null) const _SpareBanner(),
             for (final group in data.openGroups)
               _Group(group: group, selection: selection),
             // The folded lines close the walk, set off from the last aisle.
@@ -1117,6 +1119,9 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         ],
       );
     } else {
+      final offer = item.ingredientId == null
+          ? null
+          : ref.watch(shopSpareOffersProvider)[item.ingredientId];
       return _phoneRow(
         identity: identity,
         name: name,
@@ -1125,6 +1130,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         canOpen: canOpen,
         open: open,
         flip: flip,
+        offer: offer == null ? null : _SpareOfferLine(item: item, offer: offer),
       );
     }
 
@@ -1168,6 +1174,7 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
     required bool canOpen,
     required bool open,
     required VoidCallback flip,
+    Widget? offer,
   }) {
     final hasSub = subLine != null;
     // Each part of the top line carries the row's vertical padding itself.
@@ -1202,8 +1209,16 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
         ),
         if (subLine != null)
           Padding(
-            padding: EdgeInsets.only(left: 31, bottom: open ? 0 : 11),
+            padding: EdgeInsets.only(
+              left: 31,
+              bottom: open || offer != null ? 0 : 11,
+            ),
             child: subLine,
+          ),
+        if (offer != null)
+          Padding(
+            padding: EdgeInsets.fromLTRB(31, hasSub ? 6 : 0, 0, 11),
+            child: offer,
           ),
         // The opened breakdown is read, not tapped: it swallows a long-press
         // so it never reaches the row's remove. Only the top-up row inside
@@ -1271,6 +1286,111 @@ class _ItemRowState extends ConsumerState<_ItemRow> {
                 onTap: flip,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// `300 g left from last week?`: what a row's offer says.
+String spareOfferWords(SpareOffer offer) =>
+    '${formatAmountIn(offer.amount, offer.unit)} ${offer.unit.label} '
+    'left from last week?';
+
+/// Last week's spare food, offered under its row as already at home: **Use
+/// it** says so, at the offered amount, and nothing is taken without it.
+class _SpareOfferLine extends ConsumerWidget {
+  const _SpareOfferLine({required this.item, required this.offer});
+
+  final ShoppingItem item;
+  final SpareOffer offer;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Container(
+    padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+    decoration: BoxDecoration(
+      color: AnsiColors.herbSoft,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            spareOfferWords(offer),
+            style: ansiSans(
+              size: 12.5,
+              color: AnsiColors.herbDeep,
+              weight: FontWeight.w500,
+            ),
+          ),
+        ),
+        FButton(
+          size: FButtonSizeVariant.sm,
+          onPress: () => unawaited(
+            ref.write(
+              context,
+              'say ${item.name} is at home',
+              () => ref
+                  .read(shoppingRepositoryProvider)
+                  .setAtHome(
+                    ingredientId: item.ingredientId!,
+                    quantity: offer.amount,
+                    unit: offer.unit,
+                    weekStart: ref.read(viewedWeekStartProvider),
+                  ),
+            ),
+          ),
+          child: const Text('Use it'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Above the aisles while any row has last week's spare to offer: how many,
+/// and **Use all**.
+class _SpareBanner extends ConsumerWidget {
+  const _SpareBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final offers = ref.watch(shopSpareOffersProvider);
+    if (offers.isEmpty) return const SizedBox.shrink();
+    final n = offers.length;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+      decoration: BoxDecoration(
+        border: Border.all(color: AnsiColors.line),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              "${n == 1 ? '1 thing' : '$n things'} left from last week's shop",
+              style: ansiSans(size: 13),
+            ),
+          ),
+          FButton(
+            size: FButtonSizeVariant.sm,
+            variant: FButtonVariant.outline,
+            onPress: () => unawaited(
+              ref.write(context, "use last week's spare food", () async {
+                final repo = ref.read(shoppingRepositoryProvider);
+                final week = ref.read(viewedWeekStartProvider);
+                for (final MapEntry(key: id, value: offer) in offers.entries) {
+                  await repo.setAtHome(
+                    ingredientId: id,
+                    quantity: offer.amount,
+                    unit: offer.unit,
+                    weekStart: week,
+                  );
+                }
+              }),
+            ),
+            child: const Text('Use all'),
+          ),
         ],
       ),
     );

@@ -205,13 +205,13 @@ String _$viewedWeekLeftoversHash() =>
     r'ed50e568a58e30f2704c0c3ca1e75a617cc50a39';
 
 /// The cooked batches of the week beginning [weekStart] with portions still
-/// left today, live (plan 0059).
+/// left today, live.
 
 @ProviderFor(weekBatchLeftovers)
 const weekBatchLeftoversProvider = WeekBatchLeftoversFamily._();
 
 /// The cooked batches of the week beginning [weekStart] with portions still
-/// left today, live (plan 0059).
+/// left today, live.
 
 final class WeekBatchLeftoversProvider
     extends
@@ -224,7 +224,7 @@ final class WeekBatchLeftoversProvider
         $FutureModifier<List<BatchLeftover>>,
         $StreamProvider<List<BatchLeftover>> {
   /// The cooked batches of the week beginning [weekStart] with portions still
-  /// left today, live (plan 0059).
+  /// left today, live.
   const WeekBatchLeftoversProvider._({
     required WeekBatchLeftoversFamily super.from,
     required DateTime super.argument,
@@ -273,7 +273,7 @@ String _$weekBatchLeftoversHash() =>
     r'cf549ae50dadd16331e4c3267a81246216521715';
 
 /// The cooked batches of the week beginning [weekStart] with portions still
-/// left today, live (plan 0059).
+/// left today, live.
 
 final class WeekBatchLeftoversFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<BatchLeftover>>, DateTime> {
@@ -287,7 +287,7 @@ final class WeekBatchLeftoversFamily extends $Family
       );
 
   /// The cooked batches of the week beginning [weekStart] with portions still
-  /// left today, live (plan 0059).
+  /// left today, live.
 
   WeekBatchLeftoversProvider call(DateTime weekStart) =>
       WeekBatchLeftoversProvider._(argument: weekStart, from: this);

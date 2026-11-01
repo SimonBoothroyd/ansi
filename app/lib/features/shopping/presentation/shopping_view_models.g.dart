@@ -364,3 +364,61 @@ abstract class _$ShopOpen extends $Notifier<Set<Object>> {
     element.handleValue(ref, created);
   }
 }
+
+/// The offer each open row of the viewed week's list carries, keyed by
+/// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
+/// the row still buys. Empty while either side loads.
+
+@ProviderFor(shopSpareOffers)
+const shopSpareOffersProvider = ShopSpareOffersProvider._();
+
+/// The offer each open row of the viewed week's list carries, keyed by
+/// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
+/// the row still buys. Empty while either side loads.
+
+final class ShopSpareOffersProvider
+    extends
+        $FunctionalProvider<
+          Map<String, SpareOffer>,
+          Map<String, SpareOffer>,
+          Map<String, SpareOffer>
+        >
+    with $Provider<Map<String, SpareOffer>> {
+  /// The offer each open row of the viewed week's list carries, keyed by
+  /// ingredient ([spareOfferFor]): last week's spare fresh food, never more than
+  /// the row still buys. Empty while either side loads.
+  const ShopSpareOffersProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'shopSpareOffersProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$shopSpareOffersHash();
+
+  @$internal
+  @override
+  $ProviderElement<Map<String, SpareOffer>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Map<String, SpareOffer> create(Ref ref) {
+    return shopSpareOffers(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, SpareOffer> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, SpareOffer>>(value),
+    );
+  }
+}
+
+String _$shopSpareOffersHash() => r'b828dea471956b8fca74909db36e7491a6bf746f';

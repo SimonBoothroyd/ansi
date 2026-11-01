@@ -11,8 +11,11 @@ import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/ingredients/domain/cost_price.dart';
 import 'package:ansi/features/ingredients/domain/default_amount.dart';
+import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
+import 'package:ansi/features/planning/domain/use_up.dart';
+import 'package:ansi/features/planning/domain/use_up_repository.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/data/shopping_providers.dart';
@@ -37,6 +40,19 @@ import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_week_variant_repository.dart';
 import '../../helpers/forui_semantics.dart';
+
+/// Last week's spare food, canned.
+class _FakeUseUp implements UseUpRepository {
+  const _FakeUseUp(this.facts);
+
+  final UseUpFacts facts;
+
+  @override
+  Future<UseUpFacts> lastWeekFor(
+    DateTime weekStart, {
+    required DateTime today,
+  }) async => facts;
+}
 
 /// A canned shopping list; mutations are no-ops (the screen just renders)
 /// unless [live], when an entry tick re-derives the list the way the real
@@ -2329,6 +2345,87 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(checking(tester), isFalse);
       expect(find.text('WHERE IT CAME FROM'), findsOneWidget);
+    });
+  });
+
+  group("last week's spare food", () {
+    final list = ShoppingList(
+      groups: [
+        ShoppingGroup(
+          label: 'Produce',
+          items: [
+            ShoppingItem(
+              name: 'Baby Spinach',
+              ingredientId: 'spinach',
+              totals: [Quantity(500, g)],
+            ),
+            ShoppingItem(
+              name: 'Lime',
+              ingredientId: 'lime',
+              totals: [Quantity(3, pieces)],
+            ),
+          ],
+        ),
+      ],
+    );
+    const spinach = Ingredient(
+      id: 'spinach',
+      canonicalName: 'Baby Spinach',
+      defaultUnit: g,
+      status: IngredientStatus.complete,
+    );
+
+    Future<_FakeShoppingRepo> pump(WidgetTester tester) async {
+      final repo = _FakeShoppingRepo(list);
+      await tester.pumpWidget(
+        _host([
+          shoppingRepositoryProvider.overrideWithValue(repo),
+          ingredientRepositoryProvider.overrideWithValue(
+            FakeIngredientRepo([spinach]),
+          ),
+          measureRepositoryProvider.overrideWithValue(FakeMeasureRepo()),
+          useUpRepositoryProvider.overrideWithValue(
+            const _FakeUseUp((
+              spare: [
+                SpareFood(
+                  ingredientId: 'spinach',
+                  name: 'Baby Spinach',
+                  unit: g,
+                  amount: 300,
+                  bought: 500,
+                  used: 200,
+                ),
+              ],
+              recipes: [],
+            )),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets('a row offers what is spare as at home, and Use it says so', (
+      tester,
+    ) async {
+      final repo = await pump(tester);
+      expect(find.text('300 g left from last week?'), findsOneWidget);
+      expect(find.text("1 thing left from last week's shop"), findsOneWidget);
+      // Nothing is taken without a tap.
+      expect(repo.atHomeSet, isEmpty);
+
+      await tester.tap(find.text('Use it'));
+      await tester.pumpAndSettle();
+      expect(repo.atHomeSet, [
+        (ingredientId: 'spinach', quantity: 300.0, unit: g, measureId: null),
+      ]);
+    });
+
+    testWidgets('Use all says every offer at once', (tester) async {
+      final repo = await pump(tester);
+      await tester.tap(find.text('Use all'));
+      await tester.pumpAndSettle();
+      expect(repo.atHomeSet.map((a) => a.ingredientId), ['spinach']);
     });
   });
 }
