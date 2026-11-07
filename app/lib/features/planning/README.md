@@ -65,6 +65,13 @@ planning/
     (`SqliteShoppingRepository._derivePlannedIngredients`) and nothing for a
     meal out;
   - copy last week carries every kind whole.
+- **A meal from a leftover** is a recipe meal naming a cooked batch
+  (`leftover_of`) or a fridge or freezer row (`from_leftover`), never both.
+  Ask `PlanEntry.isFromLeftover`, never a column: the cook plan, the shop
+  and the week's cost pass over it, macros and ticks count it, its Week row
+  says `leftover` where a cook marker would be, a move keeps it, and copy
+  last week carries it as a meal to cook
+  (`test/structure/leftover_meal_seam_test.dart`).
 - `test/structure/plan_entry_kind_seam_test.dart` holds this: no wildcard, no
   null-column kind test, and both SQL derivations state their kind in `WHERE`.
 

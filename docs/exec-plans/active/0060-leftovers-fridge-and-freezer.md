@@ -1,6 +1,6 @@
 # Exec plan: Leftovers — fridge and freezer
 
-- **Status:** active — designed, not built
+- **Status:** active — phases 1–2 built (the stored row and its readers); phases 3–5 not built
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); replaces part of [plan 0059](./0059-use-it-up.md)
 - **Created:** 2026-11-07
@@ -181,6 +181,28 @@ Append-only.
 - 2026-11-07 — Plan written from the design rounds above. It replaces
   three of plan 0059's rulings: Cook's question, a leftover offered only
   until its fridge use-by, and fridge leftovers only.
+- 2026-11-07 — Phases 1–2 built (the readers' lane). Decided in the lane:
+  - A stored row's `portions` are **before** the meals planned from it
+    (`from_leftover`), which come off on read. The stepper (phase 3) stores
+    the count it is set to plus what is planned from the row.
+  - A stored row with a `batch` replaces the derived row **even when gone**,
+    and wins over an old `batch_leftover` answer (answers apply to derived
+    rows only). Duplicates per batch: newest `updated_at`, ties by id; meals
+    planned from a losing duplicate still come off the winner.
+  - A stored **fridge** row for a recipe with no `keeps_for_days` has **no
+    date** (never past its date); derived rows keep `useByOf`, whose unknown
+    fridge life is the last meal's day. Owner may want them to agree.
+  - A row with nothing left (meals planned from it ≥ its portions) is not
+    shown, as for derived rows; a stored row whose recipe is deleted is not
+    shown either.
+  - The horizon is by **cook day**: a derived batch cooked more than 28 days
+    before today is not read (`kLeftoverHorizon`); `leftoverWeekStarts`
+    names the five weeks a reader loads.
+  - A move (Ask's `PlanMove`) now keeps `leftover_of` and `from_leftover`;
+    it had been dropping `leftover_of`, re-cooking the meal.
+  - No repository read for the seam yet: nothing in this build would call it
+    (the picker keeps `batchLeftovers`). The page's lane adds the watch, and
+    a dropped-write subject for the `leftover` table with its first write.
 
 ## Notes / open questions
 

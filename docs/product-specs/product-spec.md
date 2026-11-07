@@ -782,6 +782,27 @@ go. There is no re-chip — tokenization happens only inside the import call.
   cooked again` where a cook marker would be, and the batch strip, the
   variant door and the add hint count only the days a dish is cooked. A copy
   of the week carries it as a plain recipe meal.
+- `leftover: id · household_id · place (fridge · freezer) · recipe_id ·
+  label · portions · since · batch · gone_at` (migration 0060,
+  [plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md))
+  — **cooked food in the fridge or the freezer, as the household says it
+  is**: a recipe or its own words (exactly one), portions (fractional, never
+  negative), and `since`, the day it was cooked (fridge) or frozen
+  (freezer). A row with a `batch` (the batch's key, as `leftover_of`)
+  **replaces that batch's derived leftover**; one without was added by hand.
+  No unique index: two phones storing one batch offline both upload, and the
+  newest `updated_at` is read. Nothing clears a row: it is shown until
+  `gone_at`, however far past its date. Its date is `since` plus the
+  recipe's `keeps_for_days` in the fridge or `freezer_days` in the freezer
+  (null: no limit); a row in words has no date. This build reads the rows
+  and writes none.
+- `plan_entry.from_leftover` (migration 0060) — **a meal eaten from a
+  fridge or freezer row**: a recipe meal naming the `leftover` it comes
+  from, never beside `leftover_of`. It is read exactly as `leftover_of` is:
+  eaten, ticked, counted in macros and Health Connect, and passed over by
+  the cook plan, the shop and the week's cost; its Week row says
+  `leftover`. The row's portions fall by the meal's demand. A move keeps it;
+  a copy of the week carries it as a plain recipe meal.
 - `week_recipe_line_override: id · household_id · week_plan_id · recipe_id ·
   recipe_line_item_id (null only when the row ADDS a line) · action (include ·
   exclude · replace · add) · ingredient_id · sub_recipe_id · quantity · unit ·

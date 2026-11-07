@@ -11,6 +11,11 @@ its use-by (`batch_leftover`), and the leftovers themselves are derived —
 which batches were cooked (a tick), what is left and until when — and offered
 back by the planning picker's *Use up*.
 
+The household's **fridge and freezer** are those derived batches merged with
+the `leftover` rows it has stored (`householdLeftovers`, below). This build
+reads the rows and writes none, so a phone on it handles what a later build's
+Leftovers page writes.
+
 ## Layout
 
 ```
@@ -20,7 +25,8 @@ cook_plan/
                                 RecipeCookPlan · CookPlan; clusterSessions +
                                 buildCookPlan + batchHintFor
     leftovers.dart              BatchLeftover, wasCooked, useByOf,
-                                batchLeftovers
+                                batchLeftovers; StoredLeftover, Leftover,
+                                householdLeftovers, leftoverWeekStarts
     cook_plan_repository.dart   the plan, the leftovers and Cook's answer
   data/           SqliteCookPlanRepository (watch → buildCookPlan) + providers
   presentation/   CookView (each session draws the compact week strip,
@@ -49,6 +55,33 @@ share when the recipe is `freezable` and the meal is within `freezer_days`
 
 `batchHintFor` reuses `clusterSessions` so the planner's "same batch" hint on the
 add-a-meal flow can never disagree with the cook plan.
+
+## The fridge and the freezer
+
+`householdLeftovers` is the one seam (pure) that says what cooked food the
+household has, on a day:
+
+- **Derived rows** are the cooked batches of the last four weeks
+  (`kLeftoverHorizon`, `leftoverWeekStarts`), each from `batchLeftovers`:
+  fridge rows dated by `useByOf`. A batch Cook was told was binned or eaten
+  (`batch_leftover`) reads as gone.
+- **Stored rows** (`leftover`) are what was said: a correction, a freeze, a
+  dish the app never saw. A row with a `batch` replaces that batch's derived
+  row, gone or not; two rows for one batch read as the newest `updated_at`.
+  A fridge row is good until `since` + `keeps_for_days`, a freezer row until
+  `since` + `freezer_days` (null: no limit). A row in words, or for a recipe
+  with no stated shelf life, has no date.
+- **Each row's portions fall by the meals planned from it**: `leftover_of`
+  for a derived batch, `from_leftover` for a stored row (summed across a
+  batch's duplicates). A row with nothing left is not shown.
+- **Nothing clears itself.** A row stays until `gone_at`; `pastItsDate`
+  says when it is behind its date. (The picker's *Use up* still offers only
+  derived batches good on the day, through `isGoodOn`.)
+
+A meal from either kind is never cooked again: the cook plan's query reads
+`leftover_of IS NULL AND from_leftover IS NULL`, as the shop's does, and
+`test/structure/leftover_meal_seam_test.dart` holds every such pass to both
+columns.
 
 ## Nested recipes, for one week
 
