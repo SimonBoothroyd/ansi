@@ -1,7 +1,7 @@
 <!-- GENERATED FILE — do not edit. Regenerate with `make docs` (scripts/gen_docs.sh). -->
 # Database schema (generated)
 
-Parsed from `supabase/migrations/*.sql` (60 migrations, 26 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
+Parsed from `supabase/migrations/*.sql` (61 migrations, 27 tables). Per table: columns from `create table` plus later `alter table add column`s, whether RLS is enabled, whether the table is in the `powersync` publication, and the migration that introduced it.
 
 **Limitations (honest 90% parse):** indexes, RLS policy bodies, grants,
 functions, triggers, and seed data are not listed — read the migration for
@@ -249,8 +249,9 @@ introduced in `0005_planning.sql` · RLS enabled · in the `powersync` publicati
 | `macros` | `jsonb` | yes | *(added in `0045_plan_entry_out.sql`)* |
 | `instead_of` | `uuid` | yes | references plan_entry(id) on delete cascade *(added in `0056_plan_entry_instead_of.sql`)* |
 | `leftover_of` | `uuid` | yes | references plan_entry(id) on delete set null *(added in `0059_plan_entry_leftover_of.sql`)* |
+| `from_leftover` | `uuid` | yes | references leftover(id) on delete set null *(added in `0060_leftover.sql`)* |
 
-Table constraints: `constraint plan_entry_amount_is_for_ingredients check ( ingredient_id is not null or num_nonnulls(quantity, unit, measure_id) = 0 )`; `constraint plan_entry_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint plan_entry_measure_needs_amount check (measure_id is null or quantity is not null)`; `constraint plan_entry_target_xor check (num_nonnulls(recipe_id, ingredient_id, label) = 1)`; `constraint plan_entry_macros_is_for_label check (label is not null or macros is null)`; `constraint plan_entry_instead_of_not_self check (instead_of is null or instead_of <> id)`; `constraint plan_entry_leftover_of_not_self check (leftover_of is null or leftover_of <> id)`; `constraint plan_entry_leftover_of_is_a_recipe check (leftover_of is null or recipe_id is not null)`
+Table constraints: `constraint plan_entry_amount_is_for_ingredients check ( ingredient_id is not null or num_nonnulls(quantity, unit, measure_id) = 0 )`; `constraint plan_entry_amount_pair check (num_nonnulls(quantity, unit) <> 1)`; `constraint plan_entry_measure_needs_amount check (measure_id is null or quantity is not null)`; `constraint plan_entry_target_xor check (num_nonnulls(recipe_id, ingredient_id, label) = 1)`; `constraint plan_entry_macros_is_for_label check (label is not null or macros is null)`; `constraint plan_entry_instead_of_not_self check (instead_of is null or instead_of <> id)`; `constraint plan_entry_leftover_of_not_self check (leftover_of is null or leftover_of <> id)`; `constraint plan_entry_leftover_of_is_a_recipe check (leftover_of is null or recipe_id is not null)`; `constraint plan_entry_from_leftover_is_a_recipe check (from_leftover is null or recipe_id is not null)`; `constraint plan_entry_one_leftover check (num_nonnulls(leftover_of, from_leftover) <= 1)`
 
 ## `shopping_list_entry`
 
@@ -487,3 +488,24 @@ introduced in `0057_batch_leftover.sql` · RLS enabled · in the `powersync` pub
 | `created_at` | `timestamptz` | no | not null default now() |
 | `updated_at` | `timestamptz` | no | not null default now() |
 | `deleted_at` | `timestamptz` | yes |  |
+
+## `leftover`
+
+introduced in `0060_leftover.sql` · RLS enabled · in the `powersync` publication
+
+| Column | Type | Nullable | Details |
+|---|---|---|---|
+| `id` | `uuid` | no | primary key default gen_random_uuid() |
+| `household_id` | `uuid` | no | not null references household(id) |
+| `place` | `text` | no | not null constraint leftover_place check (place in ('fridge', 'freezer')) |
+| `recipe_id` | `uuid` | yes | references recipe(id) |
+| `label` | `text` | yes | constraint leftover_label_nonblank check (label is null or btrim(label) <> '') |
+| `portions` | `numeric` | no | not null constraint leftover_portions_nonneg check (portions >= 0) |
+| `since` | `date` | no | not null |
+| `batch` | `uuid` | yes | references plan_entry(id) on delete set null |
+| `gone_at` | `timestamptz` | yes |  |
+| `created_at` | `timestamptz` | no | not null default now() |
+| `updated_at` | `timestamptz` | no | not null default now() |
+| `deleted_at` | `timestamptz` | yes |  |
+
+Table constraints: `constraint leftover_recipe_xor_label check (num_nonnulls(recipe_id, label) = 1)`

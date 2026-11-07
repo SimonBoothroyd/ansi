@@ -135,6 +135,9 @@ const schema = Schema([
     // meal is eaten from. Null on a meal that is cooked; a leftover meal is
     // never cooked, bought or costed again.
     Column.text('leftover_of'),
+    // → leftover.id: the fridge or freezer row this recipe meal is eaten
+    // from. Never set beside `leftover_of`; never cooked, bought or costed.
+    Column.text('from_leftover'),
     ..._audit,
   ]),
   // A member saying they ate a planned meal (0055). Written only for the
@@ -157,6 +160,21 @@ const schema = Schema([
     Column.real('kept'),
     Column.real('binned'),
     Column.real('eaten'),
+    ..._audit,
+  ]),
+  // Cooked food in the fridge or the freezer, as the household says it is: a
+  // recipe or words, never both. A row with a `batch` replaces that batch's
+  // derived leftover; newest `updated_at` per batch wins on read. Shown until
+  // `gone_at`.
+  Table('leftover', [
+    Column.text('household_id'),
+    Column.text('place'), // 'fridge' | 'freezer'
+    Column.text('recipe_id'), // → recipe.id, or null for words
+    Column.text('label'),
+    Column.real('portions'),
+    Column.text('since'), // 'YYYY-MM-DD': cooked (fridge) or frozen (freezer)
+    Column.text('batch'), // → plan_entry.id, the batch's first covered meal
+    Column.text('gone_at'),
     ..._audit,
   ]),
   // One delta against a recipe line for one planned week, keyed on

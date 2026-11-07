@@ -4,7 +4,7 @@ pgTAP tests for RLS policies and constraints. Run with `supabase test db`
 (also run in CI, `.github/workflows/backend.yml`). Each `*.sql` file wraps its
 assertions in `begin … rollback` so runs leave no residue.
 
-- `rls_household_isolation.sql` — data-driven over ALL 20 household-scoped
+- `rls_household_isolation.sql` — data-driven over ALL 21 household-scoped
   tables: a household can't read or write another's rows (select isolation +
   cross-household insert rejection per table); `usda_food` is denied to client
   roles but readable by `service_role`. New table? Add one setup row + one
@@ -68,6 +68,10 @@ assertions in `begin … rollback` so runs leave no residue.
   superuser write, where RLS isn't doing the work).
 - `batch_leftover.sql` — what became of a batch's uneaten portions (0057,
   plan 0054): portions, never negative, and gone with the meal it is keyed to.
+- `leftover.sql` — the fridge and freezer rows (0060, plan 0060): a recipe
+  or words, never both; fridge or freezer; portions never negative; a row
+  outlives the batch it replaced, and a meal from it (`plan_entry.from_leftover`)
+  is a recipe meal naming one leftover, never two.
 - `meal_eaten.sql` — who ate a planned meal (0055, plan 0054): a member
   ticks, re-times and unticks only their own meals (`current_member_id()`),
   cannot tick for or untick a partner, and reads the partner's ticks.
