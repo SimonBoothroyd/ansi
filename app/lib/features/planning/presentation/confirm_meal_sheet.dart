@@ -175,7 +175,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               .asData
               ?.value
               ?.entries
-              .where((e) => e.recipeId == recipe.id && e.leftoverOf == null)
+              .where((e) => e.recipeId == recipe.id && !e.isFromLeftover)
               .map((e) => e.dayOfWeek)
               .toList();
     final hint = recipe == null

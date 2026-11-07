@@ -927,6 +927,40 @@ void main() {
     },
   );
 
+  testWidgets('a meal from a fridge or freezer row says leftover where a cook '
+      'marker would sit', (tester) async {
+    // A plan that WOULD mark Wednesday as Monday's batch, so the leftover line
+    // is the row's own rule and not an empty derivation.
+    final plan = FakeCookPlanRepository.of([
+      const PlannedRecipe(
+        recipeId: 'r1',
+        title: 'Weeknight Chicken Curry',
+        servingsBase: 2,
+        keepsForDays: 4,
+        meals: [
+          CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 2),
+          CoveredMeal(dayOfWeek: 2, mealSlot: 'Dinner', portions: 2),
+        ],
+      ),
+    ]);
+    final week = _batchedWeek();
+    await _pumpWeek(
+      tester,
+      planning: _FakePlanningRepo(
+        week: week.copyWith(
+          entries: [
+            week.entries.first,
+            week.entries.last.copyWith(fromLeftover: 'lo-freezer'),
+          ],
+        ),
+      ),
+      cook: plan,
+    );
+
+    expect(find.byType(LeftoverMealLine), findsOneWidget);
+    expect(find.text('from Monday\u2019s batch'), findsNothing);
+  });
+
   testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
       'editor, \u2212 \u2192 gone', (tester) async {
     filterForuiSemanticsAssertions();

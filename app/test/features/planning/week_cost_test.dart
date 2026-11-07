@@ -144,6 +144,27 @@ void main() {
     },
   );
 
+  test('a meal from a fridge or freezer row was costed when it was cooked: no '
+      'cost, no gap', () {
+    final cost = sumPlannedCost(
+      [
+        _meal('e1'),
+        _meal(
+          'e2',
+          recipeId: 'r2',
+          title: 'Dal',
+        ).copyWith(fromLeftover: 'freezer-dal'),
+      ],
+      costFor: (id) => id == 'r1' ? _cost(100) : _unpriced,
+      priceFor: _noPrice,
+      membersById: _members,
+    );
+    expect(cost.cents, 200);
+    expect(cost.counted, 1);
+    expect(cost.considered, 1);
+    expect(cost.unpriced, isEmpty);
+  });
+
   test('an unpriced recipe is out, and its lines are named', () {
     final cost = sumPlannedCost(
       [_meal('e1'), _meal('e2', recipeId: 'r2', title: 'Sliders')],

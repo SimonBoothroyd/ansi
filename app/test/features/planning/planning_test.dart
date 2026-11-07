@@ -280,6 +280,32 @@ void main() {
     },
   );
 
+  test('a meal from a fridge or freezer row is never one a dish is cooked '
+      'for', () {
+    const entries = [
+      PlanEntry(id: 'a', dayOfWeek: 1, mealSlot: 'Dinner', recipeId: 'r'),
+      PlanEntry(
+        id: 'b',
+        dayOfWeek: 4,
+        mealSlot: 'Dinner',
+        recipeId: 'r',
+        fromLeftover: 'freezer-chili',
+      ),
+    ];
+    expect(entries.map((e) => e.isFromLeftover), [false, true]);
+    expect(
+      const PlanEntry(
+        id: 'c',
+        dayOfWeek: 2,
+        mealSlot: 'Lunch',
+        recipeId: 'r',
+        leftoverOf: 'a',
+      ).isFromLeftover,
+      isTrue,
+    );
+    expect(cookedDaysOf(entries, 'r'), [1]);
+  });
+
   group('defaultEatenAt', () {
     final thursday = DateTime(2026, 8, 27);
 

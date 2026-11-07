@@ -252,8 +252,10 @@ class SqliteShoppingRepository implements ShoppingRepository {
       // [_derivePlannedIngredients]; a meal out buys nothing.
       'AND pe.recipe_id IS NOT NULL '
       // What a member had instead of a meal was never cooked or bought for,
-      // and a meal from a leftover was bought for in its own week.
+      // and a meal from a leftover (a batch or a fridge or freezer row) was
+      // bought for when it was cooked.
       'AND pe.instead_of IS NULL AND pe.leftover_of IS NULL '
+      'AND pe.from_leftover IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );

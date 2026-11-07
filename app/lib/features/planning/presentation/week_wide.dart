@@ -406,7 +406,7 @@ class _PaneMeal extends ConsumerWidget {
     final plan = cookPlan;
     // Only a cooked recipe has a cook marker; a snack shows its amount, a meal
     // out its tag and figures, and a meal from a leftover says so instead.
-    final leftover = entry.leftoverOf != null;
+    final leftover = entry.isFromLeftover;
     final marker = plan == null || kind != PlanEntryKind.recipe || leftover
         ? null
         : cookMarkerFor(

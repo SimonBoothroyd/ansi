@@ -10,6 +10,7 @@ import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
+import '../../helpers/leftover_rows.dart';
 import '../../helpers/test_db.dart';
 
 /// Inserts a recipe with shelf-life columns the cook plan reads.
@@ -810,6 +811,21 @@ void main() {
       );
       final plan = await repo.watchCookPlan(_week).first;
       final session = plan.recipes.single.sessions.single;
+      expect(session.covers.map((m) => m.entryId), [mon]);
+      expect(session.totalPortions, 1.75);
+    });
+
+    test('a meal planned from a fridge or freezer row is never cooked '
+        'again', () async {
+      final mon = await curryFor(0);
+      await insertLeftover(db, id: 'lo1', recipeId: 'curry');
+      final thu = await curryFor(3);
+      await planFromLeftover(db, thu, 'lo1');
+      final session = (await repo.watchCookPlan(_week).first)
+          .recipes
+          .single
+          .sessions
+          .single;
       expect(session.covers.map((m) => m.entryId), [mon]);
       expect(session.totalPortions, 1.75);
     });

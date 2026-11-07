@@ -13,6 +13,7 @@ import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
+import '../../helpers/leftover_rows.dart';
 import '../../helpers/test_db.dart';
 
 final _week = DateTime.utc(2026, 8, 24); // a Monday
@@ -1599,6 +1600,21 @@ void main() {
           .amount,
       3,
     );
+  });
+
+  test('a meal planned from a freezer row is never bought for again', () async {
+    await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);
+    await insertLeftover(db, id: 'lo1', recipeId: 'curry');
+    final thu = await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 3,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a', 'b'],
+    );
+    expect((await repo.watchShoppingList(_week).first).groups, isNotEmpty);
+    await planFromLeftover(db, thu, 'lo1');
+    expect((await repo.watchShoppingList(_week).first).groups, isEmpty);
   });
 
   // --- A planned ingredient is bought, though nothing cooks it (8.14 / A-D4) -

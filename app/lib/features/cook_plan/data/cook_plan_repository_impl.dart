@@ -77,8 +77,9 @@ class SqliteCookPlanRepository implements CookPlanRepository {
       'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
       'AND pe.recipe_id IS NOT NULL '
       // What a member had instead of a meal was never cooked, and a meal from
-      // a leftover was cooked in its own batch.
+      // a leftover (a batch or a fridge or freezer row) was cooked already.
       'AND pe.instead_of IS NULL AND pe.leftover_of IS NULL '
+      'AND pe.from_leftover IS NULL '
       'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
       [weekKey],
     );

@@ -135,7 +135,7 @@ PlannedCost sumPlannedCost(
 
     // A meal from a leftover was bought and costed in the week it was cooked:
     // like a meal out, neither a cost nor a gap here.
-    if (entry.leftoverOf != null) {
+    if (entry.isFromLeftover) {
       considered--;
       continue;
     }

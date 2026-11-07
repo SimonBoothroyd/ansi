@@ -78,7 +78,7 @@ class SqlitePlanningRepository implements PlanningRepository {
       // `pe.macros` is aliased: it is per portion as stated, while the vocab
       // row's `macros` below is per 100 of a basis.
       'pe.label, pe.macros AS stated_macros, pe.instead_of, pe.leftover_of, '
-      'pe.created_at, '
+      'pe.from_leftover, pe.created_at, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -186,6 +186,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         .cast<String>(),
     portions: e['portions'] as int?,
     leftoverOf: e['leftover_of'] as String?,
+    fromLeftover: e['from_leftover'] as String?,
     createdAt: DateTime.tryParse(e['created_at'] as String? ?? '')?.toLocal(),
   );
 
@@ -397,6 +398,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     String? measureId,
     int? portions,
     String? leftoverOf,
+    String? fromLeftover,
   }) async {
     final now = _now();
     final weekId = await _getOrCreateWeek(tx, weekKey);
@@ -409,9 +411,9 @@ class SqlitePlanningRepository implements PlanningRepository {
     await tx.execute(
       'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
       'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
-      'measure_id, eaters, portions, leftover_of, sort_order, created_at, '
-      'updated_at) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'measure_id, eaters, portions, leftover_of, from_leftover, sort_order, '
+      'created_at, updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         _householdId,
@@ -428,6 +430,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         eaters,
         portions,
         leftoverOf,
+        fromLeftover,
         order,
         now,
         now,
@@ -707,6 +710,10 @@ class SqlitePlanningRepository implements PlanningRepository {
             unit: row['unit'] as String?,
             measureId: row['measure_id'] as String?,
             portions: row['portions'] as int?,
+            // Still eaten from what it was eaten from: a move never makes a
+            // leftover meal one to cook and buy for.
+            leftoverOf: row['leftover_of'] as String?,
+            fromLeftover: row['from_leftover'] as String?,
           );
         case PlanSetEaters(:final expected, :final eaterIds):
           await tx.execute(
@@ -725,7 +732,8 @@ class SqlitePlanningRepository implements PlanningRepository {
     if (expected == null) return null;
     final row = await tx.getOptional(
       'SELECT day_of_week, meal_slot, recipe_id, ingredient_id, label, '
-      'macros, quantity, unit, measure_id, eaters, portions '
+      'macros, quantity, unit, measure_id, eaters, portions, leftover_of, '
+      'from_leftover '
       'FROM plan_entry WHERE id = ? AND deleted_at IS NULL',
       [expected.id],
     );

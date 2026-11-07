@@ -14,6 +14,7 @@ import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:powersync/powersync.dart';
 
+import '../../helpers/leftover_rows.dart';
 import '../../helpers/test_db.dart';
 
 /// Inserts a bare recipe row (the planner only reads id/title for entries).
@@ -190,6 +191,38 @@ void main() {
       );
       final entries = (await repo.watchWeek(_thisWeek).first)!.entries;
       expect([for (final e in entries) e.leftoverOf], [null, batch]);
+    });
+
+    test('a meal from a fridge or freezer row keeps the row it came from; '
+        'copy last week carries it as a meal to cook, a move keeps it '
+        'eaten', () async {
+      await _insertRecipe(db, 'r1', 'Chili');
+      await insertLeftover(db, id: 'lo1', recipeId: 'r1');
+      final meal = await repo.addEntry(
+        weekStart: _lastWeek,
+        dayOfWeek: 4,
+        mealSlot: 'Dinner',
+        recipeId: 'r1',
+        eaterIds: ['m1'],
+      );
+      await planFromLeftover(db, meal, 'lo1');
+      final last = (await repo.watchWeek(_lastWeek).first)!.entries.single;
+      expect(last.fromLeftover, 'lo1');
+      expect(last.isFromLeftover, isTrue);
+
+      // A move is the same meal, whole: still eaten from the freezer.
+      await repo.applyPlanChanges([
+        PlanMove(last, weekStart: _lastWeek, dayOfWeek: 5, mealSlot: 'Lunch'),
+      ]);
+      final moved = (await repo.watchWeek(_lastWeek).first)!.entries.single;
+      expect((moved.dayOfWeek, moved.fromLeftover), (5, 'lo1'));
+
+      // Next week the freezer row may be gone: the copy is a meal to cook.
+      expect((await repo.copyLastWeek(_thisWeek)).meals, 1);
+      final copied = (await repo.watchWeek(_thisWeek).first)!.entries.single;
+      expect(copied.recipeId, 'r1');
+      expect(copied.fromLeftover, isNull);
+      expect(copied.leftoverOf, isNull);
     });
 
     test('addEntry creates the week lazily and appears in watchWeek', () async {

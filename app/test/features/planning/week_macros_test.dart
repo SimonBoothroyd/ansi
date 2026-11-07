@@ -118,6 +118,20 @@ void main() {
     expect(macros.daysContributing, 2);
   });
 
+  test(
+    'a meal from a leftover is eaten, so it counts like any recipe meal',
+    () {
+      final macros = _sum([
+        _entry(id: 'a'),
+        _entry(id: 'b', day: 1).copyWith(fromLeftover: 'freezer-curry'),
+        _entry(id: 'c', day: 2).copyWith(leftoverOf: 'a'),
+      ]);
+      expect(macros.total!.kcal, 600);
+      expect(macros.counted, 3);
+      expect(macros.excluded, isEmpty);
+    },
+  );
+
   test('one incomplete meal: the rest still sums, and the excluded meal '
       'carries its own summary so the UI prints incompleteNote', () {
     final macros = _sum([
