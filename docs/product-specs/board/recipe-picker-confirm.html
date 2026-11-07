@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-10-28 · <code>features/planning</code> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640</p>
+    <p class="view-status">built · matches code 2026-10-28 · <code>features/planning</code> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640 · leftovers: <span class="prop">proposed</span> · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a></p>
     <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week. One door answers three ways: a recipe, an ingredient, or the words of a meal eaten out.</p>
 </header>
 
@@ -118,6 +118,59 @@
 </div></div>
 <p class="conv-note" style="margin:10px 4px 0">A leftover is a batch anybody ticked, good until its cook day plus its fridge life; a pick plans a meal <i>from</i> it — not cooked again, not bought, not costed — on a confirm card that says what the meal leaves (<i>¾ still left after this</i>) and will not take more than is left. A recipe — sub-recipes and all — scores by what the amounts it would use cost, never past what is spare, so a bulk jar adds what a spoonful costs; up to three are offered, each at least half the best. <i>what&rsquo;s left ›</i> opens the one pane that shows the food — <i>500 g in · 200 g used</i> — and the cut. <i>Had instead</i> is offered neither.</p>
 </div>
+
+    <div class="frame prop" id="pv2-useup-both">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Use up, both shelves</b> · fridge rows good for the day, then freezer rows, above the shop suggestions (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>)</p>
+        <div class="phone">
+  <div class="notch"></div>
+  <div class="screen" style="flex: 1; overflow: hidden">
+    <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
+    <p class="target">to · <b>Wednesday, Dinner</b></p>
+    <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:#66736A">Search recipes and foods</span><span class="care"></span></div></div>
+    <div class="rseg"><span class="rsegopt on">Recent</span><span class="rsegopt">Books</span><span class="rsegopt">Favorites</span></div>
+    <div class="reuse">
+      <div class="reuse-h">Use up</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:#66736A;margin:6px 0">FRIDGE</div>
+      <div style="background:#FFFFFF;border:1px solid #E2E7DD;border-radius:12px;padding:9px 12px;margin-bottom:6px"><div class="rn">Chickpea Curry</div><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><span class="kpill">leftover</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#21502C">1¾ · until Mon</span></div></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:#3B6076;margin:10px 0 6px">FREEZER</div>
+      <div style="background:#FFFFFF;border:1px solid #D2E2EC;border-radius:12px;padding:9px 12px;margin-bottom:6px"><div class="rn">Black Bean Chili</div><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><span class="kpill frz">frozen</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3B6076">2 · 2 wk</span></div></div>
+      <div style="background:#FFFFFF;border:1px solid #D2E2EC;border-radius:12px;padding:9px 12px;margin-bottom:6px"><div class="rn">Lentil Bolognese</div><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><span class="kpill frz">frozen</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3B6076">2 · 4 days</span></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:#66736A">USES LAST WEEK’S SHOP</span><span style="font-size:12px;font-weight:500;color:#21502C">what’s left ›</span></div>
+      <div style="background:#FFFFFF;border:1px solid #E2E7DD;border-radius:12px;padding:9px 12px"><div class="rn">Mushroom &amp; Lentil Ragù</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px"><span class="rchip" style="border:1px solid #E2E7DD">500 g mushrooms</span><span class="rchip" style="border:1px solid #E2E7DD">2 carrots</span></div></div>
+    </div>
+  </div>
+</div>
+    </div>
+
+    <div class="frame prop" id="pv2-frozen">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>A dish you have frozen</b> · picked from Recent, Books or Favorites: <i>Frozen</i> or <i>Cook fresh</i>; Frozen is capped at what is left (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>)</p>
+        <div class="phone">
+  <div class="notch"></div>
+  <div class="screen sheet" style="flex: 1; overflow: hidden">
+    <div class="grab"></div>
+    <div class="c-h">Add to plan</div>
+    <p class="target">to · <b>Wednesday</b></p>
+    <div class="picked"><div class="rthumb">◍</div>
+      <div class="pn"><div class="ptitle">Black Bean Chili</div>
+        <div class="rbook">keeps 4 d · freezable</div>
+        <div class="rml">serves 4 · ~480 kcal · 24P <span class="per" style="color:#66736A">/serving</span></div></div></div>
+
+    <div style="display:flex;gap:8px;margin:14px 20px 0">
+      <div style="flex:1;border:2px solid #3B6076;background:#EAF1F5;border-radius:12px;padding:10px 12px"><div style="font-size:13.5px;font-weight:600;color:#3B6076">Frozen</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3B6076;margin-top:3px">2 left</div></div>
+      <div style="flex:1;border:1px solid #E2E7DD;background:#FFFFFF;border-radius:12px;padding:10px 12px"><div style="font-size:13.5px;font-weight:500">Cook fresh</div></div>
+    </div>
+
+    <p class="clabel">Slot</p>
+    <div class="slotchip">Dinner<span class="caret">▾</span></div>
+    <p class="clabel">Who's eating</p>
+    <div class="eater-row"><span class="eaters"><span class="ep on a">A</span></span><span class="lab" style="flex:none;margin-left:2px">Ada</span><span class="eaters" style="margin-left:14px"><span class="ep on j">J</span></span><span class="lab" style="flex:none;margin-left:2px">Jun</span></div>
+    <p class="clabel">Portions</p>
+    <div class="portion"><div class="pl">2 portions</div>
+      <div class="pstepper"><span class="s">–</span><span class="qv">2</span><span class="s">+</span></div></div>
+    <div class="addbtn">Add to Wednesday</div>
+  </div>
+</div>
+    </div>
 
 <div class="frame" id="pv2-out">
             <p class="frame-name"><b>The picker’s third answer</b> · when the typed words match no recipe and no food, the one door offers to plan the words themselves — and says up front what the app will <i>not</i> do with them</p>
