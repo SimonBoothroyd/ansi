@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-20 · the meal editor, copy last week and the foot: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble · lens: differs 2026-11-01: the frames draw the lens on <i>Everyone</i>; it opens on the member signed in, with <i>Everyone</i> a tap away · leftovers: matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · differs: only the <i>Leftovers door</i> frame draws the fridge in the header</p>
+    <p class="view-status">built · matches code 2026-09-20 · the meal editor, copy last week and the foot: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble · lens: differs 2026-11-01: the frames draw the lens on <i>Everyone</i>; it opens on the member signed in, with <i>Everyone</i> a tap away · leftovers: matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · differs: only the <i>Leftovers door</i> frame draws the fridge in the header · by the ticks: <span class="prop">proposed</span> · <a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a></p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -418,7 +418,7 @@
 
 
     <div class="frame" id="wk-leftovers-door">
-        <p class="frame-name"><b>The Leftovers door</b> · a fridge icon in the header beside Ask, drawn at Ask’s size and weight, phone and wide; a dot while any row is past its date. A meal from either shelf reads <i>leftover</i> where the cook marker sits: green from the fridge, blue from the freezer (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>)</p>
+        <p class="frame-name"><b>The Leftovers door</b> · a fridge icon in the header beside Ask, drawn at Ask’s size and weight, phone and wide; a dot while any row is past its date. A meal from either shelf reads <i>leftover</i> where the cook marker sits: green from the fridge, blue from the freezer (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>) <a class="supersedes" href="#wk-ticks">tags superseded · plan 0061</a></p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
@@ -449,6 +449,46 @@
     <div class="nav" style="margin-top:auto"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
   </div>
 </div>
+    </div>
+
+    <div class="frame prop" id="wk-ticks">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Leftover, by the ticks</b> · every meal eaten from cooked food reads <i>leftover</i>: green from the fridge, blue with a snowflake from the freezer, and <i>not enough left</i> or <i>past its date</i> in amber once it no longer adds up. The plan is never edited (<a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="wkhdr">
+            <span class="hact ghost"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"></rect></svg></span>
+            <span class="wk-ask" style="visibility:hidden;margin:0 6px 0 0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg></span>
+            <span class="chev">‹</span><span class="wt">Next week<span class="dt">8 Nov</span><span class="caret">▾</span></span><span class="chev">›</span>
+            <a href="./leftovers.html#lo-ticks" class="hact" aria-label="Leftovers" style="position:relative;width:15px;height:15px"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;stroke:var(--muted);stroke-width:2"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M5 10h14"></path><path d="M9 5v2"></path><path d="M9 13v3"></path></svg><span style="position:absolute;top:-2px;right:-3px;width:6px;height:6px;border-radius:3px;background:#E1A63A"></span></a>
+            <span class="wk-ask"><svg viewBox="0 0 24 24" role="img" aria-label="Ask Ansi"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg></span>
+          </div>
+          <div class="day2"><div class="day2-head"><div class="day2-name">Sunday</div><span class="day2-date">8 Nov</span></div>
+            <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Chickpea Curry</span><span class="cookmark">leftover · <span style="color:#7A5A16">not enough left</span></span></div><span class="avs"><span class="av a">S</span><span class="av j">K</span></span><span class="rmv">−</span></div>
+          </div>
+          <div class="day2"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">10 Nov</span></div>
+            <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Squash Soup</span><span class="cookmark">leftover · <span style="color:#7A5A16">past its date</span></span></div><span class="avs"><span class="av a">S</span><span class="av j">K</span></span><span class="rmv">−</span></div>
+          </div>
+          <div class="day2"><div class="day2-head"><div class="day2-name">Wednesday</div><span class="day2-date">11 Nov</span></div>
+            <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Hamburger Helper</span><span class="cookmark frz"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>leftover</span></div><span class="avs"><span class="av a">S</span><span class="av j">K</span></span><span class="rmv">−</span></div>
+          </div>
+          <div class="day2"><div class="day2-head"><div class="day2-name">Thursday</div><span class="day2-date">12 Nov</span></div>
+            <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Slow-Cooker Beef Ragù</span><span class="cookmark frz"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>leftover</span></div><span class="avs"><span class="av a">S</span><span class="av j">K</span></span><span class="rmv">−</span></div>
+          </div>
+          <div class="nav" style="margin-top:auto"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
+    </div>
+
+    <div class="frame prop" id="wk-ticks-sheet">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>A leftover meal</b> · the line says where it comes from. Before its day the sheet offers <i>Cook fresh instead</i>, which puts it on the list and frees its portions; from its day on, <i>Ate this</i> or <i>Something else</i>. Never both (<a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet" style="flex:1;overflow:hidden">
+          <div class="c-h" style="margin-top:18px">Wednesday dinner</div>
+          <div class="picked"><div class="rthumb" style="background:#EEF0EC;color:#66736A">◍</div>
+            <div class="pn"><div class="ptitle">Hamburger Helper</div>
+              <div class="rbook" style="color:#3B6076;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center"><span class="cookmark frz"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>leftover</span><span style="white-space:nowrap">cooked Fri</span><span style="white-space:nowrap">freeze by Mon</span></div>
+              <div class="rml">2 portions</div></div></div>
+          <div style="margin:22px 20px 0;border-top:1px solid #E2E7DD;padding-top:14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13.5px;font-weight:500;color:#21502C">Cook fresh instead</span>
+          </div>
+        </div></div>
     </div>
 
 </div>

@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe picker &amp; confirm</h1>
-    <p class="view-status">built · matches code 2026-10-28 · <code>features/planning</code> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640 · leftovers: built · matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a></p>
+    <p class="view-status">built · matches code 2026-10-28 · <code>features/planning</code> · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: same, as a dialog from 640 · leftovers: built · matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · by the ticks: <span class="prop">proposed</span> · <a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a></p>
     <p class="view-blurb">Pick a recipe for a slot, then say who is eating and how much — the two steps between a day’s ＋ and a meal on the week. One door answers three ways: a recipe, an ingredient, or the words of a meal eaten out.</p>
 </header>
 
@@ -101,7 +101,7 @@
 
 
     <div class="frame" id="pv2-useup-both">
-        <p class="frame-name"><b>Use up, both shelves</b> · with nothing typed, what is already cooked first: fridge rows good for the day, then freezer rows, above the recipes that would use the most of last week&rsquo;s spare fresh food (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · <a href="../../exec-plans/active/0059-use-it-up.md">plan 0059</a>)</p>
+        <p class="frame-name"><b>Use up, both shelves</b> · with nothing typed, what is already cooked first: fridge rows good for the day, then freezer rows, above the recipes that would use the most of last week&rsquo;s spare fresh food (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · <a href="../../exec-plans/active/0059-use-it-up.md">plan 0059</a>) <a class="supersedes" href="#pv2-leftovers">superseded · plan 0061</a></p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; overflow: hidden">
@@ -122,6 +122,21 @@
   </div>
 </div>
 <p class="conv-note" style="margin:10px 4px 0">A fridge row is offered for a day on or after its cook day and on or before its date, never once it is behind its date; a freezer row for any day. A row in the household&rsquo;s own words names no recipe and is not offered. A pick plans a meal <i>from</i> the row (not cooked again, not bought, not costed) on a confirm card that says what the meal leaves (<i>¾ still left after this</i>) and will not take more than is left. A recipe, sub-recipes and all, scores by what the amounts it would use cost, never past what is spare; up to three are offered, each at least half the best. <i>what&rsquo;s left ›</i> opens the one pane that shows the food and the cut. <i>Had instead</i> is offered neither.</p>
+    </div>
+
+    <div class="frame prop" id="pv2-leftovers">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Leftovers</b> · judged on the meal&rsquo;s day: Fridge then Freezer, soonest to go off first, an empty subhead hidden, no <i>frozen</i> chip. A fridge row gone by then that freezes is offered under Freezer as <i>freeze by Mon</i>; past-date rows never are (<a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen" style="flex:1;overflow:hidden">
+          <div class="abar"><span class="back">✕</span><span class="ttl">Add a meal</span><span class="dots"></span></div>
+          <p class="target">to · <b>Wednesday, Dinner</b></p>
+          <div class="field"><div class="search"><span class="mag">⌕</span><span style="color:#66736A">Search recipes and foods</span><span class="care"></span></div></div>
+          <div class="reuse">
+            <div class="reuse-h">Leftovers</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:#3B6076;margin:10px 0 6px"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>FREEZER</div>
+            <div style="background:#FFFFFF;border:1px solid #D2E2EC;border-radius:12px;padding:9px 12px;margin-bottom:6px"><div class="rn">Black Bean Chili</div><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3B6076">2 left · till Jan</span></div></div>
+            <div style="background:#FFFFFF;border:1px solid #D2E2EC;border-radius:12px;padding:9px 12px;margin-bottom:6px"><div class="rn">Hamburger Helper</div><div style="display:flex;gap:6px;align-items:center;margin-top:3px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3B6076">2 left ·</span><span class="kpill frz"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>freeze by Mon</span></div></div>
+          </div>
+        </div></div>
     </div>
 
     <div class="frame" id="pv2-frozen">

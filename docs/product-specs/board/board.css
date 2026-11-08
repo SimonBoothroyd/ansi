@@ -1093,7 +1093,8 @@
     /* the planned band: one line, a glyph and no fill */
     .planned{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--herb-deep);}
     .planned svg{flex:none;}
-    /* a superseded frame's pointer back to the section it replaces */
+    /* a superseded frame's pointer to the proposed frame that replaces it */
+    .supersedes{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:var(--herb-soft);color:var(--herb-deep);border-radius:6px;padding:2px 7px;margin-left:6px;text-decoration:none;}
     
 
 /* ===== week3 ===== */

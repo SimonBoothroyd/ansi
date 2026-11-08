@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Cook &amp; Shop</h1>
-    <p class="view-status">built · matches code 2026-10-28 (the Shop and Cook, <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a>) · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> · leftovers: matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-10-25: at ≥ 1024 a row’s breakdown is drawn only in the pane beside the 640 walk, with the toggle and the field over the walk, and the header, with its receipts door, is one header at every width; Cook is one schedule sheet rather than cards (as of 2026-10-28) · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: the Shop frames draw the bar&rsquo;s speech bubble; differs 2026-10-19: the Cook frames do not (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>; <a href="./week.html">week.html</a> draws it) · already got: matches code 2026-10-25 · <a href="../../exec-plans/active/0055-already-got-it.md">plan 0055</a> · wide: matches code 2026-10-25, the pane holds the amount</p>
+    <p class="view-status">built · matches code 2026-10-28 (the Shop and Cook, <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a>) · <code>features/cook_plan</code> · <code>features/shopping</code> · <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> · leftovers: matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · <a href="../../decisions/0007-shopping-list-thin-overlay.md">ADR-0007</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · <a href="../../decisions/0015-piece-weight-is-a-row-fact.md">ADR-0015</a> · <a href="../../decisions/0016-a-measure-that-weighs-a-piece-is-its-word.md">ADR-0016</a> · wide: matches code 2026-10-25: at ≥ 1024 a row’s breakdown is drawn only in the pane beside the 640 walk, with the toggle and the field over the walk, and the header, with its receipts door, is one header at every width; Cook is one schedule sheet rather than cards (as of 2026-10-28) · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · week menu: matches code 2026-10-11 · <a href="../../exec-plans/active/0052-buttons-and-menus.md">plan 0052</a> · ask: the Shop frames draw the bar&rsquo;s speech bubble; differs 2026-10-19: the Cook frames do not (Ask Ansi, <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a>; <a href="./week.html">week.html</a> draws it) · already got: matches code 2026-10-25 · <a href="../../exec-plans/active/0055-already-got-it.md">plan 0055</a> · wide: matches code 2026-10-25, the pane holds the amount · by the ticks: <span class="prop">proposed</span> · <a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a></p>
     <p class="view-blurb">Two tabs derived from the week on screen — sessions grouped by recipe and split by shelf life, each drawn on the week strip, then one list summed from them, saying where every line came from.</p>
 </header>
 
@@ -113,8 +113,8 @@
             </div></div>
         </div>
 
-    <div class="frame">
-        <p class="frame-name"><b>What a cooked batch left over</b> · a batch anybody ticked was cooked; its card says its row in the fridge or the freezer in one line, and the line opens <a href="./leftovers.html">Leftovers</a>. Cook asks nothing (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>)</p>
+    <div class="frame" id="cs-leftover">
+        <p class="frame-name"><b>What a cooked batch left over</b> · a batch anybody ticked was cooked; its card says its row in the fridge or the freezer in one line, and the line opens <a href="./leftovers.html">Leftovers</a>. Cook asks nothing (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>) <a class="supersedes" href="#cs-ticks">superseded · plan 0061</a></p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="wkhdr"><span class="chev">‹</span><span class="wt">This week<span class="caret">▾</span></span><span class="chev">›</span></div>
             <p class="list-h">Cook</p>
@@ -135,6 +135,32 @@
                     <div style="display:flex;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7A5A16;margin-top:10px"><span style="flex:1">1 portion left · past its date</span><span style="font-family:'Inter',sans-serif;color:var(--muted)">›</span></div></div>
             </div>
             <p class="conv-note">The line is the batch&rsquo;s row: <i>until Fri</i> in the fridge, <i>past its date</i> once behind it, <i>2 portions frozen</i> once it is in the freezer. A batch nobody ticked was never cooked and has no line. The wide schedule sheet says the same line under each batch&rsquo;s words.</p>
+        </div></div>
+    </div>
+
+    <div class="frame prop" id="cs-ticks">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Cooked, by the ticks</b> · the cook day is the earliest tick, marked with a check; <code>×1</code> only when the scale isn&rsquo;t 1; one line says what&rsquo;s left and what it&rsquo;s for. A dish that freezes reaches into next week (<i>freeze by Tue for Thu</i>) (<a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+          <div class="wkhdr"><span class="chev">‹</span><span class="wt"><span class="now"></span>This week<span class="dt">1 Nov</span><span class="caret">▾</span></span><span class="chev">›</span></div>
+          <div class="cook">
+            <div class="cook-title">Hamburger Helper</div>
+            <div class="cook-sub">6 portions · keeps 3 d · freezable</div>
+            <div class="session"><div class="ses-top"><span class="ses-when"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:12px;height:12px;stroke:#2C6A3A;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:4px"><path d="M20 6 9 17l-5-5"/></svg>Cooked Fri</span></div><div class="ses-covers"><b style="color:#21502C">2 left</b> · <span style="color:#3B6076;white-space:nowrap">freeze by Mon for Wed</span></div>
+              <div class="wks sm"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span class="wk-cook wk-meal">F</span><span class="wk-keep wk-meal">S</span></div></div>
+          </div>
+          <div class="cook">
+            <div class="cook-title">Chickpea Curry</div>
+            <div class="cook-sub">4 portions · keeps 4 d</div>
+            <div class="session"><div class="ses-top"><span class="ses-when"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:12px;height:12px;stroke:#2C6A3A;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:4px"><path d="M20 6 9 17l-5-5"/></svg>Cooked Wed</span></div><div class="ses-covers"><b style="color:#21502C">1 left · for Sun</b></div>
+              <div class="wks sm"><span>S</span><span>M</span><span>T</span><span class="wk-cook wk-meal">W</span><span class="wk-keep wk-meal">T</span><span class="wk-keep">F</span><span class="wk-keep">S</span></div></div>
+          </div>
+          <div class="cook">
+            <div class="cook-title">Slow-Cooker Beef Ragù</div>
+            <div class="cook-sub">4 portions · keeps 3 d · freezable</div>
+            <div class="session"><div class="ses-top"><span class="ses-when"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:12px;height:12px;stroke:#2C6A3A;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:4px"><path d="M20 6 9 17l-5-5"/></svg>Cooked Sat</span></div><div class="ses-covers"><b style="color:#21502C">2 left</b> · <span style="color:#3B6076;white-space:nowrap">freeze by Tue for Thu</span></div>
+              <div class="wks sm"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span class="wk-cook wk-meal">S</span></div></div>
+          </div>
+          <div class="nav"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni"><span class="ic">▦</span>Week</div><div class="ni on"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
         </div></div>
     </div>
 

@@ -15,14 +15,14 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Leftovers</h1>
-    <p class="view-status">built · matches code 2026-11-07 · <code>features/cook_plan</code> · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · wide: same page, centred at 640</p>
+    <p class="view-status">built · matches code 2026-11-07 · <code>features/cook_plan</code> · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · wide: same page, centred at 640 · by the ticks: <span class="prop">proposed</span> · <a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a></p>
     <p class="view-blurb">What cooked food is in the fridge and the freezer, put right whenever you look.</p>
 </header>
 
 <div class="board">
 
     <div class="frame" id="lo-page">
-        <p class="frame-name"><b>Leftovers</b> · Fridge and Freezer, behind the fridge icon in the Week header. A row starts from the ticks and is corrected on its stepper, opened by a tap; past its date it says so and stays until someone taps it. A count names the meals still planned from the row</p>
+        <p class="frame-name"><b>Leftovers</b> · Fridge and Freezer, behind the fridge icon in the Week header. A row starts from the ticks and is corrected on its stepper, opened by a tap; past its date it says so and stays until someone taps it. A count names the meals still planned from the row <a class="supersedes" href="#lo-ticks">superseded · plan 0061</a></p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
@@ -53,7 +53,7 @@
     </div>
 
     <div class="frame" id="lo-month">
-        <p class="frame-name"><b>A month later</b> · nothing clears itself; <i>Clear all</i> marks every past-its-date fridge row gone</p>
+        <p class="frame-name"><b>A month later</b> · nothing clears itself; <i>Clear all</i> marks every past-its-date fridge row gone <a class="supersedes" href="#lo-ticks">superseded · plan 0061</a></p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
@@ -86,6 +86,34 @@
     <div class="nav" style="margin-top:auto"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
   </div>
 </div>
+    </div>
+
+    <div class="frame prop" id="lo-ticks">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Leftovers, by the ticks</b> · soonest to go off first, past its date last. A count is an <i>N left</i> chip that opens the stepper; a row says what is planned from it. <i>Freeze</i> on an in-date row that freezes, <i>Froze it</i> once past; no <i>Gone</i>. <i>Remove gone off</i> clears both shelves (<a href="../../exec-plans/active/0061-leftovers-by-the-ticks.md">plan 0061</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+          <div class="abar"><span class="back">‹</span><span class="ttl">Leftovers</span><span style="color:#2C6A3A;font-size:20px">＋</span></div>
+          <div style="display:flex;align-items:baseline;margin:2px 20px 4px"><span class="list-h" style="margin:0;flex:1">Fridge</span><span style="font-size:12.5px;font-weight:500;color:#21502C">Remove gone off</span></div>
+          <div class="crow"><span class="cl">Chickpea Curry<small><span style="display:inline-block;border:1px solid #CDD5C8;background:#FFFFFF;border-radius:7px;padding:0 7px;margin-right:4px;color:#21502C">1 left</span>for Sun</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#66736A">till Sun</span></div>
+          <div style="margin:0 20px 8px;background:#F4F6F1;border:1px solid #E2E7DD;border-radius:12px;padding:11px 12px">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;font-size:13.5px;font-weight:600;color:#21502C">Hamburger Helper</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#66736A">till Mon</span></div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076;margin-top:3px"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>freeze by Mon for Wed</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px">
+              <div class="pstepper"><span class="s">–</span><span class="qv">2</span><span class="s">+</span></div>
+              <button class="pchip" style="background:#EAF1F5;color:#3B6076;border-color:#D2E2EC;min-height:32px"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>Freeze</button>
+            </div>
+          </div>
+          <div style="margin:0 20px 8px;background:#F4F6F1;border:1px solid #E2E7DD;border-radius:12px;padding:11px 12px">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;font-size:13.5px">Slow-Cooker Beef Ragù</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#66736A">till Tue</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076"><span style="white-space:nowrap"><span style="display:inline-block;border:1px solid #CDD5C8;background:#FFFFFF;border-radius:7px;padding:0 7px;margin-right:4px;color:#21502C">2 left</span><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>freeze by Tue for Thu</span></span><button class="pchip" style="margin-left:auto;background:#EAF1F5;color:#3B6076;border-color:#D2E2EC;min-height:32px"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>Freeze</button></div>
+          </div>
+          <div style="margin:0 20px 8px;background:#FFFFFF;border:1px dashed #E2E7DD;border-radius:12px;padding:11px 12px">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="flex:1;font-size:13.5px;color:#66736A">Squash Soup</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#7A5A16">past its date</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#66736A"><span style="display:inline-block;border:1px solid #CDD5C8;background:#FFFFFF;border-radius:7px;padding:0 7px;margin-right:4px;color:#21502C">2 left</span>for Tue</span><button class="pchip" style="background:#FFFFFF;color:#3B6076;border-color:#D2E2EC;min-height:32px">Froze it</button></div>
+          </div>
+          <p class="list-h" style="margin-top:14px;color:#3B6076"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:9px;height:9px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;vertical-align:-1px;margin-right:3px"><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/><path d="m20 16-4-4 4-4"/><path d="m4 8 4 4-4 4"/><path d="m16 4-4 4-4-4"/><path d="m8 20 4-4 4 4"/></svg>Freezer</p>
+          <div class="crow" style="background:#FFFFFF;border-color:#D2E2EC"><span class="cl">Black Bean Chili<small><span style="display:inline-block;border:1px solid #CDD5C8;background:#FFFFFF;border-radius:7px;padding:0 7px;margin-right:4px;color:#21502C">2 left</span></small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">till Jan</span></div>
+          <div class="nav" style="margin-top:auto"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
+        </div></div>
     </div>
 
     <div class="frame" id="lo-add">
