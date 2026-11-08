@@ -35,7 +35,14 @@ The detail is in the plan; the landing dates are in the
    the readers in `v0.38.0`, the page, planning from both shelves and Cook
    no longer asking in `v0.39.0`; the owner's look on a phone, then the plan
    moves to `completed/`.
-8. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
+8. Step 11, continued: [plan 0061](./active/0061-leftovers-by-the-ticks.md),
+   *Leftovers by the ticks*. No tick means you didn't eat it; the cook day
+   is the earliest ticked day; a fridge row is good till cook day + fridge
+   days; the picker judges the meal's day and offers *freeze by*; a dish
+   that freezes is cooked and bought once across the week edge; and the
+   Leftovers page, Cook, the picker and the meal sheet are tidied. Designed
+   and signed off; nothing built. No migration, one release.
+9. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
 
