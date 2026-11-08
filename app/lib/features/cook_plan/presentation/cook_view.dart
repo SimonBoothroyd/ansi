@@ -452,11 +452,16 @@ class _SessionTile extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            speech.covers,
-            style: ansiSans(size: 11, color: AnsiColors.muted),
-          ),
+          // A cooked batch says what it left where its covers would be.
+          if (speech.cooked)
+            BatchLeftoverLine(session: session)
+          else ...[
+            const SizedBox(height: 6),
+            Text(
+              speech.covers,
+              style: ansiSans(size: 11, color: AnsiColors.muted),
+            ),
+          ],
           // The word a demanding line was written in, showing its work —
           // `3 blob → 45 g → 0.15 of a batch`. One per demand that said one.
           for (final word in speech.words) ...[
@@ -480,7 +485,8 @@ class _SessionTile extends ConsumerWidget {
             shape: shape,
             size: WeekStripSize.compact,
           ),
-          if (!session.isComponent) BatchLeftoverLine(session: session),
+          if (!session.isComponent && !speech.cooked)
+            BatchLeftoverLine(session: session),
         ],
       ),
     );

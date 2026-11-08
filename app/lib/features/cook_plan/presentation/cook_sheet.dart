@@ -259,14 +259,18 @@ class _MealRow extends ConsumerWidget {
             if (i > 0) const SizedBox(height: 13),
             _Says(
               speech: speeches[i],
+              // A cooked batch says what it left where its covers would be.
+              left: speeches[i].cooked
+                  ? BatchLeftoverLine(session: session)
+                  : null,
               onWholeBatch: (whole) => ref
                   .read(
                     wholeBatchDisplayProvider(cookSessionKey(session)).notifier,
                   )
                   .show(whole: whole),
             ),
-            // What the batch has left, as on the phone.
-            BatchLeftoverLine(session: session),
+            // What the batch will freeze, as on the phone.
+            if (!speeches[i].cooked) BatchLeftoverLine(session: session),
           ],
         ],
       ),
@@ -425,11 +429,16 @@ class _Name extends StatelessWidget {
 }
 
 /// One session's sentences at the row's end — the cook day with its scale, the
-/// covers line, and the exact-or-whole switch where the batch is fractional.
+/// covers line (or, once cooked, what it [left]), and the exact-or-whole
+/// switch where the batch is fractional.
 class _Says extends StatelessWidget {
-  const _Says({required this.speech, this.onWholeBatch});
+  const _Says({required this.speech, this.left, this.onWholeBatch});
 
   final SessionSpeech speech;
+
+  /// What a cooked batch left, said in place of its covers line.
+  final Widget? left;
+
   final ValueChanged<bool>? onWholeBatch;
 
   @override
@@ -456,16 +465,17 @@ class _Says extends StatelessWidget {
             ),
           ],
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 5),
-          child: Text(
-            speech.covers,
-            style: ansiMono(
-              size: 9.5,
-              color: AnsiColors.muted,
-            ).copyWith(height: 1.45),
-          ),
-        ),
+        left ??
+            Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: Text(
+                speech.covers,
+                style: ansiMono(
+                  size: 9.5,
+                  color: AnsiColors.muted,
+                ).copyWith(height: 1.45),
+              ),
+            ),
         // The word a demanding line was written in, showing its work —
         // `3 blob → 45 g → 0.15 of a batch`. One per demand that said one.
         for (final word in speech.words)

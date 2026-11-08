@@ -116,8 +116,8 @@ final _pesto = Leftover(
   place: LeftoverPlace.freezer,
   recipeId: 'bb',
   title: 'Basil Pesto',
-  since: DateTime(2026, 8, 1),
-  goodUntil: DateTime(2026, 11, 1),
+  since: DateTime(2026, 8, 2),
+  goodUntil: DateTime(2026, 11, 2),
   portions: 4,
 );
 

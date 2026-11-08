@@ -720,6 +720,8 @@ void main() {
       expect(find.textContaining('Cooked '), findsOneWidget);
       expect(find.byIcon(FLucideIcons.check), findsOneWidget);
       expect(find.text('×1'), findsNothing);
+      // What it left is said where its covers line was.
+      expect(find.textContaining('covers'), findsNothing);
     });
 
     testWidgets('what is planned from it names its days', (tester) async {
