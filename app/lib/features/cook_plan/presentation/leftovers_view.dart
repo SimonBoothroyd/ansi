@@ -529,6 +529,7 @@ class _AddLeftoverSheet extends HookConsumerWidget {
       required String label,
       required bool selected,
       required VoidCallback onTap,
+      bool words = false,
     }) => Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Semantics(
@@ -551,6 +552,14 @@ class _AddLeftoverSheet extends HookConsumerWidget {
               ),
               child: Row(
                 children: [
+                  if (words) ...[
+                    const Icon(
+                      FLucideIcons.plus,
+                      size: 14,
+                      color: AnsiColors.herbDeep,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   Expanded(
                     child: Text(
                       label,
@@ -602,6 +611,7 @@ class _AddLeftoverSheet extends HookConsumerWidget {
         if (typed.isNotEmpty)
           pick(
             label: '“$typed”',
+            words: true,
             selected: words.value,
             onTap: () {
               recipe.value = null;
