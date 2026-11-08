@@ -1,7 +1,9 @@
 /// The sheet a dish row's portions chip and avatars open: the batch the meal
-/// comes from (the week strip), the meal's slot, its eaters and its portions —
-/// and, from the meal's own day on, *I ate this* for the member signed in on
-/// this phone (`meal_eaten_row.dart`).
+/// comes from (the week strip, or for a meal from a leftover its tag and
+/// cook day), the meal's slot, its eaters and its portions — and, from the
+/// meal's own day on, *I ate this* for the member signed in on this phone
+/// (`meal_eaten_row.dart`). Before its day, a meal from a leftover offers
+/// *Cook fresh instead*; never both.
 ///
 /// A field editor only: the recipe opens from the row's title and removal is
 /// the row's `−`. The day is not a field; a meal changes day by
@@ -15,14 +17,19 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/sync/session.dart';
+import '../../../core/theme/ansi_theme.dart';
+import '../../../core/theme/ansi_tokens.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
+import '../../../shared/ansi_tap.dart';
 import '../../../shared/week_strip.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/presentation/cook_format.dart' show CookTimelineSpec;
 import '../../cook_plan/presentation/cook_view_models.dart';
+import '../../cook_plan/presentation/leftover_format.dart';
+import '../../cook_plan/presentation/leftovers_view_models.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_eaten_row.dart';
@@ -30,6 +37,7 @@ import 'meal_fields.dart';
 import 'week_format.dart';
 import 'week_variant_door.dart';
 import 'week_view_models.dart';
+import 'week_widgets.dart' show LeftoverMealTag;
 
 /// Opens the meal editor for [entry].
 Future<void> showMealEditorSheet(
@@ -64,10 +72,8 @@ class _MealEditorSheet extends ConsumerWidget {
     // once its day has come.
     final me = ref.watch(currentMemberIdProvider);
     final mealDay = entry.dateIn(week!.weekStart);
-    final canTick =
-        me != null &&
-        entry.eaterIds.contains(me) &&
-        !mealDay.isAfter(ref.watch(todayProvider));
+    final ahead = mealDay.isAfter(ref.watch(todayProvider));
+    final canTick = me != null && entry.eaterIds.contains(me) && !ahead;
 
     return AnsiSheetShell(
       // Every control writes through, so the way out is "Close".
@@ -81,7 +87,16 @@ class _MealEditorSheet extends ConsumerWidget {
       topPadding: 16,
       scrollable: true,
       children: [
-        if (entry.kind == PlanEntryKind.recipe) _MealBatch(entry: entry),
+        if (entry.isFromLeftover)
+          _LeftoverSource(entry: entry)
+        else if (entry.kind == PlanEntryKind.recipe)
+          _MealBatch(entry: entry),
+        // Before its day it can still be cooked after all; from its day on,
+        // it was eaten or it wasn't.
+        if (entry.isFromLeftover && ahead) ...[
+          const SizedBox(height: 16),
+          _CookFresh(entry: entry),
+        ],
         if (canTick) ...[
           const SizedBox(height: 16),
           MealEatenRow(entry: entry, memberId: me, mealDay: mealDay),
@@ -147,6 +162,77 @@ class _MealEditorSheet extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Where a meal from a leftover comes from: its tag, its cook day, and the
+/// day it has to go in the freezer by, if it does.
+class _LeftoverSource extends ConsumerWidget {
+  const _LeftoverSource({required this.entry});
+
+  final PlanEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = ref.watch(todayProvider);
+    final shape = ref.watch(weekShapeProvider);
+    final row = (ref.watch(fridgeAndFreezerProvider).asData?.value ?? const [])
+        .where((l) => l.meals.any((m) => m.entryId == entry.id))
+        .firstOrNull;
+    final freezeBy = ref.watch(leftoverMealsProvider)[entry.id]?.freezeBy;
+    final words = [
+      if (row != null) cookedOn(row.since, today, shape),
+      if (freezeBy != null && !today.isAfter(freezeBy))
+        'freeze by ${leftoverDay(freezeBy, today, shape)}',
+    ];
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          LeftoverMealTag(entry: entry),
+          for (final w in words)
+            Text(w, style: ansiMono(size: 10.5, color: AnsiColors.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+/// *Cook fresh instead*: one tap puts the meal back on the shopping list and
+/// frees the leftover's portions.
+class _CookFresh extends ConsumerWidget {
+  const _CookFresh({required this.entry});
+
+  final PlanEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Container(
+    decoration: const BoxDecoration(
+      border: Border(top: BorderSide(color: AnsiColors.line)),
+    ),
+    padding: const EdgeInsets.only(top: 4),
+    alignment: Alignment.centerLeft,
+    child: AnsiTap(
+      onTap: () => unawaited(
+        ref.write(
+          context,
+          'cook it fresh',
+          () => ref.read(planningRepositoryProvider).cookFreshInstead(entry.id),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Text(
+        'Cook fresh instead',
+        style: ansiSans(
+          size: 13.5,
+          color: AnsiColors.herbDeep,
+          weight: FontWeight.w500,
+        ),
+      ),
+    ),
+  );
 }
 
 /// The batch this meal comes from, as the full week strip with the meal

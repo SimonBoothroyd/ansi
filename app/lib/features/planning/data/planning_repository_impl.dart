@@ -459,6 +459,15 @@ class SqlitePlanningRepository implements PlanningRepository {
   }
 
   @override
+  Future<void> cookFreshInstead(String entryId) async {
+    await _db.execute(
+      'UPDATE plan_entry SET leftover_of = NULL, from_leftover = NULL, '
+      'updated_at = ? WHERE id = ?',
+      [_now(), entryId],
+    );
+  }
+
+  @override
   Future<void> setMealSlot(String entryId, String mealSlot) async {
     await _db.execute(
       'UPDATE plan_entry SET meal_slot = ?, updated_at = ? WHERE id = ?',

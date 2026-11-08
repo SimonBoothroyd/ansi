@@ -50,8 +50,9 @@ Stream<Map<String, LeftoverPlace>> leftoverPlaces(Ref ref) =>
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
-/// that will need freezing by then offered under Freezer. Only a recipe's
-/// row: a meal is planned from a recipe. Empty for a day behind us.
+/// that will need freezing by then offered under Freezer. Soonest to go off
+/// first within each. Only a recipe's row: a meal is planned from a recipe.
+/// Empty for a day behind us.
 @riverpod
 List<Leftover> leftoversGoodOn(Ref ref, DateTime day) {
   final today = ref.watch(todayProvider);
@@ -62,6 +63,9 @@ List<Leftover> leftoversGoodOn(Ref ref, DateTime day) {
             const <Leftover>[])
       if (leftoverOfferOn(left, day, today) case final offer?) offer,
   ];
+  // A freezer with no limit goes off last.
+  final never = DateTime(9999);
+  offers.sort((a, b) => (a.goodUntil ?? never).compareTo(b.goodUntil ?? never));
   return [
     for (final place in LeftoverPlace.values)
       for (final offer in offers)

@@ -117,7 +117,7 @@ class _FakeVocab extends ReadOnlyIngredientRepo {
 
 /// A host whose button opens the picker sheet for Wednesday dinner. With
 /// [weekStart] it plans into that week, where the fridge and freezer
-/// [leftovers] and a clock at [now] decide what *Use up* offers.
+/// [leftovers] and a clock at [now] decide what *Leftovers* offers.
 Widget _host({
   List<RecipeSummary> recipes = const [_curry, _salad],
   void Function(PickedMeal?)? onPicked,
@@ -468,10 +468,11 @@ void main() {
     });
   });
 
-  group('Use up', () {
+  group('Leftovers', () {
     // Planning Wednesday 4 November on Sunday 1 November: the fridge holds a
-    // curry good until that Wednesday and a dal only good until Monday; the
-    // freezer a chili and a soup in the household's own words.
+    // curry good until that Wednesday, a dal only good until Monday and a
+    // stew good until Monday that freezes; the freezer a chili and a soup in
+    // the household's own words.
     final curry = Leftover(
       batch: 'e-curry',
       place: LeftoverPlace.fridge,
@@ -490,13 +491,24 @@ void main() {
       goodUntil: DateTime(2026, 11, 2),
       portions: 1,
     );
+    final stew = Leftover(
+      batch: 'e-stew',
+      place: LeftoverPlace.fridge,
+      recipeId: 'r3',
+      title: 'Beef Stew',
+      since: DateTime(2026, 10, 30),
+      goodUntil: DateTime(2026, 11, 2),
+      portions: 2,
+      freezable: true,
+      freezerUntil: DateTime(2026, 11, 29),
+    );
     final chili = Leftover(
       id: 'f1',
       place: LeftoverPlace.freezer,
       recipeId: 'r2',
       title: 'Black Bean Chili',
       since: DateTime(2026, 10, 18),
-      goodUntil: null,
+      goodUntil: DateTime(2027, 1, 16),
       portions: 2,
     );
     final soup = Leftover(
@@ -508,31 +520,47 @@ void main() {
       portions: 2,
     );
 
-    Widget host({void Function(PickedMeal?)? onPicked, bool instead = false}) =>
-        _host(
-          onPicked: onPicked,
-          instead: instead,
-          weekStart: DateTime.utc(2026, 11, 2),
-          leftovers: [curry, dal, chili, soup],
-          now: DateTime(2026, 11, 1, 10),
-        );
+    Widget host({
+      void Function(PickedMeal?)? onPicked,
+      bool instead = false,
+      List<Leftover>? leftovers,
+    }) => _host(
+      onPicked: onPicked,
+      instead: instead,
+      weekStart: DateTime.utc(2026, 11, 2),
+      leftovers: leftovers ?? [curry, dal, chili, stew, soup],
+      now: DateTime(2026, 11, 1, 10),
+    );
 
     testWidgets('lists the fridge rows good for the day, then the freezer, '
         'and picks either as a leftover', (tester) async {
       filterForuiSemanticsAssertions();
+      // Three rows offered: a phone's height, not the test's default.
+      tester.view.physicalSize = const Size(400, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       PickedMeal? picked;
       await tester.pumpWidget(host(onPicked: (p) => picked = p));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Use up'), findsOneWidget);
+      expect(find.text('Leftovers'), findsOneWidget);
       expect(find.text('FRIDGE'), findsOneWidget);
-      expect(find.text('1¾ · until Wed'), findsOneWidget);
+      expect(find.text('1¾ left · till Wed'), findsOneWidget);
       // Gone by Wednesday: not offered.
       expect(find.text('Red Lentil Dal'), findsNothing);
       expect(find.text('FREEZER'), findsOneWidget);
-      expect(find.text('frozen'), findsOneWidget);
-      expect(find.text('2 · 2 wk'), findsOneWidget);
+      expect(find.text('frozen'), findsNothing);
+      expect(find.text('2 left · till Jan'), findsOneWidget);
+      // Gone from the fridge by Wednesday, but it freezes: in by Monday.
+      expect(find.text('freeze by Mon'), findsOneWidget);
+      // The freezer's subhead and the freeze-by tag.
+      expect(find.byIcon(FLucideIcons.snowflake), findsNWidgets(2));
+      // Soonest to go off first.
+      expect(
+        tester.getTopLeft(find.text('Beef Stew')).dy,
+        lessThan(tester.getTopLeft(find.text('Black Bean Chili')).dy),
+      );
       // Words name no recipe, so no meal can be planned from them.
       expect(find.text('Soup from Mum'), findsNothing);
       expect(
@@ -540,7 +568,7 @@ void main() {
         lessThan(tester.getTopLeft(find.text('FREEZER')).dy),
       );
 
-      await tester.tap(find.text('1¾ · until Wed'));
+      await tester.tap(find.text('1¾ left · till Wed'));
       await tester.pumpAndSettle();
       expect(picked, isA<PickedLeftover>());
       final left = picked! as PickedLeftover;
@@ -549,9 +577,18 @@ void main() {
 
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('2 · 2 wk'));
+      await tester.tap(find.text('2 left · till Jan'));
       await tester.pumpAndSettle();
       expect((picked! as PickedLeftover).leftover.id, 'f1');
+    });
+
+    testWidgets('an empty shelf draws no subhead', (tester) async {
+      filterForuiSemanticsAssertions();
+      await tester.pumpWidget(host(leftovers: [chili]));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('FRIDGE'), findsNothing);
+      expect(find.text('FREEZER'), findsOneWidget);
     });
 
     testWidgets('is never offered for what was had instead', (tester) async {
@@ -559,7 +596,7 @@ void main() {
       await tester.pumpWidget(host(instead: true));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
-      expect(find.text('Use up'), findsNothing);
+      expect(find.text('Leftovers'), findsNothing);
     });
   });
 
@@ -625,7 +662,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Use up'), findsOneWidget);
+      expect(find.text('Leftovers'), findsOneWidget);
       // Two eaters at factor 1: half the curry's batch, all that is spare.
       expect(find.text('150 g firm tofu'), findsOneWidget);
       expect(find.text('300 g spinach'), findsOneWidget);

@@ -93,7 +93,7 @@ final class PickedMealOut extends PickedMeal {
 /// nothing in the whole vocabulary, and there is no new recipe to build.
 ///
 /// With [weekStart] — planning, not *Had instead* — the fridge rows still good
-/// on that day and the freezer rows lead the list, in *Use up*.
+/// on that day and the freezer rows lead the list, in *Leftovers*.
 Future<PickedMeal?> showRecipePickerSheet(
   BuildContext context, {
   required int dayOfWeek,
@@ -312,7 +312,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
                     real.isNotEmpty
                         ? real.first
                         : RecipeSummary(
-                            // Use up offers only a recipe's row.
+                            // Leftovers offers only a recipe's row.
                             id: left.recipeId!,
                             title: left.title,
                             servingsBase: 1,

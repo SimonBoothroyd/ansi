@@ -1050,11 +1050,14 @@ void main() {
     expect(find.byType(LeftoverMealTag), findsOneWidget);
     expect(find.text('leftover'), findsOneWidget);
     expect(tagInk(), AnsiColors.chillInk);
+    // The freezer's blue wears a snowflake, the fridge's green does not.
+    expect(find.byIcon(FLucideIcons.snowflake), findsOneWidget);
     expect(find.text('from Monday\u2019s batch'), findsNothing);
 
     await pump('fridge');
     await tester.pumpAndSettle();
     expect(tagInk(), AnsiColors.herbDeep);
+    expect(find.byIcon(FLucideIcons.snowflake), findsNothing);
   });
 
   testWidgets('a leftover meal that no longer adds up keeps its tag and warns '
@@ -1712,6 +1715,76 @@ void main() {
       await tester.tap(find.text('Ate this'));
       await tester.pumpAndSettle();
       expect(planning.eatenWrites.single.$3, DateTime(2026, 8, 27, 9, 15));
+    });
+
+    group('a meal from a leftover', () {
+      Future<_FakePlanningRepo> pumpLeftover(
+        WidgetTester tester, {
+        required DateTime now,
+      }) async {
+        final week = _plannedWeek();
+        final planning = _FakePlanningRepo(
+          week: week.copyWith(
+            entries: [week.entries.single.copyWith(fromLeftover: 'lo')],
+          ),
+        );
+        await _pumpWeek(
+          tester,
+          planning: planning,
+          extra: [
+            currentMemberIdProvider.overrideWithValue('m1'),
+            clockProvider.overrideWithValue(() => now),
+            leftoverRepositoryProvider.overrideWithValue(
+              FakeLeftoverRepository([
+                Leftover(
+                  id: 'lo',
+                  place: LeftoverPlace.fridge,
+                  recipeId: 'r1',
+                  title: 'Weeknight Chicken Curry',
+                  since: DateTime(2026, 8, 25),
+                  goodUntil: DateTime(2026, 8, 29),
+                  portions: 0,
+                  planned: 1,
+                  meals: [
+                    LeftoverMeal(
+                      entryId: 'e1',
+                      day: DateTime(2026, 8, 27),
+                      portions: 1,
+                      place: LeftoverPlace.fridge,
+                    ),
+                  ],
+                ),
+              ]),
+            ),
+          ],
+        );
+        return planning;
+      }
+
+      testWidgets('before its day: says where it comes from, and Cook fresh '
+          'instead is one tap', (tester) async {
+        filterForuiSemanticsAssertions();
+        final planning = await pumpLeftover(
+          tester,
+          now: DateTime(2026, 8, 26, 12),
+        );
+        await openSheet(tester);
+        expect(find.text('cooked Tue'), findsOneWidget);
+        expect(find.text('Ate this'), findsNothing);
+        await tester.tap(find.text('Cook fresh instead'));
+        await tester.pumpAndSettle();
+        expect(planning.cookedFresh, ['e1']);
+      });
+
+      testWidgets('from its day on: Ate this, never Cook fresh instead', (
+        tester,
+      ) async {
+        filterForuiSemanticsAssertions();
+        await pumpLeftover(tester, now: thursdayEvening);
+        await openSheet(tester);
+        expect(find.text('Ate this'), findsOneWidget);
+        expect(find.text('Cook fresh instead'), findsNothing);
+      });
     });
 
     testWidgets('a meal still to come offers no tick', (tester) async {

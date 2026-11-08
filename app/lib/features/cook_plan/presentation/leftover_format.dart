@@ -18,7 +18,7 @@ String leftoverWhen(Leftover left, DateTime today, WeekShape shape) {
   if (left.pastItsDate(today)) return 'past its date';
   final freezeBy = left.freezeBy;
   if (left.place == LeftoverPlace.freezer && freezeBy != null) {
-    return 'freeze by ${_dayWord(freezeBy, today, shape)}';
+    return 'freeze by ${leftoverDay(freezeBy, today, shape)}';
   }
   final until = left.goodUntil;
   if (until != null) return leftoverTill(until, today, shape);
@@ -29,7 +29,7 @@ String leftoverWhen(Leftover left, DateTime today, WeekShape shape) {
 /// month, `till Jan` past it.
 String leftoverTill(DateTime until, DateTime today, WeekShape shape) =>
     _daysBetween(today, until) < 28
-    ? 'till ${_dayWord(until, today, shape)}'
+    ? 'till ${leftoverDay(until, today, shape)}'
     : 'till ${formatMonthShort(until)}';
 
 /// `for Sun`, `for Sat + Sun`: the days of the meals still to come that are
@@ -43,7 +43,7 @@ String? leftoverFreezeFor(Leftover left, DateTime today, WeekShape shape) {
   final by = left.freezeBy;
   if (left.place != LeftoverPlace.fridge || by == null) return null;
   return _days(
-    'freeze by ${_dayWord(by, today, shape)} for',
+    'freeze by ${leftoverDay(by, today, shape)} for',
     _aheadDays(left, today, frozen: true),
     today,
     shape,
@@ -54,7 +54,7 @@ String? leftoverFreezeFor(Leftover left, DateTime today, WeekShape shape) {
 /// meals, and by when.
 String freezeShareFor(FreezeShare share, DateTime today, WeekShape shape) =>
     _days(
-      'freeze by ${_dayWord(share.freezeBy, today, shape)} for',
+      'freeze by ${leftoverDay(share.freezeBy, today, shape)} for',
       share.forDays,
       today,
       shape,
@@ -64,13 +64,22 @@ String freezeShareFor(FreezeShare share, DateTime today, WeekShape shape) =>
 /// freezer for its later meals, and by when.
 String freezeShareLine(FreezeShare share, DateTime today, WeekShape shape) =>
     'freeze ${formatFraction(share.portions)} by '
-    '${_dayWord(share.freezeBy, today, shape)} for '
-    '${share.forDays.map((d) => _dayWord(d, today, shape)).join(' + ')}';
+    '${leftoverDay(share.freezeBy, today, shape)} for '
+    '${share.forDays.map((d) => leftoverDay(d, today, shape)).join(' + ')}';
 
 /// `2 left · till Mon`, `2 left · freeze by Mon`: what can still be planned
 /// from [left], and [leftoverWhen].
 String leftoverLine(Leftover left, DateTime today, WeekShape shape) =>
     '${leftCount(left.portions)} · ${leftoverWhen(left, today, shape)}';
+
+/// `cooked today`, `cooked Fri` within the week gone, `cooked 21 Oct` before
+/// it.
+String cookedOn(DateTime since, DateTime today, WeekShape shape) {
+  final days = _daysBetween(since, today);
+  if (days <= 0) return 'cooked today';
+  if (days < 7) return 'cooked ${shape.labelShort(shape.offsetOf(since))}';
+  return 'cooked ${formatDayMonth(since)}';
+}
 
 /// `today`, `1 day`, `4 days`, `1 wk`, `6 wk`: how long since [since].
 String leftoverAge(DateTime since, DateTime today) {
@@ -108,10 +117,10 @@ String? _days(
   WeekShape shape,
 ) => days.isEmpty
     ? null
-    : '$lead ${days.map((d) => _dayWord(d, today, shape)).join(' + ')}';
+    : '$lead ${days.map((d) => leftoverDay(d, today, shape)).join(' + ')}';
 
 /// `today`, `Mon` within the coming week, `21 Nov` past it.
-String _dayWord(DateTime day, DateTime today, WeekShape shape) {
+String leftoverDay(DateTime day, DateTime today, WeekShape shape) {
   final days = _daysBetween(today, day);
   if (days <= 0) return 'today';
   if (days < 7) return shape.labelShort(shape.offsetOf(day));

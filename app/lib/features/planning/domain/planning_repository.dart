@@ -83,6 +83,11 @@ abstract interface class PlanningRepository {
   /// explicitly.
   Future<void> setPortions(String entryId, int? portions);
 
+  /// Cooks a meal planned from a leftover fresh after all: it no longer
+  /// points at a cooked batch or a fridge or freezer row, so it is cooked,
+  /// bought and costed again, and the leftover's portions are free.
+  Future<void> cookFreshInstead(String entryId);
+
   /// Moves an entry to another slot on the same day. [mealSlot] is a trimmed,
   /// non-empty label.
   Future<void> setMealSlot(String entryId, String mealSlot);

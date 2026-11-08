@@ -1,11 +1,12 @@
-/// *Use up*: what is already cooked or bought, offered first in the planning
-/// picker. The fridge rows still good for the day, then the freezer rows, each
-/// with its portions and its date (a tap plans a meal from it, not cooked
-/// again and not bought), then the recipes that would use the most of last
-/// week's spare fresh food.
+/// *Leftovers*: what is already cooked or bought, offered first in the
+/// planning picker. The fridge rows still good for the day, then the freezer
+/// rows, each soonest to go off first with what is left and its date (a tap
+/// plans a meal from it, not cooked again and not bought), then the recipes
+/// that would use the most of last week's spare fresh food.
 library;
 
 import 'package:flutter/widgets.dart';
+import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
@@ -37,9 +38,10 @@ String spareAmount(double amount, Unit unit, double? pieceBasisAmount) {
   return '${formatAmountIn(amount, unit)} ${unit.label}';
 }
 
-/// The *Use up* block at the head of the planning picker: the fridge rows good
-/// for the day, the freezer rows, then the recipes that would use the most of
-/// last week's spare food, with *what's left ›* opening the reasoning.
+/// The *Leftovers* block at the head of the planning picker: the fridge rows
+/// good for the day, the freezer rows, then the recipes that would use the
+/// most of last week's spare food, with *what's left ›* opening the
+/// reasoning. An empty shelf draws no subhead.
 class UseUpBlock extends ConsumerWidget {
   const UseUpBlock({
     required this.leftovers,
@@ -50,7 +52,7 @@ class UseUpBlock extends ConsumerWidget {
     super.key,
   });
 
-  /// The rows good for the day, fridge first.
+  /// The rows good for the day, fridge first, soonest to go off first.
   final List<Leftover> leftovers;
 
   final ValueChanged<Leftover> onPick;
@@ -65,7 +67,6 @@ class UseUpBlock extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final shape = ref.watch(weekShapeProvider);
     final today = ref.watch(todayProvider);
     final label = ansiMono(
       size: 9.5,
@@ -80,18 +81,31 @@ class UseUpBlock extends ConsumerWidget {
       for (final l in leftovers)
         if (l.place == LeftoverPlace.freezer) l,
     ];
-    List<Widget> shelf(String name, Color ink, List<Leftover> rows) => [
+    List<Widget> shelf(
+      String name,
+      Color ink,
+      List<Leftover> rows, {
+      bool chill = false,
+    }) => [
       if (rows.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
-          child: Text(name, style: label.copyWith(color: ink)),
+          child: Row(
+            children: [
+              if (chill) ...[
+                Icon(FLucideIcons.snowflake, size: 9, color: ink),
+                const SizedBox(width: 4),
+              ],
+              Text(name, style: label.copyWith(color: ink)),
+            ],
+          ),
         ),
       for (final left in rows)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: _LeftoverRow(
             left: left,
-            line: leftoverLine(left, today, shape),
+            today: today,
             onTap: () => onPick(left),
           ),
         ),
@@ -106,7 +120,7 @@ class UseUpBlock extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Use up',
+            'Leftovers',
             style: ansiMono(
               size: 10,
               color: AnsiColors.herbDeep,
@@ -117,7 +131,7 @@ class UseUpBlock extends ConsumerWidget {
           ...shelf('FRIDGE', AnsiColors.muted, fridge),
           if (fridge.isNotEmpty && freezer.isNotEmpty)
             const SizedBox(height: 4),
-          ...shelf('FREEZER', AnsiColors.chillInk, freezer),
+          ...shelf('FREEZER', AnsiColors.chillInk, freezer, chill: true),
           if (suggestions.isNotEmpty) ...[
             Padding(
               padding: EdgeInsets.only(
@@ -220,23 +234,30 @@ class _SuggestionRow extends StatelessWidget {
   }
 }
 
-class _LeftoverRow extends StatelessWidget {
+/// One row offered: the dish, then `1 left · till Mon` (with the fridge's
+/// `leftover` tag), `2 left · till Jan` from the freezer, or `2 left` and a
+/// `freeze by Mon` tag for a fridge row that has to go in by then.
+class _LeftoverRow extends ConsumerWidget {
   const _LeftoverRow({
     required this.left,
-    required this.line,
+    required this.today,
     required this.onTap,
   });
 
   final Leftover left;
-  final String line;
+  final DateTime today;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shape = ref.watch(weekShapeProvider);
     final frozen = left.place == LeftoverPlace.freezer;
+    final freezeBy = frozen && left.freezeBy != null;
+    final when = leftoverWhen(left, today, shape);
+    final ink = frozen ? AnsiColors.chillInk : AnsiColors.herbDeep;
     return Semantics(
       button: true,
-      label: '${left.title}, ${frozen ? 'frozen' : 'leftover'}, $line',
+      label: '${left.title}, ${leftCount(left.portions)}, $when',
       child: ExcludeSemantics(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -251,37 +272,31 @@ class _LeftoverRow extends StatelessWidget {
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(left.title, style: ansiSerif(size: AnsiType.row)),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          LeftoverTag(
-                            place: left.place,
-                            label: frozen ? 'frozen' : 'leftover',
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              line,
-                              overflow: TextOverflow.ellipsis,
-                              style: ansiMono(
-                                size: 10,
-                                color: frozen
-                                    ? AnsiColors.chillInk
-                                    : AnsiColors.herbDeep,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                Text(left.title, style: ansiSerif(size: AnsiType.row)),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    if (!frozen) ...[
+                      const LeftoverTag(place: LeftoverPlace.fridge),
+                      const SizedBox(width: 6),
                     ],
-                  ),
+                    Flexible(
+                      child: Text(
+                        freezeBy
+                            ? '${leftCount(left.portions)} ·'
+                            : '${leftCount(left.portions)} · $when',
+                        overflow: TextOverflow.ellipsis,
+                        style: ansiMono(size: 10, color: ink),
+                      ),
+                    ),
+                    if (freezeBy) ...[
+                      const SizedBox(width: 6),
+                      LeftoverTag(place: LeftoverPlace.freezer, label: when),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -363,8 +378,9 @@ class LeftoverMealCard extends ConsumerWidget {
 }
 
 /// The tag a meal from a leftover wears in the picker, on the confirm sheet
-/// and on its Week row: the fridge's green, or the freezer's blue. A meal that
-/// no longer adds up keeps its colour and adds its [warning] in amber.
+/// and on its Week row: the fridge's green, or the freezer's blue with a
+/// snowflake. A meal that no longer adds up keeps its colour and adds its
+/// [warning] in amber.
 class LeftoverTag extends StatelessWidget {
   const LeftoverTag({
     required this.place,
@@ -376,7 +392,8 @@ class LeftoverTag extends StatelessWidget {
 
   final LeftoverPlace place;
 
-  /// `leftover`, or `frozen` where the picker lists the freezer.
+  /// `leftover`, or `freeze by Mon` where the picker offers a fridge row
+  /// that has to go in by then.
   final String label;
 
   /// What is wrong with the meal on its day, if anything.
@@ -389,29 +406,39 @@ class LeftoverTag extends StatelessWidget {
     final frozen = place == LeftoverPlace.freezer;
     final ink = frozen ? AnsiColors.chillInk : AnsiColors.herbDeep;
     final warned = warning;
+    final words = warned == null
+        ? Text(
+            label,
+            style: ansiMono(size: size, color: ink),
+          )
+        : Text.rich(
+            TextSpan(
+              text: label,
+              children: [
+                TextSpan(
+                  text: ' · ${leftoverWarningWords(warned)}',
+                  style: ansiMono(size: size, color: AnsiColors.cautionInk),
+                ),
+              ],
+            ),
+            style: ansiMono(size: size, color: ink),
+          );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: frozen ? AnsiColors.chill : AnsiColors.herbSoft,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: warned == null
-          ? Text(
-              label,
-              style: ansiMono(size: size, color: ink),
+      child: frozen
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(FLucideIcons.snowflake, size: size, color: ink),
+                const SizedBox(width: 3),
+                words,
+              ],
             )
-          : Text.rich(
-              TextSpan(
-                text: label,
-                children: [
-                  TextSpan(
-                    text: ' · ${leftoverWarningWords(warned)}',
-                    style: ansiMono(size: size, color: AnsiColors.cautionInk),
-                  ),
-                ],
-              ),
-              style: ansiMono(size: size, color: ink),
-            ),
+          : words,
     );
   }
 }
