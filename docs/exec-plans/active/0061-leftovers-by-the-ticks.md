@@ -239,6 +239,59 @@ Append-only.
   - A recipe with no fridge life keeps one week. Before, a derived row was
     dated to its last meal, and a stored row had no date.
 
+- 2026-11-08 — Phases 1–3 built (one lane). Decided in the lane:
+  - **"Covered by one whole recipe"** is: the batch's planned portions plus
+    the folded meals' are at most the recipe's `servings_base`, a scale of ×1
+    or less. Only the week's last batch of a freezable dish folds, taking the
+    next week's meals in day order while each is within `freezer_days` of the
+    batch's planned cook day, and stopping at the first that fails either
+    test. A meal within the fridge window folds as a fridge share.
+  - **A fold never chains.** A dish the week before also plans folds nothing
+    forward, so each week is read from two weeks back and one ahead. A dish
+    planned every week is cooked every week, as before.
+  - **One choke point:** the cook plan and the shop read the week's meals
+    through one loader (`loadPlannedWeek`), which drops a meal the week before
+    cooks and adds the next week's folded meals. The shop no longer has its
+    own query, so the seam's structural test now expects one clause, not two.
+  - **The week's cost** passes over a folded meal in the week it is eaten and
+    adds its share to the week that buys it, at its portions (household view
+    only; under a lens it is next week's meal).
+  - **A cooked batch's later meals are on its derived row as spoken for**
+    (`planned`), so Friday night reads 2 left beside 2 for Saturday, as the
+    rules page draws it. A stored row (a correction) does not carry them;
+    how later ticks come off a set count is phase 4's.
+  - **A row shows while it has portions left or meals still to come.** That is
+    what lets `freeze by Mon for Wed` show with nothing else left. The picker
+    never offers a row with nothing left.
+  - **A batch not cooked yet** with a skipped meal behind it is a row dated
+    from its next meal: the picker offers it from then (*not cooked yet? it
+    judges from its next meal*). The Leftovers page and Cook's line hide it
+    until its cook day.
+  - **The assumed freeze moves the whole row.** Once the fridge date is behind
+    us, a row with any meal from it past that date reads as a freezer row,
+    dated from the cook day. The rest of the box is taken to have gone in too.
+  - **Warnings, in day order.** Each meal from a row takes its portions from
+    what is left. The first that asks more, and every one after, reads
+    `notEnoughLeft`, as does a meal before the cook day and a meal from a row
+    gone or never cooked. A day past every date the row can reach reads
+    `pastItsDate`. A batch's own later meals warn only `pastItsDate`.
+  - **Freeze and Froze it keep `since`**, the cook day; the repository's
+    `since` argument is gone. Freezer rows stored before keep the date they
+    were given.
+  - **The Week** reads the cook day by the ticks. A meal before it shows no
+    marker, and a later meal of a cooked batch wears `leftover`, blue past the
+    fridge date. A meal the week before cooks wears `leftover` from the start
+    (blue past the fridge date), unless it has become that batch's cook day
+    (`cooks Thu · batch of 4`). A never-cooked past week keeps its planned
+    markers.
+  - **Cook's batch line** reads `freeze 2 by Tue for Thu` until the freeze is
+    due, for an in-week freezer share too, then the row's line as before. The
+    final copy is phase 4's.
+  - **The confirm sheet's Frozen · Cook fresh** offers a freezer row only when
+    it is in date on the meal's day.
+  - **Not done here:** phase 4, the board, the product spec, `ARCHITECTURE.md`,
+    and `make test-sim` (no simulator in this lane).
+
 ## Notes / open questions
 
 - **The cross-week fold looks one week ahead only.** A freezer life of

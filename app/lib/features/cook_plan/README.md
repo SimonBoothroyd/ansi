@@ -11,10 +11,10 @@ opens **Leftovers**.
 
 **Leftovers** (`/leftovers`) is this feature's one writing page: the
 household's **fridge and freezer**, the derived batches merged with the
-`leftover` rows it has stored (`householdLeftovers`, below), put right with a
+`leftover` rows it has stored (`readLeftovers`, below), put right with a
 stepper, Freeze, Froze it, Gone, Clear all and *Add a leftover*. Its door is
 the fridge in the Week header. The planning picker's *Use up* offers its rows
-back.
+back, judged on the day being planned.
 
 ## Layout
 
@@ -23,21 +23,26 @@ cook_plan/
   domain/         PURE DART (no package:flutter)
     cook_plan.dart              CoveredMeal · PlannedRecipe · CookSession ·
                                 RecipeCookPlan · CookPlan; clusterSessions +
-                                buildCookPlan + batchHintFor
-    leftovers.dart              BatchLeftover, wasCooked, useByOf,
-                                batchLeftovers; StoredLeftover, Leftover,
-                                householdLeftovers, leftoverWeekStarts
+                                plannedAcrossWeeks + buildCookPlan +
+                                batchHintFor
+    leftovers.dart              cookDayOf, useByOf, freezeShareOf;
+                                StoredLeftover, Leftover, LeftoverMeal,
+                                LeftoverShelves, readLeftovers,
+                                leftoverOfferOn, leftoverWeekStarts
     cook_plan_repository.dart   the plan (read only)
     leftover_repository.dart    the shelves, and every write to them
   data/           SqliteCookPlanRepository (watch → buildCookPlan, and
-                  loadCookPlan, read once); SqliteLeftoverRepository; providers
+                  loadCookPlan, read once; loadPlannedWeek, the week's
+                  recipe meals across both week edges, which the shop reads
+                  too); SqliteLeftoverRepository; providers
   presentation/   CookView (each session draws the compact week strip,
                   shared/week_strip.dart) + CookSheet; cook_format.dart (copy
                   + strip geometry, pure Dart); cook_view_models.dart;
                   batch_leftover_line.dart (a batch card's one line);
                   leftovers_view.dart (the page, its rows, Add a leftover,
                   and LeftoversDoor); leftovers_view_models.dart;
-                  leftover_format.dart (`1¾ · until Mon`, pure Dart)
+                  leftover_format.dart (`1¾ · until Mon`, `freeze 2 by Tue
+                  for Thu`, pure Dart)
 ```
 
 ## The clustering rule (spec §4)
@@ -48,7 +53,9 @@ window (`keeps_for_days`). A meal past the window folds in anyway as a **frozen*
 share when the recipe is `freezable` and the meal is within `freezer_days`
 (null = no limit); otherwise it opens a new session. O(n·log n).
 
-- The **cook day** is the earliest covered day (display-only this step).
+- The session's `cookDay` is its earliest **planned** day: what the shop, the
+  strip and the clustering read. When it was actually cooked is the ticks'
+  (`cookDayOf`, below).
 - The **scale factor** is the raw `total_portions / servings_base` — honest, not
   rounded to a whole batch (whole-ingredient scaling is deferred); the
   session's exact-or-whole switch is display only. Since plan
@@ -61,31 +68,89 @@ share when the recipe is `freezable` and the meal is within `freezer_days`
 `batchHintFor` reuses `clusterSessions` so the planner's "same batch" hint on the
 add-a-meal flow can never disagree with the cook plan.
 
+### Across the week edge
+
+A dish that freezes is cooked once for two weeks. The week's **last** batch of
+a freezable recipe folds in the next week's meals of it (`PlannedRecipe.
+nextWeek`), in day order, while each is within `freezer_days` of the batch's
+planned cook day and **one whole recipe covers them**: the batch's portions
+plus the folded ones are at most `servings_base`, a scale of ×1 or less. The
+fold stops at the first meal that fails either test. A folded meal is a cover
+on days 7..13 (`CookSession.nextWeekCovers`), so the batch is scaled, bought
+and costed for it in its own week.
+
+A recipe the week before also plans folds nothing (`plannedWeekBefore`), so a
+fold never chains and each week reads only its neighbours: `loadPlannedWeek`
+reads two weeks back and one ahead, and `plannedAcrossWeeks` takes a meal the
+week before cooks out of this week, naming it in `CookPlan.foldedBack` with
+that batch. That read is the **one choke point** the cook plan and the shop
+share, as `leftover_of` / `from_leftover` are; the Week's cost passes over
+`foldedBack` and adds `CookPlan.cookedForNextWeek` (the household view only).
+A Saturday never ticked makes the folded Thursday its cook day by the ticks'
+rule, with nothing bought again.
+
+## The cook day, by the ticks
+
+**No tick means you didn't eat it.** `cookDayOf` reads a batch's cook day off
+its meals' ticks on a day: the earliest calendar day with an eaten portion,
+whatever order the ticks came in (an untick works it out again); with no tick,
+the first of its meals not yet behind us (`Cook Fri`); with every meal behind
+and none ticked, null: never cooked, nothing left. `useByOf` is that day plus
+`keeps_for_days`, that day included, and never stretches to a later meal; a
+recipe with no fridge life keeps `kAssumedFridgeDays` (7), derived and stored
+rows alike. `freezeShareOf` is the part of a freezable batch past that date,
+which Cook's batch line says until the freeze is due: `freeze 2 by Tue for
+Thu`.
+
+The Week reads the same rule (`cookMarkerFor` in `planning`): a meal before
+the cook day says nothing, the cook day says `cooks Fri · batch of 6`, and a
+later meal of a batch already cooked wears the `leftover` tag, blue past the
+fridge date; a meal the week before cooks wears it too, until it becomes that
+batch's cook day.
+
 ## The fridge and the freezer
 
-`householdLeftovers` is the one seam (pure) that says what cooked food the
-household has, on a day:
+`readLeftovers` is the one seam (pure) that says what cooked food the
+household has on a day, and judges every meal served from it
+(`LeftoverShelves`: the rows, and the meals by `plan_entry` id):
 
-- **Derived rows** are the cooked batches of the last four weeks
-  (`kLeftoverHorizon`, `leftoverWeekStarts`), each from `batchLeftovers`:
-  fridge rows dated by `useByOf`. A batch an older build's Cook was told was
-  binned or eaten (`batch_leftover`, which takes no new writes) reads as
-  gone.
+- **Derived rows** are the batches of the last four weeks (`kLeftoverHorizon`,
+  `leftoverWeekStarts`) with a cook day. **Made is what was planned**: what is
+  left is the portions of its meals behind us that nobody ate (a skipped meal
+  before the cook day included), less the meals planned from it. A cooked
+  batch's later meals ride on the row as spoken for (`own` meals, in
+  `planned`). A batch not cooked yet but with a skipped meal behind it is a row
+  dated from its next meal: the picker offers it from then, the page and
+  Cook's line do not show it. A batch an older build's Cook was told was
+  binned or eaten (`batch_leftover`, which takes no new writes) reads as gone.
 - **Stored rows** (`leftover`) are what was said: a correction, a freeze, a
   dish the app never saw. A row with a `batch` replaces that batch's derived
   row, gone or not; two rows for one batch read as the newest `updated_at`.
-  A fridge row is good until `since` + `keeps_for_days`, a freezer row until
-  `since` + `freezer_days` (null: no limit). A row in words, or for a recipe
-  with no stated shelf life, has no date.
+  A fridge row is good until `since` + `keeps_for_days` (7 when unknown), a
+  freezer row until `since` + `freezer_days` (null: no limit); `since` is the
+  cook day. A row in words has no date.
 - **Each row's portions fall by the meals planned from it**: `leftover_of`
   for a derived batch, `from_leftover` for a stored row (summed across a
-  batch's duplicates). A row with nothing left is not shown. `planned` is
-  the part of those meals still to come, which the page prints beside the
-  count (`2 · 2 planned`).
+  batch's duplicates). A row shows while it has portions left or meals still
+  to come (`planned`).
+- **Each meal planned from a row is judged on its own day**, in day order:
+  `notEnoughLeft` once the meals before it and it ask more than is left (or
+  it falls before the cook day, or the row is gone or never cooked),
+  `pastItsDate` when its day is past every date the row can reach. The Week
+  prints either in amber on the meal's tag. Nothing edits the plan.
+- **Freeze by.** A fridge row of a dish that freezes reaches past its fridge
+  date from the freezer, until its freezer date counted from the cook day
+  (`Leftover.shelfOn`). A meal planned that far marks the row `freezeBy` its
+  fridge date (`freeze by Mon for Wed`); once that date is behind us the
+  freeze is taken as done and the row reads as a freezer row, dated from the
+  cook day.
+- **The picker** (`leftoverOfferOn`) judges a row on the day being planned: a
+  fridge row in date then, from the fridge; one that would need freezing by
+  then, under Freezer as `freeze by Mon`; a freezer row in date then. A row
+  past its date today, a row in words and a row with nothing left are never
+  offered.
 - **Nothing clears itself.** A row stays until `gone_at`; `pastItsDate`
-  says when it is behind its date, and `isGoodOn` which days *Use up* may
-  offer it for (a fridge row from its cook day to its date, a freezer row on
-  any day).
+  says when it is behind its date.
 
 ### The writes
 
@@ -99,8 +164,8 @@ UPDATE.
 - **The stepper** stores the count it is set to **plus** the meals already
   planned from the row (`from_leftover`, across the batch's duplicates),
   because a stored row's portions are counted before them.
-- **Freeze** sets `place = freezer` and `since` to today; **Froze it** to the
-  row's fridge date. **Gone** and **Clear all** set `gone_at`.
+- **Freeze** and **Froze it** set `place = freezer` and keep `since`, the cook
+  day: freezer dates count from it. **Gone** and **Clear all** set `gone_at`.
 - **Add a leftover** inserts a row with no `batch`: a recipe or the
   household's words, either place, `since` from the chip (today, 7 or 14
   days back).
@@ -108,9 +173,9 @@ UPDATE.
   `/leftovers` (`shared/dropped_write_subject.dart`).
 
 A meal from either kind is never cooked again: the cook plan's query reads
-`leftover_of IS NULL AND from_leftover IS NULL`, as the shop's does, and
-`test/structure/leftover_meal_seam_test.dart` holds every such pass to both
-columns.
+`leftover_of IS NULL AND from_leftover IS NULL` in `loadPlannedWeek`, which the
+shop reads too, and `test/structure/leftover_meal_seam_test.dart` holds every
+such pass to both columns.
 
 ## Nested recipes, for one week
 
@@ -146,7 +211,6 @@ the number and says `saysAMeasure` — never re-read as a count of the yield.
 
 ## Deferred
 
-- **Whole-ingredient scaling** (spec §4) — shown as the raw factor for now.
-- **Interactive cook-day adjustment** — display-only; making it movable needs a
-  persisted override (the plan is otherwise purely derived).
-- Both are stretch.
+- **Whole-ingredient scaling** (spec §4) — shown as the raw factor for now;
+  stretch.
+- **No *Cooked on* override**, by ruling: the cook day is the ticks'.
