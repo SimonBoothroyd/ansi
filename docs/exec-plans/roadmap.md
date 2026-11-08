@@ -31,11 +31,10 @@ The detail is in the plan; the landing dates are in the
 7. Step 11, continued: [plan 0060](./active/0060-leftovers-fridge-and-freezer.md),
    *Leftovers* — one page for the fridge and the freezer behind a Week
    header icon; nothing clears itself. Designed and drawn as proposed; it
-   replaces plan 0059's Cook question and fridge-only leftovers. Phases 1–2
-   (migration 0060, its readers and the pure seam) shipped in `v0.38.0`;
-   phases 3–5 (the page and its door, planning from both shelves, Cook
-   stops asking) are on main, not yet tagged — tag once both phones run
-   `v0.38.0`.
+   replaces plan 0059's Cook question and fridge-only leftovers. Shipped:
+   the readers in `v0.38.0`, the page, planning from both shelves and Cook
+   no longer asking in `v0.39.0`; the owner's look on a phone, then the plan
+   moves to `completed/`.
 8. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
@@ -47,7 +46,7 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-- Leftovers, the writer half ([plan 0060](./active/0060-leftovers-fridge-and-freezer.md)) — the Leftovers page behind a fridge icon in the Week header (fridge and freezer, corrected on the row, nothing clears itself), *Use up* from both shelves, *Frozen · Cook fresh* on the confirm sheet, and Cook no longer asking. Tag once both phones run `v0.38.0`.
+Nothing: every change on main is in a tag.
 
 ## Shipped
 
@@ -133,6 +132,7 @@ rows below, in that order.)
 | — | The Shop refresh — a row leads with what you buy and opens its breakdown from the amount; the basket, *At home* and the plan's notes fold; a `To buy · At home?` toggle and one search field at the top; scanning on the receipts ledger; a row priced at the cheapest seen in 90 days, by store. Also an offline token refresh kept off the crash toast | `v0.35.0` | [0056](./active/0056-shop-refresh.md) |
 | — | Use it up — the picker leads with last week's cooked leftovers still good for the day (a meal from one is not cooked, bought or costed again) and the recipes that would use the most of last week's spare fresh food, scored by what the amounts they use cost; the Shop offers that spare as at home, in the row's own words; Cook asks *Binned · We ate it* once a leftover is past its use-by. Migration `0059` | `v0.37.0` | [0059](./active/0059-use-it-up.md) |
 | — | Leftovers, the reader half — migration `0060` (`leftover`: a fridge or freezer row, and `plan_entry.from_leftover`, a meal eaten from one), a meal from a row never cooked, bought or costed again, and the one seam that merges cooked batches with stored rows. No screen writes a row yet; both phones need this build before the next. Also the Week lens opening on the member signed in | `v0.38.0` | [0060](./active/0060-leftovers-fridge-and-freezer.md) |
+| — | Leftovers, the writer half — the Leftovers page behind a fridge icon in the Week header (fridge and freezer, a count corrected on the row, Freeze · Froze it · Gone · Clear all, *Add a leftover* in a recipe or your own words; nothing clears itself, a row past its date says so), *Use up* from both shelves, *Frozen · Cook fresh* on the confirm sheet, the Week's `leftover` tag blue from the freezer, and Cook no longer asking | `v0.39.0` | [0060](./active/0060-leftovers-fridge-and-freezer.md) |
 
 ## Stretch
 

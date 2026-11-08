@@ -1,6 +1,6 @@
 # Exec plan: Leftovers — fridge and freezer
 
-- **Status:** active — phases 1–5 built; phases 1–2 ship in a release before 3–5; not yet tagged
+- **Status:** active — shipped: phases 1–2 in `v0.38.0`, phases 3–5 in `v0.39.0`; the owner's look on a phone still owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); replaces part of [plan 0059](./0059-use-it-up.md)
 - **Created:** 2026-11-07
@@ -261,8 +261,11 @@ done and moving this file to `completed/`.
       deliberately deferred.
 - [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
-- [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
-      can't reach), and the result recorded here.
+- [x] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
+      can't reach), and the result recorded here. All ten tests green on the
+      iPhone 17 simulator against the local stack at `0060` (12 m 32 s, on
+      `f842ebd0`); no smoke file drives the Leftovers page itself, which the
+      widget tests cover.
 - [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
 - [ ] New migrations or seed changes? Say in the roadmap row whether they have
