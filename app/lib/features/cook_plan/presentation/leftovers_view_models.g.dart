@@ -263,24 +263,27 @@ String _$leftoverPlacesHash() => r'4adad43ee856053e7780ee71fdf243379e850ca9';
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
-/// that will need freezing by then offered under Freezer. Only a recipe's
-/// row: a meal is planned from a recipe. Empty for a day behind us.
+/// that will need freezing by then offered under Freezer. Soonest to go off
+/// first within each. Only a recipe's row: a meal is planned from a recipe.
+/// Empty for a day behind us.
 
 @ProviderFor(leftoversGoodOn)
 const leftoversGoodOnProvider = LeftoversGoodOnFamily._();
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
-/// that will need freezing by then offered under Freezer. Only a recipe's
-/// row: a meal is planned from a recipe. Empty for a day behind us.
+/// that will need freezing by then offered under Freezer. Soonest to go off
+/// first within each. Only a recipe's row: a meal is planned from a recipe.
+/// Empty for a day behind us.
 
 final class LeftoversGoodOnProvider
     extends $FunctionalProvider<List<Leftover>, List<Leftover>, List<Leftover>>
     with $Provider<List<Leftover>> {
   /// The rows a meal on [day] can be planned from, fridge then freezer, each as
   /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
-  /// that will need freezing by then offered under Freezer. Only a recipe's
-  /// row: a meal is planned from a recipe. Empty for a day behind us.
+  /// that will need freezing by then offered under Freezer. Soonest to go off
+  /// first within each. Only a recipe's row: a meal is planned from a recipe.
+  /// Empty for a day behind us.
   const LeftoversGoodOnProvider._({
     required LeftoversGoodOnFamily super.from,
     required DateTime super.argument,
@@ -332,12 +335,13 @@ final class LeftoversGoodOnProvider
   }
 }
 
-String _$leftoversGoodOnHash() => r'd65f7a98fe7b47a9e3ab00257b0ecd1f0a60b403';
+String _$leftoversGoodOnHash() => r'b8d67597d183329ce1c2e6db04d2bf5c34540fc4';
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
-/// that will need freezing by then offered under Freezer. Only a recipe's
-/// row: a meal is planned from a recipe. Empty for a day behind us.
+/// that will need freezing by then offered under Freezer. Soonest to go off
+/// first within each. Only a recipe's row: a meal is planned from a recipe.
+/// Empty for a day behind us.
 
 final class LeftoversGoodOnFamily extends $Family
     with $FunctionalFamilyOverride<List<Leftover>, DateTime> {
@@ -352,8 +356,9 @@ final class LeftoversGoodOnFamily extends $Family
 
   /// The rows a meal on [day] can be planned from, fridge then freezer, each as
   /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
-  /// that will need freezing by then offered under Freezer. Only a recipe's
-  /// row: a meal is planned from a recipe. Empty for a day behind us.
+  /// that will need freezing by then offered under Freezer. Soonest to go off
+  /// first within each. Only a recipe's row: a meal is planned from a recipe.
+  /// Empty for a day behind us.
 
   LeftoversGoodOnProvider call(DateTime day) =>
       LeftoversGoodOnProvider._(argument: day, from: this);
