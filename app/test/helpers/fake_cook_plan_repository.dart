@@ -8,7 +8,6 @@ library;
 
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
-import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 
 class FakeCookPlanRepository implements CookPlanRepository {
   FakeCookPlanRepository([this.plan = const CookPlan()]);
@@ -20,27 +19,4 @@ class FakeCookPlanRepository implements CookPlanRepository {
 
   @override
   Stream<CookPlan> watchCookPlan(DateTime weekStart) => Stream.value(plan);
-
-  /// The answers [watchLeftovers] hands out, keyed like the real ones.
-  Map<String, LeftoverAnswer> leftovers = const {};
-
-  @override
-  Stream<Map<String, LeftoverAnswer>> watchLeftovers(DateTime weekStart) =>
-      Stream.value(leftovers);
-
-  /// Every `(entryId, answer)` handed to [setLeftover], in order.
-  final leftoverWrites = <(String, LeftoverAnswer?)>[];
-
-  @override
-  Future<void> setLeftover(String entryId, LeftoverAnswer? answer) async =>
-      leftoverWrites.add((entryId, answer));
-
-  /// The leftovers [watchBatchLeftovers] hands out, per week start.
-  Map<DateTime, List<BatchLeftover>> batchLeftovers = const {};
-
-  @override
-  Stream<List<BatchLeftover>> watchBatchLeftovers(
-    DateTime weekStart, {
-    required DateTime today,
-  }) => Stream.value(batchLeftovers[weekStart] ?? const []);
 }

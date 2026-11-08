@@ -246,7 +246,6 @@ class WeekView extends HookConsumerWidget {
                 WeekMacroBand(
                   macros: ref.watch(weekMacrosProvider(lens)),
                   eaten: ref.watch(weekEatenMacrosProvider(lens)),
-                  leftovers: ref.watch(weekLeftoverLineProvider),
                   cost: ref.watch(weekCostProvider(lens)),
                   // Never reconciled with the planned cost (ADR-0017).
                   spent: ref.watch(receiptsForWeekProvider(weekStart)),

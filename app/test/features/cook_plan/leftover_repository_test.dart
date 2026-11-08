@@ -76,6 +76,31 @@ void main() {
     },
   );
 
+  test('a derived row falls by the meals planned from its batch, and an old '
+      'answer from Cook reads as gone', () async {
+    final mon = await cookedCurry(0);
+    // Jun plans their usual ¾ from it, next Monday.
+    await planning.addEntry(
+      weekStart: _week.add(const Duration(days: 7)),
+      dayOfWeek: 0,
+      mealSlot: 'Lunch',
+      recipeId: 'curry',
+      eaterIds: const ['b'],
+      leftoverOf: mon,
+    );
+    final left = (await shelves()).single;
+    expect(left.portions, closeTo(0.25, 1e-9));
+    expect(left.planned, 0.75);
+
+    await db.execute(
+      'INSERT INTO batch_leftover (id, household_id, plan_entry_id, kept, '
+      'binned, eaten, created_at, updated_at) VALUES '
+      "('bl1', 'h', ?, 0, 0.25, 0, '2026-08-26', '2026-08-26')",
+      [mon],
+    );
+    expect(await shelves(), isEmpty);
+  });
+
   test('a first touch on a derived row stores it, naming its batch', () async {
     final mon = await cookedCurry(0);
     await repo.setLeftoverPortions((await shelves()).single, 3);

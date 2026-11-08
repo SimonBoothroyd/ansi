@@ -7,11 +7,9 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../core/units/portions.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/cook_plan_providers.dart';
 import '../domain/cook_plan.dart';
-import '../domain/leftovers.dart';
 
 part 'cook_view_models.g.dart';
 
@@ -36,55 +34,4 @@ class WholeBatchDisplay extends _$WholeBatchDisplay {
   // A call, not a setter: the switch asks for a side, it does not assign one.
   // ignore: use_setters_to_change_properties
   void show({required bool whole}) => state = whole;
-}
-
-/// What was said about the viewed week's leftovers, keyed by
-/// [CookSession.leftoverKey].
-@riverpod
-Stream<Map<String, LeftoverAnswer>> viewedWeekLeftovers(Ref ref) => ref
-    .watch(cookPlanRepositoryProvider)
-    .watchLeftovers(ref.watch(viewedWeekStartProvider));
-
-/// The cooked batches of the week beginning [weekStart] with portions still
-/// left today, live.
-@riverpod
-Stream<List<BatchLeftover>> weekBatchLeftovers(Ref ref, DateTime weekStart) =>
-    ref
-        .watch(cookPlanRepositoryProvider)
-        .watchBatchLeftovers(weekStart, today: ref.watch(todayProvider));
-
-/// The viewed week's leftovers in one line for the Week band — `1 portion
-/// binned · 2 left`. Null when nothing is left over.
-@riverpod
-String? weekLeftoverLine(Ref ref) {
-  final answers =
-      ref.watch(viewedWeekLeftoversProvider).asData?.value ?? const {};
-  final leftovers =
-      ref
-          .watch(weekBatchLeftoversProvider(ref.watch(viewedWeekStartProvider)))
-          .asData
-          ?.value ??
-      const <BatchLeftover>[];
-  return leftoverLineFor(answers: answers, leftovers: leftovers);
-}
-
-/// [weekLeftoverLine]'s arithmetic, pure: what was binned (the only waste) and
-/// eaten after all, by Cook's answers, then what cooked batches still have
-/// left ([batchLeftovers]).
-String? leftoverLineFor({
-  required Map<String, LeftoverAnswer> answers,
-  required List<BatchLeftover> leftovers,
-}) {
-  final binned = answers.values.fold<double>(0, (n, a) => n + a.binned);
-  final left = leftovers.fold<double>(0, (n, l) => n + l.portions);
-  final parts = [
-    if (binned > 0) (binned, 'binned'),
-    if (left > 0) (left, 'left'),
-  ];
-  if (parts.isEmpty) return null;
-  final (n, w) = parts.first;
-  return [
-    '${formatPortions(n)} $w',
-    for (final (n, w) in parts.skip(1)) '${formatFraction(n)} $w',
-  ].join(' · ');
 }

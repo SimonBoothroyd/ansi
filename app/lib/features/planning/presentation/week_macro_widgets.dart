@@ -363,47 +363,28 @@ class MealMacroLine extends StatelessWidget {
 }
 
 /// `EATEN · 2 940 kcal · 3 meals`: what was ticked, under the same lens as the
-/// planned total, and under it what the week's finished batches left over.
-/// Nothing at all until somebody ticks a meal or a batch leaves something.
+/// planned total. Nothing at all until somebody ticks a meal.
 class EatenLine extends StatelessWidget {
-  const EatenLine({required this.eaten, this.leftovers, super.key});
+  const EatenLine({required this.eaten, super.key});
 
   final MealSetMacros eaten;
 
-  /// `1 portion binned · 2 left`, from the week's finished batches.
-  final String? leftovers;
-
   @override
   Widget build(BuildContext context) {
+    if (eaten.isEmpty) return const SizedBox.shrink();
     final meals = eaten.considered;
     final total = eaten.total;
-    final left = leftovers;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!eaten.isEmpty)
-          Padding(
-            padding: EdgeInsets.only(bottom: left == null ? 8 : 2),
-            child: Text(
-              [
-                'EATEN',
-                if (total != null) '${formatMacroNumber(total.kcal)} kcal',
-                '$meals ${plural(meals, 'meal')}',
-                if (eaten.excluded.isNotEmpty)
-                  '${eaten.excluded.length} not counted',
-              ].join(' · '),
-              style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
-            ),
-          ),
-        if (left != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              left,
-              style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
-            ),
-          ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        [
+          'EATEN',
+          if (total != null) '${formatMacroNumber(total.kcal)} kcal',
+          '$meals ${plural(meals, 'meal')}',
+          if (eaten.excluded.isNotEmpty) '${eaten.excluded.length} not counted',
+        ].join(' · '),
+        style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+      ),
     );
   }
 }
@@ -415,7 +396,6 @@ class WeekMacroBand extends StatelessWidget {
     required this.macros,
     required this.scope,
     this.eaten = const MealSetMacros(),
-    this.leftovers,
     this.cost,
     this.spent = const [],
     this.shape = WeekShape.monday,
@@ -427,9 +407,6 @@ class WeekMacroBand extends StatelessWidget {
 
   /// What was ticked as eaten, under the same lens; drawn above the plan.
   final MealSetMacros eaten;
-
-  /// What the week's finished batches left over, in one line.
-  final String? leftovers;
 
   /// The receipts dated inside the week on screen. Empty draws no spend line.
   final List<ReceiptSummary> spent;
@@ -463,7 +440,7 @@ class WeekMacroBand extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          EatenLine(eaten: eaten, leftovers: leftovers),
+          EatenLine(eaten: eaten),
           Row(
             children: [
               Expanded(

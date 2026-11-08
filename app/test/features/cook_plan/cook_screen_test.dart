@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
+import '../../helpers/fake_leftover_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/pump_app.dart';
 
@@ -673,114 +674,92 @@ void main() {
       DateTime.now().month,
       DateTime.now().day,
     );
-    final thisWeek = WeekShape.monday.weekStartOf(today);
-    final lastWeek = WeekShape.monday.weekStartOf(
-      today.subtract(const Duration(days: 7)),
+
+    Leftover left({
+      int untilInDays = 2,
+      LeftoverPlace place = LeftoverPlace.fridge,
+    }) => Leftover(
+      batch: 'mon',
+      place: place,
+      recipeId: 'curry',
+      title: 'Curry',
+      since: today.subtract(const Duration(days: 6)),
+      goodUntil: today.add(Duration(days: untilInDays)),
+      portions: 1,
     );
 
-    BatchLeftover left({required int useByInDays, String key = 'mon'}) =>
-        BatchLeftover(
-          key: key,
-          recipeId: 'curry',
-          title: 'Curry',
-          cookDate: today.subtract(const Duration(days: 6)),
-          useBy: today.add(Duration(days: useByInDays)),
-          portions: 1,
-        );
+    List<Override> overrides(List<Leftover> rows) => [
+      cookPlanRepositoryProvider.overrideWithValue(
+        FakeCookPlanRepository.of([curry()]),
+      ),
+      leftoverRepositoryProvider.overrideWithValue(
+        FakeLeftoverRepository(rows),
+      ),
+    ];
 
-    Future<FakeCookPlanRepository> pump(
-      WidgetTester tester, {
-      List<BatchLeftover> leftovers = const [],
-      List<BatchLeftover> fromLastWeek = const [],
-      Map<String, LeftoverAnswer> answers = const {},
-    }) async {
-      final repo = FakeCookPlanRepository.of([curry()])
-        ..leftovers = answers
-        ..batchLeftovers = {thisWeek: leftovers, lastWeek: fromLastWeek};
-      await tester.pumpWidget(
-        _host([cookPlanRepositoryProvider.overrideWithValue(repo)]),
-      );
+    Future<void> pump(WidgetTester tester, List<Leftover> rows) async {
+      await tester.pumpWidget(_host(overrides(rows)));
       await tester.pumpAndSettle();
-      return repo;
     }
 
-    testWidgets('until its use-by it is only said, never asked', (
+    testWidgets('its card says what is left and until when, and asks nothing', (
       tester,
     ) async {
-      await pump(tester, leftovers: [left(useByInDays: 2)]);
+      await pump(tester, [left()]);
       final day = WeekShape.monday.labelShort(
         WeekShape.monday.offsetOf(today.add(const Duration(days: 2))),
       );
-      expect(find.text('1 portion left · good until $day'), findsOneWidget);
+      expect(find.text('1 portion left · until $day'), findsOneWidget);
       expect(find.text('Binned'), findsNothing);
-      expect(find.text('Kept'), findsNothing);
+      expect(find.text('We ate it'), findsNothing);
     });
 
-    testWidgets('past its use-by, Cook asks once: Binned or We ate it', (
+    testWidgets('past its date it says so, and still asks nothing', (
       tester,
     ) async {
-      final repo = await pump(tester, leftovers: [left(useByInDays: -1)]);
-      expect(find.text('1 portion past its date'), findsOneWidget);
-      expect(find.text('Kept'), findsNothing);
-      await tester.tap(find.text('Binned'));
-      await tester.pumpAndSettle();
-      expect(repo.leftoverWrites, [
-        ('mon', (kept: 0.0, binned: 1.0, eaten: 0.0)),
-      ]);
+      await pump(tester, [left(untilInDays: -1)]);
+      expect(find.text('1 portion left · past its date'), findsOneWidget);
+      expect(find.text('Binned'), findsNothing);
+      expect(find.text('FROM LAST WEEK'), findsNothing);
     });
 
-    testWidgets('the desk schedule sheet asks the same question', (
-      tester,
-    ) async {
+    testWidgets('frozen, it says so', (tester) async {
+      await pump(tester, [left(place: LeftoverPlace.freezer)]);
+      expect(find.text('1 portion frozen'), findsOneWidget);
+    });
+
+    testWidgets('a batch with no row says nothing', (tester) async {
+      await pump(tester, const []);
+      expect(find.textContaining('left'), findsNothing);
+      expect(find.textContaining('past its date'), findsNothing);
+    });
+
+    testWidgets('the desk schedule sheet says the same line', (tester) async {
       tester.view.physicalSize = const Size(1440, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      final repo = await pump(tester, leftovers: [left(useByInDays: -1)]);
+      await pump(tester, [left(untilInDays: -1)]);
       expect(find.byType(CookSheet), findsOneWidget);
-      expect(find.text('1 portion past its date'), findsOneWidget);
-      await tester.tap(find.text('We ate it'));
-      await tester.pumpAndSettle();
-      expect(repo.leftoverWrites, [
-        ('mon', (kept: 0.0, binned: 0.0, eaten: 1.0)),
-      ]);
+      expect(find.text('1 portion left · past its date'), findsOneWidget);
     });
 
-    testWidgets('a batch nobody ticked, or with nothing left, says nothing', (
-      tester,
-    ) async {
-      await pump(tester);
-      expect(find.textContaining('left'), findsNothing);
-      expect(find.textContaining('past its date'), findsNothing);
-      expect(find.text('Binned'), findsNothing);
-    });
-
-    testWidgets('an answer reads as a line, and a tap takes it back', (
-      tester,
-    ) async {
-      final repo = await pump(
-        tester,
-        answers: {'mon': (kept: 0.0, binned: 1.0, eaten: 0.0)},
+    testWidgets('the line opens Leftovers', (tester) async {
+      late GoRouter router;
+      await tester.pumpWidget(
+        routedHost(
+          initial: '/cook',
+          overrides: overrides([left()]),
+          expose: (r) => router = r,
+          routes: {
+            '/cook': (_, _) => const CookView(),
+            '/leftovers': (_, _) => const FScaffold(child: Text('leftovers')),
+          },
+        ),
       );
-      expect(find.text('1 portion binned'), findsOneWidget);
-      expect(find.text('Binned'), findsNothing);
-      await tester.tap(find.text('1 portion binned'));
       await tester.pumpAndSettle();
-      expect(repo.leftoverWrites, [('mon', null)]);
-    });
-
-    testWidgets('this week asks about the batches last week left to run out '
-        'of time', (tester) async {
-      final repo = await pump(
-        tester,
-        fromLastWeek: [left(useByInDays: -1, key: 'old')],
-      );
-      expect(find.text('FROM LAST WEEK'), findsOneWidget);
-      expect(find.text('Past its date'), findsOneWidget);
-      await tester.tap(find.text('We ate it'));
+      await tester.tap(find.textContaining('1 portion left'));
       await tester.pumpAndSettle();
-      expect(repo.leftoverWrites, [
-        ('old', (kept: 0.0, binned: 0.0, eaten: 1.0)),
-      ]);
+      expect(router.state.uri.path, '/leftovers');
     });
   });
 }

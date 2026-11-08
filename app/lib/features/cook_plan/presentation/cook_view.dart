@@ -27,10 +27,10 @@ import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
+import 'batch_leftover_line.dart';
 import 'cook_format.dart';
 import 'cook_sheet.dart';
 import 'cook_view_models.dart';
-import 'leftover_question.dart';
 import 'whole_batch_switch.dart';
 
 class CookView extends ConsumerWidget {
@@ -102,7 +102,6 @@ class CookView extends ConsumerWidget {
               const EdgeInsets.only(top: 6, bottom: 24),
             ),
             children: [
-              const LastWeekPastItsDate(),
               if (data.isEmpty)
                 const _NothingToCookLine()
               else
@@ -115,7 +114,6 @@ class CookView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 6, bottom: 24),
       children: [
-        const LastWeekPastItsDate(),
         if (data.isEmpty) const _NothingToCookLine(),
         for (final recipe in data.recipes) ...[
           // A recipe both planned and demanded as a component shows two cards,
@@ -472,7 +470,7 @@ class _SessionTile extends ConsumerWidget {
             shape: shape,
             size: WeekStripSize.compact,
           ),
-          if (!session.isComponent) LeftoverQuestion(session: session),
+          if (!session.isComponent) BatchLeftoverLine(session: session),
         ],
       ),
     );

@@ -48,9 +48,6 @@ void main() {
       expect(left.single.portions, 1.75);
       expect(left.single.cookDate, DateTime(2026, 10, 26));
       expect(left.single.useBy, DateTime(2026, 10, 30));
-      expect(left.single.isGoodOn(DateTime(2026, 10, 30)), isTrue);
-      expect(left.single.isGoodOn(DateTime(2026, 10, 31)), isFalse);
-      expect(left.single.isDueOn(DateTime(2026, 10, 31)), isTrue);
     });
 
     test('a meal today or later is still to be eaten, not left', () {
@@ -77,41 +74,21 @@ void main() {
         [for (final l in left) l.useBy],
         [DateTime(2026, 10, 28), DateTime(2026, 10, 31)],
       );
-      final saturday = DateTime(2026, 10, 31);
-      expect([for (final l in left) l.isGoodOn(saturday)], [false, true]);
     });
 
-    test('binned, eaten and planned-from portions come off; kept does not', () {
+    test('the meals planned from it come off', () {
       final plan = _plan([_meal(1, 4, eaten: 1)]);
-      List<BatchLeftover> left(
-        Map<String, LeftoverAnswer> answers,
-        Map<String, double> plannedFrom,
-      ) => batchLeftovers(
-        plan,
-        weekStart: _week,
-        today: DateTime(2026, 10, 27),
-        answers: answers,
-        plannedFrom: plannedFrom,
-      );
+      List<BatchLeftover> left(Map<String, double> plannedFrom) =>
+          batchLeftovers(
+            plan,
+            weekStart: _week,
+            today: DateTime(2026, 10, 27),
+            plannedFrom: plannedFrom,
+          );
 
-      expect(left(const {}, const {}).single.portions, 3);
-      expect(
-        left(const {
-          'e1': (kept: 3.0, binned: 0.0, eaten: 0.0),
-        }, const {}).single.portions,
-        3,
-      );
-      expect(
-        left(const {}, const {'e1': 1.75}).single.portions,
-        closeTo(1.25, 1e-9),
-      );
-      expect(
-        left(
-          const {'e1': (kept: 0.0, binned: 1.0, eaten: 0.25)},
-          const {'e1': 1.75},
-        ),
-        isEmpty,
-      );
+      expect(left(const {}).single.portions, 3);
+      expect(left(const {'e1': 1.75}).single.portions, closeTo(1.25, 1e-9));
+      expect(left(const {'e1': 3}), isEmpty);
     });
 
     test('an unknown fridge life is good only until its last meal', () {
@@ -122,7 +99,6 @@ void main() {
         today: DateTime(2026, 10, 27),
       ).single;
       expect(left.useBy, DateTime(2026, 10, 26));
-      expect(left.isDueOn(DateTime(2026, 10, 27)), isTrue);
     });
   });
 
@@ -386,5 +362,27 @@ void main() {
       covers: [_meal(0, 2), _meal(6, 2)],
     );
     expect(useByOf(session, _week), DateTime(2026, 10, 31));
+  });
+
+  test('a fridge row is good from its cook day to its date; a freezer row on '
+      'any day', () {
+    final fridge = Leftover(
+      place: LeftoverPlace.fridge,
+      title: 'Curry',
+      since: DateTime(2026, 10, 26),
+      goodUntil: DateTime(2026, 10, 30),
+      portions: 1,
+    );
+    expect(fridge.isGoodOn(DateTime(2026, 10, 25)), isFalse);
+    expect(fridge.isGoodOn(DateTime(2026, 10, 30, 19)), isTrue);
+    expect(fridge.isGoodOn(DateTime(2026, 10, 31)), isFalse);
+    final freezer = Leftover(
+      place: LeftoverPlace.freezer,
+      title: 'Curry',
+      since: DateTime(2026, 10, 26),
+      goodUntil: DateTime(2026, 10, 30),
+      portions: 1,
+    );
+    expect(freezer.isGoodOn(DateTime(2026, 12, 2)), isTrue);
   });
 }
