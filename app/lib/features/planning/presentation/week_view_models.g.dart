@@ -1088,7 +1088,7 @@ final class WeekCostProvider
   }
 }
 
-String _$weekCostHash() => r'a9e1d5a441806447ea62583a2ef9e35fb90e0ad1';
+String _$weekCostHash() => r'b65506cb0ed83fc2856bbfea6e7569776a55a985';
 
 /// What the viewed week costs to cook under [lens], over the same entries and
 /// portions as [weekMacros]. Recipes are priced from their summaries, bare
