@@ -17,6 +17,7 @@ import '../../features/auth/presentation/sign_in_view.dart';
 import '../../features/books/presentation/book_page_view.dart';
 import '../../features/books/presentation/library_view.dart';
 import '../../features/cook_plan/presentation/cook_view.dart';
+import '../../features/cook_plan/presentation/leftovers_view.dart';
 import '../../features/import/presentation/import_view.dart';
 import '../../features/ingredients/presentation/ingredient_detail_view.dart';
 import '../../features/ingredients/presentation/ingredient_list_view.dart';
@@ -262,6 +263,12 @@ GoRouter router(Ref ref) {
               initialBookId: state.uri.queryParameters['book'],
               initialSectionId: state.uri.queryParameters['section'],
             ),
+          ),
+          // The fridge and the freezer, behind the Week header's door.
+          _page(
+            path: '/leftovers',
+            name: 'leftovers',
+            builder: (state) => const LeftoversView(),
           ),
           // `/receipts/review` is declared before `/receipts/:id` so `review`
           // is not read as an id. The scan is one route: nothing is written

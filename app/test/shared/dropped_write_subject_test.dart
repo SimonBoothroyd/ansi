@@ -240,6 +240,28 @@ void main() {
     );
   });
 
+  test(
+    'a leftover is named by its dish or its words and opens Leftovers',
+    () async {
+      await insert('recipe', {'id': 'r1', 'title': 'Black Bean Chili'});
+      await insert('leftover', {'id': 'l1', 'recipe_id': 'r1'});
+      await insert('leftover', {'id': 'l2', 'label': 'Soup from Mum'});
+      expect(
+        await describe('leftover', 'l1'),
+        const DroppedWriteSubject(
+          name: 'Black Bean Chili',
+          kind: 'leftovers',
+          route: '/leftovers',
+        ),
+      );
+      expect((await describe('leftover', 'l2')).name, 'Soup from Mum');
+      expect(
+        await describe('leftover', 'gone'),
+        const DroppedWriteSubject(name: 'A leftover', kind: 'leftovers'),
+      );
+    },
+  );
+
   group('a row that cannot be found', () {
     test('falls back to its kind’s plain noun, opening nothing', () async {
       expect(

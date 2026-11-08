@@ -56,3 +56,51 @@ final class CookPlanRepositoryProvider
 
 String _$cookPlanRepositoryHash() =>
     r'779ee247e15cc4152afc8a086f1c963071603838';
+
+@ProviderFor(leftoverRepository)
+const leftoverRepositoryProvider = LeftoverRepositoryProvider._();
+
+final class LeftoverRepositoryProvider
+    extends
+        $FunctionalProvider<
+          LeftoverRepository,
+          LeftoverRepository,
+          LeftoverRepository
+        >
+    with $Provider<LeftoverRepository> {
+  const LeftoverRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'leftoverRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$leftoverRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<LeftoverRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  LeftoverRepository create(Ref ref) {
+    return leftoverRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LeftoverRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LeftoverRepository>(value),
+    );
+  }
+}
+
+String _$leftoverRepositoryHash() =>
+    r'817606c5d00814fa7d2cb8fa900aa53ab3e6cfd5';

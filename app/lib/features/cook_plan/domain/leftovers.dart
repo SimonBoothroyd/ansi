@@ -213,6 +213,7 @@ class Leftover {
     this.id,
     this.batch,
     this.recipeId,
+    this.planned = 0,
   });
 
   /// The stored row's id; null for a row derived from a cooked batch.
@@ -240,7 +241,20 @@ class Leftover {
   /// The portions left, less the meals planned from it: never zero or less.
   final double portions;
 
+  /// The portions of the meals planned from it on today or later: still in
+  /// the box, spoken for, and not in [portions].
+  final double planned;
+
   bool get isStored => id != null;
+
+  /// Whether a meal on [day] can be planned from it: a fridge row from its
+  /// cook day until its date, a freezer row on any day.
+  bool isGoodOn(DateTime day) {
+    if (place == LeftoverPlace.freezer) return true;
+    final d = _dateOnly(day);
+    final until = goodUntil;
+    return !d.isBefore(since) && (until == null || !d.isAfter(until));
+  }
 
   /// Whether its date is behind [today]. It stays until somebody says it is
   /// gone: nothing clears itself.
@@ -283,6 +297,8 @@ List<DateTime> leftoverWeekStarts(DateTime weekStart) => [
 ///   [plannedFromRow] by stored row id (`plan_entry.from_leftover`). A row
 ///   with nothing left is not shown.
 /// - A batch Cook was told about ([answers]: binned or eaten) reads as gone.
+/// - [aheadFromBatch] and [aheadFromRow], keyed the same way, are the part of
+///   those meals still to come (today or later): each row's [Leftover.planned].
 List<Leftover> householdLeftovers({
   required List<({DateTime weekStart, CookPlan plan})> weeks,
   required DateTime today,
@@ -291,6 +307,8 @@ List<Leftover> householdLeftovers({
   Map<String, LeftoverAnswer> answers = const {},
   Map<String, double> plannedFromBatch = const {},
   Map<String, double> plannedFromRow = const {},
+  Map<String, double> aheadFromBatch = const {},
+  Map<String, double> aheadFromRow = const {},
 }) {
   final day = _dateOnly(today);
 
@@ -298,11 +316,11 @@ List<Leftover> householdLeftovers({
   // meals planned from a losing duplicate still come off the winner: it is
   // the same food.
   final byBatch = <String, List<StoredLeftover>>{};
-  final rows = <(StoredLeftover, double)>[];
+  final rows = <(StoredLeftover, double, double)>[];
   for (final row in stored) {
     final batch = row.batch;
     if (batch == null) {
-      rows.add((row, plannedFromRow[row.id] ?? 0));
+      rows.add((row, plannedFromRow[row.id] ?? 0, aheadFromRow[row.id] ?? 0));
     } else {
       (byBatch[batch] ??= []).add(row);
     }
@@ -319,7 +337,11 @@ List<Leftover> householdLeftovers({
       0,
       (sum, r) => sum + (plannedFromRow[r.id] ?? 0),
     );
-    rows.add((newest, planned));
+    final ahead = group.fold<double>(
+      0,
+      (sum, r) => sum + (aheadFromRow[r.id] ?? 0),
+    );
+    rows.add((newest, planned, ahead));
   }
 
   final horizon = DateTime(
@@ -346,12 +368,13 @@ List<Leftover> householdLeftovers({
             since: left.cookDate,
             goodUntil: left.useBy,
             portions: left.portions,
+            planned: aheadFromBatch[left.key] ?? 0,
           ),
   ];
 
   final said = [
-    for (final (row, planned) in rows)
-      if (_storedLeftover(row, planned, recipes) case final left?) left,
+    for (final (row, planned, ahead) in rows)
+      if (_storedLeftover(row, planned, ahead, recipes) case final left?) left,
   ];
 
   return [...derived, ...said]..sort((a, b) {
@@ -370,6 +393,7 @@ bool _answered(LeftoverAnswer? answer) =>
 Leftover? _storedLeftover(
   StoredLeftover row,
   double planned,
+  double ahead,
   Map<String, LeftoverRecipe> recipes,
 ) {
   if (row.goneAt != null) return null;
@@ -406,6 +430,7 @@ Leftover? _storedLeftover(
     since: since,
     goodUntil: goodUntil,
     portions: left,
+    planned: ahead,
   );
 }
 

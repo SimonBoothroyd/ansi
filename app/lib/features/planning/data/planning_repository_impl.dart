@@ -278,6 +278,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     required List<String> eaterIds,
     int? portions,
     String? leftoverOf,
+    String? fromLeftover,
   }) => _insertEntry(
     weekStart: weekStart,
     dayOfWeek: dayOfWeek,
@@ -286,6 +287,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     eaterIds: eaterIds,
     portions: portions,
     leftoverOf: leftoverOf,
+    fromLeftover: fromLeftover,
   );
 
   @override
@@ -346,6 +348,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     String? measureId,
     int? portions,
     String? leftoverOf,
+    String? fromLeftover,
   }) async {
     assert(
       [recipeId, ingredientId, label].where((t) => t != null).length == 1,
@@ -375,6 +378,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         measureId: measureId,
         portions: portions,
         leftoverOf: leftoverOf,
+        fromLeftover: fromLeftover,
       ),
     );
     return id;

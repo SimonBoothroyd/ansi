@@ -67,6 +67,18 @@ class FakePlanningRepository implements PlanningRepository {
         })
       >[];
 
+  /// Every recipe meal handed to [addEntry], in order.
+  final recipeEntries =
+      <
+        ({
+          int dayOfWeek,
+          String recipeId,
+          int? portions,
+          String? leftoverOf,
+          String? fromLeftover,
+        })
+      >[];
+
   @override
   Future<String> addEntry({
     required DateTime weekStart,
@@ -76,7 +88,17 @@ class FakePlanningRepository implements PlanningRepository {
     required List<String> eaterIds,
     int? portions,
     String? leftoverOf,
-  }) async => 'e';
+    String? fromLeftover,
+  }) async {
+    recipeEntries.add((
+      dayOfWeek: dayOfWeek,
+      recipeId: recipeId,
+      portions: portions,
+      leftoverOf: leftoverOf,
+      fromLeftover: fromLeftover,
+    ));
+    return 'e';
+  }
 
   @override
   Future<String> addIngredientEntry({

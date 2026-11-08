@@ -130,6 +130,7 @@ class _LivePlanningRepo extends _FakePlanningRepo {
     required List<String> eaterIds,
     int? portions,
     String? leftoverOf,
+    String? fromLeftover,
   }) async {
     // A NEW id, as the real repository gives: the undo puts the meal back, it
     // does not resurrect the row.

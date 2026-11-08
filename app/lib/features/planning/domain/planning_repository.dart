@@ -33,8 +33,9 @@ abstract interface class PlanningRepository {
 
   /// Adds a recipe meal to the week beginning [weekStart], creating the week if
   /// needed. A null [portions] tracks the eater count. With [leftoverOf] (a
-  /// cooked batch's key) the meal is eaten from that batch's leftover and is
-  /// not cooked or bought. Returns the new entry id.
+  /// cooked batch's key) or [fromLeftover] (a fridge or freezer row's id),
+  /// never both, the meal is eaten from that leftover and is not cooked or
+  /// bought. Returns the new entry id.
   Future<String> addEntry({
     required DateTime weekStart,
     required int dayOfWeek,
@@ -43,6 +44,7 @@ abstract interface class PlanningRepository {
     required List<String> eaterIds,
     int? portions,
     String? leftoverOf,
+    String? fromLeftover,
   });
 
   /// Adds an ingredient meal, stating the amount of one portion. [quantity] and
