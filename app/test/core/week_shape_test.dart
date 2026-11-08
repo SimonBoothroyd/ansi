@@ -81,6 +81,18 @@ void main() {
         }
       }
     });
+
+    test('dateFor counts calendar days across a clock change', () {
+      // The US and the EU change their clocks in these weeks.
+      for (final start in [DateTime(2026, 11), DateTime(2026, 10, 25)]) {
+        final tuesday = WeekShape.sunday.dateFor(start, 2);
+        expect((tuesday.day, tuesday.hour), (start.day + 2, 0));
+      }
+      expect(
+        WeekShape.sunday.dateFor(DateTime.utc(2026, 11), 2),
+        DateTime.utc(2026, 11, 3),
+      );
+    });
   });
 
   group('keyOf', () {

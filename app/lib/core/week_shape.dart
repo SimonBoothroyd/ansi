@@ -46,9 +46,12 @@ class WeekShape {
   /// Where [date] sits in its own week, 0 to 6: the stored `day_of_week`.
   int offsetOf(DateTime date) => (date.weekday - startsOn + 7) % 7;
 
-  /// The date of [offset] within the week beginning [weekStart].
-  DateTime dateFor(DateTime weekStart, int offset) =>
-      weekStart.add(Duration(days: offset));
+  /// The date of [offset] within the week beginning [weekStart]. Counted in
+  /// calendar days, not hours: a week a clock change falls in still lands on
+  /// the right day.
+  DateTime dateFor(DateTime weekStart, int offset) => weekStart.isUtc
+      ? DateTime.utc(weekStart.year, weekStart.month, weekStart.day + offset)
+      : DateTime(weekStart.year, weekStart.month, weekStart.day + offset);
 
   /// `Sun`, `Mon`, … for an [offset] within the week.
   String labelShort(int offset) => kWeekdayShort[_isoIndex(offset)];
