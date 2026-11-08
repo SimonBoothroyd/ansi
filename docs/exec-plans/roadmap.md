@@ -33,8 +33,9 @@ The detail is in the plan; the landing dates are in the
    header icon; nothing clears itself. Designed and drawn as proposed; it
    replaces plan 0059's Cook question and fridge-only leftovers. Phases 1–2
    (migration 0060, its readers and the pure seam) shipped in `v0.38.0`;
-   the writers (the page, the picker, Cook's question retired) are being
-   built for the next tag.
+   phases 3–5 (the page and its door, planning from both shelves, Cook
+   stops asking) are on main, not yet tagged — tag once both phones run
+   `v0.38.0`.
 8. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
@@ -46,7 +47,7 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-Nothing: every change on main is in a tag.
+- Leftovers, the writer half ([plan 0060](./active/0060-leftovers-fridge-and-freezer.md)) — the Leftovers page behind a fridge icon in the Week header (fridge and freezer, corrected on the row, nothing clears itself), *Use up* from both shelves, *Frozen · Cook fresh* on the confirm sheet, and Cook no longer asking. Tag once both phones run `v0.38.0`.
 
 ## Shipped
 

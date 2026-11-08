@@ -15,14 +15,14 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Leftovers</h1>
-    <p class="view-status"><span class="prop">proposed</span> · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · wide: same page, centred at 640</p>
+    <p class="view-status">built · matches code 2026-11-07 · <code>features/cook_plan</code> · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · wide: same page, centred at 640</p>
     <p class="view-blurb">What cooked food is in the fridge and the freezer, put right whenever you look.</p>
 </header>
 
 <div class="board">
 
-    <div class="frame prop" id="lo-page">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Leftovers</b> · Fridge and Freezer, behind the fridge icon in the Week header. A row starts from the ticks and is corrected on its stepper; past its date it says so and stays until someone taps it</p>
+    <div class="frame" id="lo-page">
+        <p class="frame-name"><b>Leftovers</b> · Fridge and Freezer, behind the fridge icon in the Week header. A row starts from the ticks and is corrected on its stepper, opened by a tap; past its date it says so and stays until someone taps it. A count names the meals still planned from the row</p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
@@ -44,16 +44,16 @@
     </div>
 
     <p class="list-h" style="margin-top:14px;color:#3B6076">Freezer</p>
-    <div class="crow" style="background:#F6FAFC;border-color:#D2E2EC"><span class="cl">Black Bean Chili<small>2</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">2 wk</span></div>
-    <div class="crow" style="background:#F6FAFC;border-color:#D2E2EC"><span class="cl">Lentil Bolognese<small>4 · 2 planned</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">4 days</span></div>
+    <div class="crow" style="background:#FFFFFF;border-color:#D2E2EC"><span class="cl">Black Bean Chili<small>2</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">2 wk</span></div>
+    <div class="crow" style="background:#FFFFFF;border-color:#D2E2EC"><span class="cl">Lentil Bolognese<small>2 · 2 planned</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">4 days</span></div>
 
     <div class="nav" style="margin-top:auto"><div class="ni"><span class="ic">▤</span>Library</div><div class="ni on"><span class="ic">▦</span>Week</div><div class="ni"><span class="ic">◍</span>Cook</div><div class="ni"><span class="ic">▤</span>Shop</div></div>
   </div>
 </div>
     </div>
 
-    <div class="frame prop" id="lo-month">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>A month later</b> · nothing clears itself; <i>Clear all</i> marks every past-its-date fridge row gone</p>
+    <div class="frame" id="lo-month">
+        <p class="frame-name"><b>A month later</b> · nothing clears itself; <i>Clear all</i> marks every past-its-date fridge row gone</p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
@@ -76,8 +76,8 @@
     </div>
 
     <p class="list-h" style="margin-top:14px;color:#3B6076">Freezer</p>
-    <div class="crow" style="background:#F6FAFC;border-color:#D2E2EC"><span class="cl">Black Bean Chili<small>2</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">6 wk</span></div>
-    <div class="crow" style="background:#F6FAFC;border-color:#D2E2EC"><span class="cl">Lentil Bolognese<small>2</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">4 wk</span></div>
+    <div class="crow" style="background:#FFFFFF;border-color:#D2E2EC"><span class="cl">Black Bean Chili<small>2</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">6 wk</span></div>
+    <div class="crow" style="background:#FFFFFF;border-color:#D2E2EC"><span class="cl">Lentil Bolognese<small>2</small></span><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#3B6076">4 wk</span></div>
     <div class="crow" style="background:#FFFFFF;border-style:dashed">
       <span class="cl" style="color:#66736A">Basil Pesto<small style="color:#7A5A16">4 · past its date</small></span>
       <button class="pchip" style="background:#FFFFFF;min-height:32px">Gone</button>
@@ -88,13 +88,13 @@
 </div>
     </div>
 
-    <div class="frame prop" id="lo-add">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>Add a leftover</b> · from the bar’s ＋: a recipe or your own words, either place, roughly when</p>
+    <div class="frame" id="lo-add">
+        <p class="frame-name"><b>Add a leftover</b> · from the bar’s ＋: a recipe or your own words, either place, roughly when</p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen sheet" style="flex: 1; overflow: hidden">
     <div class="grab"></div>
-    <div style="display:flex;align-items:baseline;gap:10px;margin:0 20px 12px"><div class="c-h" style="margin:0;flex:1">Add a leftover</div><a href="#lo-page" style="color:#21502C;font-size:13px;text-decoration:none">Cancel</a></div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin:0 20px 12px"><a href="#lo-page" style="color:#66736A;font-size:16px;text-decoration:none">✕</a><div class="c-h" style="margin:0;flex:1">Add a leftover</div></div>
 
     <div class="field"><div class="search"><span class="mag">⌕</span><span>chili</span><span class="care"></span></div></div>
     <div class="crow" style="background:#E6EFE6;border-color:#2C6A3A"><span class="cl"><b style="font-weight:600;color:#21502C">Black Bean Chili</b></span><span style="color:#21502C;font-weight:600">✓</span></div>
@@ -104,7 +104,7 @@
     <div style="display:flex;gap:6px;margin:0 20px"><span class="pchip" style="flex:1;justify-content:center">Fridge</span><span class="pchip on" style="flex:1;justify-content:center">Freezer</span></div>
 
     <p class="clabel">Portions</p>
-    <div class="portion"><div class="pl">4</div><div class="pstepper"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div></div>
+    <div class="pstepper" style="margin:0 20px;justify-content:space-between"><span class="s">–</span><span class="qv">4</span><span class="s">+</span></div>
 
     <p class="clabel">When</p>
     <div style="display:flex;gap:6px;margin:0 20px"><span class="pchip on" style="flex:1;justify-content:center">This week</span><span class="pchip" style="flex:1;justify-content:center">Last week</span><span class="pchip" style="flex:1;justify-content:center">Earlier</span></div>

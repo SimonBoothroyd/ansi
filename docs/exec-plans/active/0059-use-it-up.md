@@ -243,6 +243,12 @@ Append-only.
     each batch's words, and the wide Shop walk carries the offer and *Use
     all*. Only the at-home pass does not offer.
 
+- 2026-11-07 — Replaced in part by [plan 0060](./0060-leftovers-fridge-and-freezer.md):
+  Cook's *Binned · We ate it* question, the `FROM LAST WEEK` card and the
+  Week band's leftover line are gone (Cook asks nothing; a batch's line opens
+  Leftovers), and *Use up* offers the fridge and the freezer, not only fridge
+  leftovers good until their use-by. `batch_leftover` takes no new writes.
+
 ## Notes / open questions
 
 - **The *what's left* pane** stays behind its link; drop it if it goes

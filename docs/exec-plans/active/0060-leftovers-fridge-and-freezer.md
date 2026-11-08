@@ -1,6 +1,6 @@
 # Exec plan: Leftovers — fridge and freezer
 
-- **Status:** active — phases 1–2 built (the stored row and its readers); phases 3–5 not built
+- **Status:** active — phases 1–5 built; phases 1–2 ship in a release before 3–5; not yet tagged
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); replaces part of [plan 0059](./0059-use-it-up.md)
 - **Created:** 2026-11-07
@@ -203,6 +203,45 @@ Append-only.
   - No repository read for the seam yet: nothing in this build would call it
     (the picker keeps `batchLeftovers`). The page's lane adds the watch, and
     a dropped-write subject for the `leftover` table with its first write.
+
+- 2026-11-07 — Phases 3–5 built (the writers' lane). Decided in the lane:
+  - **A pick from *Use up* keeps `leftover_of` for a batch nobody has
+    touched** and writes `from_leftover` for a stored row. Storing the
+    derived row first would split one tap across two repositories; the seam
+    already reads both pointers. A meal planned from a derived batch does
+    not come off a stored row that later replaces it (the seam's rule).
+  - **Frozen · Cook fresh** offers the **oldest** freezer row of the dish
+    (the seam's order), capped at that row, not the dish's freezer rows
+    summed.
+  - **A row prints the meals still to come from it**: `2 · 2 planned`
+    (`Leftover.planned`, from the seam). The count is what is left to plan,
+    which is what the stepper sets; without the planned part a household
+    counting the box would over-correct. The board's `4 · 2 planned` is
+    redrawn as `2 · 2 planned`.
+  - **The stepper steps whole portions**; a part portion steps to the whole
+    on either side (`1¾` → `1` or `2`) and it never reaches nothing (that is
+    Gone).
+  - **Freeze and Froze it** are offered on a freezable recipe's row and on a
+    row in words (the household knows its own food); never on a recipe
+    marked not freezable.
+  - ***Add a leftover*'s When chips** date the row today, 7 and 14 days
+    back. Portions start at 2.
+  - **A row in words is not offered in *Use up***: a meal names a recipe.
+  - **A freezer row past its `freezer_days`** reads `past its date` and is
+    still offered in *Use up* (the ruling: a freezer row for any day);
+    **Clear all** clears the fridge only.
+  - **The Leftovers read** loads five weeks' meal batches without their
+    sub-recipes (`loadCookPlan(components: false)`) on any change to a plan,
+    a tick, a recipe, a stored row or an old answer.
+  - **The confirm sheet now settles its eaters before reading them**, so the
+    leftover cap holds on the sheet's first frame; it had let one Add through
+    over the cap.
+  - **Retired with their callers:** the cook-plan repository's answers,
+    batch-leftover reads and `setLeftover`; `BatchLeftover.isGoodOn` and
+    `isDueOn`; `batchLeftovers`' `answers` (the seam reads old answers as
+    gone itself); the Week band's leftover line.
+  - Not run: `make test-sim` (no simulator in this lane) and `make ci-full`
+    (no schema change here).
 
 ## Notes / open questions
 

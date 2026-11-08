@@ -28,15 +28,18 @@ planning/
                   SqliteUseUpRepository (last week through the cook plan,
                   the shop's derivation and the receipt packs), providers
   presentation/
-    week_view.dart            the phone Week: day cards, the add flow, the band
+    week_view.dart            the phone Week: day cards, the add flow, the band;
+                              the header holds the Leftovers door and Ask
     week_wide.dart            the wide Week: agenda left, day pane right
     week_header.dart          the week switcher
     week_in_the_location.dart the viewed week in the URL, shared by Week/Cook/Shop
     recipe_picker_sheet.dart  the add flow's one door (Recent · Books · Favorites)
-    use_up_block.dart         Use up: leftovers, then recipes using spare food
+    use_up_block.dart         Use up: fridge, freezer, then recipes using
+                              spare food; LeftoverTag
     whats_left_sheet.dart     the spare food and the ranking's cut
     use_up_view_models.dart   useUp: last week's spare, scored and offered
-    confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal out
+    confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal
+                              out; Frozen · Cook fresh for a dish in the freezer
     meal_editor_sheet.dart    edit a placed meal; the variant door at its foot
     meal_fields.dart          controls both sheets share
     week_macro_widgets.dart   day foot, week band, the spent line
@@ -69,8 +72,10 @@ planning/
   (`leftover_of`) or a fridge or freezer row (`from_leftover`), never both.
   Ask `PlanEntry.isFromLeftover`, never a column: the cook plan, the shop
   and the week's cost pass over it, macros and ticks count it, its Week row
-  says `leftover` where a cook marker would be, a move keeps it, and copy
-  last week carries it as a meal to cook
+  says `leftover` where a cook marker would be (`LeftoverMealTag`: the
+  fridge's green, or the freezer's blue when its `from_leftover` row is in
+  the freezer, read off `leftoverPlaces`), a move keeps it, and copy last
+  week carries it as a meal to cook
   (`test/structure/leftover_meal_seam_test.dart`).
 - `test/structure/plan_entry_kind_seam_test.dart` holds this: no wildcard, no
   null-column kind test, and both SQL derivations state their kind in `WHERE`.
@@ -110,9 +115,11 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 1. **`showRecipePickerSheet`** — one door for all three kinds. Typed words
    search recipes and the household vocabulary; when they hit nothing, the
    footer offers `＋ note it` for a meal eaten out. With nothing typed it
-   leads with *Use up*: cooked leftovers still good for the day
-   (`PickedLeftover`, written with `leftover_of`), then the recipes that use
-   the most of last week's spare food. Returns a `PickedMeal`.
+   leads with *Use up*: the fridge rows good for the day, then the freezer
+   rows (`leftoversGoodOn` over the cook plan's `householdLeftovers`; a row
+   in words names no recipe and is left out), each a `PickedLeftover`, then
+   the recipes that use the most of last week's spare food. Returns a
+   `PickedMeal`.
 2. **The quantity sheet**, for an ingredient only, opened filled in with its
    usual amount (`ingredients/domain/default_amount.dart`): the last meal of
    it that stated one, else one of its word for one (`1 pot`), else one
@@ -120,6 +127,10 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 3. **`showConfirmMealSheet`** — slot, eaters, portions (`plan_entry.portions`,
    null = track the eaters). A meal out gets an optional per-portion macros
    fold; left empty or half-filled, the meal is placed and named as uncounted.
+   A leftover's card caps the portions at what is left; the meal names a
+   stored row by `from_leftover` and an untouched batch by `leftover_of`. A
+   recipe with a freezer row asks **Frozen (n left) · Cook fresh**, Frozen
+   selected, which plans the meal from the oldest such row.
 
 Both sheets open on `defaultMealSlot`, the day's first unfilled default slot.
 Recipe rows show shelf-life chips and a "same batch" hint

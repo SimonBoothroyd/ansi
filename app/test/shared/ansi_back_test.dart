@@ -47,6 +47,13 @@ typedef Pushed = ({String path, String open, String home, String view});
 const pushedPages = <Pushed>[
   (path: '/account', open: '/account', home: '/', view: 'account_view.dart'),
   (path: '/import', open: '/import', home: '/', view: 'import_view.dart'),
+  // Leftovers' one door is in the Week's header.
+  (
+    path: '/leftovers',
+    open: '/leftovers',
+    home: '/week',
+    view: 'leftovers_view.dart',
+  ),
   // The receipts belong to the Shop, which is where their door stands.
   (
     path: '/receipts',

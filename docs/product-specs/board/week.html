@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Week</h1>
-    <p class="view-status">built · matches code 2026-09-20 · the meal editor, copy last week and the foot: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble · lens: differs 2026-11-01: the frames draw the lens on <i>Everyone</i>; it opens on the member signed in, with <i>Everyone</i> a tap away · leftovers: <span class="prop">proposed</span> · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · the meal editor, copy last week and the foot: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> · <code>features/planning</code> · <a href="../../exec-plans/completed/0031-week-v3.md">plan 0031</a> · <a href="../../exec-plans/completed/0027-field-test-round-four.md">plan 0027</a> · <a href="../../exec-plans/completed/0038-plan-an-ingredient.md">plan 0038</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> &middot; <a href="../../exec-plans/completed/0048-field-test-round-fourteen.md">plan 0048</a> · <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> · <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> · wide: differs 2026-09-20: the wide Week has no home for the band, so the cost and spent lines are drawn on the phone only · eaten: matches code 2026-10-25 · <a href="../../exec-plans/active/0054-eaten-vs-planned.md">plan 0054</a> · ask: matches code 2026-10-19 · <a href="../../exec-plans/active/0053-ask-ansi.md">plan 0053</a> · differs: only the <i>Ask Ansi</i> frame draws the bar&rsquo;s speech bubble · lens: differs 2026-11-01: the frames draw the lens on <i>Everyone</i>; it opens on the member signed in, with <i>Everyone</i> a tap away · leftovers: matches code 2026-11-07 · <a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a> · differs: only the <i>Leftovers door</i> frame draws the fridge in the header</p>
     <p class="view-blurb">One screen with one state — no mode, no separate page. The switcher is the only title, and the week on screen is the week Cook and Shop follow.</p>
 </header>
 
@@ -417,8 +417,8 @@
     </div>
 
 
-    <div class="frame prop" id="wk-leftovers-door">
-        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The Leftovers door</b> · a fridge icon in the header, where the Shop has Receipts; a dot while any row is past its date. drawn at Ask’s size and weight. A meal from either shelf reads <i>leftover</i>; blue when it came from the freezer (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>)</p>
+    <div class="frame" id="wk-leftovers-door">
+        <p class="frame-name"><b>The Leftovers door</b> · a fridge icon in the header beside Ask, drawn at Ask’s size and weight, phone and wide; a dot while any row is past its date. A meal from either shelf reads <i>leftover</i> where the cook marker sits: green from the fridge, blue from the freezer (<a href="../../exec-plans/active/0060-leftovers-fridge-and-freezer.md">plan 0060</a>)</p>
         <div class="phone">
   <div class="notch"></div>
   <div class="screen" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
@@ -432,13 +432,13 @@
     <div class="lensrow"><span class="lbl">for</span><span class="pchip on">Everyone</span><span class="pchip"><span class="av a">A</span>Ada</span><span class="pchip"><span class="av j">J</span>Jun</span></div>
 
     <div class="day2"><div class="day2-head"><div class="day2-name">Monday</div><span class="day2-date">9 Nov</span></div>
-      <div class="srow"><span class="slab">Lunch</span><div class="dishcell"><span class="sname">Chickpea Curry</span><span class="cookmark from">leftover</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+      <div class="srow"><span class="slab">Lunch</span><div class="dishcell"><span class="sname">Chickpea Curry</span><span class="cookmark">leftover</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
       <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Mushroom &amp; Lentil Ragù</span><span class="cookmark"><span class="mini-fresh"></span>cooks Mon · batch of 2</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
       <div class="emptyline"><span class="plus">＋</span>add a meal</div>
     </div>
 
     <div class="day2"><div class="day2-head"><div class="day2-name">Tuesday</div><span class="day2-date">10 Nov</span></div>
-      <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Lentil Bolognese</span><span class="cookmark frz">leftover</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
+      <div class="srow"><span class="slab">Dinner</span><div class="dishcell"><span class="sname">Lentil Bolognese</span><span class="cookmark" style="background:#EAF1F5;color:#3B6076">leftover</span></div><span class="avs"><span class="av a">A</span><span class="av j">J</span></span><span class="rmv">−</span></div>
       <div class="emptyline"><span class="plus">＋</span>add a meal</div>
     </div>
 
