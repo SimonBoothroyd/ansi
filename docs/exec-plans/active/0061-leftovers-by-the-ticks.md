@@ -1,6 +1,6 @@
 # Exec plan: Leftovers by the ticks
 
-- **Status:** draft — designed and signed off by the owner on 2026-11-08; nothing built
+- **Status:** built — phases 1–4 on 2026-11-08, unreleased; `make test-sim` and the release owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); follows [plan 0060](./0060-leftovers-fridge-and-freezer.md)
 - **Created:** 2026-11-08
@@ -291,6 +291,53 @@ Append-only.
     it is in date on the meal's day.
   - **Not done here:** phase 4, the board, the product spec, `ARCHITECTURE.md`,
     and `make test-sim` (no simulator in this lane).
+
+- 2026-11-08 — Phase 4 built (one lane): the screens, the board flipped to
+  built, the product spec, `ARCHITECTURE.md` and the READMEs. Decided in the lane:
+  - **A count set by hand keeps taking ticks, by day.** A stored row's
+    `portions` are the box as said plus what comes off it on read
+    (`Leftover.aside`): the planned meals already behind us and the ticks
+    already on the batch's meals from today on. The batch's meals after its
+    cook day and on or after the day the count was set (`updated_at`, local)
+    ride on the row: still to come they are spoken for, a tick takes its
+    portion out, and once behind us unticked they stay in the box. A late
+    tick of a meal before that day is taken to be in the count already. No
+    timestamps on ticks are read, and no migration.
+  - **A stored row now carries its batch's `leftover_of` meals too**, as a
+    derived row does, so a meal planned from a batch keeps its tag, its
+    warnings and its place in the count once the row is corrected.
+  - **Freeze and Froze it say the count again** (`portions` = the box plus
+    `aside`), since they move `updated_at` and later ticks count from then.
+  - **Rows stored before this release read slightly differently** where the
+    batch still had meals to come or `leftover_of` meals when they were
+    stored: those now come off too. Rows are a day old; nothing is rewritten.
+  - **`N left` is the box on the page and Cook** (`1 left · for Sun` with
+    Sunday's meal planned from it), and **what is free to plan in the
+    picker** (`2 left · till Jan`). The stepper sets the box, down to 0; a
+    row with an empty box and nothing to come leaves the page. `gone_at` is
+    set only by *Remove gone off*.
+  - **Cook's line replaces the covers line on a cooked batch**, as the board
+    frame draws it, on the phone tile and the wide sheet. A batch not cooked
+    yet keeps its covers line and, until its fridge date, `freeze 2 by Tue
+    for Thu` under the strip. `Cook Fri` on a batch nobody ticked names its
+    next meal by the ticks (`cookDayOf`), not its first planned day.
+  - **The Freeze button carries no snowflake.** The ruling puts it on freezer
+    subheads and blue tags only; the frame's button icon was removed.
+  - **The picker keeps the fridge row's green `leftover` tag**; only the
+    `frozen` chip was ruled out. A freezer row has no tag, and a freeze-by
+    row has the blue `❄ freeze by Mon` tag.
+  - **Cook fresh instead is new**: nothing like it existed on the meal sheet.
+    It clears `leftover_of` and `from_leftover` in one write
+    (`PlanningRepository.cookFreshInstead`); the confirm sheet's *Frozen ·
+    Cook fresh* is unchanged. A batch's own later meal (no pointer) has no
+    such door. The sheet also says where a leftover meal comes from: its
+    tag, `cooked Fri`, `freeze by Mon` while due.
+  - **Freezer dates read `till Jan`** four weeks out or more, `till 21 Nov`
+    within the month; a row with no date keeps its age.
+  - **`ARCHITECTURE.md`'s standing table** now reads the whole plan, phases
+    1–3 included.
+  - **Not done here:** `make test-sim` (no simulator in this lane) and the
+    roadmap row.
 
 ## Notes / open questions
 

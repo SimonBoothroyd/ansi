@@ -867,20 +867,24 @@ into **cook sessions** bounded by shelf life:
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
 - **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) — display only, per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
-- **What a cooked batch left over** ([plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md)):
-  **the ticks say what was cooked.** A batch anybody ticked was cooked; one
-  nobody ticked was never cooked, so it has no leftover — its ingredients
-  are last week's spare food (Shop and *Use up*, below). A cooked batch's
-  leftover is the portions of its meals already behind us that nobody ate,
-  less the meals planned from it since: a **fridge row** on the Leftovers
-  page, dated at its **use-by**, the cook day plus the recipe's fridge life,
-  never before its own last meal (an unknown fridge life is the last meal's
-  day). Each batch has its own: curry cooked Monday and again Thursday is two
-  rows with two dates. **Cook asks nothing.** The batch's card says its row
-  in one line — `1 portion left · until Fri`, `past its date`, `2 portions
-  frozen` — and the line opens Leftovers, where it is put right.
-  `batch_leftover` takes no new writes; an older *Binned* or *We ate it*
-  answer still reads as gone.
+- **What a cooked batch left over** ([plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md),
+  [plan 0061](../exec-plans/active/0061-leftovers-by-the-ticks.md)):
+  **no tick means you didn't eat it.** A batch is cooked on the earliest
+  day anybody ticked one of its meals, whatever order the ticks came in. One
+  nobody has ticked reads `Cook Fri` at its next meal; once all its days are
+  over it was never cooked and has no leftover — its ingredients are last
+  week's spare food (Shop and the picker's *Leftovers*, below). Made is what
+  was planned and bought for. What is left is the portions of its meals
+  behind us that nobody ate, less the meals planned from it: a **fridge
+  row** on the Leftovers page, good till the cook day plus the recipe's
+  fridge life (a week when unknown), never stretched to a later meal. Each
+  batch has its own: curry cooked Monday and again Thursday is two rows with
+  two dates. **Cook asks nothing.** A cooked batch's card leads with a check,
+  `✓ Cooked Fri`; its scale shows only when it isn't `×1`; and, in place of
+  its covers line, one line says what is in the box and what it is for — `2 left · till Mon`, `1 left · for
+  Sun`, `2 left · freeze by Mon for Wed` — opening Leftovers, where it is put
+  right. `batch_leftover` takes no new writes; an older *Binned* or *We ate
+  it* answer still reads as gone.
 
 ### Recipe additions for the above
 - `keeps_for_days` (fridge shelf life) — **core**; drives clustering + freshness.
@@ -1414,14 +1418,19 @@ source-tab slot, footer slot):
   pointer stays until somebody picks a chip or the word comes back. Cook's
   component card quotes such a demand in the words it was written in, showing
   its work: *"3 blob → 45 g → 0.15 of a batch"*.
-- **Use up** ([plan 0059](../exec-plans/active/0059-use-it-up.md),
-  [plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md)):
-  with nothing typed, the planning picker leads with what is already cooked.
-  First the **fridge** rows good for the day (on or after the cook day, on
-  or before the date, and not behind us), then the **freezer** rows, for any
-  day; each with its count and date — `1¾ · until Wed` under a `leftover`
-  tag, `2 · 2 wk` under a blue `frozen` one. A row in the household's own
-  words names no recipe and is not offered. A pick opens the confirm sheet
+- **Leftovers** ([plan 0059](../exec-plans/active/0059-use-it-up.md),
+  [plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md),
+  [plan 0061](../exec-plans/active/0061-leftovers-by-the-ticks.md)):
+  with nothing typed, the planning picker leads with what is already cooked,
+  judged on the day of the meal being planned. **Fridge** then **❄
+  Freezer**, each soonest to go off first; an empty one has no subhead. A
+  fridge row good that day reads `1¾ left · till Wed` beside its `leftover`
+  tag; a freezer row `2 left · till Jan`. A fridge row that will be past its
+  date by then, of a dish that freezes and would still be in date frozen, is
+  offered under Freezer as `2 left ·` and a blue `❄ freeze by Mon` tag;
+  picking it assumes the freeze is done. A row past its date today, a row
+  with nothing left and a row in the household's own words are never
+  offered. A pick opens the confirm sheet
   on a leftover card, *Not cooked again, not
   bought*, whose portions say what the meal leaves (`¾ still left after
   this`, `uses all of it`) and will not plan more than is left. The meal
@@ -1484,9 +1493,12 @@ say what each tap means without one.
   back to one. The marker and the day's macro line are **never hidden**: v2's
   edit mode suppressed both, which blanked the numbers you were editing
   against.
-  A meal from a leftover carries no marker: it reads **`leftover`** where the
-  marker sits, a tag in the fridge's green, or the freezer's blue when its
-  row is in the freezer, and nothing else.
+  A meal eaten from food already cooked — planned from a leftover, or a
+  later meal of a batch already cooked — carries no batch marker: it reads
+  **`leftover`** where the marker sits, a tag in the fridge's green, or the
+  freezer's blue with a ❄ when it is eaten from the freezer. One that no
+  longer adds up keeps its colour and adds `not enough left` or `past its
+  date` in amber; the plan is never edited.
 - **A row's controls are the facts the row prints (E7).** The **title** opens
   the recipe it names. The **portions chip + eater avatars are one target**,
   opening a compact editor holding exactly those two fields — one target and
@@ -1517,6 +1529,12 @@ say what each tap means without one.
   clock time. Nobody can tick for anyone else. A future meal's sheet is
   unchanged, and so is the sheet of a phone that does not yet know who it is
   (a token from before the claim, until it refreshes).
+- **A meal from a leftover** says where it comes from on its sheet: its
+  `leftover` tag, `cooked Fri`, and `freeze by Mon` while that is due. Before
+  its day the sheet offers **Cook fresh instead**, one tap that takes it off
+  the leftover: it is cooked, bought and costed again and the row's portions
+  are free. From its day on it offers *Ate this* and *Something else*
+  instead, never both.
 - **Something else** opens the planning picker (recipes, bare items and a
   meal eaten out in one search), then a bare item's amount or a meal out's
   optional figures. Here the typed words can always be noted as they are,
@@ -1581,23 +1599,26 @@ said on a particular day.
   and weight, on phone and wide alike, with a small dot while any row is past
   its date. The page is pushed (`/leftovers`); on wide it is the same page
   centred at 640. Cook's batch line is the other way in, to its own row.
-- **Two shelves, Fridge then Freezer**, oldest first. A row is the dish (or
-  the household's own words), its count, and its date: `until Sun` in the
-  fridge, its age (`2 wk`, `4 days`) in the freezer or for a row with no
-  date. Meals still to come that were planned from a row are named beside
-  the count, `2 · 2 planned`; the count is what is left to plan.
+- **Two shelves, Fridge then ❄ Freezer**, each soonest to go off first and
+  past its date last. A row is the dish (or the household's own words) and
+  its date — `till Sun`, `till Jan` in the freezer, its age (`4 days`) for a
+  row with no date — then an **`N left` chip**, what is in the box, and what
+  is planned from it: `for Sun`, or, for meals it reaches only from the
+  freezer, `❄ freeze by Mon for Wed` until Mon.
 - **A fridge row starts from the ticks** (*What a cooked batch left over*,
-  above). A tap opens a row: a **stepper** (a whole portion a step; `1¾`
-  steps to `1` or `2`, never to nothing), **Freeze** on a fridge row of a
-  freezable recipe or of words (to the freezer, dated today), and **Gone**.
-  A correction wins from then on: the first touch on a derived row stores it
-  (`leftover.batch`), and the stored count is the one shown plus the meals
-  already planned from it.
-- **Nothing clears itself.** A row past its date reads `2 · past its date`
-  and stays, offering **Froze it** (a freezable fridge row; dated at its last
-  fridge day, the latest it can have gone in) and **Gone** in place. The
-  Fridge heading carries **Clear all** while any fridge row is past its date,
-  marking every one of them gone.
+  above). Its chip opens a **stepper** in its place: a whole portion a step
+  (`1¾` steps to `1` or `2`), down to nothing, which takes the row off the
+  page. A correction wins from then on: the first touch on a derived row
+  stores it (`leftover.batch`). Ticks on the batch's meals from the day it
+  was set still come off it, and a meal nobody ticked stays in the box; a
+  count never reads below nothing.
+- **Freeze** sits on an in-date fridge row of a freezable recipe or of
+  words; **Froze it** on one past its date. Both move it to the freezer
+  dated from its cook day.
+- **Nothing clears itself.** A row past its date reads `past its date` and
+  stays, so it can be seen and put right. The Fridge heading carries
+  **Remove gone off** while any row on either shelf is past its date,
+  clearing every one of them.
 - **＋ in the bar opens *Add a leftover***: a recipe found by title or the
   typed words themselves, **Fridge · Freezer**, portions, and **This week ·
   Last week · Earlier** (dated today, 7 and 14 days back). It covers food the

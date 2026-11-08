@@ -6,15 +6,18 @@
 The **Cook** screen: the derived counterpart to the Week. It groups the active
 week's meals by recipe and splits each into **cook sessions** bounded by shelf
 life (spec §4). Nothing here is planned; edit the Week and this re-derives.
-Cook asks nothing: a cooked batch's card says what it left in one line and
-opens **Leftovers**.
+Cook asks nothing: a cooked batch's card leads with a check (`Cooked Fri`),
+shows its scale only when it isn't `×1`, and in place of its covers line says
+what it left in one line (`2 left · freeze by Mon for Wed`), opening
+**Leftovers**.
 
 **Leftovers** (`/leftovers`) is this feature's one writing page: the
 household's **fridge and freezer**, the derived batches merged with the
-`leftover` rows it has stored (`readLeftovers`, below), put right with a
-stepper, Freeze, Froze it, Gone, Clear all and *Add a leftover*. Its door is
-the fridge in the Week header. The planning picker's *Use up* offers its rows
-back, judged on the day being planned.
+`leftover` rows it has stored (`readLeftovers`, below), soonest to go off
+first, put right with each row's `N left` chip (it opens a stepper), Freeze,
+Froze it, Remove gone off and *Add a leftover*. Its door is the fridge in the
+Week header. The planning picker's *Leftovers* offers its rows back, judged on
+the day being planned.
 
 ## Layout
 
@@ -41,8 +44,8 @@ cook_plan/
                   batch_leftover_line.dart (a batch card's one line);
                   leftovers_view.dart (the page, its rows, Add a leftover,
                   and LeftoversDoor); leftovers_view_models.dart;
-                  leftover_format.dart (`1¾ · until Mon`, `freeze 2 by Tue
-                  for Thu`, pure Dart)
+                  leftover_format.dart (`2 left`, `till Mon`, `for Sun`,
+                  `freeze by Mon for Wed`, pure Dart)
 ```
 
 ## The clustering rule (spec §4)
@@ -126,13 +129,22 @@ household has on a day, and judges every meal served from it
 - **Stored rows** (`leftover`) are what was said: a correction, a freeze, a
   dish the app never saw. A row with a `batch` replaces that batch's derived
   row, gone or not; two rows for one batch read as the newest `updated_at`.
+  Its `portions` are the box as said plus what comes off it on read
+  (`Leftover.aside`): every meal planned from it (`from_leftover` and the
+  batch's `leftover_of` alike), and the ticks on the batch's later meals
+  dated on or after the day it was said (`updated_at`, local). Those meals
+  ride on it as on a derived row: still to come, they are spoken for; a tick
+  takes its portion out; once behind us unticked, they stay in the box. The
+  box never reads below nothing.
   A fridge row is good until `since` + `keeps_for_days` (7 when unknown), a
   freezer row until `since` + `freezer_days` (null: no limit); `since` is the
   cook day. A row in words has no date.
 - **Each row's portions fall by the meals planned from it**: `leftover_of`
   for a derived batch, `from_leftover` for a stored row (summed across a
-  batch's duplicates). A row shows while it has portions left or meals still
-  to come (`planned`).
+  batch's duplicates). `Leftover.inBox` is what is in the box, spoken for or
+  not (the `N left` the page and Cook print); `portions` is what is free to
+  plan (the picker's `N left`); `planned` is spoken for by meals still to
+  come. A row shows while its box holds anything or meals are still to come.
 - **Each meal planned from a row is judged on its own day**, in day order:
   `notEnoughLeft` once the meals before it and it ask more than is left (or
   it falls before the cook day, or the row is gone or never cooked),
@@ -161,11 +173,13 @@ write finds that row (the newest live one for the batch) rather than storing
 another. Local tables are views, so each is a SELECT then an INSERT or
 UPDATE.
 
-- **The stepper** stores the count it is set to **plus** the meals already
-  planned from the row (`from_leftover`, across the batch's duplicates),
-  because a stored row's portions are counted before them.
-- **Freeze** and **Froze it** set `place = freezer` and keep `since`, the cook
-  day: freezer dates count from it. **Gone** and **Clear all** set `gone_at`.
+- **The stepper** sets the box (`inBox`), down to nothing, and stores it
+  plus `Leftover.aside`, so the read gives back what was set and later ticks
+  come off it. Nothing takes a row off the page sooner.
+- **Freeze** and **Froze it** set `place = freezer`, keep `since`, the cook
+  day (freezer dates count from it), and store the count as it stands, since
+  `updated_at` moves. **Remove gone off** sets `gone_at` on every row past
+  its date, on both shelves.
 - **Add a leftover** inserts a row with no `batch`: a recipe or the
   household's words, either place, `since` from the chip (today, 7 or 14
   days back).

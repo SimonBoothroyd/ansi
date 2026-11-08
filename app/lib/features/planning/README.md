@@ -34,13 +34,16 @@ planning/
     week_header.dart          the week switcher
     week_in_the_location.dart the viewed week in the URL, shared by Week/Cook/Shop
     recipe_picker_sheet.dart  the add flow's one door (Recent · Books · Favorites)
-    use_up_block.dart         Use up: fridge, freezer, then recipes using
-                              spare food; LeftoverTag
+    use_up_block.dart         Leftovers: fridge, freezer (soonest to go off
+                              first), then recipes using spare food;
+                              LeftoverTag (a snowflake on the freezer's blue)
     whats_left_sheet.dart     the spare food and the ranking's cut
     use_up_view_models.dart   useUp: last week's spare, scored and offered
     confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal
                               out; Frozen · Cook fresh for a dish in the freezer
-    meal_editor_sheet.dart    edit a placed meal; the variant door at its foot
+    meal_editor_sheet.dart    edit a placed meal; a leftover meal's source and,
+                              before its day, Cook fresh instead; the variant
+                              door at its foot
     meal_fields.dart          controls both sheets share
     week_macro_widgets.dart   day foot, week band, the spent line
     week_recipe_band.dart     the line-size week strip on a recipe page
@@ -115,8 +118,8 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 1. **`showRecipePickerSheet`** — one door for all three kinds. Typed words
    search recipes and the household vocabulary; when they hit nothing, the
    footer offers `＋ note it` for a meal eaten out. With nothing typed it
-   leads with *Use up*: the fridge rows good for the day, then the freezer
-   rows (`leftoversGoodOn` over the cook plan's `householdLeftovers`; a row
+   leads with *Leftovers*: the fridge rows good for the day, then the freezer
+   rows, each soonest to go off first (`leftoversGoodOn` over the cook plan's `householdLeftovers`; a row
    in words names no recipe and is left out), each a `PickedLeftover`, then
    the recipes that use the most of last week's spare food. Returns a
    `PickedMeal`.
