@@ -138,31 +138,41 @@ void main() {
     },
   );
 
-  test(
-    'the stepper stores what it shows plus the meals planned from the row',
-    () async {
-      await insertLeftover(db, id: 'lo1', recipeId: 'curry', portions: 4);
-      // Ada's 1 on next Tuesday comes from the freezer.
+  test('the stepper sets what is in the box, storing beside it the meals '
+      'already eaten from it', () async {
+    await insertLeftover(db, id: 'lo1', recipeId: 'curry', portions: 4);
+    // Ada's 1 on Monday is behind us; her 1 next Tuesday is to come.
+    for (final (week, day) in [
+      (_week, 0),
+      (_week.add(const Duration(days: 7)), 1),
+    ]) {
       await planning.addEntry(
-        weekStart: _week.add(const Duration(days: 7)),
-        dayOfWeek: 1,
+        weekStart: week,
+        dayOfWeek: day,
         mealSlot: 'Dinner',
         recipeId: 'curry',
         eaterIds: const ['a'],
         fromLeftover: 'lo1',
       );
-      final left = (await shelves()).single;
-      expect(left.portions, 3);
-      expect(left.planned, 1, reason: 'still to come, so spoken for');
+    }
+    final left = (await shelves()).single;
+    expect((left.inBox, left.portions, left.planned), (3.0, 2.0, 1.0));
+    expect(left.aside, 1);
 
-      await repo.setLeftoverPortions(left, 2);
-      expect((await stored('lo1'))['portions'], 3);
-      expect((await shelves()).single.portions, 2);
+    await repo.setLeftoverPortions(left, 2);
+    expect((await stored('lo1'))['portions'], 3);
+    final set = (await shelves()).single;
+    expect((set.inBox, set.portions), (2.0, 1.0));
 
-      // Once its day is behind us the meal is eaten, no longer planned.
-      expect((await shelves(today: DateTime(2026, 9, 2))).single.planned, 0);
-    },
-  );
+    // Once its day is behind us the meal is eaten, no longer planned.
+    expect((await shelves(today: DateTime(2026, 9, 2))).single.planned, 0);
+  });
+
+  test('a count of nothing takes the row off the page', () async {
+    await cookedCurry(0);
+    await repo.setLeftoverPortions((await shelves()).single, 0);
+    expect(await shelves(), isEmpty);
+  });
 
   test('Freeze moves a row to the freezer, dated from its cook day', () async {
     await cookedCurry(0);

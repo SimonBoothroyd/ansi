@@ -22,12 +22,14 @@ abstract interface class LeftoverRepository {
   /// one says which shelf it came from.
   Stream<Map<String, LeftoverPlace>> watchLeftoverPlaces();
 
-  /// Says [portions] are left of [left]. The meals already planned from its
-  /// stored row come off on read, so the row stores [portions] plus them.
+  /// Says [portions] of [left] are in the box ([Leftover.inBox]); zero takes
+  /// it off the page. What comes off a stored count on read is stored with it
+  /// ([Leftover.aside]), so ticks from today on still come off it.
   Future<void> setLeftoverPortions(Leftover left, double portions);
 
-  /// Moves [left] to the freezer. Its date still counts from its cook day,
-  /// whether it went in on the night or is said to have late.
+  /// Moves [left] to the freezer, its count as it stands. Its date still
+  /// counts from its cook day, whether it went in on the night or is said to
+  /// have late.
   Future<void> freezeLeftover(Leftover left);
 
   /// Says every one of [lefts] is gone: eaten, binned or given away.

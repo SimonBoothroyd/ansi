@@ -490,7 +490,8 @@ void main() {
           for (final l in shelves(plan: twice, today: saturday))
             (l.batch, l.goodUntil),
         ],
-        [('e1', _oct(28)), ('thu', _oct(31))],
+        // Soonest to go off first, past its date last.
+        [('thu', _oct(31)), ('e1', _oct(28))],
       );
 
       final left = shelves(
@@ -580,6 +581,112 @@ void main() {
       expect(leftoverWeekStarts(DateTime(2026, 11, 22)), [
         for (final day in [25, 32, 39, 46, 53]) DateTime(2026, 10, day),
       ]);
+    });
+  });
+
+  group('a count set by hand', () {
+    // Hamburger Helper: Wednesday skipped, cooked Friday, Saturday to come.
+    LeftoverShelves read(
+      CookSession session, {
+      required DateTime today,
+      List<StoredLeftover> stored = const [],
+      Map<String, List<PlannedFromLeftover>> fromBatch = const {},
+    }) => readLeftovers(
+      weeks: [(weekStart: _week, plan: _planOf(session))],
+      today: today,
+      stored: stored,
+      recipes: const {
+        'hh': (
+          title: 'Hamburger Helper',
+          keepsForDays: 3,
+          freezerDays: 30,
+          freezable: true,
+        ),
+      },
+      fromBatch: fromBatch,
+    );
+
+    /// The count Friday evening, after dinner.
+    StoredLeftover said(double portions) => StoredLeftover(
+      id: 'lo1',
+      place: LeftoverPlace.fridge,
+      recipeId: 'hh',
+      portions: portions,
+      since: _oct(30),
+      batch: 'e3',
+      updatedAt: DateTime(2026, 10, 30, 20),
+    );
+
+    test('the box holds what is free and what is spoken for', () {
+      final left = read(_helper({5: 2}), today: _oct(30)).rows.single;
+      expect((left.inBox, left.portions, left.planned), (4.0, 2.0, 2.0));
+      expect(left.aside, 0);
+    });
+
+    test('ticks after it still come off; no tick leaves it in the box', () {
+      // Saturday ticked: its two portions came out of the three said.
+      final ticked = read(
+        _helper({5: 2, 6: 2}),
+        today: _oct(31),
+        stored: [said(3)],
+      ).rows.single;
+      expect((ticked.id, ticked.inBox, ticked.portions), ('lo1', 1.0, 1.0));
+
+      // Saturday still to come: spoken for, inside the three.
+      final ahead = read(
+        _helper({5: 2}),
+        today: _oct(31),
+        stored: [said(3)],
+      ).rows.single;
+      expect((ahead.inBox, ahead.portions, ahead.planned), (3.0, 1.0, 2.0));
+
+      // Saturday over and nobody ticked it: still in the box.
+      final skipped = read(
+        _helper({5: 2}),
+        today: _nov(1),
+        stored: [said(3)],
+      ).rows.single;
+      expect((skipped.inBox, skipped.portions), (3.0, 3.0));
+    });
+
+    test('a count never goes below nothing', () {
+      expect(
+        read(_helper({5: 2, 6: 2}), today: _nov(1), stored: [said(1)]).rows,
+        isEmpty,
+      );
+    });
+
+    test('a write stores the count plus what comes off it on read', () {
+      // Saturday half ticked: one portion of it gone, one spoken for.
+      final derived = read(_helper({5: 2, 6: 1}), today: _oct(31)).rows.single;
+      expect((derived.inBox, derived.aside), (3.0, 1.0));
+      final stored = StoredLeftover(
+        id: 'lo1',
+        place: LeftoverPlace.fridge,
+        recipeId: 'hh',
+        portions: derived.inBox + derived.aside,
+        since: _oct(30),
+        batch: 'e3',
+        updatedAt: DateTime(2026, 10, 31, 9),
+      );
+      final again = read(
+        _helper({5: 2, 6: 1}),
+        today: _oct(31),
+        stored: [stored],
+      ).rows.single;
+      expect((again.inBox, again.portions), (3.0, derived.portions));
+    });
+
+    test('a meal planned from the batch comes off its stored count', () {
+      final left = read(
+        _helper({5: 2}),
+        today: _nov(1),
+        stored: [said(3)],
+        fromBatch: {
+          'e3': [(entryId: 'x', day: _nov(2), portions: 2)],
+        },
+      ).rows.single;
+      expect((left.inBox, left.portions, left.planned), (3.0, 1.0, 2.0));
     });
   });
 

@@ -229,11 +229,13 @@ class Leftover {
     this.batch,
     this.recipeId,
     this.planned = 0,
+    double? inBox,
+    this.aside = 0,
     this.freezable = false,
     this.freezerUntil,
     this.freezeBy,
     this.meals = const [],
-  });
+  }) : _inBox = inBox;
 
   /// The stored row's id; null for a row derived from a cooked batch.
   final String? id;
@@ -267,6 +269,18 @@ class Leftover {
   /// The portions of the meals still to come (today or later) that are
   /// served from it: in the box, spoken for, and not in [portions].
   final double planned;
+
+  final double? _inBox;
+
+  /// What is in the box today, spoken for or not: the `N left` the Leftovers
+  /// page and Cook print, and what its stepper sets. Never below zero.
+  double get inBox => _inBox ?? portions + planned;
+
+  /// What a stored count holds beyond [inBox]: the meals planned from the row
+  /// already behind us, and the ticks already on the batch's meals from today
+  /// on. Both come off a stored count on read, so a write stores the count
+  /// plus this.
+  final double aside;
 
   /// Whether the dish freezes.
   final bool freezable;
@@ -322,6 +336,8 @@ class Leftover {
     goodUntil: freezerUntil,
     portions: portions,
     planned: planned,
+    inBox: _inBox,
+    aside: aside,
     freezable: freezable,
     freezerUntil: freezerUntil,
     freezeBy: goodUntil,
@@ -361,7 +377,8 @@ Leftover? leftoverOfferOn(Leftover left, DateTime day, DateTime today) {
 class LeftoverShelves {
   const LeftoverShelves({this.rows = const [], this.meals = const {}});
 
-  /// Fridge first, then freezer, oldest first within each.
+  /// Fridge first, then freezer; within each, soonest to go off first and
+  /// past its date last.
   final List<Leftover> rows;
 
   /// Each meal planned from a leftover (and each later meal of a cooked
@@ -438,6 +455,19 @@ LeftoverShelves readLeftovers({
     if (row.shown) rows.add(row.left);
   }
 
+  // Every batch of the weeks read, by key: a stored row naming one still
+  // carries its later meals.
+  final batches = <String, ({CookSession session, DateTime weekStart})>{};
+  for (final week in weeks) {
+    for (final recipe in week.plan.recipes) {
+      for (final session in recipe.mealSessions) {
+        if (session.leftoverKey case final key?) {
+          batches[key] = (session: session, weekStart: week.weekStart);
+        }
+      }
+    }
+  }
+
   // One row per batch, the newest; every row added by hand stands alone. The
   // meals planned from a losing duplicate still come off the winner: it is
   // the same food.
@@ -450,7 +480,7 @@ LeftoverShelves readLeftovers({
       (byBatch[batch] ??= []).add(row);
     }
   }
-  for (final group in byBatch.values) {
+  for (final MapEntry(key: key, value: group) in byBatch.entries) {
     final newest = group.reduce(
       (a, b) =>
           b.updatedAt.isAfter(a.updatedAt) ||
@@ -458,12 +488,23 @@ LeftoverShelves readLeftovers({
           ? b
           : a,
     );
+    final batch = batches[key];
     add(
       _storedRow(
         newest,
-        [for (final r in group) ...?fromRow[r.id]],
+        [for (final r in group) ...?fromRow[r.id], ...?fromBatch[key]],
         recipes,
         day,
+        // Ticks on the batch's meals from the day the count was set on still
+        // come off it.
+        later: batch == null
+            ? const []
+            : _laterMeals(
+                batch.session,
+                batch.weekStart,
+                day,
+                from: _dateOnly(newest.updatedAt.toLocal()),
+              ),
       ),
     );
   }
@@ -473,29 +514,35 @@ LeftoverShelves readLeftovers({
     day.month,
     day.day - kLeftoverHorizon.inDays,
   );
-  for (final week in weeks) {
-    for (final recipe in week.plan.recipes) {
-      for (final session in recipe.mealSessions) {
-        final key = session.leftoverKey;
-        if (key == null || byBatch.containsKey(key)) continue;
-        add(
-          _derivedRow(
-            session,
-            key,
-            weekStart: week.weekStart,
-            today: day,
-            horizon: horizon,
-            gone: _answered(answers[key]),
-            planned: fromBatch[key] ?? const [],
-          ),
-        );
-      }
-    }
+  for (final MapEntry(key: key, value: batch) in batches.entries) {
+    if (byBatch.containsKey(key)) continue;
+    add(
+      _derivedRow(
+        batch.session,
+        key,
+        weekStart: batch.weekStart,
+        today: day,
+        horizon: horizon,
+        gone: _answered(answers[key]),
+        planned: fromBatch[key] ?? const [],
+      ),
+    );
   }
 
+  // Soonest to go off first, past its date last; a row with no date after
+  // every dated one.
   rows.sort((a, b) {
     final place = a.place.index.compareTo(b.place.index);
     if (place != 0) return place;
+    final past = (a.pastItsDate(day) ? 1 : 0) - (b.pastItsDate(day) ? 1 : 0);
+    if (past != 0) return past;
+    final until = switch ((a.goodUntil, b.goodUntil)) {
+      (null, null) => 0,
+      (null, _) => 1,
+      (_, null) => -1,
+      (final x?, final y?) => x.compareTo(y),
+    };
+    if (until != 0) return until;
     final since = a.since.compareTo(b.since);
     return since != 0 ? since : a.title.compareTo(b.title);
   });
@@ -506,8 +553,43 @@ LeftoverShelves readLeftovers({
 bool _answered(LeftoverAnswer? answer) =>
     answer != null && answer.binned + answer.eaten > 1e-9;
 
-/// One of a cooked batch's later meals: what it still takes from the batch.
-typedef _OwnMeal = ({String? entryId, DateTime day, double portions});
+/// One of a cooked batch's later meals: what it still takes from the batch,
+/// and what its eaters said they ate of it.
+typedef _OwnMeal = ({
+  String? entryId,
+  DateTime day,
+  double portions,
+  double eaten,
+});
+
+/// The meals of [session] (of the week beginning [weekStart]) after its cook
+/// day, on [today]; with [from], only those on or after it. None while it
+/// was never ticked.
+List<_OwnMeal> _laterMeals(
+  CookSession session,
+  DateTime weekStart,
+  DateTime today, {
+  DateTime? from,
+}) {
+  final cookDay = cookDayOf(session, weekStart, today);
+  if (cookDay == null || !wasCooked(session)) return const [];
+  return [
+    for (final m in session.covers)
+      if (m.dayOfWeek > cookDay &&
+          (from == null || !dateOfDay(weekStart, m.dayOfWeek).isBefore(from)))
+        (
+          entryId: m.entryId,
+          day: dateOfDay(weekStart, m.dayOfWeek),
+          portions: m.portions - m.eatenPortions,
+          eaten: m.eatenPortions,
+        ),
+  ];
+}
+
+/// A row's portions: `free` to plan from, `ahead` spoken for by meals still
+/// to come, `inBox` in all ([Leftover.inBox]) and `aside`
+/// ([Leftover.aside]).
+typedef _Count = ({double free, double ahead, double inBox, double aside});
 
 /// A row being read: the [Leftover] the page would draw, the meals it serves,
 /// and whether it is shown at all.
@@ -543,32 +625,24 @@ _Row? _derivedRow(
     freezable: session.freezable,
     freezerDays: session.freezerDays,
   );
-  final own = <_OwnMeal>[
-    if (cookDay != null && wasCooked(session))
-      for (final m in session.covers)
-        if (m.dayOfWeek > cookDay)
-          (
-            entryId: m.entryId,
-            day: dateOfDay(weekStart, m.dayOfWeek),
-            portions: m.portions - m.eatenPortions,
-          ),
-  ];
   return _read(
     dates,
     available: since == null || gone ? 0 : left,
     planned: planned,
-    own: own,
+    own: _laterMeals(session, weekStart, today),
     today: today,
     shown: since != null && !gone,
-    build: (place, goodUntil, freezeBy, portions, ahead, meals) => Leftover(
+    build: (place, goodUntil, freezeBy, count, meals) => Leftover(
       place: place,
       batch: key,
       recipeId: session.recipeId,
       title: session.recipeTitle,
       since: since ?? today,
       goodUntil: goodUntil,
-      portions: portions,
-      planned: ahead,
+      portions: count.free,
+      planned: count.ahead,
+      inBox: count.inBox,
+      aside: count.aside,
       freezable: session.freezable,
       freezerUntil: dates.freezerUntil,
       freezeBy: freezeBy,
@@ -579,12 +653,18 @@ _Row? _derivedRow(
 
 /// A stored row, read on [today]. Null for a row whose recipe is gone; a row
 /// said gone still judges the meals planned from it.
+///
+/// Its portions are the count as said, with every meal planned from it still
+/// to come off. [later] are its batch's meals from the day it was said on:
+/// what their eaters ticked comes off it too, and what they have yet to eat
+/// is spoken for.
 _Row? _storedRow(
   StoredLeftover row,
   List<PlannedFromLeftover> planned,
   Map<String, LeftoverRecipe> recipes,
-  DateTime today,
-) {
+  DateTime today, {
+  List<_OwnMeal> later = const [],
+}) {
   final since = _dateOnly(row.since);
   final recipeId = row.recipeId;
   final String title;
@@ -610,14 +690,21 @@ _Row? _storedRow(
     );
   }
   final gone = row.goneAt != null;
+  // The count holds its batch's later meals: what was ticked of them has
+  // gone, and what is still to come is spoken for, not free.
+  var counted = row.portions;
+  for (final m in later) {
+    counted -= m.eaten;
+    if (!m.day.isBefore(today) && m.portions > 1e-9) counted -= m.portions;
+  }
   return _read(
     dates,
-    available: gone ? 0 : row.portions,
+    available: gone ? 0 : counted,
     planned: planned,
-    own: const [],
+    own: later,
     today: today,
     shown: !gone,
-    build: (place, goodUntil, freezeBy, portions, ahead, meals) => Leftover(
+    build: (place, goodUntil, freezeBy, count, meals) => Leftover(
       id: row.id,
       batch: row.batch,
       place: place,
@@ -625,8 +712,10 @@ _Row? _storedRow(
       title: title,
       since: since,
       goodUntil: goodUntil,
-      portions: portions,
-      planned: ahead,
+      portions: count.free,
+      planned: count.ahead,
+      inBox: count.inBox,
+      aside: count.aside,
       freezable: dates.freezable,
       freezerUntil: dates.freezerUntil,
       freezeBy: freezeBy,
@@ -702,10 +791,11 @@ LeftoverPlace? _shelfOn(
 /// Judges every meal served from a row on its own day, in day order, and
 /// builds the row as it stands on [today].
 ///
-/// [available] is what is in the box before the meals planned from it;
-/// [own] are a cooked batch's later meals, already accounted for in what it
-/// made. Once the fridge date is behind [today], a row with a meal eaten past
-/// it from the freezer is taken to have been frozen.
+/// [available] is what is free in the box before the meals planned from it
+/// come off: neither those meals nor [own], a cooked batch's later meals,
+/// whose portions still to come are spoken for on top of it. Once the fridge
+/// date is behind [today], a row with a meal eaten past it from the freezer
+/// is taken to have been frozen.
 _Row _read(
   _Dates dates, {
   required double available,
@@ -717,8 +807,7 @@ _Row _read(
     LeftoverPlace place,
     DateTime? goodUntil,
     DateTime? freezeBy,
-    double portions,
-    double ahead,
+    _Count count,
     List<LeftoverMeal> meals,
   )
   build,
@@ -778,6 +867,26 @@ _Row _read(
   ];
   final aheadPortions = ahead.fold<double>(0, (s, m) => s + m.portions);
   final left = rest > 1e-9 ? rest : 0.0;
+  // In the box: what is free, less the planned meals already behind us,
+  // plus the batch's own meals still to come.
+  var behind = 0.0;
+  for (final m in sorted) {
+    if (_dateOnly(m.day).isBefore(today)) behind += m.portions;
+  }
+  var inBox = available - behind;
+  var tickedAhead = 0.0;
+  for (final m in own) {
+    if (m.day.isBefore(today)) continue;
+    if (m.portions > 1e-9) inBox += m.portions;
+    tickedAhead += m.eaten;
+  }
+  if (inBox < 1e-9) inBox = 0;
+  final count = (
+    free: left,
+    ahead: aheadPortions,
+    inBox: inBox,
+    aside: behind + tickedAhead,
+  );
 
   // A meal eaten from the freezer past the fridge date says it was frozen.
   final frozenFor = [
@@ -815,16 +924,9 @@ _Row _read(
         m,
   ];
   return (
-    left: build(
-      place,
-      goodUntil,
-      freezeBy,
-      left,
-      aheadPortions,
-      List.unmodifiable(judged),
-    ),
+    left: build(place, goodUntil, freezeBy, count, List.unmodifiable(judged)),
     meals: judged,
-    shown: shown && (left > 1e-9 || aheadPortions > 1e-9),
+    shown: shown && (inBox > 1e-9 || aheadPortions > 1e-9),
   );
 }
 

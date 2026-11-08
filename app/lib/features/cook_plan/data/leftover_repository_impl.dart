@@ -158,39 +158,26 @@ class SqliteLeftoverRepository implements LeftoverRepository {
       );
 
   @override
-  Future<void> setLeftoverPortions(Leftover left, double portions) async {
-    final members = {for (final m in await loadMembers(_db)) m.id: m};
-    await _db.writeTransaction((tx) async {
-      final id = await _storedIdFor(tx, left);
-      // Every row of the batch: the read takes their meals off the winner.
-      final planned = await tx.getAll(
-        'SELECT pe.eaters, pe.portions FROM plan_entry pe '
-        'JOIN leftover lo ON lo.id = pe.from_leftover '
-        'WHERE pe.deleted_at IS NULL AND (lo.id = ? OR '
-        '(lo.batch IS NOT NULL AND lo.batch = '
-        '(SELECT batch FROM leftover WHERE id = ?)))',
-        [id, id],
-      );
-      final spoken = planned.fold<double>(
-        0,
-        (sum, r) => sum + _demandOf(r, members),
-      );
-      await tx.execute(
-        'UPDATE leftover SET portions = ?, updated_at = ? WHERE id = ?',
-        [portions + spoken, _now(), id],
-      );
-    });
-  }
+  Future<void> setLeftoverPortions(Leftover left, double portions) =>
+      _db.writeTransaction((tx) async {
+        final id = await _storedIdFor(tx, left);
+        // What comes off a stored count on read is stored with it.
+        await tx.execute(
+          'UPDATE leftover SET portions = ?, updated_at = ? WHERE id = ?',
+          [portions + left.aside, _now(), id],
+        );
+      });
 
   @override
   Future<void> freezeLeftover(Leftover left) =>
       _db.writeTransaction((tx) async {
         final id = await _storedIdFor(tx, left);
-        // `since` stays the cook day: freezer dates count from it.
+        // `since` stays the cook day: freezer dates count from it. The count
+        // is said again as it stands, since later ticks come off it from now.
         await tx.execute(
-          "UPDATE leftover SET place = 'freezer', since = ?, updated_at = ? "
-          'WHERE id = ?',
-          [isoDateOf(left.since), _now(), id],
+          "UPDATE leftover SET place = 'freezer', since = ?, portions = ?, "
+          'updated_at = ? WHERE id = ?',
+          [isoDateOf(left.since), left.inBox + left.aside, _now(), id],
         );
       });
 
@@ -236,7 +223,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
 
   /// The stored row [left] is, storing a derived one first: the newest live
   /// row already naming its batch if another write got there, else a new
-  /// fridge row at the portions it showed.
+  /// fridge row at the count it showed.
   Future<String> _storedIdFor(SqliteWriteContext tx, Leftover left) async {
     if (left.id case final id?) return id;
     final batch = left.batch!;
@@ -252,7 +239,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
       id: id,
       place: left.place,
       recipeId: left.recipeId,
-      portions: left.portions,
+      portions: left.inBox + left.aside,
       since: left.since,
       batch: batch,
     );
