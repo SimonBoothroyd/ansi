@@ -58,13 +58,25 @@ Future<void> _insertRecipe(
   required List<(String, double, Unit)> lines,
   double servings = 2,
   int? keepsForDays,
+  bool freezable = false,
+  int? freezerDays,
 }) async {
   final now = DateTime.now().toUtc().toIso8601String();
   await db.execute(
     'INSERT INTO recipe (id, household_id, title, servings_base, '
     'keeps_for_days, freezable, freezer_days, created_at, updated_at) '
-    'VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)',
-    [id, 'h', title, servings, keepsForDays, null, now, now],
+    'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      id,
+      'h',
+      title,
+      servings,
+      keepsForDays,
+      if (freezable) 1 else 0,
+      freezerDays,
+      now,
+      now,
+    ],
   );
   final groupId = '$id-g';
   await db.execute(
@@ -1600,6 +1612,61 @@ void main() {
           .amount,
       3,
     );
+  });
+
+  group('a dish that freezes, across the week edge', () {
+    final next = _week.add(const Duration(days: 7));
+
+    /// A recipe of 4 that keeps 3 days and freezes for 30: Saturday this
+    /// week, and [thursday] portions next Thursday.
+    Future<(String, String)> plan({required int thursday}) async {
+      await _insertRecipe(
+        db,
+        'hh',
+        'Hamburger Helper',
+        servings: 4,
+        keepsForDays: 3,
+        freezable: true,
+        freezerDays: 30,
+        lines: [('onion', 4, pieces)],
+      );
+      final sat = await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 5,
+        mealSlot: 'Dinner',
+        recipeId: 'hh',
+        eaterIds: ['a', 'b'],
+        portions: 2,
+      );
+      final thu = await planning.addEntry(
+        weekStart: next,
+        dayOfWeek: 3,
+        mealSlot: 'Dinner',
+        recipeId: 'hh',
+        eaterIds: ['a', 'b'],
+        portions: thursday,
+      );
+      return (sat, thu);
+    }
+
+    double? onions(ShoppingList list) => list.groups.isEmpty
+        ? null
+        : list.groups.single.items.single.totals.single.amount;
+
+    test(
+      'one whole recipe covers both: bought once, on Saturday’s week',
+      () async {
+        await plan(thursday: 2);
+        expect(onions(await repo.watchShoppingList(_week).first), 4);
+        expect(onions(await repo.watchShoppingList(next).first), isNull);
+      },
+    );
+
+    test('one recipe does not cover both: each week buys its own', () async {
+      await plan(thursday: 3);
+      expect(onions(await repo.watchShoppingList(_week).first), 2);
+      expect(onions(await repo.watchShoppingList(next).first), 3);
+    });
   });
 
   test('a meal planned from a freezer row is never bought for again', () async {

@@ -6,7 +6,11 @@ import 'package:ansi/features/cook_plan/domain/leftover_repository.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 
 class FakeLeftoverRepository implements LeftoverRepository {
-  FakeLeftoverRepository([this.rows = const [], this.places = const {}]);
+  FakeLeftoverRepository([
+    this.rows = const [],
+    this.places = const {},
+    this.meals = const {},
+  ]);
 
   /// What [watchHouseholdLeftovers] hands out, whatever the day.
   final List<Leftover> rows;
@@ -14,11 +18,14 @@ class FakeLeftoverRepository implements LeftoverRepository {
   /// What [watchLeftoverPlaces] hands out.
   final Map<String, LeftoverPlace> places;
 
+  /// The meals served from a row, by entry id, beside [rows].
+  final Map<String, LeftoverMeal> meals;
+
   @override
-  Stream<List<Leftover>> watchHouseholdLeftovers({
+  Stream<LeftoverShelves> watchHouseholdLeftovers({
     required DateTime weekStart,
     required DateTime today,
-  }) => Stream.value(rows);
+  }) => Stream.value(LeftoverShelves(rows: rows, meals: meals));
 
   @override
   Stream<Map<String, LeftoverPlace>> watchLeftoverPlaces() =>
@@ -27,8 +34,8 @@ class FakeLeftoverRepository implements LeftoverRepository {
   /// Every `(row, portions)` handed to [setLeftoverPortions].
   final portionWrites = <(Leftover, double)>[];
 
-  /// Every `(row, since)` handed to [freezeLeftover].
-  final freezes = <(Leftover, DateTime)>[];
+  /// Every row handed to [freezeLeftover].
+  final freezes = <Leftover>[];
 
   /// Every list handed to [markLeftoversGone].
   final gone = <List<Leftover>>[];
@@ -50,8 +57,7 @@ class FakeLeftoverRepository implements LeftoverRepository {
       portionWrites.add((left, portions));
 
   @override
-  Future<void> freezeLeftover(Leftover left, {required DateTime since}) async =>
-      freezes.add((left, since));
+  Future<void> freezeLeftover(Leftover left) async => freezes.add(left);
 
   @override
   Future<void> markLeftoversGone(List<Leftover> lefts) async => gone.add(lefts);

@@ -10,6 +10,7 @@ import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
 import '../../../shared/format.dart';
 import '../../cook_plan/domain/cook_plan.dart';
+import '../../cook_plan/domain/leftovers.dart';
 import '../../ingredients/presentation/macros_format.dart';
 import '../domain/planning.dart';
 
@@ -94,17 +95,24 @@ enum CookMarkerKind {
   /// This day IS the batch's cook day.
   cooks,
 
-  /// The batch was cooked earlier and this meal comes out of the fridge.
+  /// The batch is cooked earlier and this meal will come out of the fridge.
   fromBatch,
 
-  /// Cooked earlier, and this day is past the fridge window, so it comes from
-  /// the freezer.
+  /// Cooked earlier, and this day is past the fridge window, so it will come
+  /// from the freezer.
   freezerShare,
+
+  /// The batch is already cooked: this meal is eaten from it, a `leftover`
+  /// from the fridge or the freezer (`frozen`).
+  leftover,
 }
 
 /// The cook marker for one planned meal (see [cookMarkerFor]).
 typedef CookMarker = ({
   CookMarkerKind kind,
+
+  /// The batch's cook day, an offset from the week on screen's first day:
+  /// below 0 for a batch of the week before.
   int cookDay,
 
   /// Portions the whole batch cooks — `batch of 4`, or `batch of 1¾`.
@@ -113,45 +121,99 @@ typedef CookMarker = ({
   /// Where this day sits in the batch's fridge window, 0 (just cooked) to 1
   /// (its end). 0 when the recipe has no shelf life.
   double position,
+
+  /// Eaten from the freezer: past the batch's fridge date.
+  bool frozen,
 });
 
 /// Reads the cook marker for the meal on [dayOfWeek] / [mealSlot] off the cook
 /// plan; no batching logic lives here. Null when nothing in the plan covers the
-/// meal, or when the session cooks for one meal only.
+/// meal, when the session cooks for one meal only, or when the meal falls
+/// before the day its batch was cooked.
+///
+/// The cook day is the batch's as the ticks have it ([cookDayOf]) on [today],
+/// in the week beginning [weekStart]; without them it is the planned one. A
+/// meal after the cook day of a batch already cooked reads as a `leftover`.
+/// A meal of this week the week before's batch cooks ([CookPlan.foldedBack],
+/// found by [entryId]) reads as a `leftover` too, unless it has become that
+/// batch's cook day.
 CookMarker? cookMarkerFor(
   CookPlan plan, {
   required String recipeId,
   required int dayOfWeek,
   required String mealSlot,
+  String? entryId,
+  DateTime? weekStart,
+  DateTime? today,
 }) {
+  if (plan.foldedBack[entryId] case final host?) {
+    final start = weekStart;
+    return _markerOf(
+      host,
+      day: dayOfWeek + 7,
+      weekStart: start == null
+          ? null
+          : DateTime(start.year, start.month, start.day - 7),
+      today: today,
+      shift: 7,
+      folded: true,
+    );
+  }
   for (final recipe in plan.recipes) {
     if (recipe.recipeId != recipeId) continue;
     for (final session in recipe.mealSessions) {
       final covers = session.covers.any(
-        (m) => m.dayOfWeek == dayOfWeek && m.mealSlot == mealSlot,
+        (m) =>
+            (entryId != null && m.entryId == entryId) ||
+            (m.dayOfWeek == dayOfWeek && m.mealSlot == mealSlot),
       );
       if (!covers) continue;
       // One meal, one cook: there is no batch to talk about.
       if (session.covers.length < 2) return null;
-
-      final keeps = session.keepsForDays;
-      final gap = dayOfWeek - session.cookDay;
-      final kind = gap == 0
-          ? CookMarkerKind.cooks
-          : session.frozenDays.contains(dayOfWeek)
-          ? CookMarkerKind.freezerShare
-          : CookMarkerKind.fromBatch;
-      return (
-        kind: kind,
-        cookDay: session.cookDay,
-        batchPortions: session.totalPortions,
-        position: keeps == null || keeps <= 0
-            ? 0
-            : math.min(1, math.max(0, gap / keeps)),
+      return _markerOf(
+        session,
+        day: dayOfWeek,
+        weekStart: weekStart,
+        today: today,
       );
     }
   }
   return null;
+}
+
+/// The marker of [session]'s meal on [day], both counted from [weekStart];
+/// [shift] is how far that is behind the week on screen.
+CookMarker? _markerOf(
+  CookSession session, {
+  required int day,
+  required DateTime? weekStart,
+  required DateTime? today,
+  int shift = 0,
+  bool folded = false,
+}) {
+  final cookDay = weekStart == null || today == null
+      ? session.cookDay
+      : cookDayOf(session, weekStart, today) ?? session.cookDay;
+  if (day < cookDay) return null;
+  final keeps = session.keepsForDays;
+  final gap = day - cookDay;
+  final frozen = session.freezable && gap > (keeps ?? kAssumedFridgeDays);
+  final kind = gap == 0
+      ? CookMarkerKind.cooks
+      : folded || wasCooked(session)
+      ? CookMarkerKind.leftover
+      : frozen
+      ? CookMarkerKind.freezerShare
+      : CookMarkerKind.fromBatch;
+  return (
+    kind: kind,
+    cookDay: cookDay - shift,
+    batchPortions: session.totalPortions,
+    position: keeps == null || keeps <= 0
+        ? 0
+        : math.min(1, math.max(0, gap / keeps)),
+    frozen: frozen,
+  );
 }
 
 /// The marker's words. [todayDayOfWeek] is today's offset when the current week
@@ -169,7 +231,8 @@ String cookMarkerLabel(
   CookMarkerKind.fromBatch => batchCaption(marker.cookDay, shape),
   // The snowflake is drawn as an icon: no bundled face carries ❄.
   CookMarkerKind.freezerShare =>
-    '${shape.labelFull(marker.cookDay)}\u2019s freezer share',
+    '${shape.labelFull(marker.cookDay)}’s freezer share',
+  CookMarkerKind.leftover => 'leftover',
 };
 
 /// Where a meal comes from when it is not its batch's cook day: `from

@@ -183,14 +183,23 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     // The batch strip is a recipe fact; a snack is not cooked, so it has none.
     final picked = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
-    // The oldest freezer row of the dish picked, if it has one.
+    // The oldest freezer row of the dish picked that is good on the meal's
+    // day, if it has one.
+    final mealDay = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day + dayOfWeek,
+    );
+    final today = ref.watch(todayProvider);
     final frozen = picked == null
         ? null
         : (ref.watch(fridgeAndFreezerProvider).asData?.value ??
                   const <Leftover>[])
               .where(
                 (l) =>
-                    l.place == LeftoverPlace.freezer && l.recipeId == picked.id,
+                    l.place == LeftoverPlace.freezer &&
+                    l.recipeId == picked.id &&
+                    leftoverOfferOn(l, mealDay, today) != null,
               )
               .firstOrNull;
     final fromFreezer = cookFresh.value ? null : frozen;

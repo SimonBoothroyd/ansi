@@ -18,9 +18,14 @@ void main() {
   late SqliteLeftoverRepository repo;
   late SqlitePlanningRepository planning;
 
-  Future<List<Leftover>> shelves({DateTime? today}) => repo
-      .watchHouseholdLeftovers(weekStart: _week, today: today ?? _wednesday)
-      .first;
+  Future<List<Leftover>> shelves({DateTime? today}) async =>
+      (await repo
+              .watchHouseholdLeftovers(
+                weekStart: _week,
+                today: today ?? _wednesday,
+              )
+              .first)
+          .rows;
 
   Future<Map<String, Object?>> stored(String id) async =>
       db.get('SELECT * FROM leftover WHERE id = ?', [id]);
@@ -159,13 +164,13 @@ void main() {
     },
   );
 
-  test('Freeze moves a row to the freezer, dated by the day given', () async {
+  test('Freeze moves a row to the freezer, dated from its cook day', () async {
     await cookedCurry(0);
-    await repo.freezeLeftover((await shelves()).single, since: _wednesday);
+    await repo.freezeLeftover((await shelves()).single);
     final left = (await shelves()).single;
     expect(left.place, LeftoverPlace.freezer);
-    expect(left.since, _wednesday);
-    expect(left.goodUntil, DateTime(2026, 11, 24));
+    expect(left.since, _week);
+    expect(left.goodUntil, DateTime(2026, 11, 22));
     expect(left.portions, 1);
   });
 

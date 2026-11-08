@@ -19,7 +19,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../cook_plan/data/cook_plan_repository_impl.dart'
-    show loadComponentGraph;
+    show loadComponentGraph, loadPlannedWeek;
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/domain/default_amount.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
@@ -240,32 +240,13 @@ class SqliteShoppingRepository implements ShoppingRepository {
     String weekKey, {
     Set<String> leaveOut = const {},
   }) async {
-    final all = await _db.getAll(
-      'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
-      'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '
-      'r.freezable, r.freezer_days '
-      'FROM week_plan wp '
-      'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
-      'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
-      'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
-      // Recipe meals only. A bare-ingredient meal goes through
-      // [_derivePlannedIngredients]; a meal out buys nothing.
-      'AND pe.recipe_id IS NOT NULL '
-      // What a member had instead of a meal was never cooked or bought for,
-      // and a meal from a leftover (a batch or a fridge or freezer row) was
-      // bought for when it was cooked.
-      'AND pe.instead_of IS NULL AND pe.leftover_of IS NULL '
-      'AND pe.from_leftover IS NULL '
-      'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
-      [weekKey],
-    );
-    final rows = leaveOut.isEmpty
-        ? all
-        : [
-            for (final r in all)
-              if (!leaveOut.contains(r['id'])) r,
-          ];
-    if (rows.isEmpty) {
+    // The cook plan's own read of the week's recipe meals: a meal from a
+    // leftover or one the week before already cooks is bought for when it was
+    // cooked, and a meal of the next week this week's batch folds in is bought
+    // here. Bare-ingredient meals go through [_derivePlannedIngredients]; a
+    // meal out buys nothing.
+    final planned = await loadPlannedWeek(_db, weekKey, leaveOut: leaveOut);
+    if (planned.recipes.isEmpty) {
       return (
         const <CookContributionInput>[],
         const <UnresolvedComponentNote>[],
@@ -273,42 +254,10 @@ class SqliteShoppingRepository implements ShoppingRepository {
         const <RetiredIngredientNote>[],
       );
     }
-
-    // The same demand the cook plan derives: the eaters' portion factors, the
-    // override winning.
-    final members = {for (final m in await loadMembers(_db)) m.id: m};
-    final byRecipe = <String, PlannedRecipe>{};
-    final meals = <String, List<CoveredMeal>>{};
-    for (final row in rows) {
-      final recipeId = row['recipe_id'] as String;
-      final eaters = (jsonDecode(row['eaters'] as String? ?? '[]') as List)
-          .cast<String>();
-      final portions =
-          (row['portions'] as int?)?.toDouble() ??
-          eatersDemand(eaters, members);
-      byRecipe[recipeId] ??= PlannedRecipe(
-        recipeId: recipeId,
-        title: row['title'] as String,
-        servingsBase: (row['servings_base'] as num).toDouble(),
-        keepsForDays: row['keeps_for_days'] as int?,
-        freezable: (row['freezable'] as int? ?? 0) == 1,
-        freezerDays: row['freezer_days'] as int?,
-      );
-      (meals[recipeId] ??= []).add(
-        CoveredMeal(
-          dayOfWeek: row['day_of_week'] as int,
-          mealSlot: row['meal_slot'] as String,
-          portions: portions,
-        ),
-      );
-    }
     final weekOverrides = await loadWeekOverrides(_db, weekKey);
     final graph = await loadComponentGraph(_db);
     final plan = buildCookPlan(
-      [
-        for (final e in byRecipe.entries)
-          e.value.copyWith(meals: meals[e.key] ?? const []),
-      ],
+      planned.recipes,
       // The same week-filtered graph the Cook tab derives from, so a sub-recipe
       // this week does not cook buys nothing either.
       components: componentGraphForWeek(graph, weekOverrides),

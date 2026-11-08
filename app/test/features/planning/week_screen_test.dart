@@ -1057,6 +1057,43 @@ void main() {
     expect(tagInk(), AnsiColors.herbDeep);
   });
 
+  testWidgets('a leftover meal that no longer adds up keeps its tag and warns '
+      'in amber', (tester) async {
+    final week = _batchedWeek();
+    final wednesday = week.entries.last;
+    await _pumpWeek(
+      tester,
+      planning: _FakePlanningRepo(
+        week: week.copyWith(
+          entries: [
+            week.entries.first,
+            wednesday.copyWith(fromLeftover: 'lo'),
+          ],
+        ),
+      ),
+      extra: [
+        leftoverRepositoryProvider.overrideWithValue(
+          FakeLeftoverRepository(const [], const {}, {
+            wednesday.id: LeftoverMeal(
+              entryId: wednesday.id,
+              day: DateTime(2026, 8, 26),
+              portions: 2,
+              place: LeftoverPlace.freezer,
+              warning: LeftoverWarning.notEnoughLeft,
+            ),
+          }),
+        ),
+      ],
+    );
+    expect(find.text('leftover · not enough left'), findsOneWidget);
+    final tag = tester.widget<Text>(find.text('leftover · not enough left'));
+    expect(tag.style!.color, AnsiColors.chillInk);
+    expect(
+      (tag.textSpan! as TextSpan).children!.single.style!.color,
+      AnsiColors.cautionInk,
+    );
+  });
+
   testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
       'editor, \u2212 \u2192 gone', (tester) async {
     filterForuiSemanticsAssertions();

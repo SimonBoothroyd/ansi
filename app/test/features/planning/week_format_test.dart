@@ -116,6 +116,111 @@ void main() {
       );
     });
 
+    group('read by the ticks', () {
+      final monday = DateTime(2026, 8, 24);
+
+      /// Curry Mon, Wed and Fri, keeps 4 and freezes: [eaten] days ticked.
+      CookPlan ticked(Set<int> eaten) => buildCookPlan([
+        PlannedRecipe(
+          recipeId: 'r1',
+          title: 'Curry',
+          servingsBase: 6,
+          keepsForDays: 4,
+          freezable: true,
+          meals: [
+            for (final d in [0, 2, 4])
+              CoveredMeal(
+                dayOfWeek: d,
+                mealSlot: 'Dinner',
+                portions: 2,
+                entryId: 'e$d',
+                eatenPortions: eaten.contains(d) ? 2 : 0,
+              ),
+          ],
+        ),
+      ]);
+
+      CookMarker? on(CookPlan plan, int day, DateTime today) => cookMarkerFor(
+        plan,
+        recipeId: 'r1',
+        dayOfWeek: day,
+        mealSlot: 'Dinner',
+        entryId: 'e$day',
+        weekStart: monday,
+        today: today,
+      );
+
+      test('a meal after the cook day of a cooked batch is a leftover', () {
+        final plan = ticked({0});
+        final tue = DateTime(2026, 8, 25);
+        expect(on(plan, 0, tue)!.kind, CookMarkerKind.cooks);
+        final wed = on(plan, 2, tue)!;
+        expect(wed.kind, CookMarkerKind.leftover);
+        expect(wed.frozen, isFalse);
+        expect(cookMarkerLabel(wed, WeekShape.monday), 'leftover');
+      });
+
+      test('a skipped first meal moves the cook day; the meal before it says '
+          'nothing', () {
+        final plan = ticked({2});
+        final thu = DateTime(2026, 8, 27);
+        expect(on(plan, 0, thu), isNull);
+        expect(on(plan, 2, thu)!.kind, CookMarkerKind.cooks);
+        expect(on(plan, 4, thu)!.kind, CookMarkerKind.leftover);
+        // Not cooked yet, Monday behind us: Wednesday cooks.
+        final untouched = ticked(const {});
+        final marker = on(untouched, 4, DateTime(2026, 8, 25))!;
+        expect(marker.kind, CookMarkerKind.fromBatch);
+        expect(marker.cookDay, 2);
+      });
+
+      test('a meal the week before cooks reads as a frozen leftover, or '
+          'cooks once it is the next meal of a batch never cooked', () {
+        const host = CookSession(
+          recipeId: 'r1',
+          recipeTitle: 'Curry',
+          servingsBase: 4,
+          cookDay: 5,
+          keepsForDays: 3,
+          freezable: true,
+          covers: [
+            CoveredMeal(
+              dayOfWeek: 5,
+              mealSlot: 'Dinner',
+              portions: 2,
+              entryId: 'sat',
+            ),
+            CoveredMeal(
+              dayOfWeek: 10,
+              mealSlot: 'Dinner',
+              portions: 2,
+              entryId: 'thu',
+            ),
+          ],
+        );
+        // The week after the one the batch is in.
+        const plan = CookPlan(foldedBack: {'thu': host});
+        final nextWeek = DateTime(2026, 8, 31);
+        CookMarker? thu(DateTime today) => cookMarkerFor(
+          plan,
+          recipeId: 'r1',
+          dayOfWeek: 3,
+          mealSlot: 'Dinner',
+          entryId: 'thu',
+          weekStart: nextWeek,
+          today: today,
+        );
+        final early = thu(DateTime(2026, 8, 28))!;
+        expect(early.kind, CookMarkerKind.leftover);
+        expect(early.frozen, isTrue);
+        // Saturday never ticked: Thursday cooks it.
+        final late = thu(DateTime(2026, 9, 2))!;
+        expect(late.kind, CookMarkerKind.cooks);
+        expect(late.cookDay, 3);
+        expect(late.batchPortions, 4);
+      });
+    });
+
     test('two sessions: each meal reads off its OWN batch', () {
       // Keeps 2 days, not freezable → Mon and Sat are separate cooks, and
       // neither covers more than one meal, so neither says anything.

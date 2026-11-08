@@ -1,6 +1,6 @@
 /// [LeftoverRepository] over the local PowerSync SQLite.
 ///
-/// The read is [householdLeftovers] over five weeks of cook plans, the stored
+/// The read is [readLeftovers] over five weeks of cook plans, the stored
 /// rows, the old `batch_leftover` answers and the meals planned from either
 /// pointer. The watch query selects a column from every table it joins:
 /// SQLite drops a LEFT JOIN with no selected column, and that table then never
@@ -33,7 +33,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
   final String _householdId;
 
   @override
-  Stream<List<Leftover>> watchHouseholdLeftovers({
+  Stream<LeftoverShelves> watchHouseholdLeftovers({
     required DateTime weekStart,
     required DateTime today,
   }) => _db
@@ -53,7 +53,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
       )
       .asyncMap((_) => _load(weekStart: weekStart, today: today));
 
-  Future<List<Leftover>> _load({
+  Future<LeftoverShelves> _load({
     required DateTime weekStart,
     required DateTime today,
   }) async {
@@ -73,7 +73,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
     ];
     final recipes = {
       for (final r in await _db.getAll(
-        'SELECT id, title, keeps_for_days, freezer_days FROM recipe '
+        'SELECT id, title, keeps_for_days, freezable, freezer_days FROM recipe '
         'WHERE deleted_at IS NULL AND id IN '
         '(SELECT recipe_id FROM leftover WHERE deleted_at IS NULL)',
       ))
@@ -81,6 +81,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
           title: r['title'] as String,
           keepsForDays: r['keeps_for_days'] as int?,
           freezerDays: r['freezer_days'] as int?,
+          freezable: (r['freezable'] as int? ?? 0) == 1,
         ),
     };
     // Cook's answers from before the page, newest last so it wins.
@@ -95,65 +96,56 @@ class SqliteLeftoverRepository implements LeftoverRepository {
           eaten: (r['eaten'] as num? ?? 0).toDouble(),
         ),
     };
-    final planned = await _plannedFrom(today);
-    return householdLeftovers(
+    final planned = await _plannedFrom();
+    return readLeftovers(
       weeks: weeks,
       today: today,
       stored: stored,
       recipes: recipes,
       answers: answers,
-      plannedFromBatch: planned.batch,
-      plannedFromRow: planned.row,
-      aheadFromBatch: planned.batchAhead,
-      aheadFromRow: planned.rowAhead,
+      fromBatch: planned.batch,
+      fromRow: planned.row,
     );
   }
 
-  /// The demand of every live meal planned from a leftover, summed per batch
-  /// key (`leftover_of`) and per stored row (`from_leftover`), each with the
-  /// part still to come on or after [today]. The override wins, as in the cook
-  /// plan.
+  /// Every live meal planned from a leftover, by batch key (`leftover_of`)
+  /// and by stored row (`from_leftover`): its id, its day and its demand. The
+  /// override wins, as in the cook plan.
   Future<
     ({
-      Map<String, double> batch,
-      Map<String, double> row,
-      Map<String, double> batchAhead,
-      Map<String, double> rowAhead,
+      Map<String, List<PlannedFromLeftover>> batch,
+      Map<String, List<PlannedFromLeftover>> row,
     })
   >
-  _plannedFrom(DateTime today) async {
+  _plannedFrom() async {
     final rows = await _db.getAll(
-      'SELECT pe.leftover_of, pe.from_leftover, pe.eaters, pe.portions, '
-      'pe.day_of_week, wp.week_start_date FROM plan_entry pe '
+      'SELECT pe.id, pe.leftover_of, pe.from_leftover, pe.eaters, '
+      'pe.portions, pe.day_of_week, wp.week_start_date FROM plan_entry pe '
       'JOIN week_plan wp ON wp.id = pe.week_plan_id '
       'WHERE pe.deleted_at IS NULL '
       'AND (pe.leftover_of IS NOT NULL OR pe.from_leftover IS NOT NULL)',
     );
-    final batch = <String, double>{};
-    final row = <String, double>{};
-    final batchAhead = <String, double>{};
-    final rowAhead = <String, double>{};
+    final batch = <String, List<PlannedFromLeftover>>{};
+    final row = <String, List<PlannedFromLeftover>>{};
     if (rows.isNotEmpty) {
       final members = {for (final m in await loadMembers(_db)) m.id: m};
       for (final r in rows) {
-        final demand = _demandOf(r, members);
-        final start = DateTime.parse(r['week_start_date'] as String);
-        final ahead = !dateOfDay(
-          start,
-          r['day_of_week'] as int,
-        ).isBefore(today);
-        void add(Map<String, double> sums, String key) =>
-            sums.update(key, (v) => v + demand, ifAbsent: () => demand);
+        final meal = (
+          entryId: r['id'] as String,
+          day: dateOfDay(
+            DateTime.parse(r['week_start_date'] as String),
+            r['day_of_week'] as int,
+          ),
+          portions: _demandOf(r, members),
+        );
         if (r['leftover_of'] case final String key) {
-          add(batch, key);
-          if (ahead) add(batchAhead, key);
+          (batch[key] ??= []).add(meal);
         } else if (r['from_leftover'] case final String key) {
-          add(row, key);
-          if (ahead) add(rowAhead, key);
+          (row[key] ??= []).add(meal);
         }
       }
     }
-    return (batch: batch, row: row, batchAhead: batchAhead, rowAhead: rowAhead);
+    return (batch: batch, row: row);
   }
 
   @override
@@ -191,13 +183,14 @@ class SqliteLeftoverRepository implements LeftoverRepository {
   }
 
   @override
-  Future<void> freezeLeftover(Leftover left, {required DateTime since}) =>
+  Future<void> freezeLeftover(Leftover left) =>
       _db.writeTransaction((tx) async {
         final id = await _storedIdFor(tx, left);
+        // `since` stays the cook day: freezer dates count from it.
         await tx.execute(
           "UPDATE leftover SET place = 'freezer', since = ?, updated_at = ? "
           'WHERE id = ?',
-          [isoDateOf(since), _now(), id],
+          [isoDateOf(left.since), _now(), id],
         );
       });
 

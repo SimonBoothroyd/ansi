@@ -1,5 +1,5 @@
-/// The household's fridge and freezer: read through [householdLeftovers], and
-/// put right by the household. Pure Dart.
+/// The household's fridge and freezer: read through [readLeftovers], and put
+/// right by the household. Pure Dart.
 ///
 /// Every write names a [Leftover] as the page drew it. A row derived from a
 /// cooked batch has no stored row yet: the first write about it stores one,
@@ -9,10 +9,11 @@ library;
 import 'leftovers.dart';
 
 abstract interface class LeftoverRepository {
-  /// The household's leftovers on [today], fridge first, live
-  /// ([householdLeftovers]). [weekStart] is the first day of the week holding
-  /// [today]: the cooked batches read are those of [leftoverWeekStarts].
-  Stream<List<Leftover>> watchHouseholdLeftovers({
+  /// The household's leftovers on [today], fridge first, and every meal
+  /// served from one, live ([readLeftovers]). [weekStart] is the first day of
+  /// the week holding [today]: the cooked batches read are those of
+  /// [leftoverWeekStarts].
+  Stream<LeftoverShelves> watchHouseholdLeftovers({
     required DateTime weekStart,
     required DateTime today,
   });
@@ -25,9 +26,9 @@ abstract interface class LeftoverRepository {
   /// stored row come off on read, so the row stores [portions] plus them.
   Future<void> setLeftoverPortions(Leftover left, double portions);
 
-  /// Moves [left] to the freezer, dated [since]: today for a freeze, its
-  /// fridge date for one frozen in time and said late.
-  Future<void> freezeLeftover(Leftover left, {required DateTime since});
+  /// Moves [left] to the freezer. Its date still counts from its cook day,
+  /// whether it went in on the night or is said to have late.
+  Future<void> freezeLeftover(Leftover left);
 
   /// Says every one of [lefts] is gone: eaten, binned or given away.
   Future<void> markLeftoversGone(List<Leftover> lefts);

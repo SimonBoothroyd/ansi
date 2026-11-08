@@ -35,7 +35,9 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     // Every table whose change moves the plan is joined with a column selected:
     // week, entries, recipes, groups and line items (component lines and
     // yields), `household_member` (portion factors; cross-joined, it is not
-    // tied to the week) and the week's line overrides.
+    // tied to the week) and the week's line overrides. A watch re-runs on any
+    // write to a table it reads, so the neighbouring weeks' meals and ticks,
+    // which fold across the week edge, re-derive it too.
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, '
@@ -71,24 +73,81 @@ Future<CookPlan> loadCookPlan(
   String weekKey, {
   bool components = true,
 }) async {
+  final planned = await loadPlannedWeek(db, weekKey);
+  // The graph as THIS week cooks it: an optional sub-recipe opens a session
+  // only where the week ticked it in, and one the week left out opens none.
+  return buildCookPlan(
+    planned.recipes,
+    components: components
+        ? componentGraphForWeek(
+            await loadComponentGraph(db),
+            await loadWeekOverrides(db, weekKey),
+          )
+        : const {},
+    foldedBack: planned.foldedBack,
+  );
+}
+
+/// The week keyed [weekKey]'s recipe meals as its batches cook them, across
+/// both week edges ([plannedAcrossWeeks]): the one read the cook plan and the
+/// shop share, so a meal the week before cooks is skipped by both, and a meal
+/// of the next week this week cooks is bought here.
+///
+/// [leaveOut] names meals to read as not planned, in this week or the next.
+Future<({List<PlannedRecipe> recipes, Map<String, CookSession> foldedBack})>
+loadPlannedWeek(
+  SqliteConnection db,
+  String weekKey, {
+  Set<String> leaveOut = const {},
+}) async {
+  final start = DateTime.parse(weekKey);
+  String keyOf(int weeks) =>
+      isoDateOf(DateTime(start.year, start.month, start.day + 7 * weeks));
+  final keys = [keyOf(-2), keyOf(-1), weekKey, keyOf(1)];
+  final weeks = await _loadWeeksMeals(db, keys);
+  List<PlannedRecipe> without(List<PlannedRecipe>? recipes) => [
+    for (final r in recipes ?? const <PlannedRecipe>[])
+      r.copyWith(
+        meals: [
+          for (final m in r.meals)
+            if (!leaveOut.contains(m.entryId)) m,
+        ],
+      ),
+  ];
+  return plannedAcrossWeeks(
+    twoWeeksBefore: weeks[keys[0]] ?? const [],
+    weekBefore: weeks[keys[1]] ?? const [],
+    week: without(weeks[weekKey]),
+    weekAfter: without(weeks[keys[3]]),
+  );
+}
+
+/// The cooked recipe meals of each week in [weekKeys], grouped by recipe and
+/// keyed by week, each with what its eaters said they ate.
+Future<Map<String, List<PlannedRecipe>>> _loadWeeksMeals(
+  SqliteConnection db,
+  List<String> weekKeys,
+) async {
+  final marks = List.filled(weekKeys.length, '?').join(', ');
   // One row per planned recipe meal with its recipe's shelf life. Ingredient
   // meals and meals out are not cooked; `recipe_id IS NOT NULL` states that
   // explicitly beside the inner join.
   final rows = await db.getAll(
-    'SELECT pe.id, pe.day_of_week, pe.meal_slot, pe.eaters, pe.portions, '
+    'SELECT pe.id, wp.week_start_date, pe.day_of_week, pe.meal_slot, '
+    'pe.eaters, pe.portions, '
     'r.id AS recipe_id, r.title, r.servings_base, r.keeps_for_days, '
     'r.freezable, r.freezer_days '
     'FROM week_plan wp '
     'JOIN plan_entry pe ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
     'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
-    'WHERE wp.week_start_date = ? AND wp.deleted_at IS NULL '
+    'WHERE wp.week_start_date IN ($marks) AND wp.deleted_at IS NULL '
     'AND pe.recipe_id IS NOT NULL '
     // What a member had instead of a meal was never cooked, and a meal from
     // a leftover (a batch or a fridge or freezer row) was cooked already.
     'AND pe.instead_of IS NULL AND pe.leftover_of IS NULL '
     'AND pe.from_leftover IS NULL '
     'ORDER BY pe.day_of_week, pe.sort_order, pe.created_at',
-    [weekKey],
+    weekKeys,
   );
   // Who said they ate each meal, for what is left of its batch.
   final ticks = <String, Set<String>>{};
@@ -96,8 +155,8 @@ Future<CookPlan> loadCookPlan(
     'SELECT me.plan_entry_id, me.member_id FROM meal_eaten me '
     'JOIN plan_entry pe ON pe.id = me.plan_entry_id '
     'JOIN week_plan wp ON wp.id = pe.week_plan_id '
-    'WHERE wp.week_start_date = ? AND me.deleted_at IS NULL',
-    [weekKey],
+    'WHERE wp.week_start_date IN ($marks) AND me.deleted_at IS NULL',
+    weekKeys,
   )) {
     (ticks[t['plan_entry_id'] as String] ??= {}).add(t['member_id'] as String);
   }
@@ -106,17 +165,18 @@ Future<CookPlan> loadCookPlan(
   // entry overrides it: the same `eatersDemand` the Week reads.
   final members = {for (final m in await loadMembers(db)) m.id: m};
 
-  // Group meals by recipe, preserving first-seen recipe order (buildCookPlan
-  // re-orders by cook day anyway).
-  final byRecipe = <String, PlannedRecipe>{};
-  final meals = <String, List<CoveredMeal>>{};
+  // Group meals by week and recipe, preserving first-seen recipe order
+  // (buildCookPlan re-orders by cook day anyway).
+  final byRecipe = <String, Map<String, PlannedRecipe>>{};
+  final meals = <String, Map<String, List<CoveredMeal>>>{};
   for (final row in rows) {
+    final week = row['week_start_date'] as String;
     final recipeId = row['recipe_id'] as String;
     final eaters = (jsonDecode(row['eaters'] as String? ?? '[]') as List)
         .cast<String>();
     final portions =
         (row['portions'] as int?)?.toDouble() ?? eatersDemand(eaters, members);
-    byRecipe[recipeId] ??= PlannedRecipe(
+    (byRecipe[week] ??= {})[recipeId] ??= PlannedRecipe(
       recipeId: recipeId,
       title: row['title'] as String,
       servingsBase: (row['servings_base'] as num).toDouble(),
@@ -137,7 +197,7 @@ Future<CookPlan> loadCookPlan(
         if (ticks[entry.id]?.contains(m) ?? false)
           memberServings(entry, m, members),
     ].fold<double>(0, (a, b) => a + b);
-    (meals[recipeId] ??= []).add(
+    ((meals[week] ??= {})[recipeId] ??= []).add(
       CoveredMeal(
         dayOfWeek: entry.dayOfWeek,
         mealSlot: entry.mealSlot,
@@ -148,21 +208,13 @@ Future<CookPlan> loadCookPlan(
     );
   }
 
-  final planned = [
-    for (final entry in byRecipe.entries)
-      entry.value.copyWith(meals: meals[entry.key] ?? const []),
-  ];
-  // The graph as THIS week cooks it: an optional sub-recipe opens a session
-  // only where the week ticked it in, and one the week left out opens none.
-  return buildCookPlan(
-    planned,
-    components: components
-        ? componentGraphForWeek(
-            await loadComponentGraph(db),
-            await loadWeekOverrides(db, weekKey),
-          )
-        : const {},
-  );
+  return {
+    for (final MapEntry(key: week, value: recipes) in byRecipe.entries)
+      week: [
+        for (final entry in recipes.entries)
+          entry.value.copyWith(meals: meals[week]?[entry.key] ?? const []),
+      ],
+  };
 }
 
 /// The household's component graph: every live recipe keyed by id, with its

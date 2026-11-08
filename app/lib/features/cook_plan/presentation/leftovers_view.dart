@@ -69,9 +69,16 @@ class LeftoversView extends ConsumerWidget {
           what: 'the leftovers',
           error: e,
           stackTrace: st,
-          onRetry: () => ref.invalidate(fridgeAndFreezerProvider),
+          onRetry: () => ref.invalidate(leftoverShelvesProvider),
         ),
-        data: (all) => _Shelves(rows: all),
+        // A batch not cooked yet is offered for planning, but not in the
+        // fridge.
+        data: (all) => _Shelves(
+          rows: [
+            for (final l in all)
+              if (l.isCookedBy(ref.watch(todayProvider))) l,
+          ],
+        ),
       ),
     );
   }
@@ -244,12 +251,12 @@ class _LeftoverRow extends ConsumerWidget {
               _ShelfButton(
                 label: 'Froze it',
                 chill: true,
-                // The latest it can have gone in: its last fridge day.
+                // Frozen on the night and not said: dated from its cook day.
                 onTap: () => unawaited(
                   ref.write(
                     context,
                     'move ${left.title} to the freezer',
-                    () => repo.freezeLeftover(left, since: left.goodUntil!),
+                    () => repo.freezeLeftover(left),
                   ),
                 ),
               ),
@@ -341,7 +348,7 @@ class _LeftoverRow extends ConsumerWidget {
                         ref.write(
                           context,
                           'move ${left.title} to the freezer',
-                          () => repo.freezeLeftover(left, since: today),
+                          () => repo.freezeLeftover(left),
                         ),
                       ),
                     ),

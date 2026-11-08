@@ -1241,4 +1241,180 @@ void main() {
       expect(session(eatenTue: 2).uneatenPortions, 0);
     });
   });
+
+  group('one cooking across the week edge', () {
+    /// Hamburger Helper for two, a recipe of 4 that keeps 3 days and freezes
+    /// for 30: [days] this week, [next] the week after.
+    PlannedRecipe helper(
+      Map<int, num> days, {
+      Map<int, num> next = const {},
+      bool freezable = true,
+      int? freezerDays = 30,
+      bool plannedWeekBefore = false,
+    }) =>
+        _recipe(
+          days,
+          id: 'hh',
+          title: 'Hamburger Helper',
+          servings: 4,
+          keeps: 3,
+          freezable: freezable,
+          freezerDays: freezerDays,
+        ).copyWith(
+          nextWeek: [
+            for (final e in next.entries)
+              CoveredMeal(
+                dayOfWeek: e.key,
+                mealSlot: 'Dinner',
+                portions: e.value.toDouble(),
+                entryId: 'next-${e.key}',
+              ),
+          ],
+          plannedWeekBefore: plannedWeekBefore,
+        );
+
+    test('Saturday cooks one whole recipe and freezes next Thursday’s '
+        'share', () {
+      final s = clusterSessions(helper({5: 2}, next: {3: 2})).single;
+      expect(s.cookDay, 5);
+      expect(s.coveredDays, [5, 10]);
+      expect(s.nextWeekCovers.single.entryId, 'next-3');
+      expect(s.scaleFactor, 1);
+      expect(s.frozenDays, [10]);
+    });
+
+    test('folds nothing it cannot cover with one whole recipe', () {
+      expect(
+        clusterSessions(helper({5: 2}, next: {3: 2.5})).single.coveredDays,
+        [5],
+      );
+      // The first that does not fit stops the fold.
+      expect(
+        clusterSessions(
+          helper({5: 1}, next: {1: 2, 3: 1.5}),
+        ).single.coveredDays,
+        [5, 8],
+      );
+    });
+
+    test('folds nothing past the freezer’s reach, nor a dish that does '
+        'not freeze', () {
+      expect(
+        clusterSessions(
+          helper({5: 2}, next: {3: 2}, freezerDays: 4),
+        ).single.coveredDays,
+        [5],
+      );
+      expect(
+        clusterSessions(
+          helper({5: 2}, next: {3: 2}, freezable: false),
+        ).single.coveredDays,
+        [5],
+      );
+    });
+
+    test('a week the week before also plans the dish folds nothing', () {
+      expect(
+        clusterSessions(
+          helper({5: 2}, next: {3: 2}, plannedWeekBefore: true),
+        ).single.coveredDays,
+        [5],
+      );
+    });
+
+    test('only the week’s last batch folds', () {
+      // Keeps 3, freezes 3: Mon and Sat are two batches; Saturday's takes
+      // next Monday.
+      final s = clusterSessions(
+        helper({0: 1, 5: 1}, next: {0: 2}, freezerDays: 3),
+      );
+      expect(
+        [for (final x in s) x.coveredDays],
+        [
+          [0],
+          [5, 7],
+        ],
+      );
+    });
+
+    group('plannedAcrossWeeks', () {
+      PlannedRecipe week(Map<int, num> days, {String prefix = ''}) =>
+          helper(days).copyWith(
+            meals: [
+              for (final e in days.entries)
+                CoveredMeal(
+                  dayOfWeek: e.key,
+                  mealSlot: 'Dinner',
+                  portions: e.value.toDouble(),
+                  entryId: '$prefix${e.key}',
+                ),
+            ],
+          );
+
+      test('the week after skips the meal the week before cooks, and names '
+          'its batch', () {
+        final saturday = week({5: 2}, prefix: 'a');
+        final thursday = week({3: 2}, prefix: 'b');
+
+        final before = plannedAcrossWeeks(
+          week: [saturday],
+          weekAfter: [thursday],
+        );
+        final cooked = buildCookPlan(before.recipes);
+        expect(cooked.recipes.single.sessions.single.coveredDays, [5, 10]);
+        expect(cooked.cookedForNextWeek.single.meal.entryId, 'b3');
+
+        final after = plannedAcrossWeeks(
+          week: [thursday],
+          weekBefore: [saturday],
+        );
+        expect(after.recipes, isEmpty);
+        expect(after.foldedBack.keys, ['b3']);
+        expect(after.foldedBack['b3']!.coveredDays, [5, 10]);
+      });
+
+      test('a meal it does not cover stays in its own week', () {
+        final after = plannedAcrossWeeks(
+          week: [
+            week({3: 3}, prefix: 'b'),
+          ],
+          weekBefore: [
+            week({5: 2}, prefix: 'a'),
+          ],
+        );
+        expect(after.foldedBack, isEmpty);
+        expect(after.recipes.single.meals.single.entryId, 'b3');
+      });
+
+      test('a fold never chains: a week eating from the week before cooks '
+          'its own', () {
+        final after = plannedAcrossWeeks(
+          week: [
+            week({3: 1}, prefix: 'c'),
+          ],
+          weekBefore: [
+            week({5: 1}, prefix: 'b'),
+          ],
+          twoWeeksBefore: [
+            week({5: 1}, prefix: 'a'),
+          ],
+        );
+        expect(after.foldedBack, isEmpty);
+        // And the week before folds nothing forward either.
+        final middle = plannedAcrossWeeks(
+          week: [
+            week({5: 1}, prefix: 'b'),
+          ],
+          weekBefore: [
+            week({5: 1}, prefix: 'a'),
+          ],
+          weekAfter: [
+            week({3: 1}, prefix: 'c'),
+          ],
+        );
+        expect(middle.foldedBack.keys, ['b5']);
+        expect(middle.recipes, isEmpty);
+      });
+    });
+  });
 }

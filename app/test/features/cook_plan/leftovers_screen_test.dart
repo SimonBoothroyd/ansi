@@ -147,7 +147,7 @@ void main() {
 
     await tester.tap(find.text('Freeze'));
     await tester.pumpAndSettle();
-    expect(repo.freezes, [(_helper, _today)]);
+    expect(repo.freezes, [_helper]);
   });
 
   testWidgets('a part portion steps to the whole on either side', (
@@ -171,13 +171,12 @@ void main() {
     ]);
   });
 
-  testWidgets('past its date: Froze it dates it at its fridge day', (
-    tester,
-  ) async {
+  testWidgets('past its date: Froze it moves it, still dated from its cook '
+      'day', (tester) async {
     final repo = await _pump(tester);
     await tester.tap(find.text('Froze it'));
     await tester.pumpAndSettle();
-    expect(repo.freezes, [(_soup, DateTime(2026, 11, 8))]);
+    expect(repo.freezes, [_soup]);
   });
 
   testWidgets('Clear all marks every past-its-date fridge row gone', (

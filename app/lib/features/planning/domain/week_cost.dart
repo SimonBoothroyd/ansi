@@ -99,12 +99,20 @@ PortionCost ingredientPortionCost(PlanEntry entry, UnitPrice? price) {
 /// [costFor] returns a recipe's cost summary; null (gone or not loaded)
 /// excludes the meal by name. [priceFor] returns the price a vocabulary row's
 /// cost reads, which ingredient meals are costed from.
+///
+/// A dish that freezes can be cooked once across the week edge: the meals
+/// [cookedWeekBefore] names (by entry id) were bought and costed in the week
+/// before, and are passed over like a meal from a leftover; [cookedForNextWeek]
+/// are the next week's meals this week's batches cook, costed here at their
+/// portions. Under a lens they are not counted: they are eaten next week.
 PlannedCost sumPlannedCost(
   Iterable<PlanEntry> entries, {
   required RecipeCostSummary? Function(String recipeId) costFor,
   required UnitPrice? Function(String ingredientId) priceFor,
   String? lensMemberId,
   Map<String, Member> membersById = const {},
+  Set<String> cookedWeekBefore = const {},
+  Iterable<({String recipeId, double portions})> cookedForNextWeek = const [],
 }) {
   double? total;
   var counted = 0;
@@ -133,9 +141,10 @@ PlannedCost sumPlannedCost(
       continue;
     }
 
-    // A meal from a leftover was bought and costed in the week it was cooked:
-    // like a meal out, neither a cost nor a gap here.
-    if (entry.isFromLeftover) {
+    // A meal from a leftover was bought and costed in the week it was cooked,
+    // as was one the week before's batch cooks: like a meal out, neither a
+    // cost nor a gap here.
+    if (entry.isFromLeftover || cookedWeekBefore.contains(entry.id)) {
       considered--;
       continue;
     }
@@ -182,6 +191,17 @@ PlannedCost sumPlannedCost(
               (entry.portions == null ? 1 : demand / factorsSum);
     total = (total ?? 0) + perServing! * servings;
     counted++;
+  }
+
+  // Bought this week for a meal of the next: its share of the batch.
+  if (lensMemberId == null) {
+    for (final meal in cookedForNextWeek) {
+      final summary = costFor(meal.recipeId);
+      if (summary == null || meal.portions <= 0) continue;
+      final perServing = summary.perServingCents;
+      if (perServing == null) continue;
+      total = (total ?? 0) + perServing * meal.portions;
+    }
   }
 
   return (

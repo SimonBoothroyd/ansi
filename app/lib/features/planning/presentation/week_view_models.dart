@@ -14,6 +14,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/week_shape.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/presentation/cook_view_models.dart'
+    show currentCookPlanProvider;
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../ingredients/domain/price.dart';
 import '../../recipes/domain/line_override.dart';
@@ -218,12 +220,21 @@ PlannedCost weekCost(Ref ref, String? lens) {
   final prices =
       ref.watch(costPriceMapProvider).asData?.value ??
       const <String, UnitPrice>{};
+  // A dish cooked once across the week edge is costed in the week it is
+  // bought in.
+  final cooked = ref.watch(currentCookPlanProvider).asData?.value;
   return sumPlannedCost(
     plan?.entries ?? const [],
     costFor: (id) => costs[id],
     priceFor: (id) => prices[id],
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
+    cookedWeekBefore: cooked?.foldedBack.keys.toSet() ?? const {},
+    cookedForNextWeek: [
+      if (cooked != null)
+        for (final m in cooked.cookedForNextWeek)
+          (recipeId: m.recipeId, portions: m.meal.portions),
+    ],
   );
 }
 

@@ -55,8 +55,8 @@ const _sqlDerivations = {
   'lib/features/cook_plan/data/cook_plan_repository_impl.dart': [
     'pe.recipe_id IS NOT NULL',
   ],
+  // The shop reads its recipe meals through the cook plan's own loader.
   'lib/features/shopping/data/shopping_repository_impl.dart': [
-    'pe.recipe_id IS NOT NULL',
     'pe.ingredient_id IS NOT NULL',
   ],
 };

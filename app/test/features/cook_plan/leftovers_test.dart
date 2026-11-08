@@ -2,7 +2,7 @@ import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// The week of Sunday 25 October 2026.
+/// The week of Sunday 25 October 2026: Wed 28, Fri 30, Sat 31, Mon 2 Nov.
 final _week = DateTime(2026, 10, 25);
 
 CoveredMeal _meal(int day, double portions, {double eaten = 0, String? id}) =>
@@ -24,88 +24,310 @@ CookPlan _plan(List<CoveredMeal> meals, {int? keeps = 4}) => buildCookPlan([
   ),
 ]);
 
+/// Hamburger Helper for two, planned Wed, Fri and Sat: 6 portions, keeps 3
+/// days, freezes for 30. [eaten] is each day's ticked portions.
+CookSession _helper(
+  Map<int, double> eaten, {
+  bool freezable = true,
+  int? keeps = 3,
+}) => CookSession(
+  recipeId: 'hh',
+  recipeTitle: 'Hamburger Helper',
+  servingsBase: 6,
+  cookDay: 3,
+  keepsForDays: keeps,
+  freezable: freezable,
+  freezerDays: 30,
+  covers: [
+    for (final day in [3, 5, 6]) _meal(day, 2, eaten: eaten[day] ?? 0),
+  ],
+);
+
+CookPlan _planOf(CookSession session) => CookPlan(
+  recipes: [
+    RecipeCookPlan(
+      recipeId: session.recipeId,
+      title: session.recipeTitle,
+      servingsBase: session.servingsBase,
+      keepsForDays: session.keepsForDays,
+      freezable: session.freezable,
+      freezerDays: session.freezerDays,
+      sessions: [session],
+    ),
+  ],
+);
+
+DateTime _nov(int day) => DateTime(2026, 11, day);
+DateTime _oct(int day) => DateTime(2026, 10, day);
+
 void main() {
-  group('batchLeftovers', () {
-    test('a batch nobody ticked was never cooked, so leaves nothing', () {
-      final plan = _plan([_meal(1, 2), _meal(2, 2)]);
+  group('cookDayOf', () {
+    test('is the earliest day anybody ticked, in whatever order', () {
+      // Saturday ticked first, then Friday.
+      expect(cookDayOf(_helper({6: 2}), _week, _nov(1)), 6);
+      expect(cookDayOf(_helper({6: 2, 5: 2}), _week, _nov(1)), 5);
+      // Friday unticked again: back to Saturday.
+      expect(cookDayOf(_helper({6: 2}), _week, _nov(1)), 6);
+    });
+
+    test('a skipped first meal moves it to the first ticked day', () {
+      expect(cookDayOf(_helper({5: 2, 6: 2}), _week, _nov(1)), 5);
+    });
+
+    test('a batch nobody ticked cooks on its next meal, and once its days '
+        'are over was never cooked', () {
+      final untouched = _helper(const {});
+      expect(cookDayOf(untouched, _week, _oct(27)), 3);
+      expect(cookDayOf(untouched, _week, _oct(28)), 3);
+      // Wednesday behind us, unticked: Friday is next.
+      expect(cookDayOf(untouched, _week, _oct(29)), 5);
+      expect(cookDayOf(untouched, _week, _nov(1)), isNull);
+      expect(useByOf(untouched, _week, _nov(1)), isNull);
+    });
+  });
+
+  test('a Saturday never ticked: next Thursday, folded in, becomes the '
+      'cook day', () {
+    final session = CookSession(
+      recipeId: 'hh',
+      recipeTitle: 'Hamburger Helper',
+      servingsBase: 4,
+      cookDay: 6,
+      keepsForDays: 3,
+      freezable: true,
+      covers: [_meal(6, 2), _meal(11, 2)],
+    );
+    expect(cookDayOf(session, _week, _oct(31)), 6);
+    expect(cookDayOf(session, _week, _nov(1)), 11);
+    // Cooked on the day, nothing goes in the freezer.
+    expect(freezeShareOf(session, _week, _nov(1)), isNull);
+  });
+
+  group('useByOf', () {
+    test('is the cook day plus its fridge life, never stretched to a '
+        'later meal', () {
+      // Cooked Fri, keeps 3: till Mon, though nothing is planned past Sat.
+      expect(useByOf(_helper({5: 2}), _week, _nov(1)), _nov(2));
+      // A freezer share on the next Friday does not stretch it either.
+      final shared = _helper({
+        3: 2,
+      }).copyWith(covers: [_meal(3, 2, eaten: 2), _meal(12, 2)]);
+      expect(useByOf(shared, _week, _nov(1)), _oct(31));
+    });
+
+    test('a recipe with no fridge life keeps a week', () {
+      expect(useByOf(_helper({5: 2}, keeps: null), _week, _nov(1)), _nov(6));
+    });
+  });
+
+  group('freezeShareOf', () {
+    test('names the later meals reached from the freezer, by the fridge '
+        'date', () {
+      // Cooked Sat 31 Oct, keeps 3: freeze by Tue 3 Nov for Thu 5 Nov.
+      final session = CookSession(
+        recipeId: 'hh',
+        recipeTitle: 'Hamburger Helper',
+        servingsBase: 4,
+        cookDay: 6,
+        keepsForDays: 3,
+        freezable: true,
+        covers: [_meal(6, 2, eaten: 2), _meal(11, 2)],
+      );
+      final share = freezeShareOf(session, _week, _oct(31))!;
+      expect(share.portions, 2);
+      expect(share.freezeBy, _nov(3));
+      expect(share.forDays, [_nov(5)]);
       expect(
-        batchLeftovers(plan, weekStart: _week, today: DateTime(2026, 10, 30)),
-        isEmpty,
+        freezeShareOf(session.copyWith(freezable: false), _week, _oct(31)),
+        isNull,
       );
     });
+  });
 
-    test('a cooked batch leaves its uneaten past meals, good until the cook '
-        'day plus its fridge life', () {
-      // Cooked Monday, ticked; Tuesday's meal nobody ate.
-      final plan = _plan([_meal(1, 2, eaten: 2), _meal(2, 1.75)]);
-      final left = batchLeftovers(
-        plan,
-        weekStart: _week,
-        today: DateTime(2026, 10, 28),
-      );
-      expect(left, hasLength(1));
-      expect(left.single.key, 'e1');
-      expect(left.single.portions, 1.75);
-      expect(left.single.cookDate, DateTime(2026, 10, 26));
-      expect(left.single.useBy, DateTime(2026, 10, 30));
+  group('readLeftovers — a batch', () {
+    LeftoverShelves read(
+      CookSession session, {
+      required DateTime today,
+      Map<String, List<PlannedFromLeftover>> fromBatch = const {},
+    }) => readLeftovers(
+      weeks: [(weekStart: _week, plan: _planOf(session))],
+      today: today,
+      fromBatch: fromBatch,
+    );
+
+    test('Wednesday skipped, Friday ticked: cooked Fri, good till Mon, and '
+        'Wednesday’s portions are left', () {
+      final left = read(_helper({5: 2, 6: 2}), today: _nov(1)).rows.single;
+      expect(left.since, _oct(30));
+      expect(left.goodUntil, _nov(2));
+      expect(left.portions, 2);
+      expect(left.pastItsDate(_nov(2)), isFalse);
+      expect(left.pastItsDate(_nov(3)), isTrue);
     });
 
-    test('a meal today or later is still to be eaten, not left', () {
-      final plan = _plan([_meal(1, 2, eaten: 2), _meal(3, 2)]);
-      // Wednesday is today.
+    test('Friday night: Saturday’s portions are spoken for, not left', () {
+      final left = read(_helper({5: 2}), today: _oct(31)).rows.single;
+      expect(left.portions, 2);
+      expect(left.planned, 2);
+      final saturday = left.meals.single;
+      expect(saturday.own, isTrue);
+      expect(saturday.place, LeftoverPlace.fridge);
+    });
+
+    test('ticks in any order give the same counts', () {
+      final a = read(_helper({6: 2, 5: 2}), today: _nov(1)).rows.single;
+      final b = read(_helper({5: 2, 6: 2}), today: _nov(1)).rows.single;
+      expect((a.since, a.goodUntil, a.portions), (b.since, b.goodUntil, 2.0));
+    });
+
+    test('a batch nobody ticked leaves nothing once its days are over', () {
+      expect(read(_helper(const {}), today: _nov(1)).rows, isEmpty);
+    });
+
+    test('a batch not cooked yet is dated from its next meal, offered from '
+        'then, and not yet in the fridge', () {
+      // Thursday: Wednesday was skipped, Friday is still to come.
+      final left = read(_helper(const {}), today: _oct(29)).rows.single;
+      expect(left.since, _oct(30));
+      expect(left.portions, 2);
+      expect(left.isCookedBy(_oct(29)), isFalse);
+      expect(leftoverOfferOn(left, _oct(29), _oct(29)), isNull);
+      expect(leftoverOfferOn(left, _nov(2), _oct(29)), same(left));
+    });
+
+    test('a meal planned from it warns on its own day: not enough left, or '
+        'past its date', () {
+      final meals = read(
+        _helper({5: 2, 6: 2}, freezable: false),
+        today: _oct(31),
+        fromBatch: {
+          'e3': [
+            (entryId: 'sun', day: _nov(1), portions: 1.5),
+            (entryId: 'mon', day: _nov(2), portions: 1),
+            (entryId: 'tue', day: _nov(3), portions: 0.25),
+          ],
+        },
+      ).meals;
+      expect(meals['sun']!.warning, isNull);
+      expect(meals['mon']!.warning, LeftoverWarning.notEnoughLeft);
+      expect(meals['tue']!.warning, LeftoverWarning.notEnoughLeft);
+
+      final late = read(
+        _helper({5: 2, 6: 2}, freezable: false),
+        today: _oct(31),
+        fromBatch: {
+          'e3': [(entryId: 'tue', day: _nov(3), portions: 1)],
+        },
+      ).meals['tue']!;
+      expect(late.warning, LeftoverWarning.pastItsDate);
+      expect(late.place, isNull);
+    });
+
+    test('a meal from a batch never cooked is not enough left', () {
+      final meals = read(
+        _helper(const {}),
+        today: _nov(1),
+        fromBatch: {
+          'e3': [(entryId: 'mon', day: _nov(2), portions: 1)],
+        },
+      ).meals;
+      expect(meals['mon']!.warning, LeftoverWarning.notEnoughLeft);
+    });
+  });
+
+  group('freeze by', () {
+    final cooked = _helper({5: 2, 6: 2});
+
+    test('planning next Wed on Saturday offers it under Freezer, to be '
+        'frozen by Mon', () {
+      final left = readLeftovers(
+        weeks: [(weekStart: _week, plan: _planOf(cooked))],
+        today: _oct(31),
+      ).rows.single;
+      // Sun: still in date in the fridge.
       expect(
-        batchLeftovers(plan, weekStart: _week, today: DateTime(2026, 10, 28)),
-        isEmpty,
+        leftoverOfferOn(left, _nov(1), _oct(31))!.place,
+        LeftoverPlace.fridge,
       );
+      final offer = leftoverOfferOn(left, _nov(4), _oct(31))!;
+      expect(offer.place, LeftoverPlace.freezer);
+      expect(offer.freezeBy, _nov(2));
+      // Freezer dates count from the cook day.
+      expect(offer.goodUntil, _nov(29));
+      // Not a dish that freezes: not offered.
+      final fridgeOnly = readLeftovers(
+        weeks: [
+          (weekStart: _week, plan: _planOf(cooked.copyWith(freezable: false))),
+        ],
+        today: _oct(31),
+      ).rows.single;
+      expect(leftoverOfferOn(fridgeOnly, _nov(4), _oct(31)), isNull);
     });
 
-    test('two batches of one dish keep two dates', () {
-      // A two-day fridge life splits Monday from Thursday.
-      final plan = _plan([
-        _meal(1, 2, eaten: 1),
-        _meal(4, 2, eaten: 1, id: 'thu'),
-      ], keeps: 2);
-      final left = batchLeftovers(
-        plan,
-        weekStart: _week,
-        today: DateTime(2026, 10, 31),
+    test('picked, the row reads freeze by Mon for Wed until Mon, then '
+        'is in the freezer', () {
+      LeftoverShelves on(DateTime today) => readLeftovers(
+        weeks: [(weekStart: _week, plan: _planOf(cooked))],
+        today: today,
+        fromBatch: {
+          'e3': [(entryId: 'wed', day: _nov(4), portions: 2)],
+        },
       );
-      expect(
-        [for (final l in left) l.useBy],
-        [DateTime(2026, 10, 28), DateTime(2026, 10, 31)],
-      );
+
+      final saturday = on(_oct(31));
+      final row = saturday.rows.single;
+      expect(row.place, LeftoverPlace.fridge);
+      expect(row.portions, 0);
+      expect(row.planned, 2);
+      expect(row.freezeBy, _nov(2));
+      final wed = saturday.meals['wed']!;
+      expect(wed.place, LeftoverPlace.freezer);
+      expect(wed.freezeBy, _nov(2));
+      expect(wed.warning, isNull);
+
+      final tuesday = on(_nov(3)).rows.single;
+      expect(tuesday.place, LeftoverPlace.freezer);
+      expect(tuesday.since, _oct(30));
+      expect(tuesday.goodUntil, _nov(29));
+      expect(tuesday.pastItsDate(_nov(3)), isFalse);
+      expect(tuesday.freezeBy, isNull);
+
+      // Eaten: nothing left, nothing to come.
+      expect(on(_nov(5)).rows, isEmpty);
     });
 
-    test('the meals planned from it come off', () {
-      final plan = _plan([_meal(1, 4, eaten: 1)]);
-      List<BatchLeftover> left(Map<String, double> plannedFrom) =>
-          batchLeftovers(
-            plan,
-            weekStart: _week,
-            today: DateTime(2026, 10, 27),
-            plannedFrom: plannedFrom,
-          );
+    test('a row past its date is never offered, from either shelf', () {
+      final left = readLeftovers(
+        weeks: [(weekStart: _week, plan: _planOf(cooked))],
+        today: _nov(3),
+      ).rows.single;
+      expect(left.pastItsDate(_nov(3)), isTrue);
+      expect(leftoverOfferOn(left, _nov(4), _nov(3)), isNull);
 
-      expect(left(const {}).single.portions, 3);
-      expect(left(const {'e1': 1.75}).single.portions, closeTo(1.25, 1e-9));
-      expect(left(const {'e1': 3}), isEmpty);
-    });
-
-    test('an unknown fridge life is good only until its last meal', () {
-      final plan = _plan([_meal(1, 2, eaten: 1)], keeps: null);
-      final left = batchLeftovers(
-        plan,
-        weekStart: _week,
-        today: DateTime(2026, 10, 27),
-      ).single;
-      expect(left.useBy, DateTime(2026, 10, 26));
+      final frozen = Leftover(
+        id: 'f',
+        place: LeftoverPlace.freezer,
+        recipeId: 'hh',
+        title: 'Hamburger Helper',
+        since: _oct(1),
+        goodUntil: _nov(1),
+        portions: 2,
+      );
+      expect(leftoverOfferOn(frozen, _oct(31), _oct(30)), same(frozen));
+      // Judged on the meal's day, not today.
+      expect(leftoverOfferOn(frozen, _nov(2), _oct(30)), isNull);
     });
   });
 
   group('householdLeftovers', () {
     // Cooked Monday 26 Oct and ticked; Tuesday's 1¾ nobody ate.
     final cooked = _plan([_meal(1, 2, eaten: 2), _meal(2, 1.75)]);
-    const curry = (title: 'Chickpea Curry', keepsForDays: 4, freezerDays: 90);
+    const curry = (
+      title: 'Chickpea Curry',
+      keepsForDays: 4,
+      freezerDays: 90,
+      freezable: true,
+    );
 
     List<Leftover> shelves({
       required DateTime today,
@@ -113,16 +335,16 @@ void main() {
       List<StoredLeftover> stored = const [],
       LeftoverRecipe recipe = curry,
       Map<String, LeftoverAnswer> answers = const {},
-      Map<String, double> plannedFromBatch = const {},
-      Map<String, double> plannedFromRow = const {},
+      Map<String, List<PlannedFromLeftover>> fromBatch = const {},
+      Map<String, List<PlannedFromLeftover>> fromRow = const {},
     }) => householdLeftovers(
       weeks: [(weekStart: _week, plan: plan ?? cooked)],
       today: today,
       stored: stored,
       recipes: {'curry': recipe},
       answers: answers,
-      plannedFromBatch: plannedFromBatch,
-      plannedFromRow: plannedFromRow,
+      fromBatch: fromBatch,
+      fromRow: fromRow,
     );
 
     StoredLeftover row(
@@ -138,7 +360,7 @@ void main() {
       place: place,
       recipeId: 'curry',
       portions: portions,
-      since: since ?? DateTime(2026, 10, 26),
+      since: since ?? _oct(26),
       batch: batch,
       goneAt: goneAt,
       updatedAt: updatedAt ?? DateTime.utc(2026, 10, 28, 12),
@@ -146,23 +368,25 @@ void main() {
 
     test('a cooked batch nobody spoke of is a fridge row, kept past its '
         'date', () {
-      final left = shelves(today: DateTime(2026, 11, 5)).single;
+      final left = shelves(today: _nov(5)).single;
       expect(left.isStored, isFalse);
       expect(left.batch, 'e1');
       expect(left.place, LeftoverPlace.fridge);
       expect(left.title, 'Chickpea Curry');
       expect(left.portions, 1.75);
-      expect(left.since, DateTime(2026, 10, 26));
-      expect(left.goodUntil, DateTime(2026, 10, 30));
-      expect(left.pastItsDate(DateTime(2026, 10, 30)), isFalse);
-      expect(left.pastItsDate(DateTime(2026, 11, 5)), isTrue);
+      expect(left.since, _oct(26));
+      expect(left.goodUntil, _oct(30));
+      expect(left.pastItsDate(_oct(30)), isFalse);
+      expect(left.pastItsDate(_nov(5)), isTrue);
     });
 
     test('meals planned from a batch come off it', () {
       expect(
         shelves(
-          today: DateTime(2026, 10, 28),
-          plannedFromBatch: const {'e1': 0.75},
+          today: _oct(28),
+          fromBatch: {
+            'e1': [(entryId: 'x', day: _oct(29), portions: 0.75)],
+          },
         ).single.portions,
         1,
       );
@@ -171,12 +395,9 @@ void main() {
     test('a correction replaces the derived count and survives later '
         'ticks', () {
       final corrected = [row('lo1')];
-      final left = shelves(
-        today: DateTime(2026, 10, 28),
-        stored: corrected,
-      ).single;
+      final left = shelves(today: _oct(28), stored: corrected).single;
       expect((left.id, left.portions), ('lo1', 1));
-      expect(left.goodUntil, DateTime(2026, 10, 30));
+      expect(left.goodUntil, _oct(30));
 
       // Tuesday's meal ticked after all: the batch derives nothing now, and
       // the correction still stands.
@@ -187,46 +408,49 @@ void main() {
       expect(
         shelves(
           plan: ticked,
-          today: DateTime(2026, 10, 28),
+          today: _oct(28),
           stored: corrected,
         ).single.portions,
         1,
       );
     });
 
-    test('a freeze moves it to the freezer, dated the day it went in', () {
+    test('a stored fridge row with no stated fridge life keeps a week', () {
       final left = shelves(
-        today: DateTime(2026, 11, 30),
-        stored: [
-          row(
-            'lo1',
-            place: LeftoverPlace.freezer,
-            portions: 1.75,
-            since: DateTime(2026, 10, 28),
-          ),
-        ],
+        today: _oct(28),
+        recipe: (
+          title: 'Chickpea Curry',
+          keepsForDays: null,
+          freezerDays: 90,
+          freezable: true,
+        ),
+        stored: [row('lo1')],
       ).single;
-      expect(left.place, LeftoverPlace.freezer);
-      expect(left.since, DateTime(2026, 10, 28));
-      expect(left.goodUntil, DateTime(2027, 1, 26));
-      expect(left.pastItsDate(DateTime(2026, 11, 30)), isFalse);
+      expect(left.goodUntil, _nov(2));
     });
 
-    test('a late freeze is dated at the fridge use-by; a freezer with no '
-        'limit is never past its date', () {
+    test('a freezer row is dated from its cook day', () {
+      final left = shelves(
+        today: _nov(30),
+        stored: [row('lo1', place: LeftoverPlace.freezer, portions: 1.75)],
+      ).single;
+      expect(left.place, LeftoverPlace.freezer);
+      expect(left.since, _oct(26));
+      expect(left.goodUntil, DateTime(2027, 1, 24));
+      expect(left.pastItsDate(_nov(30)), isFalse);
+    });
+
+    test('a freezer with no limit is never past its date', () {
       final left = shelves(
         today: DateTime(2026, 12, 20),
-        recipe: (title: 'Chickpea Curry', keepsForDays: 4, freezerDays: null),
-        stored: [
-          row(
-            'lo1',
-            place: LeftoverPlace.freezer,
-            portions: 1.75,
-            since: DateTime(2026, 10, 30),
-          ),
-        ],
+        recipe: (
+          title: 'Chickpea Curry',
+          keepsForDays: 4,
+          freezerDays: null,
+          freezable: true,
+        ),
+        stored: [row('lo1', place: LeftoverPlace.freezer, portions: 1.75)],
       ).single;
-      expect(left.since, DateTime(2026, 10, 30));
       expect(left.goodUntil, isNull);
       expect(left.pastItsDate(DateTime(2027, 6, 30)), isFalse);
     });
@@ -241,7 +465,7 @@ void main() {
             place: LeftoverPlace.fridge,
             label: 'Mum’s lasagne',
             portions: 2,
-            since: DateTime(2026, 10, 2),
+            since: _oct(2),
             updatedAt: DateTime.utc(2026, 10, 2),
           ),
         ],
@@ -250,6 +474,7 @@ void main() {
       expect(left.title, 'Mum’s lasagne');
       expect(left.goodUntil, isNull);
       expect(left.pastItsDate(DateTime(2026, 11, 20)), isFalse);
+      expect(leftoverOfferOn(left, _nov(21), _nov(20)), isNull);
     });
 
     test('two batches of one dish are two rows, and a stored row replaces '
@@ -259,25 +484,19 @@ void main() {
         _meal(1, 2, eaten: 1),
         _meal(4, 2, eaten: 1, id: 'thu'),
       ], keeps: 2);
-      final saturday = DateTime(2026, 10, 31);
+      final saturday = _oct(31);
       expect(
         [
           for (final l in shelves(plan: twice, today: saturday))
             (l.batch, l.goodUntil),
         ],
-        [('e1', DateTime(2026, 10, 28)), ('thu', DateTime(2026, 10, 31))],
+        [('e1', _oct(28)), ('thu', _oct(31))],
       );
 
       final left = shelves(
         plan: twice,
         today: saturday,
-        stored: [
-          row(
-            'lo1',
-            place: LeftoverPlace.freezer,
-            since: DateTime(2026, 10, 28),
-          ),
-        ],
+        stored: [row('lo1', place: LeftoverPlace.freezer)],
       );
       expect(
         [for (final l in left) (l.place, l.batch, l.isStored)],
@@ -290,7 +509,7 @@ void main() {
 
     test('a batch Cook was told was binned or eaten reads as gone; a kept '
         'answer says nothing', () {
-      final today = DateTime(2026, 10, 28);
+      final today = _oct(28);
       expect(
         shelves(
           today: today,
@@ -310,27 +529,40 @@ void main() {
     test('two stored rows for one batch read as the newest, and meals from '
         'either come off it', () {
       final left = shelves(
-        today: DateTime(2026, 10, 30),
+        today: _oct(30),
         stored: [
           row('lo-b', portions: 2, updatedAt: DateTime.utc(2026, 10, 28)),
           row('lo-a', portions: 3, updatedAt: DateTime.utc(2026, 10, 27)),
         ],
-        plannedFromRow: const {'lo-a': 0.5},
+        fromRow: {
+          'lo-a': [(entryId: 'x', day: _oct(29), portions: 0.5)],
+        },
       ).single;
       expect((left.id, left.portions), ('lo-b', 1.5));
     });
 
-    test('a row with nothing left, or said gone, is not shown and still '
-        'hides its batch', () {
-      final today = DateTime(2026, 10, 28);
+    test('a row with nothing left or to come, or said gone, is not shown and '
+        'still hides its batch', () {
+      final today = _oct(28);
       expect(
         shelves(
           today: today,
           stored: [row('lo1', portions: 2)],
-          plannedFromRow: const {'lo1': 2},
+          fromRow: {
+            'lo1': [(entryId: 'x', day: _oct(27), portions: 2)],
+          },
         ),
         isEmpty,
       );
+      // The same meal still to come: shown, all of it spoken for.
+      final ahead = shelves(
+        today: today,
+        stored: [row('lo1', portions: 2)],
+        fromRow: {
+          'lo1': [(entryId: 'x', day: _oct(29), portions: 2)],
+        },
+      ).single;
+      expect((ahead.portions, ahead.planned), (0.0, 2.0));
       expect(
         shelves(
           today: today,
@@ -351,38 +583,28 @@ void main() {
     });
   });
 
-  test('a freezer share stretches the use-by to the last meal', () {
-    final session = CookSession(
-      recipeId: 'r',
-      recipeTitle: 'Dal',
-      servingsBase: 4,
-      cookDay: 0,
-      keepsForDays: 2,
-      freezable: true,
-      covers: [_meal(0, 2), _meal(6, 2)],
-    );
-    expect(useByOf(session, _week), DateTime(2026, 10, 31));
-  });
-
-  test('a fridge row is good from its cook day to its date; a freezer row on '
-      'any day', () {
+  test('a row is eaten from the fridge until its date, then from the '
+      'freezer if the dish freezes', () {
     final fridge = Leftover(
       place: LeftoverPlace.fridge,
       title: 'Curry',
-      since: DateTime(2026, 10, 26),
-      goodUntil: DateTime(2026, 10, 30),
+      since: _oct(26),
+      goodUntil: _oct(30),
       portions: 1,
     );
-    expect(fridge.isGoodOn(DateTime(2026, 10, 25)), isFalse);
-    expect(fridge.isGoodOn(DateTime(2026, 10, 30, 19)), isTrue);
-    expect(fridge.isGoodOn(DateTime(2026, 10, 31)), isFalse);
-    final freezer = Leftover(
-      place: LeftoverPlace.freezer,
+    expect(fridge.shelfOn(_oct(25)), isNull);
+    expect(fridge.shelfOn(DateTime(2026, 10, 30, 19)), LeftoverPlace.fridge);
+    expect(fridge.shelfOn(_oct(31)), isNull);
+    final freezable = Leftover(
+      place: LeftoverPlace.fridge,
       title: 'Curry',
-      since: DateTime(2026, 10, 26),
-      goodUntil: DateTime(2026, 10, 30),
+      since: _oct(26),
+      goodUntil: _oct(30),
       portions: 1,
+      freezable: true,
+      freezerUntil: _nov(25),
     );
-    expect(freezer.isGoodOn(DateTime(2026, 12, 2)), isTrue);
+    expect(freezable.shelfOn(_oct(31)), LeftoverPlace.freezer);
+    expect(freezable.shelfOn(_nov(26)), isNull);
   });
 }

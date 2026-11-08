@@ -562,6 +562,15 @@ class CookMarkerLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Eaten from a batch already cooked: the leftover's tag, no batch talk.
+    if (marker.kind == CookMarkerKind.leftover) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: LeftoverTag(
+          place: marker.frozen ? LeftoverPlace.freezer : LeftoverPlace.fridge,
+        ),
+      );
+    }
     final frozen = marker.kind == CookMarkerKind.freezerShare;
     return Row(
       children: [
@@ -679,15 +688,20 @@ class LeftoverMealTag extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The shelf on the meal's own day, and what no longer adds up.
+    final judged = ref.watch(leftoverMealsProvider)[entry.id];
     final row = entry.fromLeftover;
-    // A meal from a cooked batch (`leftover_of`) is from the fridge.
-    final place = row == null
-        ? LeftoverPlace.fridge
-        : ref.watch(leftoverPlacesProvider).asData?.value[row] ??
-              LeftoverPlace.fridge;
+    // Not judged (a row out of reach): a meal from a cooked batch
+    // (`leftover_of`) is from the fridge, one from a row from that row's shelf.
+    final place =
+        judged?.place ??
+        (row == null
+            ? LeftoverPlace.fridge
+            : ref.watch(leftoverPlacesProvider).asData?.value[row] ??
+                  LeftoverPlace.fridge);
     return Align(
       alignment: Alignment.centerLeft,
-      child: LeftoverTag(place: place, size: size),
+      child: LeftoverTag(place: place, warning: judged?.warning, size: size),
     );
   }
 }

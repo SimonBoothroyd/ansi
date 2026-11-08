@@ -45,8 +45,9 @@ void main() {
         offenders.add('${f.path}: $batch × leftover_of, $row × from_leftover');
       }
     }
-    // The cook plan and the shop at least: a scan that found none is broken.
-    expect(clauses, greaterThanOrEqualTo(2));
+    // The week's read the cook plan and the shop share at least: a scan that
+    // found none is broken.
+    expect(clauses, greaterThanOrEqualTo(1));
     expect(offenders, isEmpty);
   });
 

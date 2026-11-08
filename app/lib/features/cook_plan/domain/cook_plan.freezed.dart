@@ -292,7 +292,12 @@ mixin _$PlannedRecipe {
  String get recipeId; String get title; double get servingsBase;/// Fridge shelf life in days; drives clustering. Null = unknown (the recipe
 /// has no shelf-life set yet) → the recipe is never split.
  int? get keepsForDays; bool get freezable;/// Freezer shelf life in days (only when [freezable]). Null = no limit.
- int? get freezerDays; List<CoveredMeal> get meals;
+ int? get freezerDays; List<CoveredMeal> get meals;/// The same recipe's meals in the week after, days 0..6 of that week:
+/// the ones a freezable batch can fold in ([clusterSessions]).
+ List<CoveredMeal> get nextWeek;/// Whether the week before plans this recipe too. Such a week's batch
+/// folds nothing in, so a fold never chains from week to week and each
+/// week can be read knowing only its neighbours.
+ bool get plannedWeekBefore;
 /// Create a copy of PlannedRecipe
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,16 +308,16 @@ $PlannedRecipeCopyWith<PlannedRecipe> get copyWith => _$PlannedRecipeCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlannedRecipe&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other.meals, meals));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlannedRecipe&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other.meals, meals)&&const DeepCollectionEquality().equals(other.nextWeek, nextWeek)&&(identical(other.plannedWeekBefore, plannedWeekBefore) || other.plannedWeekBefore == plannedWeekBefore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,recipeId,title,servingsBase,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(meals));
+int get hashCode => Object.hash(runtimeType,recipeId,title,servingsBase,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(meals),const DeepCollectionEquality().hash(nextWeek),plannedWeekBefore);
 
 @override
 String toString() {
-  return 'PlannedRecipe(recipeId: $recipeId, title: $title, servingsBase: $servingsBase, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, meals: $meals)';
+  return 'PlannedRecipe(recipeId: $recipeId, title: $title, servingsBase: $servingsBase, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, meals: $meals, nextWeek: $nextWeek, plannedWeekBefore: $plannedWeekBefore)';
 }
 
 
@@ -323,7 +328,7 @@ abstract mixin class $PlannedRecipeCopyWith<$Res>  {
   factory $PlannedRecipeCopyWith(PlannedRecipe value, $Res Function(PlannedRecipe) _then) = _$PlannedRecipeCopyWithImpl;
 @useResult
 $Res call({
- String recipeId, String title, double servingsBase, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> meals
+ String recipeId, String title, double servingsBase, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> meals, List<CoveredMeal> nextWeek, bool plannedWeekBefore
 });
 
 
@@ -340,7 +345,7 @@ class _$PlannedRecipeCopyWithImpl<$Res>
 
 /// Create a copy of PlannedRecipe
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? title = null,Object? servingsBase = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? meals = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? title = null,Object? servingsBase = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? meals = null,Object? nextWeek = null,Object? plannedWeekBefore = null,}) {
   return _then(_self.copyWith(
 recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -349,7 +354,9 @@ as double,keepsForDays: freezed == keepsForDays ? _self.keepsForDays : keepsForD
 as int?,freezable: null == freezable ? _self.freezable : freezable // ignore: cast_nullable_to_non_nullable
 as bool,freezerDays: freezed == freezerDays ? _self.freezerDays : freezerDays // ignore: cast_nullable_to_non_nullable
 as int?,meals: null == meals ? _self.meals : meals // ignore: cast_nullable_to_non_nullable
-as List<CoveredMeal>,
+as List<CoveredMeal>,nextWeek: null == nextWeek ? _self.nextWeek : nextWeek // ignore: cast_nullable_to_non_nullable
+as List<CoveredMeal>,plannedWeekBefore: null == plannedWeekBefore ? _self.plannedWeekBefore : plannedWeekBefore // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -434,10 +441,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> meals)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> meals,  List<CoveredMeal> nextWeek,  bool plannedWeekBefore)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlannedRecipe() when $default != null:
-return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.meals);case _:
+return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.meals,_that.nextWeek,_that.plannedWeekBefore);case _:
   return orElse();
 
 }
@@ -455,10 +462,10 @@ return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> meals)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> meals,  List<CoveredMeal> nextWeek,  bool plannedWeekBefore)  $default,) {final _that = this;
 switch (_that) {
 case _PlannedRecipe():
-return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.meals);case _:
+return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.meals,_that.nextWeek,_that.plannedWeekBefore);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -475,10 +482,10 @@ return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> meals)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String title,  double servingsBase,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> meals,  List<CoveredMeal> nextWeek,  bool plannedWeekBefore)?  $default,) {final _that = this;
 switch (_that) {
 case _PlannedRecipe() when $default != null:
-return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.meals);case _:
+return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.meals,_that.nextWeek,_that.plannedWeekBefore);case _:
   return null;
 
 }
@@ -490,7 +497,7 @@ return $default(_that.recipeId,_that.title,_that.servingsBase,_that.keepsForDays
 
 
 class _PlannedRecipe implements PlannedRecipe {
-  const _PlannedRecipe({required this.recipeId, required this.title, required this.servingsBase, this.keepsForDays, this.freezable = false, this.freezerDays, final  List<CoveredMeal> meals = const <CoveredMeal>[]}): _meals = meals;
+  const _PlannedRecipe({required this.recipeId, required this.title, required this.servingsBase, this.keepsForDays, this.freezable = false, this.freezerDays, final  List<CoveredMeal> meals = const <CoveredMeal>[], final  List<CoveredMeal> nextWeek = const <CoveredMeal>[], this.plannedWeekBefore = false}): _meals = meals,_nextWeek = nextWeek;
   
 
 @override final  String recipeId;
@@ -509,6 +516,21 @@ class _PlannedRecipe implements PlannedRecipe {
   return EqualUnmodifiableListView(_meals);
 }
 
+/// The same recipe's meals in the week after, days 0..6 of that week:
+/// the ones a freezable batch can fold in ([clusterSessions]).
+ final  List<CoveredMeal> _nextWeek;
+/// The same recipe's meals in the week after, days 0..6 of that week:
+/// the ones a freezable batch can fold in ([clusterSessions]).
+@override@JsonKey() List<CoveredMeal> get nextWeek {
+  if (_nextWeek is EqualUnmodifiableListView) return _nextWeek;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_nextWeek);
+}
+
+/// Whether the week before plans this recipe too. Such a week's batch
+/// folds nothing in, so a fold never chains from week to week and each
+/// week can be read knowing only its neighbours.
+@override@JsonKey() final  bool plannedWeekBefore;
 
 /// Create a copy of PlannedRecipe
 /// with the given fields replaced by the non-null parameter values.
@@ -520,16 +542,16 @@ _$PlannedRecipeCopyWith<_PlannedRecipe> get copyWith => __$PlannedRecipeCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlannedRecipe&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other._meals, _meals));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlannedRecipe&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.title, title) || other.title == title)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other._meals, _meals)&&const DeepCollectionEquality().equals(other._nextWeek, _nextWeek)&&(identical(other.plannedWeekBefore, plannedWeekBefore) || other.plannedWeekBefore == plannedWeekBefore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,recipeId,title,servingsBase,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(_meals));
+int get hashCode => Object.hash(runtimeType,recipeId,title,servingsBase,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(_meals),const DeepCollectionEquality().hash(_nextWeek),plannedWeekBefore);
 
 @override
 String toString() {
-  return 'PlannedRecipe(recipeId: $recipeId, title: $title, servingsBase: $servingsBase, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, meals: $meals)';
+  return 'PlannedRecipe(recipeId: $recipeId, title: $title, servingsBase: $servingsBase, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, meals: $meals, nextWeek: $nextWeek, plannedWeekBefore: $plannedWeekBefore)';
 }
 
 
@@ -540,7 +562,7 @@ abstract mixin class _$PlannedRecipeCopyWith<$Res> implements $PlannedRecipeCopy
   factory _$PlannedRecipeCopyWith(_PlannedRecipe value, $Res Function(_PlannedRecipe) _then) = __$PlannedRecipeCopyWithImpl;
 @override @useResult
 $Res call({
- String recipeId, String title, double servingsBase, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> meals
+ String recipeId, String title, double servingsBase, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> meals, List<CoveredMeal> nextWeek, bool plannedWeekBefore
 });
 
 
@@ -557,7 +579,7 @@ class __$PlannedRecipeCopyWithImpl<$Res>
 
 /// Create a copy of PlannedRecipe
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? title = null,Object? servingsBase = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? meals = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? title = null,Object? servingsBase = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? meals = null,Object? nextWeek = null,Object? plannedWeekBefore = null,}) {
   return _then(_PlannedRecipe(
 recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -566,7 +588,9 @@ as double,keepsForDays: freezed == keepsForDays ? _self.keepsForDays : keepsForD
 as int?,freezable: null == freezable ? _self.freezable : freezable // ignore: cast_nullable_to_non_nullable
 as bool,freezerDays: freezed == freezerDays ? _self.freezerDays : freezerDays // ignore: cast_nullable_to_non_nullable
 as int?,meals: null == meals ? _self._meals : meals // ignore: cast_nullable_to_non_nullable
-as List<CoveredMeal>,
+as List<CoveredMeal>,nextWeek: null == nextWeek ? _self._nextWeek : nextWeek // ignore: cast_nullable_to_non_nullable
+as List<CoveredMeal>,plannedWeekBefore: null == plannedWeekBefore ? _self.plannedWeekBefore : plannedWeekBefore // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -2029,7 +2053,11 @@ as List<ComponentDemandSource>,
 /// @nodoc
 mixin _$CookPlan {
 
- List<RecipeCookPlan> get recipes; List<ComponentGap> get gaps;
+ List<RecipeCookPlan> get recipes; List<ComponentGap> get gaps;/// This week's meals the week before's batches cook, by entry id: each
+/// with that batch, its days counted from the week before's first day
+/// (so the meal's own day is 7..13 there). Not cooked, bought or costed
+/// in this week.
+ Map<String, CookSession> get foldedBack;
 /// Create a copy of CookPlan
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2040,16 +2068,16 @@ $CookPlanCopyWith<CookPlan> get copyWith => _$CookPlanCopyWithImpl<CookPlan>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CookPlan&&const DeepCollectionEquality().equals(other.recipes, recipes)&&const DeepCollectionEquality().equals(other.gaps, gaps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CookPlan&&const DeepCollectionEquality().equals(other.recipes, recipes)&&const DeepCollectionEquality().equals(other.gaps, gaps)&&const DeepCollectionEquality().equals(other.foldedBack, foldedBack));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(recipes),const DeepCollectionEquality().hash(gaps));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(recipes),const DeepCollectionEquality().hash(gaps),const DeepCollectionEquality().hash(foldedBack));
 
 @override
 String toString() {
-  return 'CookPlan(recipes: $recipes, gaps: $gaps)';
+  return 'CookPlan(recipes: $recipes, gaps: $gaps, foldedBack: $foldedBack)';
 }
 
 
@@ -2060,7 +2088,7 @@ abstract mixin class $CookPlanCopyWith<$Res>  {
   factory $CookPlanCopyWith(CookPlan value, $Res Function(CookPlan) _then) = _$CookPlanCopyWithImpl;
 @useResult
 $Res call({
- List<RecipeCookPlan> recipes, List<ComponentGap> gaps
+ List<RecipeCookPlan> recipes, List<ComponentGap> gaps, Map<String, CookSession> foldedBack
 });
 
 
@@ -2077,11 +2105,12 @@ class _$CookPlanCopyWithImpl<$Res>
 
 /// Create a copy of CookPlan
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? recipes = null,Object? gaps = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? recipes = null,Object? gaps = null,Object? foldedBack = null,}) {
   return _then(_self.copyWith(
 recipes: null == recipes ? _self.recipes : recipes // ignore: cast_nullable_to_non_nullable
 as List<RecipeCookPlan>,gaps: null == gaps ? _self.gaps : gaps // ignore: cast_nullable_to_non_nullable
-as List<ComponentGap>,
+as List<ComponentGap>,foldedBack: null == foldedBack ? _self.foldedBack : foldedBack // ignore: cast_nullable_to_non_nullable
+as Map<String, CookSession>,
   ));
 }
 
@@ -2166,10 +2195,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<RecipeCookPlan> recipes,  List<ComponentGap> gaps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<RecipeCookPlan> recipes,  List<ComponentGap> gaps,  Map<String, CookSession> foldedBack)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CookPlan() when $default != null:
-return $default(_that.recipes,_that.gaps);case _:
+return $default(_that.recipes,_that.gaps,_that.foldedBack);case _:
   return orElse();
 
 }
@@ -2187,10 +2216,10 @@ return $default(_that.recipes,_that.gaps);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<RecipeCookPlan> recipes,  List<ComponentGap> gaps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<RecipeCookPlan> recipes,  List<ComponentGap> gaps,  Map<String, CookSession> foldedBack)  $default,) {final _that = this;
 switch (_that) {
 case _CookPlan():
-return $default(_that.recipes,_that.gaps);case _:
+return $default(_that.recipes,_that.gaps,_that.foldedBack);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2207,10 +2236,10 @@ return $default(_that.recipes,_that.gaps);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<RecipeCookPlan> recipes,  List<ComponentGap> gaps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<RecipeCookPlan> recipes,  List<ComponentGap> gaps,  Map<String, CookSession> foldedBack)?  $default,) {final _that = this;
 switch (_that) {
 case _CookPlan() when $default != null:
-return $default(_that.recipes,_that.gaps);case _:
+return $default(_that.recipes,_that.gaps,_that.foldedBack);case _:
   return null;
 
 }
@@ -2222,7 +2251,7 @@ return $default(_that.recipes,_that.gaps);case _:
 
 
 class _CookPlan extends CookPlan {
-  const _CookPlan({final  List<RecipeCookPlan> recipes = const <RecipeCookPlan>[], final  List<ComponentGap> gaps = const <ComponentGap>[]}): _recipes = recipes,_gaps = gaps,super._();
+  const _CookPlan({final  List<RecipeCookPlan> recipes = const <RecipeCookPlan>[], final  List<ComponentGap> gaps = const <ComponentGap>[], final  Map<String, CookSession> foldedBack = const <String, CookSession>{}}): _recipes = recipes,_gaps = gaps,_foldedBack = foldedBack,super._();
   
 
  final  List<RecipeCookPlan> _recipes;
@@ -2239,6 +2268,21 @@ class _CookPlan extends CookPlan {
   return EqualUnmodifiableListView(_gaps);
 }
 
+/// This week's meals the week before's batches cook, by entry id: each
+/// with that batch, its days counted from the week before's first day
+/// (so the meal's own day is 7..13 there). Not cooked, bought or costed
+/// in this week.
+ final  Map<String, CookSession> _foldedBack;
+/// This week's meals the week before's batches cook, by entry id: each
+/// with that batch, its days counted from the week before's first day
+/// (so the meal's own day is 7..13 there). Not cooked, bought or costed
+/// in this week.
+@override@JsonKey() Map<String, CookSession> get foldedBack {
+  if (_foldedBack is EqualUnmodifiableMapView) return _foldedBack;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_foldedBack);
+}
+
 
 /// Create a copy of CookPlan
 /// with the given fields replaced by the non-null parameter values.
@@ -2250,16 +2294,16 @@ _$CookPlanCopyWith<_CookPlan> get copyWith => __$CookPlanCopyWithImpl<_CookPlan>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CookPlan&&const DeepCollectionEquality().equals(other._recipes, _recipes)&&const DeepCollectionEquality().equals(other._gaps, _gaps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CookPlan&&const DeepCollectionEquality().equals(other._recipes, _recipes)&&const DeepCollectionEquality().equals(other._gaps, _gaps)&&const DeepCollectionEquality().equals(other._foldedBack, _foldedBack));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_recipes),const DeepCollectionEquality().hash(_gaps));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_recipes),const DeepCollectionEquality().hash(_gaps),const DeepCollectionEquality().hash(_foldedBack));
 
 @override
 String toString() {
-  return 'CookPlan(recipes: $recipes, gaps: $gaps)';
+  return 'CookPlan(recipes: $recipes, gaps: $gaps, foldedBack: $foldedBack)';
 }
 
 
@@ -2270,7 +2314,7 @@ abstract mixin class _$CookPlanCopyWith<$Res> implements $CookPlanCopyWith<$Res>
   factory _$CookPlanCopyWith(_CookPlan value, $Res Function(_CookPlan) _then) = __$CookPlanCopyWithImpl;
 @override @useResult
 $Res call({
- List<RecipeCookPlan> recipes, List<ComponentGap> gaps
+ List<RecipeCookPlan> recipes, List<ComponentGap> gaps, Map<String, CookSession> foldedBack
 });
 
 
@@ -2287,11 +2331,12 @@ class __$CookPlanCopyWithImpl<$Res>
 
 /// Create a copy of CookPlan
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? recipes = null,Object? gaps = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? recipes = null,Object? gaps = null,Object? foldedBack = null,}) {
   return _then(_CookPlan(
 recipes: null == recipes ? _self._recipes : recipes // ignore: cast_nullable_to_non_nullable
 as List<RecipeCookPlan>,gaps: null == gaps ? _self._gaps : gaps // ignore: cast_nullable_to_non_nullable
-as List<ComponentGap>,
+as List<ComponentGap>,foldedBack: null == foldedBack ? _self._foldedBack : foldedBack // ignore: cast_nullable_to_non_nullable
+as Map<String, CookSession>,
   ));
 }
 

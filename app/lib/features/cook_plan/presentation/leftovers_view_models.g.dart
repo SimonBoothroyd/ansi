@@ -8,25 +8,72 @@ part of 'leftovers_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The household's leftovers today, fridge first, live. Read from the week
-/// holding today, whatever week is on screen: the fridge is now.
+/// The household's leftovers today and every meal served from one, live.
+/// Read from the week holding today, whatever week is on screen: the fridge
+/// is now.
+
+@ProviderFor(leftoverShelves)
+const leftoverShelvesProvider = LeftoverShelvesProvider._();
+
+/// The household's leftovers today and every meal served from one, live.
+/// Read from the week holding today, whatever week is on screen: the fridge
+/// is now.
+
+final class LeftoverShelvesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<LeftoverShelves>,
+          LeftoverShelves,
+          Stream<LeftoverShelves>
+        >
+    with $FutureModifier<LeftoverShelves>, $StreamProvider<LeftoverShelves> {
+  /// The household's leftovers today and every meal served from one, live.
+  /// Read from the week holding today, whatever week is on screen: the fridge
+  /// is now.
+  const LeftoverShelvesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'leftoverShelvesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$leftoverShelvesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<LeftoverShelves> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<LeftoverShelves> create(Ref ref) {
+    return leftoverShelves(ref);
+  }
+}
+
+String _$leftoverShelvesHash() => r'4f24c3f4551e8fdc7b72ec14d05a7011e20f74ec';
+
+/// The rows of [leftoverShelves], fridge first.
 
 @ProviderFor(fridgeAndFreezer)
 const fridgeAndFreezerProvider = FridgeAndFreezerProvider._();
 
-/// The household's leftovers today, fridge first, live. Read from the week
-/// holding today, whatever week is on screen: the fridge is now.
+/// The rows of [leftoverShelves], fridge first.
 
 final class FridgeAndFreezerProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<Leftover>>,
-          List<Leftover>,
-          Stream<List<Leftover>>
+          AsyncValue<List<Leftover>>,
+          AsyncValue<List<Leftover>>
         >
-    with $FutureModifier<List<Leftover>>, $StreamProvider<List<Leftover>> {
-  /// The household's leftovers today, fridge first, live. Read from the week
-  /// holding today, whatever week is on screen: the fridge is now.
+    with $Provider<AsyncValue<List<Leftover>>> {
+  /// The rows of [leftoverShelves], fridge first.
   const FridgeAndFreezerProvider._()
     : super(
         from: null,
@@ -43,17 +90,80 @@ final class FridgeAndFreezerProvider
 
   @$internal
   @override
-  $StreamProviderElement<List<Leftover>> $createElement(
+  $ProviderElement<AsyncValue<List<Leftover>>> $createElement(
     $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
+  ) => $ProviderElement(pointer);
 
   @override
-  Stream<List<Leftover>> create(Ref ref) {
+  AsyncValue<List<Leftover>> create(Ref ref) {
     return fridgeAndFreezer(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AsyncValue<List<Leftover>> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AsyncValue<List<Leftover>>>(value),
+    );
   }
 }
 
-String _$fridgeAndFreezerHash() => r'e585e36fdaa345b404b5f1f06fba6dfa82d009e9';
+String _$fridgeAndFreezerHash() => r'94cd70070cedfa594475719fe45131a73281e628';
+
+/// Each meal served from a leftover, judged on its own day, by `plan_entry`
+/// id: its shelf and any warning.
+
+@ProviderFor(leftoverMeals)
+const leftoverMealsProvider = LeftoverMealsProvider._();
+
+/// Each meal served from a leftover, judged on its own day, by `plan_entry`
+/// id: its shelf and any warning.
+
+final class LeftoverMealsProvider
+    extends
+        $FunctionalProvider<
+          Map<String, LeftoverMeal>,
+          Map<String, LeftoverMeal>,
+          Map<String, LeftoverMeal>
+        >
+    with $Provider<Map<String, LeftoverMeal>> {
+  /// Each meal served from a leftover, judged on its own day, by `plan_entry`
+  /// id: its shelf and any warning.
+  const LeftoverMealsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'leftoverMealsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$leftoverMealsHash();
+
+  @$internal
+  @override
+  $ProviderElement<Map<String, LeftoverMeal>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Map<String, LeftoverMeal> create(Ref ref) {
+    return leftoverMeals(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, LeftoverMeal> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, LeftoverMeal>>(value),
+    );
+  }
+}
+
+String _$leftoverMealsHash() => r'995a80a711befbfef742f7dc98017ef24322e954';
 
 /// Whether any row is behind its date: the dot on the Week's door.
 
@@ -151,23 +261,26 @@ final class LeftoverPlacesProvider
 
 String _$leftoverPlacesHash() => r'4adad43ee856053e7780ee71fdf243379e850ca9';
 
-/// The rows a meal on [day] can be planned from, fridge then freezer: a fridge
-/// row good on the day and not yet behind its date, any freezer row. Only a
-/// recipe's row: a meal is planned from a recipe. Empty for a day behind us.
+/// The rows a meal on [day] can be planned from, fridge then freezer, each as
+/// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
+/// that will need freezing by then offered under Freezer. Only a recipe's
+/// row: a meal is planned from a recipe. Empty for a day behind us.
 
 @ProviderFor(leftoversGoodOn)
 const leftoversGoodOnProvider = LeftoversGoodOnFamily._();
 
-/// The rows a meal on [day] can be planned from, fridge then freezer: a fridge
-/// row good on the day and not yet behind its date, any freezer row. Only a
-/// recipe's row: a meal is planned from a recipe. Empty for a day behind us.
+/// The rows a meal on [day] can be planned from, fridge then freezer, each as
+/// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
+/// that will need freezing by then offered under Freezer. Only a recipe's
+/// row: a meal is planned from a recipe. Empty for a day behind us.
 
 final class LeftoversGoodOnProvider
     extends $FunctionalProvider<List<Leftover>, List<Leftover>, List<Leftover>>
     with $Provider<List<Leftover>> {
-  /// The rows a meal on [day] can be planned from, fridge then freezer: a fridge
-  /// row good on the day and not yet behind its date, any freezer row. Only a
-  /// recipe's row: a meal is planned from a recipe. Empty for a day behind us.
+  /// The rows a meal on [day] can be planned from, fridge then freezer, each as
+  /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
+  /// that will need freezing by then offered under Freezer. Only a recipe's
+  /// row: a meal is planned from a recipe. Empty for a day behind us.
   const LeftoversGoodOnProvider._({
     required LeftoversGoodOnFamily super.from,
     required DateTime super.argument,
@@ -219,11 +332,12 @@ final class LeftoversGoodOnProvider
   }
 }
 
-String _$leftoversGoodOnHash() => r'f886bed45a381740726ea04dc5f5836e12432b61';
+String _$leftoversGoodOnHash() => r'd65f7a98fe7b47a9e3ab00257b0ecd1f0a60b403';
 
-/// The rows a meal on [day] can be planned from, fridge then freezer: a fridge
-/// row good on the day and not yet behind its date, any freezer row. Only a
-/// recipe's row: a meal is planned from a recipe. Empty for a day behind us.
+/// The rows a meal on [day] can be planned from, fridge then freezer, each as
+/// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
+/// that will need freezing by then offered under Freezer. Only a recipe's
+/// row: a meal is planned from a recipe. Empty for a day behind us.
 
 final class LeftoversGoodOnFamily extends $Family
     with $FunctionalFamilyOverride<List<Leftover>, DateTime> {
@@ -236,9 +350,10 @@ final class LeftoversGoodOnFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The rows a meal on [day] can be planned from, fridge then freezer: a fridge
-  /// row good on the day and not yet behind its date, any freezer row. Only a
-  /// recipe's row: a meal is planned from a recipe. Empty for a day behind us.
+  /// The rows a meal on [day] can be planned from, fridge then freezer, each as
+  /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
+  /// that will need freezing by then offered under Freezer. Only a recipe's
+  /// row: a meal is planned from a recipe. Empty for a day behind us.
 
   LeftoversGoodOnProvider call(DateTime day) =>
       LeftoversGoodOnProvider._(argument: day, from: this);

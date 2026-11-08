@@ -414,6 +414,9 @@ class _PaneMeal extends ConsumerWidget {
             recipeId: entry.recipeId!,
             dayOfWeek: entry.dayOfWeek,
             mealSlot: entry.mealSlot,
+            entryId: entry.id,
+            weekStart: ref.watch(viewedWeekStartProvider),
+            today: ref.watch(todayProvider),
           );
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
     final route = mealTitleRoute(entry, weekKey: weekKey);

@@ -73,7 +73,7 @@ class SqliteUseUpRepository implements UseUpRepository {
     final uncooked = <String>{
       for (final recipe in plan.recipes)
         for (final s in recipe.mealSessions)
-          if (!wasCooked(s) && dateOfDay(last, s.lastCoveredDay).isBefore(day))
+          if (cookDayOf(s, last, day) == null)
             for (final m in s.covers)
               if (m.entryId case final id?) id,
     };

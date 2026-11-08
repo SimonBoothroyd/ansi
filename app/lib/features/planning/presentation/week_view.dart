@@ -505,6 +505,9 @@ class _DishRow extends ConsumerWidget {
             recipeId: entry.recipeId!,
             dayOfWeek: entry.dayOfWeek,
             mealSlot: entry.mealSlot,
+            entryId: entry.id,
+            weekStart: ref.watch(viewedWeekStartProvider),
+            today: ref.watch(todayProvider),
           );
     // The recipe page offers its week door only to an arrival naming a week
     // that plans the recipe.

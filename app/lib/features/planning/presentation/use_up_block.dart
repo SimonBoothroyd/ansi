@@ -363,11 +363,13 @@ class LeftoverMealCard extends ConsumerWidget {
 }
 
 /// The tag a meal from a leftover wears in the picker, on the confirm sheet
-/// and on its Week row: the fridge's green, or the freezer's blue.
+/// and on its Week row: the fridge's green, or the freezer's blue. A meal that
+/// no longer adds up keeps its colour and adds its [warning] in amber.
 class LeftoverTag extends StatelessWidget {
   const LeftoverTag({
     required this.place,
     this.label = 'leftover',
+    this.warning,
     this.size = 9.5,
     super.key,
   });
@@ -377,24 +379,39 @@ class LeftoverTag extends StatelessWidget {
   /// `leftover`, or `frozen` where the picker lists the freezer.
   final String label;
 
+  /// What is wrong with the meal on its day, if anything.
+  final LeftoverWarning? warning;
+
   final double size;
 
   @override
   Widget build(BuildContext context) {
     final frozen = place == LeftoverPlace.freezer;
+    final ink = frozen ? AnsiColors.chillInk : AnsiColors.herbDeep;
+    final warned = warning;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: frozen ? AnsiColors.chill : AnsiColors.herbSoft,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        label,
-        style: ansiMono(
-          size: size,
-          color: frozen ? AnsiColors.chillInk : AnsiColors.herbDeep,
-        ),
-      ),
+      child: warned == null
+          ? Text(
+              label,
+              style: ansiMono(size: size, color: ink),
+            )
+          : Text.rich(
+              TextSpan(
+                text: label,
+                children: [
+                  TextSpan(
+                    text: ' · ${leftoverWarningWords(warned)}',
+                    style: ansiMono(size: size, color: AnsiColors.cautionInk),
+                  ),
+                ],
+              ),
+              style: ansiMono(size: size, color: ink),
+            ),
     );
   }
 }

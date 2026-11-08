@@ -165,6 +165,42 @@ void main() {
     expect(cost.unpriced, isEmpty);
   });
 
+  test('a dish cooked once across the week edge is costed in the week that '
+      'buys it', () {
+    // The week after: its Thursday is cooked the Saturday before.
+    final after = sumPlannedCost(
+      [_meal('e1'), _meal('thu', recipeId: 'r2', title: 'Dal')],
+      costFor: (id) => id == 'r1' ? _cost(100) : _cost(50),
+      priceFor: _noPrice,
+      membersById: _members,
+      cookedWeekBefore: const {'thu'},
+    );
+    expect(after.cents, 200);
+    expect(after.considered, 1);
+
+    // The week before: it buys next Thursday's share, 2 portions.
+    final before = sumPlannedCost(
+      [_meal('e1')],
+      costFor: (id) => id == 'r1' ? _cost(100) : _cost(50),
+      priceFor: _noPrice,
+      membersById: _members,
+      cookedForNextWeek: const [(recipeId: 'r2', portions: 2)],
+    );
+    expect(before.cents, 300);
+    // Under a lens it is next week's meal, so not counted.
+    expect(
+      sumPlannedCost(
+        [_meal('e1')],
+        costFor: (id) => id == 'r1' ? _cost(100) : _cost(50),
+        priceFor: _noPrice,
+        lensMemberId: 'm1',
+        membersById: _members,
+        cookedForNextWeek: const [(recipeId: 'r2', portions: 2)],
+      ).cents,
+      100,
+    );
+  });
+
   test('an unpriced recipe is out, and its lines are named', () {
     final cost = sumPlannedCost(
       [_meal('e1'), _meal('e2', recipeId: 'r2', title: 'Sliders')],

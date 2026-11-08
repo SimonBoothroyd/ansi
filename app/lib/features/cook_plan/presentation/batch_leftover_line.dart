@@ -17,8 +17,10 @@ import 'leftover_format.dart';
 import 'leftovers_view_models.dart';
 
 /// `1 portion left · until Fri`, `2 portions left · past its date`, `2
-/// portions frozen`: the batch's row in the fridge or the freezer. Nothing
-/// while it has no row: never cooked, nothing left, or said to be gone.
+/// portions frozen`: the batch's row in the fridge or the freezer; or, until
+/// its fridge date, `freeze 2 by Tue for Thu` for its later meals reached from
+/// the freezer. Nothing while it has no row with portions left: not cooked,
+/// nothing left, or said to be gone.
 class BatchLeftoverLine extends ConsumerWidget {
   const BatchLeftoverLine({required this.session, super.key});
 
@@ -28,23 +30,37 @@ class BatchLeftoverLine extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final key = session.leftoverKey;
     if (key == null) return const SizedBox.shrink();
+    final today = ref.watch(todayProvider);
+    final shape = ref.watch(weekShapeProvider);
     final left =
         (ref.watch(fridgeAndFreezerProvider).asData?.value ??
                 const <Leftover>[])
-            .where((l) => l.batch == key)
+            .where((l) => l.batch == key && l.isCookedBy(today))
             .firstOrNull;
-    if (left == null) return const SizedBox.shrink();
-    final today = ref.watch(todayProvider);
-    final frozen = left.place == LeftoverPlace.freezer;
-    final line = frozen
-        ? '${formatPortions(left.portions)} frozen'
-        : '${formatPortions(left.portions)} left · '
-              '${leftoverWhen(left, today, ref.watch(weekShapeProvider))}';
-    final ink = frozen
-        ? AnsiColors.chillInk
-        : left.pastItsDate(today)
-        ? AnsiColors.cautionInk
-        : AnsiColors.herbDeep;
+    // Its later meals from the freezer, until the freeze is due.
+    final share = freezeShareOf(
+      session,
+      ref.watch(viewedWeekStartProvider),
+      today,
+    );
+    final String line;
+    final Color ink;
+    if (share != null && !today.isAfter(share.freezeBy)) {
+      line = freezeShareLine(share, today, shape);
+      ink = AnsiColors.chillInk;
+    } else if (left == null || left.portions <= 1e-9) {
+      return const SizedBox.shrink();
+    } else if (left.place == LeftoverPlace.freezer) {
+      line = '${formatPortions(left.portions)} frozen';
+      ink = AnsiColors.chillInk;
+    } else {
+      line =
+          '${formatPortions(left.portions)} left · '
+          '${leftoverWhen(left, today, shape)}';
+      ink = left.pastItsDate(today)
+          ? AnsiColors.cautionInk
+          : AnsiColors.herbDeep;
+    }
     return Semantics(
       button: true,
       label: '$line, open Leftovers',
