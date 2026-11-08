@@ -3,9 +3,9 @@
 ///
 /// A row starts from the ticks and is corrected on its stepper. Nothing
 /// clears itself: a row behind its date says so and stays until somebody
-/// says it is gone, froze it, or clears the fridge. The bar's add opens *Add a
-/// leftover*, for food the app never saw. Its one door is the fridge in the
-/// Week's header.
+/// counts it to nothing, freezes it or removes what has gone off. The bar's
+/// add opens *Add a leftover*, for food the app never saw. Its one door is
+/// the fridge in the Week's header.
 library;
 
 import 'dart:async';
@@ -84,7 +84,8 @@ class LeftoversView extends ConsumerWidget {
   }
 }
 
-/// The two shelves. One row at a time opens to its stepper and its moves.
+/// The two shelves, soonest to go off first. One row at a time opens its
+/// count to the stepper.
 class _Shelves extends HookConsumerWidget {
   const _Shelves({required this.rows});
 
@@ -110,8 +111,9 @@ class _Shelves extends HookConsumerWidget {
       for (final l in rows)
         if (l.place == LeftoverPlace.freezer) l,
     ];
-    final past = [
-      for (final l in fridge)
+    // Both shelves: a freezer row past its date has gone off too.
+    final goneOff = [
+      for (final l in rows)
         if (l.pastItsDate(today)) l,
     ];
 
@@ -139,22 +141,22 @@ class _Shelves extends HookConsumerWidget {
         Row(
           children: [
             Expanded(child: Text('FRIDGE', style: ansiLabel())),
-            if (past.isNotEmpty)
+            if (goneOff.isNotEmpty)
               AnsiTap(
                 onTap: () => unawaited(
                   ref.write(
                     context,
-                    'clear the fridge',
-                    () => repo.markLeftoversGone(past),
+                    'remove what has gone off',
+                    () => repo.markLeftoversGone(goneOff),
                   ),
                 ),
-                semanticsLabel: 'Clear all',
+                semanticsLabel: 'Remove gone off',
                 padding: const EdgeInsets.symmetric(
                   horizontal: 4,
                   vertical: 12,
                 ),
                 child: Text(
-                  'Clear all',
+                  'Remove gone off',
                   style: ansiSans(
                     size: 12.5,
                     color: AnsiColors.herbDeep,
@@ -170,7 +172,17 @@ class _Shelves extends HookConsumerWidget {
         const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text('FREEZER', style: ansiLabel(color: AnsiColors.chillInk)),
+          child: Row(
+            children: [
+              const Icon(
+                FLucideIcons.snowflake,
+                size: 10,
+                color: AnsiColors.chillInk,
+              ),
+              const SizedBox(width: 4),
+              Text('FREEZER', style: ansiLabel(color: AnsiColors.chillInk)),
+            ],
+          ),
         ),
         if (freezer.isEmpty) const _Empty(),
         for (final l in freezer) row(l),
@@ -192,9 +204,10 @@ class _Empty extends StatelessWidget {
   );
 }
 
-/// One leftover. Past its date it offers **Froze it** (a freezable fridge
-/// row) and **Gone** in place; otherwise a tap opens its stepper, **Freeze**
-/// (a freezable fridge row) and **Gone**.
+/// One leftover: its dish and date, then its `N left` chip, what is planned
+/// from it, and its move. The chip opens the stepper in its place. A fridge
+/// row of a dish that freezes offers **Freeze** while in date and **Froze
+/// it** once past; a count set to nothing takes the row away.
 class _LeftoverRow extends ConsumerWidget {
   const _LeftoverRow({
     required this.left,
@@ -215,69 +228,116 @@ class _LeftoverRow extends ConsumerWidget {
     final shape = ref.watch(weekShapeProvider);
     final repo = ref.read(leftoverRepositoryProvider);
     final frozen = left.place == LeftoverPlace.freezer;
-    final fridge = !frozen;
+    final past = left.pastItsDate(today);
+    final forDays = leftoverFor(left, today, shape);
+    final freezeFor = leftoverFreezeFor(left, today, shape);
+    final when = leftoverWhen(left, today, shape);
 
-    void gone() => unawaited(
-      ref.write(
-        context,
-        'say ${left.title} is gone',
-        () => repo.markLeftoversGone([left]),
-      ),
-    );
-
-    if (left.pastItsDate(today)) {
-      return DashedBorderBox(
-        color: AnsiColors.line,
-        padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    left.title,
-                    style: ansiSans(size: 13.5, color: AnsiColors.muted),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    leftoverLine(left, today, shape),
-                    style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
-                  ),
-                ],
-              ),
-            ),
-            if (fridge && freezable)
-              _ShelfButton(
-                label: 'Froze it',
-                chill: true,
-                // Frozen on the night and not said: dated from its cook day.
-                onTap: () => unawaited(
-                  ref.write(
-                    context,
-                    'move ${left.title} to the freezer',
-                    () => repo.freezeLeftover(left),
+    final head = Semantics(
+      button: true,
+      expanded: open,
+      label: [
+        left.title,
+        when,
+        leftCount(left.inBox),
+        ?forDays,
+        ?freezeFor,
+      ].join(', '),
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onToggle,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Expanded(
+                child: Text(
+                  left.title,
+                  style: ansiSans(
+                    size: 13.5,
+                    color: past
+                        ? AnsiColors.muted
+                        : open
+                        ? AnsiColors.herbDeep
+                        : AnsiColors.ink,
+                    weight: open ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
-            _ShelfButton(label: 'Gone', onTap: gone),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                when,
+                style: ansiMono(
+                  size: 10.5,
+                  color: past
+                      ? AnsiColors.cautionInk
+                      : frozen
+                      ? AnsiColors.chillInk
+                      : AnsiColors.muted,
+                ),
+              ),
+            ],
+          ),
         ),
-      );
-    }
-
-    final count = Text(
-      leftoverCount(left),
-      style: ansiMono(size: 10.5, color: AnsiColors.muted),
-    );
-    final when = Text(
-      leftoverWhen(left, today, shape),
-      style: ansiMono(
-        size: 10.5,
-        color: frozen ? AnsiColors.chillInk : AnsiColors.muted,
       ),
     );
+
+    final Widget? move = frozen || !freezable
+        ? null
+        : _ShelfButton(
+            label: past ? 'Froze it' : 'Freeze',
+            chill: true,
+            filled: !past,
+            // Frozen on the night and not said, or now: dated from its cook
+            // day either way.
+            onTap: () => unawaited(
+              ref.write(
+                context,
+                'move ${left.title} to the freezer',
+                () => repo.freezeLeftover(left),
+              ),
+            ),
+          );
+
+    final line = Row(
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 2,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (open)
+                _PortionStepper(left: left)
+              else
+                _CountChip(portions: left.inBox, onTap: onToggle),
+              if (forDays != null)
+                Text(
+                  forDays,
+                  style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                ),
+              if (freezeFor != null) _FreezeBy(words: freezeFor),
+            ],
+          ),
+        ),
+        ?move,
+      ],
+    );
+
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [head, const SizedBox(height: 2), line],
+    );
+    if (past) {
+      return DashedBorderBox(
+        color: AnsiColors.line,
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 4),
+        child: body,
+      );
+    }
     return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 4),
       decoration: BoxDecoration(
         color: frozen ? AnsiColors.surface : AnsiColors.paper,
         border: Border.all(
@@ -285,86 +345,72 @@ class _LeftoverRow extends ConsumerWidget {
         ),
         borderRadius: BorderRadius.circular(AnsiRadii.card),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Semantics(
-            button: true,
-            expanded: open,
-            label: '${left.title}, ${leftoverLine(left, today, shape)}',
-            child: ExcludeSemantics(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onToggle,
-                child: Container(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              left.title,
-                              style: ansiSans(
-                                size: 13.5,
-                                color: open
-                                    ? AnsiColors.herbDeep
-                                    : AnsiColors.ink,
-                                weight: open
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                              ),
-                            ),
-                            if (!open) ...[const SizedBox(height: 3), count],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      when,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          if (open)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 8, 8),
-              child: Row(
-                children: [
-                  _PortionStepper(left: left),
-                  const Spacer(),
-                  if (fridge && freezable)
-                    _ShelfButton(
-                      label: 'Freeze',
-                      chill: true,
-                      filled: true,
-                      onTap: () => unawaited(
-                        ref.write(
-                          context,
-                          'move ${left.title} to the freezer',
-                          () => repo.freezeLeftover(left),
-                        ),
-                      ),
-                    ),
-                  _ShelfButton(label: 'Gone', onTap: gone),
-                ],
-              ),
-            ),
-        ],
-      ),
+      child: body,
     );
   }
 }
 
-/// `−  3  +`, a whole portion a step. A part portion steps to the whole on
-/// either side, so `1¾` reads `1` or `2`. It never reaches nothing: that is
-/// **Gone**.
+/// `2 left`: a row's count as a small chip, drawn at 26 inside a 44 target;
+/// a tap opens the stepper.
+class _CountChip extends StatelessWidget {
+  const _CountChip({required this.portions, required this.onTap});
+
+  final double portions;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: '${leftCount(portions)}, change',
+    child: ExcludeSemantics(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: kAnsiTouchTarget),
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: AnsiColors.surface,
+              border: Border.all(color: AnsiColors.line),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Text(
+              leftCount(portions),
+              style: ansiMono(size: 10.5, color: AnsiColors.herbDeep),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// `❄ freeze by Mon for Wed`, in the freezer's blue.
+class _FreezeBy extends StatelessWidget {
+  const _FreezeBy({required this.words});
+
+  final String words;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const Icon(FLucideIcons.snowflake, size: 10, color: AnsiColors.chillInk),
+      const SizedBox(width: 3),
+      Flexible(
+        child: Text(
+          words,
+          style: ansiMono(size: 10.5, color: AnsiColors.chillInk),
+        ),
+      ),
+    ],
+  );
+}
+
+/// `−  3  +`, a whole portion a step, down to nothing. A part portion steps
+/// to the whole on either side, so `1¾` reads `1` or `2`.
 class _PortionStepper extends ConsumerWidget {
   const _PortionStepper({required this.left});
 
@@ -372,7 +418,7 @@ class _PortionStepper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final n = left.portions;
+    final n = left.inBox;
     final whole = (n - n.roundToDouble()).abs() < 1e-6;
     final down = whole ? n.roundToDouble() - 1 : n.floorToDouble();
     final up = whole ? n.roundToDouble() + 1 : n.ceilToDouble();
@@ -387,7 +433,7 @@ class _PortionStepper extends ConsumerWidget {
     return AnsiStepperRow(
       small: true,
       value: Semantics(
-        label: formatPortions(n),
+        label: leftCount(n),
         child: ExcludeSemantics(
           child: SizedBox(
             width: 40,
@@ -399,7 +445,7 @@ class _PortionStepper extends ConsumerWidget {
           ),
         ),
       ),
-      onDecrement: down > 1e-6 ? () => set(down) : null,
+      onDecrement: down > -1e-6 ? () => set(down < 0 ? 0 : down) : null,
       onIncrement: () => set(up),
     );
   }

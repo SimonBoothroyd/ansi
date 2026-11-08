@@ -1,5 +1,5 @@
-/// The words a leftover prints: its count and its date, kept short —
-/// `1¾ · until Mon`, `2 · 2 wk`, `past its date`. Pure Dart.
+/// The words a leftover prints, kept short: `2 left`, `till Mon`, `for Sun`,
+/// `freeze by Mon for Wed`, `past its date`. Pure Dart.
 library;
 
 import '../../../core/units/portions.dart';
@@ -7,10 +7,13 @@ import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
 import '../domain/leftovers.dart';
 
-/// `until Mon`, `2 wk`, `past its date`, `freeze by Mon`: a fridge row's
-/// date, a freezer row's age, that it is behind its date, or — offered under
-/// Freezer for a later day — when it has to go in. A fridge row with no date
-/// (in words) says its age.
+/// `2 left`, `1¾ left`, `0 left`.
+String leftCount(double portions) => '${formatFraction(portions)} left';
+
+/// `till Mon`, `till Jan`, `past its date`, `freeze by Mon`: a row's date,
+/// that it is behind it, or — offered under Freezer for a later day — when it
+/// has to go in. A row with no date (in words, or a freezer with no limit)
+/// says its age.
 String leftoverWhen(Leftover left, DateTime today, WeekShape shape) {
   if (left.pastItsDate(today)) return 'past its date';
   final freezeBy = left.freezeBy;
@@ -18,30 +21,56 @@ String leftoverWhen(Leftover left, DateTime today, WeekShape shape) {
     return 'freeze by ${_dayWord(freezeBy, today, shape)}';
   }
   final until = left.goodUntil;
-  if (left.place == LeftoverPlace.fridge && until != null) {
-    return leftoverUntil(until, today, shape);
-  }
+  if (until != null) return leftoverTill(until, today, shape);
   return leftoverAge(left.since, today);
 }
 
-/// `until today`, `until Mon` within the coming week, `until 21 Nov` past it.
-String leftoverUntil(DateTime until, DateTime today, WeekShape shape) =>
-    'until ${_dayWord(until, today, shape)}';
+/// `till today`, `till Mon` within the coming week, `till 21 Nov` within the
+/// month, `till Jan` past it.
+String leftoverTill(DateTime until, DateTime today, WeekShape shape) =>
+    _daysBetween(today, until) < 28
+    ? 'till ${_dayWord(until, today, shape)}'
+    : 'till ${formatMonthShort(until)}';
 
-/// `freeze 2 by Tue for Thu`: what a batch puts in the freezer for its later
+/// `for Sun`, `for Sat + Sun`: the days of the meals still to come that are
+/// served from [left] where it is. Null when there are none.
+String? leftoverFor(Leftover left, DateTime today, WeekShape shape) =>
+    _days('for', _aheadDays(left, today, frozen: false), today, shape);
+
+/// `freeze by Mon for Wed`: the meals a fridge row reaches only from the
+/// freezer, and the day it has to go in by. Null when there are none.
+String? leftoverFreezeFor(Leftover left, DateTime today, WeekShape shape) {
+  final by = left.freezeBy;
+  if (left.place != LeftoverPlace.fridge || by == null) return null;
+  return _days(
+    'freeze by ${_dayWord(by, today, shape)} for',
+    _aheadDays(left, today, frozen: true),
+    today,
+    shape,
+  );
+}
+
+/// `freeze by Tue for Thu`: what a batch puts in the freezer for its later
 /// meals, and by when.
+String freezeShareFor(FreezeShare share, DateTime today, WeekShape shape) =>
+    _days(
+      'freeze by ${_dayWord(share.freezeBy, today, shape)} for',
+      share.forDays,
+      today,
+      shape,
+    )!;
+
+/// `freeze 2 by Tue for Thu`: what a batch not cooked yet will put in the
+/// freezer for its later meals, and by when.
 String freezeShareLine(FreezeShare share, DateTime today, WeekShape shape) =>
     'freeze ${formatFraction(share.portions)} by '
     '${_dayWord(share.freezeBy, today, shape)} for '
     '${share.forDays.map((d) => _dayWord(d, today, shape)).join(' + ')}';
 
-/// `today`, `Mon` within the coming week, `21 Nov` past it.
-String _dayWord(DateTime day, DateTime today, WeekShape shape) {
-  final days = _daysBetween(today, day);
-  if (days <= 0) return 'today';
-  if (days < 7) return shape.labelShort(shape.offsetOf(day));
-  return formatDayMonth(day);
-}
+/// `2 left · till Mon`, `2 left · freeze by Mon`: what can still be planned
+/// from [left], and [leftoverWhen].
+String leftoverLine(Leftover left, DateTime today, WeekShape shape) =>
+    '${leftCount(left.portions)} · ${leftoverWhen(left, today, shape)}';
 
 /// `today`, `1 day`, `4 days`, `1 wk`, `6 wk`: how long since [since].
 String leftoverAge(DateTime since, DateTime today) {
@@ -58,16 +87,36 @@ String leftoverWarningWords(LeftoverWarning warning) => switch (warning) {
   LeftoverWarning.pastItsDate => 'past its date',
 };
 
-/// `1¾ · until Mon`: the portions left and [leftoverWhen].
-String leftoverLine(Leftover left, DateTime today, WeekShape shape) =>
-    '${formatFraction(left.portions)} · ${leftoverWhen(left, today, shape)}';
+/// The days of [left]'s meals still to come: those eaten from the freezer
+/// while it is still in the fridge ([frozen]), or the rest.
+List<DateTime> _aheadDays(
+  Leftover left,
+  DateTime today, {
+  required bool frozen,
+}) => {
+  for (final m in left.meals)
+    if (_daysBetween(today, m.day) >= 0 &&
+        m.portions > 1e-9 &&
+        (m.freezeBy != null) == frozen)
+      DateTime(m.day.year, m.day.month, m.day.day),
+}.toList()..sort();
 
-/// `2`, `2 · 2 planned`: the portions left, and the meals already planned
-/// from it that are still to come.
-String leftoverCount(Leftover left) => left.planned > 1e-9
-    ? '${formatFraction(left.portions)} · '
-          '${formatFraction(left.planned)} planned'
-    : formatFraction(left.portions);
+String? _days(
+  String lead,
+  List<DateTime> days,
+  DateTime today,
+  WeekShape shape,
+) => days.isEmpty
+    ? null
+    : '$lead ${days.map((d) => _dayWord(d, today, shape)).join(' + ')}';
+
+/// `today`, `Mon` within the coming week, `21 Nov` past it.
+String _dayWord(DateTime day, DateTime today, WeekShape shape) {
+  final days = _daysBetween(today, day);
+  if (days <= 0) return 'today';
+  if (days < 7) return shape.labelShort(shape.offsetOf(day));
+  return formatDayMonth(day);
+}
 
 /// Whole days from [from] to [to], by the calendar, not by hours: a clock
 /// change does not move a day.

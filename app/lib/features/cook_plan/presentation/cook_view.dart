@@ -412,6 +412,8 @@ class _SessionTile extends ConsumerWidget {
       shape,
       showWholeBatch: ref.watch(wholeBatchDisplayProvider(key)),
       denomination: denomination,
+      weekStart: ref.watch(viewedWeekStartProvider),
+      today: ref.watch(todayProvider),
     );
     final choice = speech.wholeBatch;
 
@@ -428,6 +430,14 @@ class _SessionTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
+              if (speech.cooked) ...[
+                const Icon(
+                  FLucideIcons.check,
+                  size: 13,
+                  color: AnsiColors.herb,
+                ),
+                const SizedBox(width: 4),
+              ],
               Expanded(
                 child: Text(
                   speech.when,
@@ -435,7 +445,7 @@ class _SessionTile extends ConsumerWidget {
                 ),
               ),
               // The switch states the scale when there is a choice of two.
-              if (choice == null)
+              if (choice == null && speech.scaleShown)
                 Text(
                   speech.scale,
                   style: ansiMono(size: 12, color: AnsiColors.herbDeep),

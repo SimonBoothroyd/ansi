@@ -14,6 +14,7 @@ import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
 import '../../recipes/presentation/recipe_editor_landing.dart';
 import '../domain/cook_plan.dart';
+import '../domain/leftovers.dart';
 
 /// The batch multiplier, e.g. `×1`, `×1.5`, `×0.75`.
 String formatScale(double factor) => '×${formatAmount(factor)}';
@@ -337,33 +338,50 @@ class SessionSpeech {
   const SessionSpeech({
     required this.when,
     required this.scale,
+    required this.scaleShown,
     required this.trackScale,
     required this.covers,
     required this.wholeBatchShown,
+    this.cooked = false,
     this.words = const [],
     this.wholeBatch,
   });
 
   /// The speech for [session] in the week's [shape]. [showWholeBatch] is the
   /// display toggle's state (never persisted); [denomination] is the target's
-  /// stated yield for a component session, null dropping the clause.
+  /// stated yield for a component session, null dropping the clause. With
+  /// the week's [weekStart] and [today], a meal batch is named by its ticks
+  /// ([cookDayOf]): `Cooked Fri` once anybody ticked it, else its next meal.
   factory SessionSpeech.of(
     CookSession session,
     WeekShape shape, {
     bool showWholeBatch = false,
     YieldDenomination? denomination,
+    DateTime? weekStart,
+    DateTime? today,
   }) {
     // A component session is never nudged to a whole batch: batches ARE its
     // denomination (the domain returns null for it).
     final nudge = wholeBatchNudgeFor(session);
     final whole = nudge != null && showWholeBatch;
     final component = session.isComponent;
+    final cooked = !component && wasCooked(session);
+    final byTicks = weekStart == null || today == null || component
+        ? null
+        : cookDayOf(session, weekStart, today);
+    final day = shape.labelShort(byTicks ?? session.cookDay);
+    final rawScale = formatScale(session.scaleFactor);
     return SessionSpeech(
       when: component
           // A component batch has to be ready BY its parents' cook day, not on
           // one of its own.
           ? componentWhenLabel(session.demands.map((d) => d.cookDay), shape)
-          : 'Cook ${shape.labelShort(session.cookDay)}',
+          : cooked && byTicks != null
+          ? 'Cooked $day'
+          : 'Cook $day',
+      cooked: cooked && byTicks != null,
+      // A batch of one recipe goes without saying.
+      scaleShown: component || rawScale != '×1',
       scale: component
           ? componentScaleLabel(session)
           : whole
@@ -406,6 +424,13 @@ class SessionSpeech {
   /// The scale as the reader sees it: `×1.5`, a component's `×0.25 batch`, or
   /// the nudged whole batch while the toggle is on.
   final String scale;
+
+  /// Whether [scale] is printed beside [when]: not for one whole recipe.
+  final bool scaleShown;
+
+  /// Whether [when] names the day it was cooked (`Cooked Fri`), worn with a
+  /// check.
+  final bool cooked;
 
   /// The same scale with no denomination word, for the tick on a seven-day
   /// track where a day is sixty-odd pixels wide.

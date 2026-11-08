@@ -1,5 +1,5 @@
-/// The Leftovers page: its two shelves, a row's moves, *Clear all*, *Add a
-/// leftover*, and the Week's door with its dot.
+/// The Leftovers page: its two shelves, a row's count and moves, *Remove
+/// gone off*, *Add a leftover*, and the Week's door with its dot.
 library;
 
 import 'package:ansi/core/week_shape.dart';
@@ -44,6 +44,8 @@ const _recipes = [
   ),
 ];
 
+/// Good till Sunday; Tuesday's meal is from the freezer, so it goes in by
+/// Sunday.
 final _helper = Leftover(
   batch: 'b1',
   place: LeftoverPlace.fridge,
@@ -52,6 +54,18 @@ final _helper = Leftover(
   since: DateTime(2026, 11, 9),
   goodUntil: DateTime(2026, 11, 15),
   portions: 3,
+  planned: 2,
+  freezable: true,
+  freezeBy: DateTime(2026, 11, 15),
+  meals: [
+    LeftoverMeal(
+      entryId: 'tue',
+      day: DateTime(2026, 11, 17),
+      portions: 2,
+      place: LeftoverPlace.freezer,
+      freezeBy: DateTime(2026, 11, 15),
+    ),
+  ],
 );
 final _curry = Leftover(
   id: 'c',
@@ -77,7 +91,7 @@ final _chili = Leftover(
   recipeId: 'bb',
   title: 'Black Bean Chili',
   since: DateTime(2026, 10, 28),
-  goodUntil: null,
+  goodUntil: DateTime(2027, 1, 26),
   portions: 2,
 );
 final _bolognese = Leftover(
@@ -86,8 +100,25 @@ final _bolognese = Leftover(
   title: 'Lentil Bolognese',
   since: DateTime(2026, 11, 7),
   goodUntil: null,
-  portions: 2,
+  portions: 0,
   planned: 2,
+  meals: [
+    LeftoverMeal(
+      entryId: 'fri',
+      day: DateTime(2026, 11, 13),
+      portions: 2,
+      place: LeftoverPlace.freezer,
+    ),
+  ],
+);
+final _pesto = Leftover(
+  id: 'f3',
+  place: LeftoverPlace.freezer,
+  recipeId: 'bb',
+  title: 'Basil Pesto',
+  since: DateTime(2026, 8, 1),
+  goodUntil: DateTime(2026, 11, 1),
+  portions: 4,
 );
 
 Future<FakeLeftoverRepository> _pump(
@@ -95,7 +126,7 @@ Future<FakeLeftoverRepository> _pump(
   List<Leftover>? rows,
 }) async {
   final repo = FakeLeftoverRepository(
-    rows ?? [_helper, _curry, _soup, _chili, _bolognese],
+    rows ?? [_helper, _curry, _soup, _chili, _bolognese, _pesto],
   );
   await tester.pumpAnsiApp(
     const LeftoversView(),
@@ -115,35 +146,39 @@ Future<FakeLeftoverRepository> _pump(
 }
 
 void main() {
-  testWidgets('two shelves, each row its count and its date', (tester) async {
+  testWidgets('two shelves, each row its count, what is planned from it and '
+      'its date', (tester) async {
     await _pump(tester);
     expect(find.text('FRIDGE'), findsOneWidget);
     expect(find.text('FREEZER'), findsOneWidget);
+    expect(find.byIcon(FLucideIcons.snowflake), findsNWidgets(2));
     expect(find.text('Hamburger Helper'), findsOneWidget);
-    expect(find.text('until Sun'), findsOneWidget);
-    expect(find.text('1¾'), findsOneWidget);
-    expect(find.text('until Mon'), findsOneWidget);
-    expect(find.text('2 · past its date'), findsOneWidget);
-    expect(find.text('2 wk'), findsOneWidget);
-    expect(find.text('2 · 2 planned'), findsOneWidget);
+    expect(find.text('5 left'), findsOneWidget);
+    expect(find.text('till Sun'), findsOneWidget);
+    expect(find.text('freeze by Sun for Tue'), findsOneWidget);
+    expect(find.text('1¾ left'), findsOneWidget);
+    expect(find.text('till Mon'), findsOneWidget);
+    expect(find.text('past its date'), findsWidgets);
+    expect(find.text('till Jan'), findsOneWidget);
+    expect(find.text('for Fri'), findsOneWidget);
     expect(find.text('4 days'), findsOneWidget);
-    // Nothing is open until a row is tapped.
-    expect(find.text('Freeze'), findsNothing);
+    // Freeze on the in-date row that freezes, Froze it on the past one.
+    expect(find.text('Freeze'), findsOneWidget);
+    expect(find.text('Froze it'), findsOneWidget);
+    expect(find.text('Gone'), findsNothing);
   });
 
-  testWidgets('a tapped row opens its stepper, Freeze and Gone', (
-    tester,
-  ) async {
+  testWidgets('a count chip opens its stepper', (tester) async {
     final repo = await _pump(tester);
-    await tester.tap(find.text('Hamburger Helper'));
+    await tester.tap(find.text('5 left'));
     await tester.pumpAndSettle();
-    expect(find.text('Freeze'), findsOneWidget);
+    expect(find.text('5 left'), findsNothing);
 
     await tester.tap(find.byIcon(FLucideIcons.plus).last);
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(FLucideIcons.minus));
     await tester.pumpAndSettle();
-    expect(repo.portionWrites, [(_helper, 4.0), (_helper, 2.0)]);
+    expect(repo.portionWrites, [(_helper, 6.0), (_helper, 4.0)]);
 
     await tester.tap(find.text('Freeze'));
     await tester.pumpAndSettle();
@@ -154,21 +189,30 @@ void main() {
     tester,
   ) async {
     final repo = await _pump(tester);
-    await tester.tap(find.text('Chickpea Curry'));
+    await tester.tap(find.text('1¾ left'));
     await tester.pumpAndSettle();
-    // Not freezable, so it cannot be moved there.
-    expect(find.text('Freeze'), findsNothing);
     await tester.tap(find.byIcon(FLucideIcons.minus));
     await tester.tap(find.byIcon(FLucideIcons.plus).last);
     await tester.pumpAndSettle();
     expect(repo.portionWrites, [(_curry, 1.0), (_curry, 2.0)]);
+  });
 
-    // The open row's, above the past-its-date soup's.
-    await tester.tap(find.text('Gone').first);
+  testWidgets('the stepper counts down to nothing', (tester) async {
+    final one = Leftover(
+      id: 'o',
+      place: LeftoverPlace.fridge,
+      recipeId: 'cc',
+      title: 'Chickpea Curry',
+      since: DateTime(2026, 11, 10),
+      goodUntil: DateTime(2026, 11, 16),
+      portions: 1,
+    );
+    final repo = await _pump(tester, rows: [one]);
+    await tester.tap(find.text('1 left'));
     await tester.pumpAndSettle();
-    expect(repo.gone, [
-      [_curry],
-    ]);
+    await tester.tap(find.byIcon(FLucideIcons.minus));
+    await tester.pumpAndSettle();
+    expect(repo.portionWrites, [(one, 0.0)]);
   });
 
   testWidgets('past its date: Froze it moves it, still dated from its cook '
@@ -179,20 +223,19 @@ void main() {
     expect(repo.freezes, [_soup]);
   });
 
-  testWidgets('Clear all marks every past-its-date fridge row gone', (
-    tester,
-  ) async {
+  testWidgets('Remove gone off clears every row past its date, from both '
+      'shelves', (tester) async {
     final repo = await _pump(tester);
-    await tester.tap(find.text('Clear all'));
+    await tester.tap(find.text('Remove gone off'));
     await tester.pumpAndSettle();
     expect(repo.gone, [
-      [_soup],
+      [_soup, _pesto],
     ]);
   });
 
-  testWidgets('no row past its date, no Clear all', (tester) async {
+  testWidgets('no row past its date, no Remove gone off', (tester) async {
     await _pump(tester, rows: [_helper, _chili]);
-    expect(find.text('Clear all'), findsNothing);
+    expect(find.text('Remove gone off'), findsNothing);
     expect(find.text('Froze it'), findsNothing);
   });
 

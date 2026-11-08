@@ -7,7 +7,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
-import '../../../core/units/portions.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -16,11 +15,10 @@ import '../domain/leftovers.dart';
 import 'leftover_format.dart';
 import 'leftovers_view_models.dart';
 
-/// `1 portion left · until Fri`, `2 portions left · past its date`, `2
-/// portions frozen`: the batch's row in the fridge or the freezer; or, until
-/// its fridge date, `freeze 2 by Tue for Thu` for its later meals reached from
-/// the freezer. Nothing while it has no row with portions left: not cooked,
-/// nothing left, or said to be gone.
+/// `2 left · till Mon`, `1 left · for Sun`, `2 left · freeze by Mon for Wed`,
+/// `2 left · past its date`: what is in the batch's box and what it is for.
+/// Before anybody ticked it, `freeze 2 by Tue for Thu` for its later meals
+/// reached from the freezer. Nothing while it has nothing left or to come.
 class BatchLeftoverLine extends ConsumerWidget {
   const BatchLeftoverLine({required this.session, super.key});
 
@@ -32,35 +30,47 @@ class BatchLeftoverLine extends ConsumerWidget {
     if (key == null) return const SizedBox.shrink();
     final today = ref.watch(todayProvider);
     final shape = ref.watch(weekShapeProvider);
-    final left =
-        (ref.watch(fridgeAndFreezerProvider).asData?.value ??
-                const <Leftover>[])
-            .where((l) => l.batch == key && l.isCookedBy(today))
-            .firstOrNull;
-    // Its later meals from the freezer, until the freeze is due.
     final share = freezeShareOf(
       session,
       ref.watch(viewedWeekStartProvider),
       today,
     );
-    final String line;
-    final Color ink;
-    if (share != null && !today.isAfter(share.freezeBy)) {
-      line = freezeShareLine(share, today, shape);
-      ink = AnsiColors.chillInk;
-    } else if (left == null || left.portions <= 1e-9) {
-      return const SizedBox.shrink();
-    } else if (left.place == LeftoverPlace.freezer) {
-      line = '${formatPortions(left.portions)} frozen';
-      ink = AnsiColors.chillInk;
+    final shareDue = share != null && !today.isAfter(share.freezeBy);
+    final left = wasCooked(session)
+        ? (ref.watch(fridgeAndFreezerProvider).asData?.value ??
+                  const <Leftover>[])
+              .where((l) => l.batch == key && l.isCookedBy(today))
+              .firstOrNull
+        : null;
+
+    final List<(String, Color)> parts;
+    if (left == null) {
+      // Not cooked yet: what it will put in the freezer.
+      if (!shareDue || wasCooked(session)) return const SizedBox.shrink();
+      parts = [(freezeShareLine(share, today, shape), AnsiColors.chillInk)];
     } else {
-      line =
-          '${formatPortions(left.portions)} left · '
-          '${leftoverWhen(left, today, shape)}';
-      ink = left.pastItsDate(today)
-          ? AnsiColors.cautionInk
-          : AnsiColors.herbDeep;
+      final past = left.pastItsDate(today);
+      final frozen = left.place == LeftoverPlace.freezer;
+      final forDays = leftoverFor(left, today, shape);
+      final freeze = shareDue
+          ? freezeShareFor(share, today, shape)
+          : leftoverFreezeFor(left, today, shape);
+      parts = [
+        (leftCount(left.inBox), AnsiColors.herbDeep),
+        if (forDays != null) (forDays, AnsiColors.herbDeep),
+        if (freeze != null) (freeze, AnsiColors.chillInk),
+        if (forDays == null && freeze == null)
+          (
+            leftoverWhen(left, today, shape),
+            past
+                ? AnsiColors.cautionInk
+                : frozen
+                ? AnsiColors.chillInk
+                : AnsiColors.herbDeep,
+          ),
+      ];
     }
+    final line = parts.map((p) => p.$1).join(' · ');
     return Semantics(
       button: true,
       label: '$line, open Leftovers',
@@ -74,7 +84,32 @@ class BatchLeftoverLine extends ConsumerWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(line, style: ansiMono(size: 11, color: ink)),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        for (final (i, (words, ink)) in parts.indexed) ...[
+                          if (i > 0)
+                            TextSpan(
+                              text: ' · ',
+                              style: ansiMono(
+                                size: 11,
+                                color: AnsiColors.muted,
+                              ),
+                            ),
+                          TextSpan(
+                            text: words,
+                            style: ansiMono(
+                              size: 11,
+                              color: ink,
+                              weight: left != null && i == 0
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
                 Text('›', style: ansiSans(size: 13, color: AnsiColors.muted)),
               ],

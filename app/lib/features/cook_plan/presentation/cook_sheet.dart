@@ -230,6 +230,8 @@ class _MealRow extends ConsumerWidget {
           showWholeBatch: ref.watch(
             wholeBatchDisplayProvider(cookSessionKey(session)),
           ),
+          weekStart: ref.watch(viewedWeekStartProvider),
+          today: ref.watch(todayProvider),
         ),
     ];
     // The title carries the week it is cooking for, so the recipe page can
@@ -437,10 +439,22 @@ class _Says extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          // The switch states the scale when there is a choice of two.
-          choice == null ? '${speech.when} ${speech.scale}' : speech.when,
-          style: ansiMono(size: 10, color: AnsiColors.herbDeep),
+        Row(
+          children: [
+            if (speech.cooked) ...[
+              const Icon(FLucideIcons.check, size: 11, color: AnsiColors.herb),
+              const SizedBox(width: 4),
+            ],
+            Expanded(
+              child: Text(
+                // The switch states the scale when there is a choice of two.
+                choice == null && speech.scaleShown
+                    ? '${speech.when} ${speech.scale}'
+                    : speech.when,
+                style: ansiMono(size: 10, color: AnsiColors.herbDeep),
+              ),
+            ),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.only(top: 5),

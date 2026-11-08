@@ -294,11 +294,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Set the yield'), findsOneWidget);
-      // The refusal this whole state exists to avoid: the only scale on the
-      // screen is the sliders' own ×1 — the gap contributes none.
-      expect(find.textContaining('×'), findsOneWidget);
-      expect(find.text('×1'), findsOneWidget);
-      expect(find.text('×1 batch'), findsNothing);
+      // The refusal this whole state exists to avoid: no scale on the
+      // screen. The sliders' own ×1 goes without saying, and the gap
+      // contributes none.
+      expect(find.textContaining('×'), findsNothing);
     });
 
     testWidgets('each gap button opens the editor its fix lives in, landed on '
@@ -702,30 +701,67 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('its card says what is left and until when, and asks nothing', (
+    testWidgets('its card says what is left and till when, and asks nothing', (
       tester,
     ) async {
       await pump(tester, [left()]);
       final day = WeekShape.monday.labelShort(
         WeekShape.monday.offsetOf(today.add(const Duration(days: 2))),
       );
-      expect(find.text('1 portion left · until $day'), findsOneWidget);
+      expect(find.text('1 left · till $day'), findsOneWidget);
       expect(find.text('Binned'), findsNothing);
       expect(find.text('We ate it'), findsNothing);
+    });
+
+    testWidgets('a cooked batch is checked, and its ×1 goes without saying', (
+      tester,
+    ) async {
+      await pump(tester, [left()]);
+      expect(find.textContaining('Cooked '), findsOneWidget);
+      expect(find.byIcon(FLucideIcons.check), findsOneWidget);
+      expect(find.text('×1'), findsNothing);
+    });
+
+    testWidgets('what is planned from it names its days', (tester) async {
+      final sunday = today.add(const Duration(days: 1));
+      await pump(tester, [
+        Leftover(
+          batch: 'mon',
+          place: LeftoverPlace.fridge,
+          recipeId: 'curry',
+          title: 'Curry',
+          since: today.subtract(const Duration(days: 1)),
+          goodUntil: today.add(const Duration(days: 3)),
+          portions: 0,
+          planned: 1,
+          meals: [
+            LeftoverMeal(
+              entryId: 'x',
+              day: sunday,
+              portions: 1,
+              place: LeftoverPlace.fridge,
+            ),
+          ],
+        ),
+      ]);
+      final day = WeekShape.monday.labelShort(
+        WeekShape.monday.offsetOf(sunday),
+      );
+      expect(find.text('1 left · for $day'), findsOneWidget);
     });
 
     testWidgets('past its date it says so, and still asks nothing', (
       tester,
     ) async {
       await pump(tester, [left(untilInDays: -1)]);
-      expect(find.text('1 portion left · past its date'), findsOneWidget);
+      expect(find.text('1 left · past its date'), findsOneWidget);
       expect(find.text('Binned'), findsNothing);
       expect(find.text('FROM LAST WEEK'), findsNothing);
     });
 
-    testWidgets('frozen, it says so', (tester) async {
+    testWidgets('frozen, it says till when', (tester) async {
       await pump(tester, [left(place: LeftoverPlace.freezer)]);
-      expect(find.text('1 portion frozen'), findsOneWidget);
+      expect(find.textContaining('1 left · till '), findsOneWidget);
     });
 
     testWidgets('a batch with no row says nothing', (tester) async {
@@ -740,7 +776,7 @@ void main() {
       addTearDown(tester.view.reset);
       await pump(tester, [left(untilInDays: -1)]);
       expect(find.byType(CookSheet), findsOneWidget);
-      expect(find.text('1 portion left · past its date'), findsOneWidget);
+      expect(find.text('1 left · past its date'), findsOneWidget);
     });
 
     testWidgets('the line opens Leftovers', (tester) async {
@@ -757,7 +793,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('1 portion left'));
+      await tester.tap(find.textContaining('1 left'));
       await tester.pumpAndSettle();
       expect(router.state.uri.path, '/leftovers');
     });
