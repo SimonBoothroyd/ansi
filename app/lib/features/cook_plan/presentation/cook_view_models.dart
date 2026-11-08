@@ -8,7 +8,6 @@ library;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/units/portions.dart';
-import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/cook_plan_providers.dart';
 import '../domain/cook_plan.dart';
@@ -53,27 +52,6 @@ Stream<List<BatchLeftover>> weekBatchLeftovers(Ref ref, DateTime weekStart) =>
     ref
         .watch(cookPlanRepositoryProvider)
         .watchBatchLeftovers(weekStart, today: ref.watch(todayProvider));
-
-/// The leftovers a meal on [day] can be planned from, soonest use-by first:
-/// cooked this week or last, still good on [day], and [day] not behind us.
-/// Empty while either week loads.
-@riverpod
-List<BatchLeftover> leftoversGoodOn(Ref ref, DateTime day) {
-  final today = ref.watch(todayProvider);
-  if (DateTime(day.year, day.month, day.day).isBefore(today)) return const [];
-  final shape = ref.watch(weekShapeProvider);
-  final week = shape.weekStartOf(day);
-  final before = shape.weekStartOf(
-    DateTime(week.year, week.month, week.day - 7),
-  );
-  return [
-    for (final w in [before, week])
-      for (final left
-          in ref.watch(weekBatchLeftoversProvider(w)).asData?.value ??
-              const <BatchLeftover>[])
-        if (left.isGoodOn(day) && !left.isDueOn(today)) left,
-  ]..sort((a, b) => a.useBy.compareTo(b.useBy));
-}
 
 /// The viewed week's leftovers in one line for the Week band — `1 portion
 /// binned · 2 left`. Null when nothing is left over.

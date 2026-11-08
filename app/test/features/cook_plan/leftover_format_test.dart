@@ -61,7 +61,7 @@ void main() {
     );
     expect(
       leftoverWhen(
-        _row(place: LeftoverPlace.freezer, until: DateTime(2026, 11, 1)),
+        _row(place: LeftoverPlace.freezer, until: DateTime(2026, 11, 2)),
         _today,
         shape,
       ),

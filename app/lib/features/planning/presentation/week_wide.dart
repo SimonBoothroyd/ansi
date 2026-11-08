@@ -521,9 +521,9 @@ class _PaneMeal extends ConsumerWidget {
                 child: OutMealLine(entry: entry, size: 11),
               ),
             if (leftover)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6),
-                child: LeftoverMealLine(size: 11),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: LeftoverMealTag(entry: entry, size: 10),
               ),
             HadInsteadLine(entry: entry, size: 11),
             // Read through the day total's own function so the parts match the

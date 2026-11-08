@@ -10,12 +10,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/portions.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/ansi_chip.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
-import '../../planning/presentation/use_up_block.dart'
-    show goodUntil, leftoverRowLine;
 import '../../planning/presentation/week_view_models.dart';
 import '../data/cook_plan_providers.dart';
 import '../domain/cook_plan.dart';
@@ -224,3 +223,12 @@ String leftoverAnswerLine(LeftoverAnswer a) {
   }
   return [for (final (n, w) in parts) '${formatFraction(n)} $w'].join(' · ');
 }
+
+/// `1¾ portions · good until Mon`: what is left of a batch and the last day it
+/// is good, by the household's own day names.
+String leftoverRowLine(BatchLeftover left, WeekShape shape) =>
+    '${formatPortions(left.portions)} · ${goodUntil(left, shape)}';
+
+/// `good until Mon`: a leftover's use-by by the household's own day names.
+String goodUntil(BatchLeftover left, WeekShape shape) =>
+    'good until ${shape.labelShort(shape.offsetOf(left.useBy))}';

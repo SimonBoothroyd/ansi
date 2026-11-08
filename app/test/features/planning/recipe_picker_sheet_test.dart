@@ -5,6 +5,8 @@
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
+import 'package:ansi/features/account/data/household_providers.dart';
 import 'package:ansi/features/books/data/book_providers.dart';
 import 'package:ansi/features/books/domain/book.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
@@ -31,6 +33,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../helpers/fake_book_repository.dart';
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_leftover_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/forui_semantics.dart';
@@ -113,22 +116,24 @@ class _FakeVocab extends ReadOnlyIngredientRepo {
 }
 
 /// A host whose button opens the picker sheet for Wednesday dinner. With
-/// [weekStart] it plans into that week, where [leftovers] (per week start) and
-/// a clock at [now] decide what *Use up* offers.
+/// [weekStart] it plans into that week, where the fridge and freezer
+/// [leftovers] and a clock at [now] decide what *Use up* offers.
 Widget _host({
   List<RecipeSummary> recipes = const [_curry, _salad],
   void Function(PickedMeal?)? onPicked,
   bool instead = false,
   DateTime? weekStart,
-  Map<DateTime, List<BatchLeftover>> leftovers = const {},
+  List<Leftover> leftovers = const [],
   DateTime? now,
   UseUpFacts spare = (spare: const [], recipes: const []),
 }) => ProviderScope(
   overrides: [
     useUpRepositoryProvider.overrideWithValue(_FakeUseUp(spare)),
-    cookPlanRepositoryProvider.overrideWithValue(
-      FakeCookPlanRepository()..batchLeftovers = leftovers,
+    cookPlanRepositoryProvider.overrideWithValue(FakeCookPlanRepository()),
+    leftoverRepositoryProvider.overrideWithValue(
+      FakeLeftoverRepository(leftovers),
     ),
+    weekShapeProvider.overrideWithValue(WeekShape.monday),
     if (now != null) clockProvider.overrideWithValue(() => now),
     recipeRepositoryProvider.overrideWithValue(
       FakeRecipeRepository(summaries: recipes),
@@ -464,24 +469,43 @@ void main() {
   });
 
   group('Use up', () {
-    // Planning Wednesday 4 November on Sunday 1 November: last week cooked a
-    // curry good until that Wednesday, and a dal only good until Monday.
-    final lastWeek = DateTime.utc(2026, 10, 26);
-    final curry = BatchLeftover(
-      key: 'e-curry',
+    // Planning Wednesday 4 November on Sunday 1 November: the fridge holds a
+    // curry good until that Wednesday and a dal only good until Monday; the
+    // freezer a chili and a soup in the household's own words.
+    final curry = Leftover(
+      batch: 'e-curry',
+      place: LeftoverPlace.fridge,
       recipeId: 'r1',
       title: 'Weeknight Chicken Curry',
-      cookDate: DateTime(2026, 10, 29),
-      useBy: DateTime(2026, 11, 4),
+      since: DateTime(2026, 10, 29),
+      goodUntil: DateTime(2026, 11, 4),
       portions: 1.75,
     );
-    final dal = BatchLeftover(
-      key: 'e-dal',
+    final dal = Leftover(
+      batch: 'e-dal',
+      place: LeftoverPlace.fridge,
       recipeId: 'r9',
       title: 'Red Lentil Dal',
-      cookDate: DateTime(2026, 10, 27),
-      useBy: DateTime(2026, 11, 2),
+      since: DateTime(2026, 10, 27),
+      goodUntil: DateTime(2026, 11, 2),
       portions: 1,
+    );
+    final chili = Leftover(
+      id: 'f1',
+      place: LeftoverPlace.freezer,
+      recipeId: 'r2',
+      title: 'Black Bean Chili',
+      since: DateTime(2026, 10, 18),
+      goodUntil: null,
+      portions: 2,
+    );
+    final soup = Leftover(
+      id: 'f2',
+      place: LeftoverPlace.freezer,
+      title: 'Soup from Mum',
+      since: DateTime(2026, 10, 20),
+      goodUntil: null,
+      portions: 2,
     );
 
     Widget host({void Function(PickedMeal?)? onPicked, bool instead = false}) =>
@@ -489,14 +513,12 @@ void main() {
           onPicked: onPicked,
           instead: instead,
           weekStart: DateTime.utc(2026, 11, 2),
-          leftovers: {
-            lastWeek: [curry, dal],
-          },
+          leftovers: [curry, dal, chili, soup],
           now: DateTime(2026, 11, 1, 10),
         );
 
-    testWidgets('leads with the leftovers still good for the day, and picks '
-        'one as a leftover', (tester) async {
+    testWidgets('lists the fridge rows good for the day, then the freezer, '
+        'and picks either as a leftover', (tester) async {
       filterForuiSemanticsAssertions();
       PickedMeal? picked;
       await tester.pumpWidget(host(onPicked: (p) => picked = p));
@@ -504,16 +526,32 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Use up'), findsOneWidget);
-      expect(find.text('1¾ portions · good until Wed'), findsOneWidget);
+      expect(find.text('FRIDGE'), findsOneWidget);
+      expect(find.text('1¾ · until Wed'), findsOneWidget);
       // Gone by Wednesday: not offered.
       expect(find.text('Red Lentil Dal'), findsNothing);
+      expect(find.text('FREEZER'), findsOneWidget);
+      expect(find.text('frozen'), findsOneWidget);
+      expect(find.text('2 · 2 wk'), findsOneWidget);
+      // Words name no recipe, so no meal can be planned from them.
+      expect(find.text('Soup from Mum'), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('FRIDGE')).dy,
+        lessThan(tester.getTopLeft(find.text('FREEZER')).dy),
+      );
 
-      await tester.tap(find.text('1¾ portions · good until Wed'));
+      await tester.tap(find.text('1¾ · until Wed'));
       await tester.pumpAndSettle();
       expect(picked, isA<PickedLeftover>());
       final left = picked! as PickedLeftover;
-      expect(left.leftover.key, 'e-curry');
+      expect(left.leftover.batch, 'e-curry');
       expect(left.recipe.id, 'r1');
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2 · 2 wk'));
+      await tester.pumpAndSettle();
+      expect((picked! as PickedLeftover).leftover.id, 'f1');
     });
 
     testWidgets('is never offered for what was had instead', (tester) async {

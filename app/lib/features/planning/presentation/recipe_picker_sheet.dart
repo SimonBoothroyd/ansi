@@ -30,7 +30,7 @@ import '../../books/domain/book.dart';
 import '../../books/domain/library_search.dart';
 import '../../books/presentation/book_view_models.dart';
 import '../../cook_plan/domain/leftovers.dart';
-import '../../cook_plan/presentation/cook_view_models.dart'
+import '../../cook_plan/presentation/leftovers_view_models.dart'
     show leftoversGoodOnProvider;
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_picker.dart'
@@ -64,12 +64,12 @@ final class PickedIngredientMeal extends PickedMeal {
   final Ingredient ingredient;
 }
 
-/// A cooked batch's leftover, eaten rather than cooked: offered first, in *Use
+/// A fridge or freezer row, eaten rather than cooked: offered first, in *Use
 /// up*, while it is good for the day.
 final class PickedLeftover extends PickedMeal {
   const PickedLeftover(this.leftover, this.recipe);
 
-  final BatchLeftover leftover;
+  final Leftover leftover;
 
   /// The recipe it is a batch of, for the confirm sheet's card.
   final RecipeSummary recipe;
@@ -92,8 +92,8 @@ final class PickedMealOut extends PickedMeal {
 /// typed can always be noted as it is, since a lunch out rarely matches
 /// nothing in the whole vocabulary, and there is no new recipe to build.
 ///
-/// With [weekStart] — planning, not *Had instead* — the leftovers still good
-/// on that day lead the list, in *Use up*.
+/// With [weekStart] — planning, not *Had instead* — the fridge rows still good
+/// on that day and the freezer rows lead the list, in *Use up*.
 Future<PickedMeal?> showRecipePickerSheet(
   BuildContext context, {
   required int dayOfWeek,
@@ -174,10 +174,10 @@ class _RecipePickerSheet extends HookConsumerWidget {
       }
     }
 
-    // What last week left that this day can still eat.
+    // What the fridge and the freezer hold that this day can still eat.
     final start = weekStart;
     final leftovers = start == null || instead
-        ? const <BatchLeftover>[]
+        ? const <Leftover>[]
         : ref.watch(
             leftoversGoodOnProvider(
               DateTime(start.year, start.month, start.day + dayOfWeek),
@@ -312,7 +312,8 @@ class _RecipePickerSheet extends HookConsumerWidget {
                     real.isNotEmpty
                         ? real.first
                         : RecipeSummary(
-                            id: left.recipeId,
+                            // Use up offers only a recipe's row.
+                            id: left.recipeId!,
                             title: left.title,
                             servingsBase: 1,
                           ),

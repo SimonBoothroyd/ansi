@@ -1,7 +1,8 @@
-/// *Use up*: what last week left, offered first in the planning picker (plan
-/// 0059). Cooked leftovers still good for the day, each with its portions and
-/// its use-by — a tap plans a meal from it, not cooked again and not bought —
-/// then the recipes that would use the most of last week's spare fresh food.
+/// *Use up*: what is already cooked or bought, offered first in the planning
+/// picker. The fridge rows still good for the day, then the freezer rows, each
+/// with its portions and its date (a tap plans a meal from it, not cooked
+/// again and not bought), then the recipes that would use the most of last
+/// week's spare fresh food.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -12,20 +13,12 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
 import '../../../core/units/portions.dart';
 import '../../../core/units/units.dart';
-import '../../../core/week_shape.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/leftovers.dart';
+import '../../cook_plan/presentation/leftover_format.dart';
 import '../domain/use_up.dart';
-
-/// `1¾ portions · good until Mon`: what is left of a batch and the last day it
-/// is good, by the household's own day names.
-String leftoverRowLine(BatchLeftover left, WeekShape shape) =>
-    '${formatPortions(left.portions)} · ${goodUntil(left, shape)}';
-
-/// `good until Mon`: a leftover's use-by by the household's own day names.
-String goodUntil(BatchLeftover left, WeekShape shape) =>
-    'good until ${shape.labelShort(shape.offsetOf(left.useBy))}';
+import 'week_view_models.dart';
 
 /// `300 g spinach`, `½ onion`: one spare ingredient a suggestion uses.
 String spareUseLabel(SpareUse use) =>
@@ -44,9 +37,9 @@ String spareAmount(double amount, Unit unit, double? pieceBasisAmount) {
   return '${formatAmountIn(amount, unit)} ${unit.label}';
 }
 
-/// The *Use up* block at the head of the planning picker: cooked leftovers
-/// good for the day, then the recipes that would use the most of last week's
-/// spare food, with *what's left ›* opening the reasoning.
+/// The *Use up* block at the head of the planning picker: the fridge rows good
+/// for the day, the freezer rows, then the recipes that would use the most of
+/// last week's spare food, with *what's left ›* opening the reasoning.
 class UseUpBlock extends ConsumerWidget {
   const UseUpBlock({
     required this.leftovers,
@@ -57,10 +50,10 @@ class UseUpBlock extends ConsumerWidget {
     super.key,
   });
 
-  /// Leftovers good for the day, soonest use-by first.
-  final List<BatchLeftover> leftovers;
+  /// The rows good for the day, fridge first.
+  final List<Leftover> leftovers;
 
-  final ValueChanged<BatchLeftover> onPick;
+  final ValueChanged<Leftover> onPick;
 
   /// The recipes offered to use up last week's spare food, best first.
   final List<UseUpSuggestion> suggestions;
@@ -73,11 +66,36 @@ class UseUpBlock extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final shape = ref.watch(weekShapeProvider);
+    final today = ref.watch(todayProvider);
     final label = ansiMono(
       size: 9.5,
       color: AnsiColors.muted,
       letterSpacing: 1,
     );
+    final fridge = [
+      for (final l in leftovers)
+        if (l.place == LeftoverPlace.fridge) l,
+    ];
+    final freezer = [
+      for (final l in leftovers)
+        if (l.place == LeftoverPlace.freezer) l,
+    ];
+    List<Widget> shelf(String name, Color ink, List<Leftover> rows) => [
+      if (rows.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(name, style: label.copyWith(color: ink)),
+        ),
+      for (final left in rows)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: _LeftoverRow(
+            left: left,
+            line: leftoverLine(left, today, shape),
+            onTap: () => onPick(left),
+          ),
+        ),
+    ];
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
       decoration: BoxDecoration(
@@ -96,20 +114,10 @@ class UseUpBlock extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          if (leftovers.isNotEmpty && suggestions.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text('LEFTOVERS', style: label),
-            ),
-          for (final left in leftovers)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _LeftoverRow(
-                left: left,
-                line: leftoverRowLine(left, shape),
-                onTap: () => onPick(left),
-              ),
-            ),
+          ...shelf('FRIDGE', AnsiColors.muted, fridge),
+          if (fridge.isNotEmpty && freezer.isNotEmpty)
+            const SizedBox(height: 4),
+          ...shelf('FREEZER', AnsiColors.chillInk, freezer),
           if (suggestions.isNotEmpty) ...[
             Padding(
               padding: EdgeInsets.only(
@@ -219,59 +227,69 @@ class _LeftoverRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final BatchLeftover left;
+  final Leftover left;
   final String line;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: '${left.title}, leftover, $line',
-    child: ExcludeSemantics(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          decoration: BoxDecoration(
-            color: AnsiColors.surface,
-            border: Border.all(color: AnsiColors.line),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(left.title, style: ansiSerif(size: AnsiType.row)),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const LeftoverPill(),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            line,
-                            overflow: TextOverflow.ellipsis,
-                            style: ansiMono(
-                              size: 10,
-                              color: AnsiColors.herbDeep,
+  Widget build(BuildContext context) {
+    final frozen = left.place == LeftoverPlace.freezer;
+    return Semantics(
+      button: true,
+      label: '${left.title}, ${frozen ? 'frozen' : 'leftover'}, $line',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: AnsiColors.surface,
+              border: Border.all(
+                color: frozen ? AnsiColors.chillLine : AnsiColors.line,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(left.title, style: ansiSerif(size: AnsiType.row)),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          LeftoverTag(
+                            place: left.place,
+                            label: frozen ? 'frozen' : 'leftover',
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              line,
+                              overflow: TextOverflow.ellipsis,
+                              style: ansiMono(
+                                size: 10,
+                                color: frozen
+                                    ? AnsiColors.chillInk
+                                    : AnsiColors.herbDeep,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// What the confirm sheet says under a leftover's portions: what this meal
@@ -298,7 +316,7 @@ class _LeftoverRow extends StatelessWidget {
 class LeftoverMealCard extends ConsumerWidget {
   const LeftoverMealCard({required this.leftover, super.key});
 
-  final BatchLeftover leftover;
+  final Leftover leftover;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Container(
@@ -315,11 +333,15 @@ class LeftoverMealCard extends ConsumerWidget {
         const SizedBox(height: 4),
         Row(
           children: [
-            const LeftoverPill(),
+            LeftoverTag(place: leftover.place),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                leftoverRowLine(leftover, ref.watch(weekShapeProvider)),
+                leftoverLine(
+                  leftover,
+                  ref.watch(todayProvider),
+                  ref.watch(weekShapeProvider),
+                ),
                 overflow: TextOverflow.ellipsis,
                 style: ansiMono(size: 10, color: AnsiColors.muted),
               ),
@@ -340,21 +362,39 @@ class LeftoverMealCard extends ConsumerWidget {
   );
 }
 
-/// The `leftover` tag a meal from a batch wears in the picker and on the
-/// confirm sheet.
-class LeftoverPill extends StatelessWidget {
-  const LeftoverPill({super.key});
+/// The tag a meal from a leftover wears in the picker, on the confirm sheet
+/// and on its Week row: the fridge's green, or the freezer's blue.
+class LeftoverTag extends StatelessWidget {
+  const LeftoverTag({
+    required this.place,
+    this.label = 'leftover',
+    this.size = 9.5,
+    super.key,
+  });
+
+  final LeftoverPlace place;
+
+  /// `leftover`, or `frozen` where the picker lists the freezer.
+  final String label;
+
+  final double size;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(
-      color: AnsiColors.herbSoft,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(
-      'leftover',
-      style: ansiMono(size: 9.5, color: AnsiColors.herbDeep),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final frozen = place == LeftoverPlace.freezer;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: frozen ? AnsiColors.chill : AnsiColors.herbSoft,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: ansiMono(
+          size: size,
+          color: frozen ? AnsiColors.chillInk : AnsiColors.herbDeep,
+        ),
+      ),
+    );
+  }
 }

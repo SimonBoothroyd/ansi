@@ -206,9 +206,6 @@ List<CookSession> weekBatchesOf(
 /// the confirm card.
 const kNotCookedNotBought = 'not cooked, not bought';
 
-/// A meal eaten from a cooked batch's leftover, on its Week row.
-const kLeftoverMealLine = 'leftover · not cooked again';
-
 /// A meal out's second line: `620 kcal · 42P — as stated` (per portion, as
 /// typed), or `macros not stated`.
 String outMacroLine(PlanEntry entry) {

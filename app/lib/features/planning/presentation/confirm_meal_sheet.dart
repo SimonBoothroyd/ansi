@@ -16,6 +16,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
+import '../../../core/units/portions.dart';
 import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_micro_label.dart';
@@ -25,6 +26,7 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/domain/leftovers.dart';
+import '../../cook_plan/presentation/leftovers_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
 import '../../ingredients/presentation/ingredient_view_models.dart'
@@ -66,13 +68,13 @@ final class SnackMeal extends MealTarget {
   final Measure? measure;
 }
 
-/// A meal eaten from a cooked batch's leftover: a recipe meal that
-/// is not cooked or bought, and may not take more than is left.
+/// A meal eaten from a fridge or freezer row: a recipe meal that is not
+/// cooked or bought, and may not take more than is left.
 final class LeftoverMeal extends MealTarget {
   const LeftoverMeal({required this.recipe, required this.leftover});
 
   final RecipeSummary recipe;
-  final BatchLeftover leftover;
+  final Leftover leftover;
 }
 
 /// A meal eaten out: the typed words. Its figures are asked for on this sheet,
@@ -163,11 +165,37 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // A meal out's optional figures, as typed. Blank places the meal uncounted.
     final stated = useState(const MacroDraft());
 
+    // A dish in the freezer is offered from there first: Frozen or Cook fresh.
+    final cookFresh = useState(false);
+
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
+    // Everyone eats until told otherwise. The effect runs inside this build,
+    // so it comes before anything below reads the eaters.
+    useEffect(() {
+      members.whenData((list) {
+        if (eaters.value.isEmpty) {
+          eaters.value = {for (final m in list) m.id};
+        }
+      });
+      return null;
+    }, [members]);
 
     // The batch strip is a recipe fact; a snack is not cooked, so it has none.
-    final recipe = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
+    final picked = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
+    // The oldest freezer row of the dish picked, if it has one.
+    final frozen = picked == null
+        ? null
+        : (ref.watch(fridgeAndFreezerProvider).asData?.value ??
+                  const <Leftover>[])
+              .where(
+                (l) =>
+                    l.place == LeftoverPlace.freezer && l.recipeId == picked.id,
+              )
+              .firstOrNull;
+    final fromFreezer = cookFresh.value ? null : frozen;
+    // Eaten from the freezer, it is not cooked: no batch strip.
+    final recipe = fromFreezer == null ? picked : null;
     final plannedDays = recipe == null
         ? null
         : ref
@@ -191,7 +219,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // A leftover says what this meal leaves of it, at the meal's own demand.
     final leftover = target is LeftoverMeal
         ? (target as LeftoverMeal).leftover
-        : null;
+        : fromFreezer;
     final after = leftover == null
         ? null
         : leftoverAfterLine(
@@ -203,15 +231,6 @@ class _ConfirmMealSheet extends HookConsumerWidget {
                     m.id: m,
                 }),
           );
-
-    useEffect(() {
-      members.whenData((list) {
-        if (eaters.value.isEmpty) {
-          eaters.value = {for (final m in list) m.id};
-        }
-      });
-      return null;
-    }, [members]);
 
     Future<void> add() async {
       // The sheet closes only on a write that landed; a throw must not leave it
@@ -228,7 +247,10 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
             portions: portionsOverride.value,
+            fromLeftover: fromFreezer?.id,
           ),
+          // A stored row is named by its id; a batch nobody has said anything
+          // about yet by its key, as a meal from one always was.
           LeftoverMeal(:final recipe, :final leftover) => repo.addEntry(
             weekStart: weekStart,
             dayOfWeek: dayOfWeek,
@@ -236,7 +258,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
             portions: portionsOverride.value,
-            leftoverOf: leftover.key,
+            leftoverOf: leftover.isStored ? null : leftover.batch,
+            fromLeftover: leftover.id,
           ),
           SnackMeal(:final ingredient, :final quantity, :final unit) =>
             repo.addIngredientEntry(
@@ -283,6 +306,26 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           final SnackMeal snack => MealSnackCard(snack: snack),
           OutMeal(:final label) => MealOutCard(label: label),
         },
+        if (frozen != null) ...[
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _Choice(
+                label: 'Frozen',
+                detail: '${formatFraction(frozen.portions)} left',
+                selected: !cookFresh.value,
+                frozen: true,
+                onTap: () => cookFresh.value = false,
+              ),
+              const SizedBox(width: 8),
+              _Choice(
+                label: 'Cook fresh',
+                selected: cookFresh.value,
+                onTap: () => cookFresh.value = true,
+              ),
+            ],
+          ),
+        ],
         if (hint != null) ...[
           const SizedBox(height: 12),
           MealBatchStrip(
@@ -347,6 +390,74 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           child: Text('Add to ${shape.labelFull(dayOfWeek)}'),
         ),
       ],
+    );
+  }
+}
+
+/// One of the two answers a dish in the freezer is asked: **Frozen** (blue,
+/// with what is left) or **Cook fresh**.
+class _Choice extends StatelessWidget {
+  const _Choice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.detail,
+    this.frozen = false,
+  });
+
+  final String label;
+  final String? detail;
+  final bool selected;
+  final bool frozen;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = frozen ? AnsiColors.chillInk : AnsiColors.herbDeep;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: detail == null ? label : '$label, $detail',
+        child: ExcludeSemantics(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 56),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: selected
+                    ? (frozen ? AnsiColors.chill : AnsiColors.herbSoft)
+                    : AnsiColors.surface,
+                border: Border.all(
+                  color: selected ? ink : AnsiColors.line,
+                  width: selected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(AnsiRadii.card),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: ansiSans(
+                      size: 13.5,
+                      color: selected ? ink : AnsiColors.ink,
+                      weight: selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  if (detail case final detail?) ...[
+                    const SizedBox(height: 3),
+                    Text(detail, style: ansiMono(size: 10, color: ink)),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

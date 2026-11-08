@@ -20,9 +20,12 @@ import '../../../shared/ansi_tap.dart';
 import '../../../shared/ansi_toast.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/domain/leftovers.dart';
+import '../../cook_plan/presentation/leftovers_view_models.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_editor_sheet.dart';
+import 'use_up_block.dart' show LeftoverTag;
 import 'week_format.dart';
 import 'week_variant_format.dart';
 
@@ -663,20 +666,30 @@ class OutMealLine extends StatelessWidget {
   );
 }
 
-/// A meal eaten from a cooked batch's leftover says so where a cook marker
-/// would: it is not cooked again, so it has no batch of its own.
-class LeftoverMealLine extends StatelessWidget {
-  const LeftoverMealLine({this.size = 10.5, super.key});
+/// A meal eaten from a leftover says `leftover` where a cook marker would: it
+/// is not cooked again, so it has no batch of its own. The tag is the
+/// freezer's blue when its row is in the freezer, else the fridge's green.
+class LeftoverMealTag extends ConsumerWidget {
+  const LeftoverMealTag({required this.entry, this.size = 9.5, super.key});
 
-  /// The line's size — the phone row's 10.5, the wide day pane's 11.
+  final PlanEntry entry;
+
+  /// The tag's size: the phone row's 9.5, the wide day pane's 10.
   final double size;
 
   @override
-  Widget build(BuildContext context) => Text(
-    kLeftoverMealLine,
-    overflow: TextOverflow.ellipsis,
-    style: ansiMono(size: size, color: AnsiColors.herbDeep),
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final row = entry.fromLeftover;
+    // A meal from a cooked batch (`leftover_of`) is from the fridge.
+    final place = row == null
+        ? LeftoverPlace.fridge
+        : ref.watch(leftoverPlacesProvider).asData?.value[row] ??
+              LeftoverPlace.fridge;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: LeftoverTag(place: place, size: size),
+    );
+  }
 }
 
 /// The fresh→gone gradient at 26px, with a notch where this day sits in the

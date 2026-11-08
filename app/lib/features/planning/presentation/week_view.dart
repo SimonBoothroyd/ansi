@@ -585,9 +585,9 @@ class _DishRow extends ConsumerWidget {
               ),
             ),
           if (leftover)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 6),
-              child: LeftoverMealLine(),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: LeftoverMealTag(entry: entry),
             ),
           // The snack's amount sits where a cook marker would.
           if (snack)

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ansi/core/sync/session.dart';
 import 'package:ansi/core/theme/ansi_theme.dart';
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
@@ -10,6 +11,7 @@ import 'package:ansi/features/account/data/household_providers.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
+import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
@@ -34,6 +36,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
+import '../../helpers/fake_leftover_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
@@ -751,6 +754,81 @@ void main() {
     expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
   });
 
+  group('a dish in the freezer', () {
+    /// The freezer holds [portions] of the curry the flow picks.
+    Future<_FakePlanningRepo> openConfirm(
+      WidgetTester tester, {
+      double portions = 2,
+    }) async {
+      filterForuiSemanticsAssertions();
+      final planning = _FakePlanningRepo(week: _plannedWeek());
+      await _pumpWeek(
+        tester,
+        planning: planning,
+        recipes: _recipesRepo(null),
+        extra: [
+          leftoverRepositoryProvider.overrideWithValue(
+            FakeLeftoverRepository([
+              Leftover(
+                id: 'f1',
+                place: LeftoverPlace.freezer,
+                recipeId: 'r1',
+                title: 'Weeknight Chicken Curry',
+                since: DateTime(2026, 8, 10),
+                goodUntil: null,
+                portions: portions,
+              ),
+            ]),
+          ),
+        ],
+      );
+      await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry').last);
+      await tester.pumpAndSettle();
+      return planning;
+    }
+
+    Future<void> add(WidgetTester tester) async {
+      await tester.ensureVisible(find.text('Add to Thursday'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add to Thursday'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('asks Frozen or Cook fresh, Frozen first, and plans the meal '
+        'from the freezer row', (tester) async {
+      final planning = await openConfirm(tester);
+      expect(find.text('Frozen'), findsOneWidget);
+      expect(find.text('2 left'), findsOneWidget);
+      expect(find.text('Cook fresh'), findsOneWidget);
+      await add(tester);
+      expect(planning.recipeEntries.single.fromLeftover, 'f1');
+      expect(planning.recipeEntries.single.leftoverOf, isNull);
+    });
+
+    testWidgets('Cook fresh plans a meal to cook', (tester) async {
+      final planning = await openConfirm(tester);
+      await tester.tap(find.text('Cook fresh'));
+      await tester.pumpAndSettle();
+      await add(tester);
+      expect(planning.recipeEntries.single.fromLeftover, isNull);
+    });
+
+    testWidgets('Frozen cannot take more than is left', (tester) async {
+      final planning = await openConfirm(tester, portions: 1);
+      // Ada and Jun both eat: two portions from one.
+      debugPrint(
+        [
+          for (final t in tester.widgetList<Text>(find.byType(Text))) t.data,
+        ].join('|'),
+      );
+      await add(tester);
+      expect(find.text('only 1 portion left'), findsOneWidget);
+      expect(planning.recipeEntries, isEmpty);
+    });
+  });
+
   group('the confirm sheet asks only the slot', () {
     /// Drives the add flow from Thursday — the day [week] plans (by default
     /// `_plannedWeek`), and so the only card whose add line reads `add a
@@ -945,21 +1023,38 @@ void main() {
       ),
     ]);
     final week = _batchedWeek();
-    await _pumpWeek(
+    Future<void> pump(String place) => _pumpWeek(
       tester,
       planning: _FakePlanningRepo(
         week: week.copyWith(
           entries: [
             week.entries.first,
-            week.entries.last.copyWith(fromLeftover: 'lo-freezer'),
+            week.entries.last.copyWith(fromLeftover: 'lo'),
           ],
         ),
       ),
       cook: plan,
+      extra: [
+        leftoverRepositoryProvider.overrideWithValue(
+          FakeLeftoverRepository(const [], {
+            'lo': place == 'freezer'
+                ? LeftoverPlace.freezer
+                : LeftoverPlace.fridge,
+          }),
+        ),
+      ],
     );
+    Color tagInk() => tester.widget<Text>(find.text('leftover')).style!.color!;
 
-    expect(find.byType(LeftoverMealLine), findsOneWidget);
+    await pump('freezer');
+    expect(find.byType(LeftoverMealTag), findsOneWidget);
+    expect(find.text('leftover'), findsOneWidget);
+    expect(tagInk(), AnsiColors.chillInk);
     expect(find.text('from Monday\u2019s batch'), findsNothing);
+
+    await pump('fridge');
+    await tester.pumpAndSettle();
+    expect(tagInk(), AnsiColors.herbDeep);
   });
 
   testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
