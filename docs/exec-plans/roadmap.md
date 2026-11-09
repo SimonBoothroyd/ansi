@@ -40,9 +40,14 @@ The detail is in the plan; the landing dates are in the
    is the earliest ticked day; a fridge row is good till cook day + fridge
    days; the picker judges the meal's day and offers *freeze by*; a dish
    that freezes is cooked and bought once across the week edge; and the
-   Leftovers page, Cook, the picker and the meal sheet are tidied. Designed
-   and signed off; nothing built. No migration, one release.
-9. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
+   Leftovers page, Cook, the picker and the meal sheet are tidied. Built on
+   main, unreleased; its model is reworked by plan 0062 before release.
+9. Step 11, continued: [plan 0062](./active/0062-leftovers-remembered.md),
+   *Leftovers, remembered*. Each cooking is a saved record with a fixed id;
+   meals link to it, and ticks, corrections and freezes sum to what's left.
+   No multi-week reads, and no automatic cross-week sharing (a pick does
+   it). Migration `0061_cooking`; one release with plan 0061.
+10. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
 
