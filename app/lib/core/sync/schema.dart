@@ -138,6 +138,10 @@ const schema = Schema([
     // → leftover.id: the fridge or freezer row this recipe meal is eaten
     // from. Never set beside `leftover_of`; never cooked, bought or costed.
     Column.text('from_leftover'),
+    // → cooking.id: the pot this recipe meal is cooked in or eaten from. Null
+    // until its group's first tick or pick; `leftover_of` and
+    // `from_leftover` above are read-only, kept for one release.
+    Column.text('cooking'),
     ..._audit,
   ]),
   // A member saying they ate a planned meal (0055). Written only for the
@@ -175,6 +179,28 @@ const schema = Schema([
     Column.text('since'), // 'YYYY-MM-DD': cooked (fridge) or frozen (freezer)
     Column.text('batch'), // → plan_entry.id, the batch's first covered meal
     Column.text('gone_at'),
+    ..._audit,
+  ]),
+  // One cooked pot, remembered: born at its group's first tick or pick, with
+  // a fixed id. `made` is fixed at the first tick (null: the live sum of its
+  // linked meals). `place` and `since` only on food said by hand.
+  Table('cooking', [
+    Column.text('household_id'),
+    Column.text('recipe_id'), // → recipe.id, or null for words
+    Column.text('label'),
+    Column.real('made'),
+    Column.text('place'), // 'fridge' | 'freezer', or null
+    Column.text('since'), // 'YYYY-MM-DD', or null
+    Column.text('gone_at'),
+    ..._audit,
+  ]),
+  // One correction to a cooking: portions added (or taken) on each shelf.
+  // Undo soft-deletes it.
+  Table('cooking_change', [
+    Column.text('household_id'),
+    Column.text('cooking_id'), // → cooking.id
+    Column.real('fridge'),
+    Column.real('freezer'),
     ..._audit,
   ]),
   // One delta against a recipe line for one planned week, keyed on

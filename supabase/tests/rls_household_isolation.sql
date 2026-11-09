@@ -8,10 +8,10 @@
 -- `supabase test db`.
 
 begin;
--- 21 tables x (select isolation + cross-household insert rejection)
+-- 23 tables x (select isolation + cross-household insert rejection)
 -- + current_household_id + 4 recipe.favorite checks + 2 usda_food checks
 -- + 2 household column-grant checks + 4 usda_search_* denials.
-select plan(55);
+select plan(59);
 
 -- Two households, one member each, and one row per household in every
 -- household-scoped table (A-side ids aaaaaaaa-…, B-side bbbbbbbb-…).
@@ -69,6 +69,12 @@ insert into batch_leftover (id, household_id, plan_entry_id, binned) values
 insert into leftover (id, household_id, place, recipe_id, portions, since) values
  ('aaaaaaaa-0000-0000-0000-000000000019','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','freezer','aaaaaaaa-0000-0000-0000-000000000004',2,'2026-01-05'),
  ('bbbbbbbb-0000-0000-0000-000000000019','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','freezer','bbbbbbbb-0000-0000-0000-000000000004',2,'2026-01-05');
+insert into cooking (id, household_id, recipe_id) values
+ ('aaaaaaaa-0000-0000-0000-00000000001a','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000004'),
+ ('bbbbbbbb-0000-0000-0000-00000000001a','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004');
+insert into cooking_change (id, household_id, cooking_id, fridge) values
+ ('aaaaaaaa-0000-0000-0000-00000000001b','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-00000000001a',-1),
+ ('bbbbbbbb-0000-0000-0000-00000000001b','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-00000000001a',-1);
 insert into shopping_list_entry (id, household_id, ingredient_id) values
  ('aaaaaaaa-0000-0000-0000-000000000009','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','aaaaaaaa-0000-0000-0000-000000000001'),
  ('bbbbbbbb-0000-0000-0000-000000000009','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000001');
@@ -174,7 +180,15 @@ insert into iso_case values
  (21, 'leftover',
       $$ insert into leftover (household_id, place, recipe_id, portions, since)
          values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','fridge','bbbbbbbb-0000-0000-0000-000000000004',1,'2026-01-06') $$,
-      'new row violates row-level security policy for table "leftover"');
+      'new row violates row-level security policy for table "leftover"'),
+ (22, 'cooking',
+      $$ insert into cooking (household_id, recipe_id)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-000000000004') $$,
+      'new row violates row-level security policy for table "cooking"'),
+ (23, 'cooking_change',
+      $$ insert into cooking_change (household_id, cooking_id, freezer)
+         values ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','bbbbbbbb-0000-0000-0000-00000000001a',1) $$,
+      'new row violates row-level security policy for table "cooking_change"');
 grant select on iso_case to authenticated;
 
 -- Row-count helper. Invoker rights, so when called as `authenticated` the
