@@ -72,14 +72,16 @@ planning/
     (`SqliteShoppingRepository._derivePlannedIngredients`) and nothing for a
     meal out;
   - copy last week carries every kind whole.
-- **A meal from a leftover** is a recipe meal naming a cooked batch
-  (`leftover_of`) or a fridge or freezer row (`from_leftover`), never both.
-  Ask `PlanEntry.isFromLeftover`, never a column: the cook plan, the shop
-  and the week's cost pass over it, macros and ticks count it, its Week row
-  says `leftover` where a cook marker would be (`LeftoverMealTag`: the
-  fridge's green, or the freezer's blue when its `from_leftover` row is in
-  the freezer, read off `leftoverPlaces`), a move keeps it, and copy last
-  week carries it as a meal to cook
+- **A meal in a cooking** (`PlanEntry.cooking`) is a recipe meal linked to
+  one pot: its group's own meals from the first tick on, and a meal picked
+  from it (see the `cook_plan` README). It is bought and costed in the
+  cooking's week only (`CookPlan.cookings`, `eatenFromEarlier`), macros and
+  ticks count it like any meal, and its Week row says `leftover` where a
+  cook marker would be once the pot is cooked, or always for food said by
+  hand (`eatsFromAPot`; `LeftoverMealTag`: the fridge's green, or the
+  freezer's blue when it is eaten from the freezer on its day). A move keeps
+  the link; copy last week carries it as a meal to cook. The last release's
+  `leftover_of` and `from_leftover` are read-only
   (`test/structure/leftover_meal_seam_test.dart`).
 - `test/structure/plan_entry_kind_seam_test.dart` holds this: no wildcard, no
   null-column kind test, and both SQL derivations state their kind in `WHERE`.
@@ -132,11 +134,11 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 3. **`showConfirmMealSheet`** — slot, eaters, portions (`plan_entry.portions`,
    null = track the eaters; a step back to the eaters' own total clears it). A meal out gets an optional per-portion macros
    fold; left empty or half-filled, the meal is placed and named as uncounted.
-   A leftover's card caps the portions at what is left; the meal names a
-   stored row by `from_leftover` and an untouched batch by `leftover_of`. A
-   recipe with a freezer row asks **Frozen (n left) · Cook fresh** with
-   neither picked, and *Add* waits for one; Frozen plans the meal from the
-   oldest such row.
+   A leftover's card caps the portions at what is left; the meal links to
+   its cooking (`addEntry(cooking:)`; a pot not born yet is born by the
+   pick). A recipe with a freezer row asks **Frozen (n left) · Cook fresh**
+   with neither picked, and *Add* waits for one; Frozen plans the meal from
+   the oldest such row.
 
 Both sheets open on `defaultMealSlot`, the day's first unfilled default slot.
 Recipe rows show shelf-life chips and a "same batch" hint

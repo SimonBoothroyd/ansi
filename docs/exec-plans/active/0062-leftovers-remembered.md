@@ -1,6 +1,6 @@
 # Exec plan: Leftovers, remembered
 
-- **Status:** draft — designed and ruled by the owner on 2026-11-09; nothing built
+- **Status:** phases 1–2 built on 2026-11-09 (one lane), unreleased; phase 3 (screens), the docs beyond the READMEs, `make test-sim` and the release owed
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); reworks the model under [plan 0061](./0061-leftovers-by-the-ticks.md), whose screens and rules stay
 - **Created:** 2026-11-09
@@ -277,6 +277,56 @@ Append-only.
     one buy-week rule and an SQL-first conversion.
 
   The owner ruled every open question interactively.
+
+- 2026-11-09 — Phases 1 and 2 built (one lane). Migration `0061_cooking.sql`
+  proven on an isolated stack (`ansiproof`): 62 migrations from zero, 31
+  pgTAP files / 676 tests, and the upgrade path replayed over 0060-shaped
+  rows. Decided in the lane:
+  - **A cooking is up to two rows**, a fridge shelf and a freezer shelf
+    (`Leftover`, keyed by cooking id and shelf). A correction names its
+    shelf: the stepper writes the difference from the unclamped box.
+  - **A meal takes from its date's shelf first, then the other's spare.**
+    So after Freeze (which moves the whole fridge box), a meal still within
+    the fridge date eats from the freezer instead of warning. A freezer meal
+    is covered by the freezer's spare first and moves only the rest.
+  - **The assumed freeze is shown on its day.** Until the fridge date passes,
+    a freezer meal's portions read in the fridge (`freeze by Mon for Wed`),
+    as plan 0061 drew it; the counts are the same either way.
+  - **Today's meal is spoken for**, as the rule says, even once ticked: on
+    the cook day `N left` still holds that night's portions.
+  - **Warnings:** `not enough left` only on meals from today on, plus every
+    meal of a cooking never cooked. A cooking's own meals and picks warn
+    alike (edge 14), so the old `own` flag is gone.
+  - **Remove gone off** sets `gone_at` only when every shelf of the cooking
+    is in the list; a fridge part gone off beside a good freezer part is
+    counted to nothing by a change instead (not final).
+  - **The connector uploads a `cooking` or `cooking_change` PUT as an insert
+    that leaves an existing row alone** (`insertOnceTables`): two births of
+    one id keep the first, and a late offline birth cannot undo a
+    `gone_at`.
+  - **The first pick from a pot not born yet births it** (`cookingForPick`):
+    `addEntry(cooking:)` takes a cooking id or a meal of the group.
+  - **A meal with no fridge life stated groups by 7 days** before birth, so
+    one week never splits (it never split before either).
+  - **The carry-over** waits for the launch's first finished download, so
+    the server's converted cookings are local before any birth. An old row
+    naming a batch became a cooking said by hand (its count, place and
+    date); linking its batch's meals adds one change so it still reads what
+    was said, and later ticks move it. Against `0e486821`'s page, counts
+    differ only where 0061's unreleased adjustment model had moved a row by
+    ticks since it was said, and where a past pick nobody ticked now stays
+    in the box (no tick means you didn't eat it).
+  - **The week's cost** costs each cooking once, at what it made, in the
+    household's figure; under a lens its meals are the member's shares, as
+    any meal. Ask's cost reads the cook plan for this.
+  - **No recipe swap exists** on a planned meal (Ask removes and adds), so
+    the swap rule needs no code yet.
+  - **Removed with the fold:** next week's Cook no longer lists meals eaten
+    from an earlier pot (`foldedMealLines`); phase 3 decides whether a line
+    comes back. `cookedDaysOf` now counts every planned day of the dish.
+  - **Not done here:** phase 3, the product spec, `ARCHITECTURE.md`, the
+    board, `make test-sim` (no simulator in this lane), and recreating the
+    local PowerSync container from this checkout.
 
 ## Notes / open questions
 
