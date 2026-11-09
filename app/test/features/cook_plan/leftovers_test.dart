@@ -455,26 +455,36 @@ void main() {
       expect(left.pastItsDate(DateTime(2027, 6, 30)), isFalse);
     });
 
-    test('a row in words has no date, only an age', () {
-      final left = shelves(
+    test('a row in words keeps a week in the fridge, and in the freezer '
+        'has only an age', () {
+      StoredLeftover words(LeftoverPlace place) => StoredLeftover(
+        id: 'lo-words',
+        place: place,
+        label: 'Mum’s lasagne',
+        portions: 2,
+        since: _oct(2),
+        updatedAt: DateTime.utc(2026, 10, 2),
+      );
+      final fridge = shelves(
+        plan: const CookPlan(),
+        today: _oct(5),
+        stored: [words(LeftoverPlace.fridge)],
+      ).single;
+      expect(fridge.recipeId, isNull);
+      expect(fridge.title, 'Mum’s lasagne');
+      // One week from its date, that day included.
+      expect(fridge.goodUntil, _oct(9));
+      expect(fridge.pastItsDate(_oct(9)), isFalse);
+      expect(fridge.pastItsDate(_oct(10)), isTrue);
+      expect(leftoverOfferOn(fridge, _oct(6), _oct(5)), isNull);
+
+      final freezer = shelves(
         plan: const CookPlan(),
         today: DateTime(2026, 11, 20),
-        stored: [
-          StoredLeftover(
-            id: 'lo-words',
-            place: LeftoverPlace.fridge,
-            label: 'Mum’s lasagne',
-            portions: 2,
-            since: _oct(2),
-            updatedAt: DateTime.utc(2026, 10, 2),
-          ),
-        ],
+        stored: [words(LeftoverPlace.freezer)],
       ).single;
-      expect(left.recipeId, isNull);
-      expect(left.title, 'Mum’s lasagne');
-      expect(left.goodUntil, isNull);
-      expect(left.pastItsDate(DateTime(2026, 11, 20)), isFalse);
-      expect(leftoverOfferOn(left, _nov(21), _nov(20)), isNull);
+      expect(freezer.goodUntil, isNull);
+      expect(freezer.pastItsDate(DateTime(2026, 11, 20)), isFalse);
     });
 
     test('two batches of one dish are two rows, and a stored row replaces '
@@ -545,10 +555,13 @@ void main() {
     test('a row with nothing left or to come, or said gone, is not shown and '
         'still hides its batch', () {
       final today = _oct(28);
+      // Two said on Monday evening; Tuesday's meal from it took them.
       expect(
         shelves(
           today: today,
-          stored: [row('lo1', portions: 2)],
+          stored: [
+            row('lo1', portions: 2, updatedAt: DateTime(2026, 10, 26, 20)),
+          ],
           fromRow: {
             'lo1': [(entryId: 'x', day: _oct(27), portions: 2)],
           },
@@ -591,6 +604,7 @@ void main() {
       required DateTime today,
       List<StoredLeftover> stored = const [],
       Map<String, List<PlannedFromLeftover>> fromBatch = const {},
+      Map<String, List<TickSpan>> ticks = const {},
     }) => readLeftovers(
       weeks: [(weekStart: _week, plan: _planOf(session))],
       today: today,
@@ -604,31 +618,85 @@ void main() {
         ),
       },
       fromBatch: fromBatch,
+      ticks: ticks,
     );
 
-    /// The count Friday evening, after dinner.
-    StoredLeftover said(double portions) => StoredLeftover(
+    /// Ada and Jun each eat one portion of a meal.
+    List<TickSpan> both(DateTime from, [DateTime? until]) => [
+      for (final m in ['ada', 'jun'])
+        (memberId: m, share: 1.0, from: from, until: until),
+    ];
+
+    /// The count said at [at] (Friday evening, after dinner, by default).
+    StoredLeftover said(double portions, {DateTime? at}) => StoredLeftover(
       id: 'lo1',
       place: LeftoverPlace.fridge,
       recipeId: 'hh',
       portions: portions,
       since: _oct(30),
       batch: 'e3',
-      updatedAt: DateTime(2026, 10, 30, 20),
+      updatedAt: at ?? DateTime(2026, 10, 30, 20),
     );
 
     test('the box holds what is free and what is spoken for', () {
       final left = read(_helper({5: 2}), today: _oct(30)).rows.single;
       expect((left.inBox, left.portions, left.planned), (4.0, 2.0, 2.0));
-      expect(left.aside, 0);
     });
 
-    test('ticks after it still come off; no tick leaves it in the box', () {
-      // Saturday ticked: its two portions came out of the three said.
+    test('every tick or untick after it moves it, whichever meal it is on', () {
+      // Sunday: Friday and Saturday ticked, Wednesday's two left over; the
+      // household says one is left.
+      final fridayTicked = both(DateTime(2026, 10, 30, 19));
+      final saturdayTicked = both(DateTime(2026, 10, 31, 19));
+      final count = said(1, at: DateTime(2026, 11, 1, 9));
+      expect(
+        read(
+          _helper({5: 2, 6: 2}),
+          today: _nov(1),
+          stored: [count],
+          ticks: {'e5': fridayTicked, 'e6': saturdayTicked},
+        ).rows.single.inBox,
+        1,
+      );
+
+      // Friday unticked after: its two portions are back.
+      final unticked = both(
+        DateTime(2026, 10, 30, 19),
+        DateTime(2026, 11, 1, 10),
+      );
+      expect(
+        read(
+          _helper({6: 2}),
+          today: _nov(1),
+          stored: [count],
+          ticks: {'e5': unticked, 'e6': saturdayTicked},
+        ).rows.single.inBox,
+        3,
+      );
+
+      // And ticked again: back to the one said.
+      expect(
+        read(
+          _helper({5: 2, 6: 2}),
+          today: _nov(1),
+          stored: [count],
+          ticks: {
+            'e5': [...unticked, ...both(DateTime(2026, 11, 1, 11))],
+            'e6': saturdayTicked,
+          },
+        ).rows.single.inBox,
+        1,
+      );
+    });
+
+    test('a tick after it comes off; no tick leaves it in the box', () {
+      final fridayTicked = both(DateTime(2026, 10, 30, 19));
+      // Saturday ticked after the three were said: its two came out of them.
       final ticked = read(
         _helper({5: 2, 6: 2}),
         today: _oct(31),
         stored: [said(3)],
+        ticks: {'e5': fridayTicked, 'e6': both(DateTime(2026, 10, 31, 19))},
       ).rows.single;
       expect((ticked.id, ticked.inBox, ticked.portions), ('lo1', 1.0, 1.0));
 
@@ -637,6 +705,7 @@ void main() {
         _helper({5: 2}),
         today: _oct(31),
         stored: [said(3)],
+        ticks: {'e5': fridayTicked},
       ).rows.single;
       expect((ahead.inBox, ahead.portions, ahead.planned), (3.0, 1.0, 2.0));
 
@@ -645,26 +714,35 @@ void main() {
         _helper({5: 2}),
         today: _nov(1),
         stored: [said(3)],
+        ticks: {'e5': fridayTicked},
       ).rows.single;
       expect((skipped.inBox, skipped.portions), (3.0, 3.0));
     });
 
     test('a count never goes below nothing', () {
       expect(
-        read(_helper({5: 2, 6: 2}), today: _nov(1), stored: [said(1)]).rows,
+        read(
+          _helper({5: 2, 6: 2}),
+          today: _nov(1),
+          stored: [said(1)],
+          ticks: {
+            'e5': both(DateTime(2026, 10, 30, 19)),
+            'e6': both(DateTime(2026, 10, 31, 19)),
+          },
+        ).rows,
         isEmpty,
       );
     });
 
-    test('a write stores the count plus what comes off it on read', () {
+    test('a count said is read back as said', () {
       // Saturday half ticked: one portion of it gone, one spoken for.
       final derived = read(_helper({5: 2, 6: 1}), today: _oct(31)).rows.single;
-      expect((derived.inBox, derived.aside), (3.0, 1.0));
+      expect(derived.inBox, 3);
       final stored = StoredLeftover(
         id: 'lo1',
         place: LeftoverPlace.fridge,
         recipeId: 'hh',
-        portions: derived.inBox + derived.aside,
+        portions: derived.inBox,
         since: _oct(30),
         batch: 'e3',
         updatedAt: DateTime(2026, 10, 31, 9),

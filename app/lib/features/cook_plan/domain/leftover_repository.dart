@@ -23,8 +23,8 @@ abstract interface class LeftoverRepository {
   Stream<Map<String, LeftoverPlace>> watchLeftoverPlaces();
 
   /// Says [portions] of [left] are in the box ([Leftover.inBox]); zero takes
-  /// it off the page. What comes off a stored count on read is stored with it
-  /// ([Leftover.aside]), so ticks from today on still come off it.
+  /// it off the page. Every tick or untick after it still moves the count
+  /// ([readLeftovers]).
   Future<void> setLeftoverPortions(Leftover left, double portions);
 
   /// Moves [left] to the freezer, its count as it stands. Its date still
@@ -34,6 +34,12 @@ abstract interface class LeftoverRepository {
 
   /// Says every one of [lefts] is gone: eaten, binned or given away.
   Future<void> markLeftoversGone(List<Leftover> lefts);
+
+  /// Puts every one of [lefts] back as the page drew it before a Freeze, a
+  /// Froze it or a Remove gone off: a derived row by taking away the row that
+  /// write stored for its batch, a stored one by saying again its place, its
+  /// date and its count, and that it is not gone.
+  Future<void> restoreLeftovers(List<Leftover> lefts);
 
   /// Adds food the app never saw: a recipe or the household's own [label],
   /// never both. Returns the new row's id.

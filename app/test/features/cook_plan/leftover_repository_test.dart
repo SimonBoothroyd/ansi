@@ -106,6 +106,69 @@ void main() {
     expect(await shelves(), isEmpty);
   });
 
+  test(
+    'a count set by hand moves with every tick and untick after it',
+    () async {
+      await cookedCurry(0);
+      // Tuesday's curry, both of them ticked: nothing of it left.
+      final tue = await planning.addEntry(
+        weekStart: _week,
+        dayOfWeek: 1,
+        mealSlot: 'Dinner',
+        recipeId: 'curry',
+        eaterIds: const ['a', 'b'],
+      );
+      for (final m in ['a', 'b']) {
+        await planning.setMealEaten(
+          tue,
+          memberId: m,
+          eatenAt: DateTime.utc(2026, 8, 25, 19),
+        );
+      }
+      expect((await shelves()).single.inBox, 1);
+      await repo.setLeftoverPortions((await shelves()).single, 3);
+      expect((await shelves()).single.inBox, 3);
+
+      // Ada says she did not eat Tuesday's after all: her portion is back.
+      await planning.setMealEaten(tue, memberId: 'a', eatenAt: null);
+      expect((await shelves()).single.inBox, 4);
+
+      // And did: back to the three said.
+      await planning.setMealEaten(
+        tue,
+        memberId: 'a',
+        eatenAt: DateTime.utc(2026, 8, 25, 19),
+      );
+      expect((await shelves()).single.inBox, 3);
+    },
+  );
+
+  test('a write is undone as the page drew the row before it', () async {
+    await cookedCurry(0);
+    final derived = (await shelves()).single;
+    await repo.freezeLeftover(derived);
+    expect((await shelves()).single.place, LeftoverPlace.freezer);
+    // A derived row: the row the freeze stored goes, the batch reads again.
+    await repo.restoreLeftovers([derived]);
+    final back = (await shelves()).single;
+    expect(
+      (back.isStored, back.place, back.inBox),
+      (false, LeftoverPlace.fridge, 1.0),
+    );
+
+    // A stored row: its place, date and count said again, not gone.
+    await repo.setLeftoverPortions(back, 2);
+    final stored = (await shelves()).single;
+    await repo.markLeftoversGone([stored]);
+    expect(await shelves(), isEmpty);
+    await repo.restoreLeftovers([stored]);
+    final again = (await shelves()).single;
+    expect(
+      (again.id, again.place, again.inBox),
+      (stored.id, LeftoverPlace.fridge, 2.0),
+    );
+  });
+
   test('a first touch on a derived row stores it, naming its batch', () async {
     final mon = await cookedCurry(0);
     await repo.setLeftoverPortions((await shelves()).single, 3);
@@ -138,8 +201,8 @@ void main() {
     },
   );
 
-  test('the stepper sets what is in the box, storing beside it the meals '
-      'already eaten from it', () async {
+  test('the stepper sets what is in the box, and the meals eaten from it '
+      'since still come off', () async {
     await insertLeftover(db, id: 'lo1', recipeId: 'curry', portions: 4);
     // Ada's 1 on Monday is behind us; her 1 next Tuesday is to come.
     for (final (week, day) in [
@@ -157,10 +220,9 @@ void main() {
     }
     final left = (await shelves()).single;
     expect((left.inBox, left.portions, left.planned), (3.0, 2.0, 1.0));
-    expect(left.aside, 1);
 
     await repo.setLeftoverPortions(left, 2);
-    expect((await stored('lo1'))['portions'], 3);
+    expect((await stored('lo1'))['portions'], 2);
     final set = (await shelves()).single;
     expect((set.inBox, set.portions), (2.0, 1.0));
 

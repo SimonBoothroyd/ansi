@@ -19,7 +19,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/week_shape.dart';
 import '../../planning/data/planning_repository_impl.dart' show loadMembers;
-import '../../planning/domain/planning.dart' show Member, eatersDemand;
+import '../../planning/domain/planning.dart'
+    show Member, PlanEntry, eatersDemand, memberServings;
 import '../domain/cook_plan.dart' show LeftoverAnswer;
 import '../domain/leftover_repository.dart';
 import '../domain/leftovers.dart';
@@ -105,7 +106,57 @@ class SqliteLeftoverRepository implements LeftoverRepository {
       answers: answers,
       fromBatch: planned.batch,
       fromRow: planned.row,
+      ticks: stored.any((r) => r.batch != null)
+          ? await _tickSpans([
+              for (final w in weeks) w.weekStart,
+              // A batch can fold in a meal of the week after.
+              DateTime(weekStart.year, weekStart.month, weekStart.day + 7),
+            ])
+          : const {},
     );
+  }
+
+  /// Every tick on the meals of the weeks beginning [weekStarts], an untick
+  /// ending it, by `plan_entry` id: what a count said by hand is measured
+  /// against. Each carries the share of the meal its member eats.
+  Future<Map<String, List<TickSpan>>> _tickSpans(
+    List<DateTime> weekStarts,
+  ) async {
+    final keys = [for (final w in weekStarts) isoDateOf(w)];
+    final marks = List.filled(keys.length, '?').join(', ');
+    final rows = await _db.getAll(
+      'SELECT me.plan_entry_id, me.member_id, me.created_at, me.deleted_at, '
+      'pe.eaters, pe.portions, pe.day_of_week, pe.meal_slot '
+      'FROM meal_eaten me '
+      'JOIN plan_entry pe ON pe.id = me.plan_entry_id '
+      'JOIN week_plan wp ON wp.id = pe.week_plan_id '
+      'WHERE wp.week_start_date IN ($marks)',
+      keys,
+    );
+    if (rows.isEmpty) return const {};
+    final members = {for (final m in await loadMembers(_db)) m.id: m};
+    final spans = <String, List<TickSpan>>{};
+    for (final r in rows) {
+      final entryId = r['plan_entry_id'] as String;
+      final entry = PlanEntry(
+        id: entryId,
+        dayOfWeek: r['day_of_week'] as int,
+        mealSlot: r['meal_slot'] as String,
+        eaterIds: (jsonDecode(r['eaters'] as String? ?? '[]') as List)
+            .cast<String>(),
+        portions: r['portions'] as int?,
+      );
+      final memberId = r['member_id'] as String;
+      final from = DateTime.tryParse(r['created_at'] as String? ?? '');
+      if (from == null) continue;
+      (spans[entryId] ??= []).add((
+        memberId: memberId,
+        share: memberServings(entry, memberId, members),
+        from: from,
+        until: DateTime.tryParse(r['deleted_at'] as String? ?? ''),
+      ));
+    }
+    return spans;
   }
 
   /// Every live meal planned from a leftover, by batch key (`leftover_of`)
@@ -161,10 +212,10 @@ class SqliteLeftoverRepository implements LeftoverRepository {
   Future<void> setLeftoverPortions(Leftover left, double portions) =>
       _db.writeTransaction((tx) async {
         final id = await _storedIdFor(tx, left);
-        // What comes off a stored count on read is stored with it.
+        // Said now: later ticks move it from here.
         await tx.execute(
           'UPDATE leftover SET portions = ?, updated_at = ? WHERE id = ?',
-          [portions + left.aside, _now(), id],
+          [portions, _now(), id],
         );
       });
 
@@ -177,7 +228,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
         await tx.execute(
           "UPDATE leftover SET place = 'freezer', since = ?, portions = ?, "
           'updated_at = ? WHERE id = ?',
-          [isoDateOf(left.since), left.inBox + left.aside, _now(), id],
+          [isoDateOf(left.since), left.inBox, _now(), id],
         );
       });
 
@@ -191,6 +242,28 @@ class SqliteLeftoverRepository implements LeftoverRepository {
             'UPDATE leftover SET gone_at = ?, updated_at = ? WHERE id = ?',
             [now, now, id],
           );
+        }
+      });
+
+  @override
+  Future<void> restoreLeftovers(List<Leftover> lefts) =>
+      _db.writeTransaction((tx) async {
+        final now = _now();
+        for (final left in lefts) {
+          if (left.id case final id?) {
+            await tx.execute(
+              'UPDATE leftover SET place = ?, since = ?, portions = ?, '
+              'gone_at = NULL, updated_at = ? WHERE id = ?',
+              [left.place.name, isoDateOf(left.since), left.inBox, now, id],
+            );
+          } else if (left.batch case final batch?) {
+            // It was derived: the batch reads from its ticks again.
+            await tx.execute(
+              'UPDATE leftover SET deleted_at = ?, updated_at = ? '
+              'WHERE batch = ? AND deleted_at IS NULL',
+              [now, now, batch],
+            );
+          }
         }
       });
 
@@ -239,7 +312,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
       id: id,
       place: left.place,
       recipeId: left.recipeId,
-      portions: left.inBox + left.aside,
+      portions: left.inBox,
       since: left.since,
       batch: batch,
     );

@@ -62,6 +62,13 @@ class FakeLeftoverRepository implements LeftoverRepository {
   @override
   Future<void> markLeftoversGone(List<Leftover> lefts) async => gone.add(lefts);
 
+  /// Every list handed to [restoreLeftovers].
+  final restored = <List<Leftover>>[];
+
+  @override
+  Future<void> restoreLeftovers(List<Leftover> lefts) async =>
+      restored.add(lefts);
+
   @override
   Future<String> addLeftover({
     required LeftoverPlace place,
