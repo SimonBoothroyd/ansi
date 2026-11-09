@@ -32,6 +32,7 @@ import 'batch_leftover_line.dart';
 import 'cook_format.dart';
 import 'cook_sheet.dart';
 import 'cook_view_models.dart';
+import 'leftovers_view_models.dart';
 import 'whole_batch_switch.dart';
 
 class CookView extends ConsumerWidget {
@@ -103,10 +104,11 @@ class CookView extends ConsumerWidget {
               const EdgeInsets.only(top: 6, bottom: 24),
             ),
             children: [
-              if (data.isEmpty)
+              if (data.isEmpty && data.eatenFromEarlier.isEmpty)
                 const _NothingToCookLine()
-              else
+              else if (!data.isEmpty)
                 CookSheet(plan: data),
+              _EarlierMealLines(plan: data),
             ],
           ),
         ),
@@ -115,7 +117,10 @@ class CookView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 6, bottom: 24),
       children: [
-        if (data.isEmpty) const _NothingToCookLine(),
+        // A meal eaten from an earlier week's cooking is a line of its own,
+        // and the week is not empty for it.
+        if (data.isEmpty && data.eatenFromEarlier.isEmpty)
+          const _NothingToCookLine(),
         for (final recipe in data.recipes) ...[
           // A recipe both planned and demanded as a component shows two cards,
           // never summed.
@@ -125,7 +130,52 @@ class CookView extends ConsumerWidget {
         ],
         // Components the plan could not derive: a named gap, never a ×1.
         for (final gap in data.gaps) _GapCard(gap: gap),
+        _EarlierMealLines(plan: data),
       ],
+    );
+  }
+}
+
+/// This week's meals eaten from a cooking an earlier week bought, one line
+/// each: `Beef Ragù · Thu · from the freezer`. Nothing to cook or buy, and no
+/// reminder: the line says where it comes from.
+class _EarlierMealLines extends ConsumerWidget {
+  const _EarlierMealLines({required this.plan});
+
+  final CookPlan plan;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (plan.eatenFromEarlier.isEmpty) return const SizedBox.shrink();
+    final shape = ref.watch(weekShapeProvider);
+    final meals = earlierMealsOf(
+      plan,
+      weekStart: ref.watch(viewedWeekStartProvider),
+      today: ref.watch(todayProvider),
+      judged: ref.watch(leftoverMealsProvider),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final meal in meals)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                earlierMealLine(meal, shape),
+                style: ansiMono(
+                  size: 11.5,
+                  color: switch (meal.source) {
+                    EarlierSource.freezer => AnsiColors.chillInk,
+                    EarlierSource.fridge => AnsiColors.herbDeep,
+                    EarlierSource.cookIt => AnsiColors.ink,
+                  },
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

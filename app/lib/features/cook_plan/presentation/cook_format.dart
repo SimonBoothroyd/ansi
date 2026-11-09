@@ -67,7 +67,7 @@ String coversLine(CookSession session, WeekShape shape, {double? spare}) {
       ? formatPortions(session.totalPortions)
       : '${formatPortions(spare)} spare';
 
-  // A meal of the next week the batch folds in is `next Thu`.
+  // A meal of the next week picked from this cooking is `next Thu`.
   String day(int d) =>
       d > 6 ? 'next ${shape.labelShort(d - 7)}' : shape.labelShort(d);
   if (slots.length == 1) {
@@ -81,6 +81,71 @@ String coversLine(CookSession session, WeekShape shape, {double? spare}) {
       .map((m) => '${day(m.dayOfWeek)} ${m.mealSlot.toLowerCase()}')
       .join(' + ');
   return 'covers $meals · $portions';
+}
+
+// --- Meals eaten from an earlier week's cooking ------------------------------
+
+/// Where a meal of this week eats from a cooking an earlier week bought.
+enum EarlierSource {
+  /// From the fridge, inside its fridge date.
+  fridge,
+
+  /// From the freezer, past it.
+  freezer,
+
+  /// Nobody ticked the cooking's earlier meals, so this meal cooks it,
+  /// with nothing bought again.
+  cookIt,
+}
+
+/// One meal of this week eaten from a cooking an earlier week bought: Cook
+/// lists it as one line ([earlierMealLine]), never as a card.
+typedef EarlierMeal = ({String title, int day, EarlierSource source});
+
+/// This week's meals of cookings bought in an earlier week
+/// ([CookPlan.eatenFromEarlier]), in day order, each with where it eats from
+/// on [today]: a meal [judged] from the freezer reads `from the freezer`; one
+/// that has become its cooking's cook day (nobody ticked the earlier meals)
+/// reads `cook it`.
+List<EarlierMeal> earlierMealsOf(
+  CookPlan plan, {
+  required DateTime weekStart,
+  required DateTime today,
+  Map<String, LeftoverMeal> judged = const {},
+}) {
+  final meals = <EarlierMeal>[];
+  for (final MapEntry(key: id, value: host) in plan.eatenFromEarlier.entries) {
+    final meal = host.covers.where((m) => m.entryId == id).firstOrNull;
+    if (meal == null) continue;
+    final day = meal.dayOfWeek;
+    final cooksIt =
+        !wasCooked(host) && cookDayOf(host, weekStart, today) == day;
+    final place = judged[id]?.place;
+    meals.add((
+      title: host.recipeTitle,
+      day: day,
+      source: cooksIt
+          ? EarlierSource.cookIt
+          : place == LeftoverPlace.freezer ||
+                (place == null && host.frozenDays.contains(day))
+          ? EarlierSource.freezer
+          : EarlierSource.fridge,
+    ));
+  }
+  return meals..sort((a, b) {
+    final d = a.day.compareTo(b.day);
+    return d != 0 ? d : a.title.compareTo(b.title);
+  });
+}
+
+/// `Beef Ragù · Thu · from the freezer`, `· from the fridge`, `· cook it`.
+String earlierMealLine(EarlierMeal meal, WeekShape shape) {
+  final from = switch (meal.source) {
+    EarlierSource.fridge => 'from the fridge',
+    EarlierSource.freezer => 'from the freezer',
+    EarlierSource.cookIt => 'cook it',
+  };
+  return '${meal.title} · ${shape.labelShort(meal.day)} · $from';
 }
 
 // --- Component sessions and gaps ---------------------------------------------

@@ -236,7 +236,8 @@ class _SuggestionRow extends StatelessWidget {
 
 /// One row offered: the dish, then `1 left · till Mon` (with the fridge's
 /// `leftover` tag), `2 left · till Jan` from the freezer, or `2 left` and a
-/// `freeze by Mon` tag for a fridge row that has to go in by then.
+/// `freeze by Mon` tag for a fridge row that has to go in by then. A pot not
+/// cooked yet has no count and no tag: `cooks Sat`.
 class _LeftoverRow extends ConsumerWidget {
   const _LeftoverRow({
     required this.left,
@@ -255,9 +256,19 @@ class _LeftoverRow extends ConsumerWidget {
     final freezeBy = frozen && left.freezeBy != null;
     final when = leftoverWhen(left, today, shape);
     final ink = frozen ? AnsiColors.chillInk : AnsiColors.herbDeep;
+    // Not cooked yet, it has nothing to count: when it cooks says it.
+    final count = left.cooked ? '${leftCount(left.portions)} · ' : '';
+    final freezeWhen = left.cooked
+        ? when
+        : 'freeze by ${leftoverDay(left.freezeBy ?? left.since, today, shape)}';
     return Semantics(
       button: true,
-      label: '${left.title}, ${leftCount(left.portions)}, $when',
+      label: [
+        left.title,
+        if (left.cooked) leftCount(left.portions),
+        when,
+        if (freezeBy && !left.cooked) freezeWhen,
+      ].join(', '),
       child: ExcludeSemantics(
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -279,22 +290,27 @@ class _LeftoverRow extends ConsumerWidget {
                 const SizedBox(height: 3),
                 Row(
                   children: [
-                    if (!frozen) ...[
+                    if (!frozen && left.cooked) ...[
                       const LeftoverTag(place: LeftoverPlace.fridge),
                       const SizedBox(width: 6),
                     ],
                     Flexible(
                       child: Text(
-                        freezeBy
+                        freezeBy && left.cooked
                             ? '${leftCount(left.portions)} ·'
-                            : '${leftCount(left.portions)} · $when',
+                            : freezeBy
+                            ? '$when ·'
+                            : '$count$when',
                         overflow: TextOverflow.ellipsis,
                         style: ansiMono(size: 10, color: ink),
                       ),
                     ),
                     if (freezeBy) ...[
                       const SizedBox(width: 6),
-                      LeftoverTag(place: LeftoverPlace.freezer, label: when),
+                      LeftoverTag(
+                        place: LeftoverPlace.freezer,
+                        label: freezeWhen,
+                      ),
                     ],
                   ],
                 ),
@@ -327,7 +343,8 @@ class _LeftoverRow extends ConsumerWidget {
 }
 
 /// The confirm sheet's card for a meal from a leftover: the dish, its tag and
-/// what is left, and the promise that nothing is cooked or bought for it.
+/// what is left, and the promise that nothing is cooked or bought for it. A
+/// pot not cooked yet says when it cooks, and that it is bought once.
 class LeftoverMealCard extends ConsumerWidget {
   const LeftoverMealCard({required this.leftover, super.key});
 
@@ -348,8 +365,10 @@ class LeftoverMealCard extends ConsumerWidget {
         const SizedBox(height: 4),
         Row(
           children: [
-            LeftoverTag(place: leftover.place),
-            const SizedBox(width: 6),
+            if (leftover.cooked) ...[
+              LeftoverTag(place: leftover.place),
+              const SizedBox(width: 6),
+            ],
             Flexible(
               child: Text(
                 leftoverLine(
@@ -365,7 +384,9 @@ class LeftoverMealCard extends ConsumerWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Not cooked again, not bought',
+          leftover.cooked
+              ? 'Not cooked again, not bought'
+              : 'Cooked with it, bought once',
           style: ansiSans(
             size: 12.5,
             color: AnsiColors.herbDeep,

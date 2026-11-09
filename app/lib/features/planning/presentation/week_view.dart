@@ -428,23 +428,33 @@ class _SlotGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The slot label sits in a left gutter, vertically centred beside its
-    // dishes.
+    // The slot label sits in a left gutter, level with its first dish's
+    // first line: a long name that wraps must not read on into the label
+    // beside its second line (`BREAKFAST Helper`).
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: AnsiColors.line)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 62,
-            child: Text(
-              group.first.mealSlot.toUpperCase(),
-              style: ansiMono(
-                size: 10,
-                color: AnsiColors.muted,
-                letterSpacing: 0.5,
+          Padding(
+            // The dish title's own top padding, plus the half-line that
+            // puts a 10 pt label on a 15 pt title's line.
+            padding: const EdgeInsets.only(top: 14),
+            child: SizedBox(
+              width: 62,
+              child: Text(
+                group.first.mealSlot.toUpperCase(),
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.fade,
+                style: ansiMono(
+                  size: 10,
+                  color: AnsiColors.muted,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ),

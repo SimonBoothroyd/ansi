@@ -214,6 +214,11 @@ String _$anyLeftoverPastItsDateHash() =>
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
 /// Empty for a day behind us.
+///
+/// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
+/// meals nobody ticked, and planned meals of an earlier week that no cooking
+/// holds yet ([LeftoverShelves.pots]). A pot of [day]'s own week is not: a
+/// meal there already shares it when it fits.
 
 @ProviderFor(leftoversGoodOn)
 const leftoversGoodOnProvider = LeftoversGoodOnFamily._();
@@ -223,6 +228,11 @@ const leftoversGoodOnProvider = LeftoversGoodOnFamily._();
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
 /// Empty for a day behind us.
+///
+/// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
+/// meals nobody ticked, and planned meals of an earlier week that no cooking
+/// holds yet ([LeftoverShelves.pots]). A pot of [day]'s own week is not: a
+/// meal there already shares it when it fits.
 
 final class LeftoversGoodOnProvider
     extends $FunctionalProvider<List<Leftover>, List<Leftover>, List<Leftover>>
@@ -232,6 +242,11 @@ final class LeftoversGoodOnProvider
   /// that will need freezing by then offered under Freezer. Soonest to go off
   /// first within each. Only a recipe's row: a meal is planned from a recipe.
   /// Empty for a day behind us.
+  ///
+  /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
+  /// meals nobody ticked, and planned meals of an earlier week that no cooking
+  /// holds yet ([LeftoverShelves.pots]). A pot of [day]'s own week is not: a
+  /// meal there already shares it when it fits.
   const LeftoversGoodOnProvider._({
     required LeftoversGoodOnFamily super.from,
     required DateTime super.argument,
@@ -283,13 +298,18 @@ final class LeftoversGoodOnProvider
   }
 }
 
-String _$leftoversGoodOnHash() => r'b8d67597d183329ce1c2e6db04d2bf5c34540fc4';
+String _$leftoversGoodOnHash() => r'abcf30e35fddb22e03e4f620747f9b1d178fb37a';
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
 /// Empty for a day behind us.
+///
+/// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
+/// meals nobody ticked, and planned meals of an earlier week that no cooking
+/// holds yet ([LeftoverShelves.pots]). A pot of [day]'s own week is not: a
+/// meal there already shares it when it fits.
 
 final class LeftoversGoodOnFamily extends $Family
     with $FunctionalFamilyOverride<List<Leftover>, DateTime> {
@@ -307,6 +327,11 @@ final class LeftoversGoodOnFamily extends $Family
   /// that will need freezing by then offered under Freezer. Soonest to go off
   /// first within each. Only a recipe's row: a meal is planned from a recipe.
   /// Empty for a day behind us.
+  ///
+  /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
+  /// meals nobody ticked, and planned meals of an earlier week that no cooking
+  /// holds yet ([LeftoverShelves.pots]). A pot of [day]'s own week is not: a
+  /// meal there already shares it when it fits.
 
   LeftoversGoodOnProvider call(DateTime day) =>
       LeftoversGoodOnProvider._(argument: day, from: this);

@@ -76,6 +76,44 @@ void main() {
 
   tearDown(() => closeTestDb(db, dir));
 
+  group('pots not born yet', () {
+    test('are this week’s and later meals no cooking holds, grouped as a '
+        'birth would group them; a pick from one births it', () async {
+      // Monday is behind Wednesday; Thursday and Friday are ahead.
+      await curry(0);
+      final thu = await curry(3);
+      await curry(4);
+      final next = await curry(3, week: DateTime(2026, 8, 31));
+      final pots = (await read()).pots;
+      expect(pots.map((p) => (p.id, p.since, p.cooked)), [
+        (thu, DateTime(2026, 8, 27), false),
+        (next, DateTime(2026, 9, 3), false),
+      ]);
+      expect(pots.first.plannedIn, _week);
+
+      // Next Thursday picked from this week's pot: it is born and linked.
+      final picked = await planning.addEntry(
+        weekStart: DateTime(2026, 8, 31),
+        dayOfWeek: 5,
+        mealSlot: 'Dinner',
+        recipeId: 'curry',
+        eaterIds: const ['a'],
+        cooking: thu,
+      );
+      final cooking = (await db.get(
+        'SELECT cooking FROM plan_entry WHERE id = ?',
+        [picked],
+      ))['cooking'];
+      expect(cooking, isNotNull);
+      final after = await read();
+      // This week's pot is a cooking now, not cooked yet; next week's is
+      // still a pot.
+      expect(after.pots.map((p) => p.id), [next]);
+      final row = after.rows.singleWhere((r) => r.id == cooking);
+      expect(row.cooked, isFalse);
+    });
+  });
+
   group('the tick path', () {
     test('a first tick births the group’s cooking and links the '
         'group; the page reads it', () async {
@@ -180,7 +218,7 @@ void main() {
       final undo = await repo.markLeftoversGone([
         (await shelves(today: saturday)).single,
       ]);
-      expect(undo.gone, [mon]);
+      expect(undo.gone, {mon: null});
       await tick(mon, 'b', ate: false);
       await tick(mon, 'b');
       expect(await shelves(today: saturday), isEmpty);
@@ -188,21 +226,78 @@ void main() {
       expect(await shelves(today: saturday), hasLength(1));
     });
 
-    test('Remove gone off on a fridge part leaves the freezer’s', () async {
-      final row = (await shelves()).single;
-      await repo.setLeftoverPortions(row, 3);
-      final halves = await shelves();
-      // Freeze two, by a change of their own.
-      await insertCookingChangeFor(db, mon, fridge: -2, freezer: 2);
-      final fridge = (await shelves(
-        today: DateTime(2026, 8, 29),
-      )).singleWhere((l) => l.place == LeftoverPlace.fridge);
-      expect(halves, hasLength(1));
-      final undo = await repo.markLeftoversGone([fridge]);
-      expect(undo.gone, isEmpty);
-      final left = await shelves(today: DateTime(2026, 8, 29));
-      expect(left.single.place, LeftoverPlace.freezer);
-      expect(left.single.inBox, 2);
+    test('Remove gone off on a fridge part leaves the freezer’s, and is '
+        'final: a late untick brings neither part back', () async {
+      final saturday = DateTime(2026, 8, 29);
+      // Said on Saturday, when the fridge part is past its date.
+      final onSaturday = SqliteLeftoverRepository(
+        db,
+        householdId: 'h',
+        clock: () => saturday,
+      );
+      // Two said into the freezer, and one more in the fridge; Ada ate
+      // hers too.
+      await insertCookingChangeFor(db, mon, fridge: 1, freezer: 2);
+      await tick(mon, 'a');
+      final rows = await shelves(today: saturday);
+      final fridge = rows.singleWhere((l) => l.place == LeftoverPlace.fridge);
+      expect(fridge.pastItsDate(saturday), isTrue);
+      final undo = await onSaturday.markLeftoversGone([fridge]);
+      expect(undo.gone, {mon: null});
+      expect(undo.changes, isEmpty);
+      Future<List<(LeftoverPlace, double)>> left() async => [
+        for (final l in await shelves(today: saturday)) (l.place, l.inBox),
+      ];
+      expect(await left(), [(LeftoverPlace.freezer, 2.0)]);
+      // Ada did not eat Monday's after all: her portion stays gone with the
+      // fridge part, and the freezer keeps what it had.
+      await tick(mon, 'a', ate: false);
+      expect(await left(), [(LeftoverPlace.freezer, 2.0)]);
+      // Undo puts the fridge part back, unticks and all.
+      await onSaturday.undoLeftovers(undo);
+      expect(
+        (await left()).map((r) => r.$1),
+        containsAll([LeftoverPlace.fridge, LeftoverPlace.freezer]),
+      );
+    });
+
+    test('Remove gone off a second time, when the freezer part has gone off '
+        'too, takes it all; its Undo puts back only the second', () async {
+      await insertCookingChangeFor(db, mon, freezer: 1);
+      final saturday = DateTime(2026, 8, 29);
+      final first =
+          await SqliteLeftoverRepository(
+            db,
+            householdId: 'h',
+            clock: () => saturday,
+          ).markLeftoversGone([
+            (await shelves(
+              today: saturday,
+            )).singleWhere((l) => l.place == LeftoverPlace.fridge),
+          ]);
+      final saidFirst = (await db.get(
+        'SELECT gone_at FROM cooking',
+      ))['gone_at'];
+      expect(first.gone, {mon: null});
+      // Freezer life is 90 days: by December it has gone off too.
+      final december = DateTime(2026, 12, 2);
+      final later = SqliteLeftoverRepository(
+        db,
+        householdId: 'h',
+        clock: () => december,
+      );
+      final freezer = (await shelves(today: december)).single;
+      expect(freezer.place, LeftoverPlace.freezer);
+      expect(freezer.pastItsDate(december), isTrue);
+      final second = await later.markLeftoversGone([freezer]);
+      expect(second.gone, {mon: saidFirst});
+      expect(await shelves(today: december), isEmpty);
+      await later.undoLeftovers(second);
+      expect(
+        (await db.get('SELECT gone_at FROM cooking'))['gone_at'],
+        saidFirst,
+      );
+      expect((await shelves(today: december)).single.place, freezer.place);
     });
   });
 

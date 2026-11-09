@@ -16,7 +16,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
-import '../../../core/units/portions.dart';
 import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
 import '../../../shared/ansi_micro_label.dart';
@@ -26,6 +25,7 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/domain/leftovers.dart';
+import '../../cook_plan/presentation/leftover_format.dart';
 import '../../cook_plan/presentation/leftovers_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
 import '../../ingredients/domain/ingredient.dart';
@@ -165,9 +165,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // A meal out's optional figures, as typed. Blank places the meal uncounted.
     final stated = useState(const MacroDraft());
 
-    // A dish in the freezer asks Frozen or Cook fresh, and answers neither
-    // for the household: null until one is picked.
-    final cookFresh = useState<bool?>(null);
+    // A dish with a pot to eat from asks From leftovers or Cook fresh, and
+    // answers neither for the household: null until one is picked.
+    final fromLeftovers = useState<bool?>(null);
 
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
@@ -184,28 +184,23 @@ class _ConfirmMealSheet extends HookConsumerWidget {
 
     // The batch strip is a recipe fact; a snack is not cooked, so it has none.
     final picked = target is RecipeMeal ? (target as RecipeMeal).recipe : null;
-    // The oldest freezer row of the dish picked that is good on the meal's
-    // day, if it has one.
+    // The first pot of the dish picked that the meal's day can eat from: in
+    // the fridge or the freezer, or planned and not cooked yet.
     final mealDay = DateTime(
       weekStart.year,
       weekStart.month,
       weekStart.day + dayOfWeek,
     );
     final today = ref.watch(todayProvider);
-    final frozen = picked == null
+    final pot = picked == null
         ? null
-        : (ref.watch(fridgeAndFreezerProvider).asData?.value ??
-                  const <Leftover>[])
-              .where(
-                (l) =>
-                    l.place == LeftoverPlace.freezer &&
-                    l.recipeId == picked.id &&
-                    leftoverOfferOn(l, mealDay, today) != null,
-              )
+        : ref
+              .watch(leftoversGoodOnProvider(mealDay))
+              .where((l) => l.recipeId == picked.id)
               .firstOrNull;
-    final fromFreezer = cookFresh.value == false ? frozen : null;
-    // Eaten from the freezer, it is not cooked: no batch strip.
-    final recipe = fromFreezer == null ? picked : null;
+    final fromPot = fromLeftovers.value ?? false ? pot : null;
+    // Eaten from a pot, it is not cooked for: no batch strip.
+    final recipe = fromPot == null ? picked : null;
     final plannedDays = recipe == null
         ? null
         : ref
@@ -227,10 +222,11 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           );
 
     // A leftover says what this meal leaves of it, at the meal's own demand.
+    // A pot not cooked yet makes this meal too: nothing to leave.
     final leftover = target is LeftoverMeal
         ? (target as LeftoverMeal).leftover
-        : fromFreezer;
-    final after = leftover == null
+        : fromPot;
+    final after = leftover == null || !leftover.cooked
         ? null
         : leftoverAfterLine(
             left: leftover.portions,
@@ -257,7 +253,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
             portions: portionsOverride.value,
-            cooking: fromFreezer?.id,
+            cooking: fromPot?.id,
           ),
           // Planned from a pot: the meal links to its cooking.
           LeftoverMeal(:final recipe, :final leftover) => repo.addEntry(
@@ -314,22 +310,24 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           final SnackMeal snack => MealSnackCard(snack: snack),
           OutMeal(:final label) => MealOutCard(label: label),
         },
-        if (frozen != null) ...[
+        if (pot != null) ...[
           const SizedBox(height: 14),
           Row(
             children: [
               _Choice(
-                label: 'Frozen',
-                detail: '${formatFraction(frozen.portions)} left',
-                selected: cookFresh.value == false,
-                frozen: true,
-                onTap: () => cookFresh.value = false,
+                label: 'From leftovers',
+                detail: pot.cooked
+                    ? leftCount(pot.portions)
+                    : potWhen(pot, today, shape),
+                selected: fromLeftovers.value ?? false,
+                frozen: pot.place == LeftoverPlace.freezer,
+                onTap: () => fromLeftovers.value = true,
               ),
               const SizedBox(width: 8),
               _Choice(
                 label: 'Cook fresh',
-                selected: cookFresh.value ?? false,
-                onTap: () => cookFresh.value = true,
+                selected: fromLeftovers.value == false,
+                onTap: () => fromLeftovers.value = false,
               ),
             ],
           ),
@@ -393,11 +391,11 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         ],
         const SizedBox(height: 20),
         FButton(
-          // A meal cannot eat more of a leftover than is left, and a dish in
-          // the freezer waits for Frozen or Cook fresh.
+          // A meal cannot eat more of a leftover than is left, and a dish
+          // with a pot waits for From leftovers or Cook fresh.
           onPress:
               (after?.tooMuch ?? false) ||
-                  (frozen != null && cookFresh.value == null)
+                  (pot != null && fromLeftovers.value == null)
               ? null
               : add,
           child: Text('Add to ${shape.labelFull(dayOfWeek)}'),
@@ -407,8 +405,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
   }
 }
 
-/// One of the two answers a dish in the freezer is asked: **Frozen** (blue,
-/// with what is left) or **Cook fresh**.
+/// One of the two answers a dish with a pot is asked: **From leftovers**
+/// (with what is left, or when it cooks; blue from the freezer) or **Cook
+/// fresh**.
 class _Choice extends StatelessWidget {
   const _Choice({
     required this.label,

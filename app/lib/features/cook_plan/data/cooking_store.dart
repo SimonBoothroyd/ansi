@@ -76,8 +76,10 @@ const _mealDate = "date(wp.week_start_date, '+' || pe.day_of_week || ' days')";
 /// and its recipe's shelf life: what [readCookings] reads. One flat read, no
 /// walk over weeks.
 ///
-/// [ids] narrows it to those cookings. With [today], a cooking said gone is
-/// read only while a meal from it is still to come, which it warns.
+/// [ids] narrows it to those cookings. With [today], a cooking said gone off
+/// is read only while a meal from it is still to come, which it warns, or
+/// while a freezer part of it could still be in date (a dish that freezes,
+/// or food said by hand into the freezer).
 Future<List<CookingInput>> loadCookingInputs(
   SqliteReadContext db, {
   Set<String>? ids,
@@ -87,10 +89,14 @@ Future<List<CookingInput>> loadCookingInputs(
   if (ids != null && ids.isEmpty) return const [];
   final marks = List.filled(idList.length, '?').join(', ');
   final onlyThese = ids == null ? '' : 'AND c.id IN ($marks) ';
-  // Gone: read only for the meals still to come from it, which it warns.
+  // Gone off: read only for the meals still to come from it, which it
+  // warns, or for a freezer part that may outlive the fridge part.
   final stillWarns = today == null
       ? ''
-      : 'AND (c.gone_at IS NULL OR EXISTS (SELECT 1 FROM plan_entry pe '
+      : "AND (c.gone_at IS NULL OR c.place = 'freezer' "
+            'OR EXISTS (SELECT 1 FROM recipe fr WHERE fr.id = c.recipe_id '
+            'AND fr.freezable = 1) '
+            'OR EXISTS (SELECT 1 FROM plan_entry pe '
             'JOIN week_plan wp ON wp.id = pe.week_plan_id '
             'WHERE pe.cooking = c.id AND pe.deleted_at IS NULL '
             'AND $_mealDate >= ?)) ';
@@ -165,6 +171,43 @@ Future<List<CookingInput>> loadCookingInputs(
         life: lives[r['recipe_id']],
         meals: meals[r['id']] ?? const <CookingMeal>[],
         changes: changes[r['id']] ?? (fridge: 0.0, freezer: 0.0),
+      ),
+  ];
+}
+
+/// Every planned recipe meal from [today] on that no cooking holds yet, in
+/// day order, with its recipe's shelf life: what the pots not born yet are
+/// read from ([plannedPots]). One flat read by date, no walk over weeks.
+Future<List<UnbornMeal>> loadUnbornMeals(
+  SqliteReadContext db,
+  DateTime today,
+) async {
+  final rows = await db.getAll(
+    'SELECT pe.id, pe.recipe_id, pe.day_of_week, wp.week_start_date, '
+    'r.title, r.keeps_for_days, r.freezable, r.freezer_days '
+    'FROM plan_entry pe '
+    'JOIN week_plan wp ON wp.id = pe.week_plan_id AND wp.deleted_at IS NULL '
+    'JOIN recipe r ON r.id = pe.recipe_id AND r.deleted_at IS NULL '
+    'WHERE pe.deleted_at IS NULL AND pe.instead_of IS NULL '
+    'AND pe.cooking IS NULL AND pe.recipe_id IS NOT NULL '
+    'AND $_mealDate >= ? '
+    'ORDER BY wp.week_start_date, pe.day_of_week, pe.sort_order, '
+    'pe.created_at, pe.id',
+    [isoDateOf(today)],
+  );
+  return [
+    for (final r in rows)
+      (
+        entryId: r['id'] as String,
+        recipeId: r['recipe_id'] as String,
+        weekStart: DateTime.parse(r['week_start_date'] as String),
+        dayOfWeek: r['day_of_week'] as int,
+        life: (
+          title: r['title'] as String,
+          keepsForDays: r['keeps_for_days'] as int?,
+          freezable: (r['freezable'] as int? ?? 0) == 1,
+          freezerDays: r['freezer_days'] as int?,
+        ),
       ),
   ];
 }

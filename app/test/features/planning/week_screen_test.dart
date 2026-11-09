@@ -753,11 +753,56 @@ void main() {
     expect(find.text('Add to plan'), findsOneWidget, reason: 'confirm sheet');
   });
 
-  group('a dish in the freezer', () {
-    /// The freezer holds [portions] of the curry the flow picks.
+  testWidgets('a long dish name wraps under itself, never on into the slot '
+      'label beside its second line', (tester) async {
+    // A phone's width, give or take the test font's wider letters.
+    tester.view.physicalSize = const Size(440, 874);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const title = 'Grandma’s Slow Sunday Hamburger Helper';
+    await _pumpWeek(
+      tester,
+      planning: _FakePlanningRepo(
+        week: WeekPlan(
+          id: 'w',
+          weekStart: DateTime.utc(2026, 8, 24),
+          entries: const [
+            PlanEntry(
+              id: 'e1',
+              dayOfWeek: 0,
+              mealSlot: 'Breakfast',
+              recipeId: 'r1',
+              recipeTitle: title,
+              eaterIds: ['m1'],
+            ),
+          ],
+        ),
+      ),
+      recipes: _recipesRepo(null),
+    );
+    final name = tester.getRect(find.text(title));
+    final label = tester.getRect(find.text('BREAKFAST'));
+    // The name wraps: two lines at least.
+    expect(name.height, greaterThan(30));
+    // The label stands level with its first line, not its middle.
+    expect(label.center.dy, lessThan(name.top + name.height / 2 - 4));
+    expect(label.height, lessThan(16), reason: 'the label never wraps');
+  });
+
+  group('a dish with a pot to eat from', () {
+    /// The morning of this week's Monday, so Thursday's meal is ahead.
+    final monday = WeekShape.monday
+        .weekStartOf(DateTime.now())
+        .add(const Duration(hours: 9));
+    final mondayDate = DateTime(monday.year, monday.month, monday.day);
+    DateTime day(int offset) =>
+        DateTime(monday.year, monday.month, monday.day + offset);
+
+    /// Opens Thursday's confirm sheet for the curry, with [pot] the household
+    /// can eat from.
     Future<_FakePlanningRepo> openConfirm(
       WidgetTester tester, {
-      double portions = 2,
+      required Leftover pot,
     }) async {
       filterForuiSemanticsAssertions();
       final planning = _FakePlanningRepo(week: _plannedWeek());
@@ -766,18 +811,9 @@ void main() {
         planning: planning,
         recipes: _recipesRepo(null),
         extra: [
+          clockProvider.overrideWithValue(() => monday),
           leftoverRepositoryProvider.overrideWithValue(
-            FakeLeftoverRepository([
-              Leftover(
-                id: 'f1',
-                place: LeftoverPlace.freezer,
-                recipeId: 'r1',
-                title: 'Weeknight Chicken Curry',
-                since: DateTime(2026, 8, 10),
-                goodUntil: null,
-                box: portions,
-              ),
-            ]),
+            FakeLeftoverRepository([pot]),
           ),
         ],
       );
@@ -788,6 +824,16 @@ void main() {
       return planning;
     }
 
+    Leftover frozen({double portions = 2}) => Leftover(
+      id: 'f1',
+      place: LeftoverPlace.freezer,
+      recipeId: 'r1',
+      title: 'Weeknight Chicken Curry',
+      since: mondayDate.subtract(const Duration(days: 30)),
+      goodUntil: null,
+      box: portions,
+    );
+
     Future<void> add(WidgetTester tester) async {
       await tester.ensureVisible(find.text('Add to Thursday'));
       await tester.pumpAndSettle();
@@ -795,14 +841,14 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('asks Frozen or Cook fresh, picks neither, and Frozen plans '
-        'the meal from the freezer row', (tester) async {
-      final planning = await openConfirm(tester);
-      expect(find.text('Frozen'), findsOneWidget);
+    testWidgets('asks From leftovers or Cook fresh, picks neither, and From '
+        'leftovers plans the meal from the pot', (tester) async {
+      final planning = await openConfirm(tester, pot: frozen());
+      expect(find.text('From leftovers'), findsOneWidget);
       expect(find.text('2 left'), findsOneWidget);
       expect(find.text('Cook fresh'), findsOneWidget);
       // Nothing is picked for the household, so Add waits.
-      for (final choice in ['Frozen', 'Cook fresh']) {
+      for (final choice in ['From leftovers', 'Cook fresh']) {
         expect(
           tester.getSemantics(find.bySemanticsLabel(RegExp('^$choice'))),
           isNot(matchesSemantics(isSelected: true)),
@@ -811,28 +857,72 @@ void main() {
       await add(tester);
       expect(planning.recipeEntries, isEmpty);
 
-      await tester.tap(find.text('Frozen'));
+      await tester.tap(find.text('From leftovers'));
       await tester.pumpAndSettle();
       await add(tester);
       expect(planning.recipeEntries.single.cooking, 'f1');
     });
 
     testWidgets('Cook fresh plans a meal to cook', (tester) async {
-      final planning = await openConfirm(tester);
+      final planning = await openConfirm(tester, pot: frozen());
       await tester.tap(find.text('Cook fresh'));
       await tester.pumpAndSettle();
       await add(tester);
       expect(planning.recipeEntries.single.cooking, isNull);
     });
 
-    testWidgets('Frozen cannot take more than is left', (tester) async {
-      final planning = await openConfirm(tester, portions: 1);
+    testWidgets('From leftovers cannot take more than is left', (tester) async {
+      final planning = await openConfirm(tester, pot: frozen(portions: 1));
       // Ada and Jun both eat: two portions from one.
-      await tester.tap(find.text('Frozen'));
+      await tester.tap(find.text('From leftovers'));
       await tester.pumpAndSettle();
       await add(tester);
       expect(find.text('only 1 portion left'), findsOneWidget);
       expect(planning.recipeEntries, isEmpty);
+    });
+
+    testWidgets('a fridge pot asks too', (tester) async {
+      await openConfirm(
+        tester,
+        pot: Leftover(
+          id: 'c1',
+          place: LeftoverPlace.fridge,
+          recipeId: 'r1',
+          title: 'Weeknight Chicken Curry',
+          since: mondayDate,
+          goodUntil: day(4),
+          box: 3,
+        ),
+      );
+      expect(find.text('From leftovers'), findsOneWidget);
+      expect(find.text('3 left'), findsOneWidget);
+    });
+
+    testWidgets('a pot not cooked yet says when it cooks, and From leftovers '
+        'adds the meal to it, whatever it has free', (tester) async {
+      final planning = await openConfirm(
+        tester,
+        pot: Leftover(
+          id: 'u1',
+          place: LeftoverPlace.fridge,
+          recipeId: 'r1',
+          title: 'Weeknight Chicken Curry',
+          since: day(1),
+          goodUntil: day(4),
+          box: 2,
+          planned: 2,
+          cooked: false,
+        ),
+      );
+      expect(find.text('cooks Tue'), findsOneWidget);
+      await tester.tap(find.text('From leftovers'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(RegExp('after this|uses all|portions? left')),
+        findsNothing,
+      );
+      await add(tester);
+      expect(planning.recipeEntries.single.cooking, 'u1');
     });
   });
 

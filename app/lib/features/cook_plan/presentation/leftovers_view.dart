@@ -73,12 +73,12 @@ class LeftoversView extends ConsumerWidget {
           stackTrace: st,
           onRetry: () => ref.invalidate(leftoverShelvesProvider),
         ),
-        // A batch not cooked yet is offered for planning, but not in the
-        // fridge.
+        // A pot not cooked yet is offered for planning, but is not in the
+        // fridge, even on the day it cooks.
         data: (all) => _Shelves(
           rows: [
             for (final l in all)
-              if (l.isCookedBy(ref.watch(todayProvider))) l,
+              if (l.cooked && l.isCookedBy(ref.watch(todayProvider))) l,
           ],
         ),
       ),

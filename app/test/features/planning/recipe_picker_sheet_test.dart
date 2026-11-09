@@ -124,6 +124,7 @@ Widget _host({
   bool instead = false,
   DateTime? weekStart,
   List<Leftover> leftovers = const [],
+  List<Leftover> pots = const [],
   DateTime? now,
   UseUpFacts spare = (spare: const [], recipes: const []),
 }) => ProviderScope(
@@ -131,7 +132,7 @@ Widget _host({
     useUpRepositoryProvider.overrideWithValue(_FakeUseUp(spare)),
     cookPlanRepositoryProvider.overrideWithValue(FakeCookPlanRepository()),
     leftoverRepositoryProvider.overrideWithValue(
-      FakeLeftoverRepository(leftovers),
+      FakeLeftoverRepository(leftovers, const {}, pots),
     ),
     weekShapeProvider.overrideWithValue(WeekShape.monday),
     if (now != null) clockProvider.overrideWithValue(() => now),
@@ -524,13 +525,50 @@ void main() {
       void Function(PickedMeal?)? onPicked,
       bool instead = false,
       List<Leftover>? leftovers,
+      List<Leftover> pots = const [],
     }) => _host(
       onPicked: onPicked,
       instead: instead,
       weekStart: DateTime.utc(2026, 11, 2),
       leftovers: leftovers ?? [curry, dal, chili, stew, soup],
+      pots: pots,
       now: DateTime(2026, 11, 1, 10),
     );
+
+    testWidgets('offers a dish planned last week and not cooked yet by when '
+        'it cooks, and picks it as a pot', (tester) async {
+      filterForuiSemanticsAssertions();
+      PickedMeal? picked;
+      // Monday's ragù, planned in a week before (from Monday 26 October),
+      // keeps a day and freezes: Wednesday reaches it from the freezer.
+      final ragu = Leftover(
+        id: 'mon-meal',
+        place: LeftoverPlace.fridge,
+        recipeId: 'r1',
+        title: 'Beef Ragù',
+        since: DateTime(2026, 11, 2),
+        goodUntil: DateTime(2026, 11, 3),
+        box: 0,
+        freezable: true,
+        freezerUntil: DateTime(2026, 12, 31),
+        cooked: false,
+        plannedIn: DateTime(2026, 10, 26),
+      );
+      await tester.pumpWidget(
+        host(onPicked: (p) => picked = p, leftovers: const [], pots: [ragu]),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Beef Ragù'), findsOneWidget);
+      expect(find.text('cooks Mon ·'), findsOneWidget);
+      expect(find.text('freeze by Tue'), findsOneWidget);
+      // Nothing to count yet, and not a leftover yet.
+      expect(find.textContaining('left'), findsNothing);
+      await tester.tap(find.text('Beef Ragù'));
+      await tester.pumpAndSettle();
+      final pot = (picked! as PickedLeftover).leftover;
+      expect((pot.id, pot.cooked), ('mon-meal', false));
+    });
 
     testWidgets('lists the fridge rows good for the day, then the freezer, '
         'and picks either as a leftover', (tester) async {

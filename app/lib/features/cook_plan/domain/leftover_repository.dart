@@ -9,9 +9,10 @@ library;
 
 import 'leftovers.dart';
 
-/// What a write did, for its Undo: the change rows it wrote and the
-/// cookings it said were gone.
-typedef LeftoverUndo = ({List<String> changes, List<String> gone});
+/// What a write did, for its Undo: the change rows it wrote, and the
+/// cookings it said were gone off, each with the `gone_at` it had before
+/// (null when it had none).
+typedef LeftoverUndo = ({List<String> changes, Map<String, String?> gone});
 
 abstract interface class LeftoverRepository {
   /// The household's leftovers on [today], fridge first, and every meal
@@ -28,14 +29,15 @@ abstract interface class LeftoverRepository {
   /// other. Its dates still count from its cook day.
   Future<LeftoverUndo> freezeLeftover(Leftover left);
 
-  /// Says every one of [lefts] has gone off. A cooking whose every shelf is
-  /// in the list is gone for good (`gone_at`: an untick never brings it
-  /// back); one with food left on the other shelf has these shelves counted
-  /// to nothing instead.
+  /// Says every one of [lefts], each past its date, has gone off: final, an
+  /// untick after it never brings any of it back. Its cooking's `gone_at` is
+  /// set: the fridge part is gone for good, and the freezer part too unless
+  /// it is still in date that day ([readCooking]). A freezer part gone off
+  /// beside a fridge part still in date is counted to nothing instead.
   Future<LeftoverUndo> markLeftoversGone(List<Leftover> lefts);
 
   /// Takes back what [undo] names: its change rows soft-deleted, its
-  /// cookings no longer gone.
+  /// cookings' `gone_at` as it was before.
   Future<void> undoLeftovers(LeftoverUndo undo);
 
   /// Adds food the app never saw: a recipe or the household's own [label],

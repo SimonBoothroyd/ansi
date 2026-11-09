@@ -184,9 +184,12 @@ class Leftover {
     this.freezeBy,
     this.meals = const [],
     this.alsoOnOtherShelf = false,
+    this.cooked = true,
+    this.plannedIn,
   });
 
-  /// The cooking's id: both its shelves share it.
+  /// The cooking's id: both its shelves share it. For a pot not born yet
+  /// ([plannedIn]), its first meal's id, which a pick births it under.
   final String id;
 
   /// Which shelf this is.
@@ -244,6 +247,15 @@ class Leftover {
   /// shelf's food must leave that.
   final bool alsoOnOtherShelf;
 
+  /// Whether anybody ticked a meal of it, or it was said by hand. A pot not
+  /// cooked yet ([since] is the day it will be) holds nothing to eat: a meal
+  /// picked from it adds to what it makes.
+  final bool cooked;
+
+  /// For a pot not born yet (planned meals no cooking holds), the first day
+  /// of the week its meals are planned in; null for a cooking.
+  final DateTime? plannedIn;
+
   /// Whether it has been cooked by [today]: a cooking not cooked yet is
   /// offered for a day from its cook day on, but is not in the fridge.
   bool isCookedBy(DateTime today) => !since.isAfter(_dateOnly(today));
@@ -287,12 +299,14 @@ class Leftover {
     freezeBy: goodUntil,
     meals: meals,
     alsoOnOtherShelf: alsoOnOtherShelf,
+    cooked: cooked,
+    plannedIn: plannedIn,
   );
 
   @override
   String toString() =>
       'Leftover(${place.name}: $title, box $box, spoken $planned, '
-      'since $since, until $goodUntil)';
+      'since $since, until $goodUntil${cooked ? '' : ', not cooked'})';
 }
 
 /// [left] as the planning picker offers it for a meal on [day], or null when
@@ -303,9 +317,13 @@ class Leftover {
 /// offered from the fridge. One past its fridge date by then, of a dish that
 /// freezes and would be in date frozen, is offered under Freezer, to be
 /// frozen by its fridge date ([Leftover.frozenForLater]).
+///
+/// A pot not cooked yet ([Leftover.cooked]) is offered whatever it has free:
+/// a meal picked from it adds its portions to what it makes. It is offered
+/// from its cook day on, for as long as it would keep.
 Leftover? leftoverOfferOn(Leftover left, DateTime day, DateTime today) {
   if (left.recipeId == null ||
-      left.portions <= 1e-9 ||
+      (left.cooked && left.portions <= 1e-9) ||
       left.pastItsDate(today)) {
     return null;
   }
@@ -321,7 +339,11 @@ Leftover? leftoverOfferOn(Leftover left, DateTime day, DateTime today) {
 /// id.
 @immutable
 class LeftoverShelves {
-  const LeftoverShelves({this.rows = const [], this.meals = const {}});
+  const LeftoverShelves({
+    this.rows = const [],
+    this.meals = const {},
+    this.pots = const [],
+  });
 
   /// Fridge first, then freezer; within each, soonest to go off first and
   /// past its date last.
@@ -331,6 +353,76 @@ class LeftoverShelves {
   /// day, by `plan_entry` id: the Week's tag. A meal of a cooking that is
   /// gone or was never cooked is here too, warned.
   final Map<String, LeftoverMeal> meals;
+
+  /// Pots not born yet: planned meals from today on that no cooking holds,
+  /// grouped as they would be born ([plannedPots]). Never on the Leftovers
+  /// page; the picker offers them for a later week.
+  final List<Leftover> pots;
+}
+
+/// One planned recipe meal from today on that no cooking holds yet: what a
+/// pot not born yet is read from.
+typedef UnbornMeal = ({
+  String entryId,
+  String recipeId,
+  DateTime weekStart,
+  int dayOfWeek,
+  CookingShelfLife life,
+});
+
+/// The pots not born yet among [meals]: each week's meals of a recipe grouped
+/// by shelf life as a birth would group them ([clusterSessions]), one row per
+/// group, under its first meal's id. Not cooked: its [Leftover.since] is that
+/// first meal's day, and it keeps from then as a cooking would.
+List<Leftover> plannedPots(List<UnbornMeal> meals) {
+  final groups = <String, List<UnbornMeal>>{};
+  for (final m in meals) {
+    final week = _dateOnly(m.weekStart);
+    (groups['${week.toIso8601String()} ${m.recipeId}'] ??= []).add(m);
+  }
+  final pots = <Leftover>[];
+  for (final group in groups.values) {
+    final first = group.first;
+    final life = first.life;
+    final sessions = clusterSessions(
+      PlannedRecipe(
+        recipeId: first.recipeId,
+        title: life.title,
+        servingsBase: 1,
+        keepsForDays: life.keepsForDays,
+        freezable: life.freezable,
+        freezerDays: life.freezerDays,
+        meals: [
+          for (final m in group)
+            CoveredMeal(
+              dayOfWeek: m.dayOfWeek,
+              mealSlot: '',
+              portions: 1,
+              entryId: m.entryId,
+            ),
+        ],
+      ),
+    );
+    for (final s in sessions) {
+      final since = dateOfDay(_dateOnly(first.weekStart), s.cookDay);
+      pots.add(
+        Leftover(
+          id: s.covers.first.entryId!,
+          place: LeftoverPlace.fridge,
+          recipeId: first.recipeId,
+          title: life.title,
+          since: since,
+          goodUntil: _plus(since, life.keepsForDays ?? kAssumedFridgeDays),
+          box: 0,
+          freezable: life.freezable,
+          freezerUntil: life.freezable ? _plus(since, life.freezerDays) : null,
+          cooked: false,
+          plannedIn: _dateOnly(first.weekStart),
+        ),
+      );
+    }
+  }
+  return pots;
 }
 
 /// One cooking as the shelves read it: the stored row, its recipe's shelf
@@ -355,8 +447,13 @@ typedef CookingRead = ({
 
 /// The household's leftovers on [today], from every cooking read
 /// ([readCooking]): rows soonest to go off first, and every linked meal
-/// judged.
-LeftoverShelves readCookings(List<CookingInput> cookings, DateTime today) {
+/// judged. [unborn] are the planned meals no cooking holds yet, read as pots
+/// ([plannedPots]).
+LeftoverShelves readCookings(
+  List<CookingInput> cookings,
+  DateTime today, {
+  List<UnbornMeal> unborn = const [],
+}) {
   final day = _dateOnly(today);
   final rows = <Leftover>[];
   final meals = <String, LeftoverMeal>{};
@@ -382,7 +479,11 @@ LeftoverShelves readCookings(List<CookingInput> cookings, DateTime today) {
     final since = a.since.compareTo(b.since);
     return since != 0 ? since : a.title.compareTo(b.title);
   });
-  return LeftoverShelves(rows: List.unmodifiable(rows), meals: meals);
+  return LeftoverShelves(
+    rows: List.unmodifiable(rows),
+    meals: meals,
+    pots: List.unmodifiable(plannedPots(unborn)),
+  );
 }
 
 /// What one cooking holds on [today], and how each of its meals stands.
@@ -398,8 +499,11 @@ LeftoverShelves readCookings(List<CookingInput> cookings, DateTime today) {
 ///   every date takes from the fridge, `past its date`.
 /// - Counts are kept unclamped, so an untick reverses exactly; a row shows
 ///   while its shelf holds anything or a meal still to come takes from it.
-/// - A cooking said gone shows nothing, and the meals still to come from it
-///   warn; one never cooked shows nothing, and every meal from it warns.
+/// - A cooking said gone off (`gone_at`) loses its fridge part for good: an
+///   untick after it brings nothing back. Its freezer part goes too unless
+///   it was still in date that day; with nothing left, the cooking shows
+///   nothing and the meals still to come from it warn. One never
+///   cooked shows nothing, and every meal from it warns.
 CookingRead readCooking(CookingInput input, DateTime today) {
   final day = _dateOnly(today);
   final cooking = input.cooking;
@@ -435,17 +539,6 @@ CookingRead readCooking(CookingInput input, DateTime today) {
       freezer: 0,
     );
   }
-  if (cooking.goneAt != null) {
-    return (
-      rows: const [],
-      meals: [
-        for (final m in meals)
-          if (!_dateOnly(m.day).isBefore(day)) warned(m),
-      ],
-      fridge: 0,
-      freezer: 0,
-    );
-  }
 
   final title = life?.title ?? cooking.label!;
   final base = cooking.place ?? LeftoverPlace.fridge;
@@ -459,6 +552,31 @@ CookingRead readCooking(CookingInput input, DateTime today) {
   final freezerUntil = freezable || !inFridge
       ? _plus(cookDay, life?.freezerDays)
       : null;
+
+  // Said gone off: the fridge part is gone for good, whatever is ticked or
+  // unticked after. A freezer part still in date that day stays: only what
+  // had gone off was said gone. Freezer life runs months, so a cook day an
+  // untick moves later does not move that line.
+  var fridgeGone = false;
+  if (cooking.goneAt case final goneAt?) {
+    final goneDay = _dateOnly(goneAt.toLocal());
+    final freezerKeeps =
+        (freezable || !inFridge) &&
+        (freezerUntil == null || !goneDay.isAfter(freezerUntil));
+    if (!freezerKeeps) {
+      return (
+        rows: const [],
+        meals: [
+          for (final m in meals)
+            if (!_dateOnly(m.day).isBefore(day)) warned(m),
+        ],
+        fridge: 0,
+        freezer: 0,
+      );
+    }
+    fridgeGone = true;
+  }
+  final cooked = cookDayOfCooking(cooking, meals) != null;
   // The assumed freeze happens by the fridge date: until then a freezer
   // meal's portions are still in the fridge.
   final freezePending = fridgeUntil != null && !day.isAfter(fridgeUntil);
@@ -551,9 +669,10 @@ CookingRead readCooking(CookingInput input, DateTime today) {
     ));
   }
 
-  final fridgeBox = fridge + spokenFridge;
+  // A fridge part said gone off holds nothing, and shows nothing, ever.
+  final fridgeBox = fridgeGone ? 0.0 : fridge + spokenFridge;
   final freezerBox = freezer + spokenFreezer;
-  final showFridge = fridgeBox > 1e-9 || spokenFridge > 1e-9;
+  final showFridge = !fridgeGone && (fridgeBox > 1e-9 || spokenFridge > 1e-9);
   final showFreezer = freezerBox > 1e-9 || spokenFreezer > 1e-9;
   List<LeftoverMeal> on({required bool fridgeRow}) => [
     for (final j in judged)
@@ -579,6 +698,7 @@ CookingRead readCooking(CookingInput input, DateTime today) {
             : null,
         meals: List.unmodifiable(fridgeMeals),
         alsoOnOtherShelf: showFreezer,
+        cooked: cooked,
       ),
     if (showFreezer)
       Leftover(
@@ -594,6 +714,7 @@ CookingRead readCooking(CookingInput input, DateTime today) {
         freezerUntil: freezerUntil,
         meals: List.unmodifiable(on(fridgeRow: false)),
         alsoOnOtherShelf: showFridge,
+        cooked: cooked,
       ),
   ];
   return (

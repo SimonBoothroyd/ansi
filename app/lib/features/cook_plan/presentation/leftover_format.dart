@@ -14,24 +14,41 @@ String leftCount(double portions) => '${formatFraction(portions)} left';
 /// `till Mon`, `till Jan`, `past its date`, `freeze by Mon`: a row's date,
 /// that it is behind it, or — offered under Freezer for a later day — when it
 /// has to go in. A row with no date (in words, or a freezer with no limit)
-/// says its age.
+/// says its age. A pot not cooked yet says when it cooks ([potWhen]).
 String leftoverWhen(Leftover left, DateTime today, WeekShape shape) {
+  if (!left.cooked) return potWhen(left, today, shape);
   if (left.pastItsDate(today)) return 'past its date';
   final freezeBy = left.freezeBy;
   if (left.place == LeftoverPlace.freezer && freezeBy != null) {
     return 'freeze by ${leftoverDay(freezeBy, today, shape)}';
   }
   final until = left.goodUntil;
-  if (until != null) return leftoverTill(until, today, shape);
+  if (until != null) {
+    return leftoverTill(
+      until,
+      today,
+      shape,
+      frozen: left.place == LeftoverPlace.freezer,
+    );
+  }
   return leftoverAge(left.since, today);
 }
 
-/// `till today`, `till Mon` within the coming week, `till 21 Nov` within the
-/// month, `till Jan` past it.
-String leftoverTill(DateTime until, DateTime today, WeekShape shape) =>
-    _daysBetween(today, until) < 28
-    ? 'till ${leftoverDay(until, today, shape)}'
-    : 'till ${formatMonthShort(until)}';
+/// `cooks Sat`: when a pot not cooked yet will be, by [leftoverDay].
+String potWhen(Leftover left, DateTime today, WeekShape shape) =>
+    'cooks ${leftoverDay(left.since, today, shape)}';
+
+/// `till today`, `till Mon` within the coming six days, else `till 15 Nov`
+/// from the fridge and `till Jan` from the freezer ([frozen]), whose dates
+/// run months out.
+String leftoverTill(
+  DateTime until,
+  DateTime today,
+  WeekShape shape, {
+  bool frozen = false,
+}) => frozen && _daysBetween(today, until) >= 7
+    ? 'till ${formatMonthShort(until)}'
+    : 'till ${leftoverDay(until, today, shape)}';
 
 /// `for Sun`, `for Sat + Sun`: the days of the meals still to come that are
 /// served from [left] where it is, but for those [leftoverShortFor] says.
@@ -140,18 +157,40 @@ String weekdayFrom(DateTime weekStart, DateTime day, WeekShape shape) {
 }
 
 /// `2 left · till Mon`, `2 left · freeze by Mon`: what can still be planned
-/// from [left], and [leftoverWhen].
-String leftoverLine(Leftover left, DateTime today, WeekShape shape) =>
-    '${leftCount(left.portions)} · ${leftoverWhen(left, today, shape)}';
-
-/// `cooked today`, `cooked Fri` within the week gone, `cooked 21 Oct` before
-/// it.
-String cookedOn(DateTime since, DateTime today, WeekShape shape) {
-  final days = _daysBetween(since, today);
-  if (days <= 0) return 'cooked today';
-  if (days < 7) return 'cooked ${shape.labelShort(shape.offsetOf(since))}';
-  return 'cooked ${formatDayMonth(since)}';
+/// from [left], and [leftoverWhen]. A pot not cooked yet has nothing to count
+/// yet: `cooks Sat`, with `freeze by Tue` when it is offered for a day it
+/// reaches from the freezer.
+String leftoverLine(Leftover left, DateTime today, WeekShape shape) {
+  if (!left.cooked) {
+    final by = left.place == LeftoverPlace.freezer ? left.freezeBy : null;
+    return [
+      potWhen(left, today, shape),
+      if (by != null) 'freeze by ${leftoverDay(by, today, shape)}',
+    ].join(' · ');
+  }
+  return '${leftCount(left.portions)} · ${leftoverWhen(left, today, shape)}';
 }
+
+/// `cooked today`, `cooked Fri` earlier this week, `cooked last Sat` in the
+/// week before, `cooked 21 Oct` before that. Weeks are today's, by [shape].
+String cookedOn(DateTime since, DateTime today, WeekShape shape) {
+  if (_daysBetween(since, today) <= 0) return 'cooked today';
+  final day = shape.labelShort(shape.offsetOf(since));
+  return switch (_daysBetween(
+        shape.weekStartOf(since),
+        shape.weekStartOf(today),
+      ) ~/
+      7) {
+    0 => 'cooked $day',
+    1 => 'cooked last $day',
+    _ => 'cooked ${formatDayMonth(since)}',
+  };
+}
+
+/// Where a meal's pot stands: `cooked last Sat` once cooked ([cookedOn]),
+/// `cooks Sat` before ([potWhen]).
+String potCookedLine(Leftover pot, DateTime today, WeekShape shape) =>
+    pot.cooked ? cookedOn(pot.since, today, shape) : potWhen(pot, today, shape);
 
 /// `today`, `1 day`, `4 days`, `1 wk`, `6 wk`: how long since [since].
 String leftoverAge(DateTime since, DateTime today) {

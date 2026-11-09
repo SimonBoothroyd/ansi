@@ -192,6 +192,73 @@ void main() {
     expect(find.text('plan a meal'), findsOneWidget);
   });
 
+  group('a meal eaten from last week’s cooking', () {
+    /// Last week's Saturday ragù (day -2 from this Monday), ticked, with
+    /// this Thursday's meal picked from it; [ticked] false, nobody ate
+    /// Saturday's.
+    CookPlan plan({bool ticked = true}) => CookPlan(
+      eatenFromEarlier: {
+        'thu': CookSession(
+          recipeId: 'ragu',
+          recipeTitle: 'Beef Ragù',
+          servingsBase: 4,
+          cookDay: -2,
+          keepsForDays: 3,
+          freezable: true,
+          cookingId: 'sat',
+          covers: [
+            CoveredMeal(
+              dayOfWeek: -2,
+              mealSlot: 'Dinner',
+              portions: 2,
+              entryId: 'sat',
+              eatenPortions: ticked ? 2 : 0,
+            ),
+            const CoveredMeal(
+              dayOfWeek: 3,
+              mealSlot: 'Dinner',
+              portions: 2,
+              entryId: 'thu',
+            ),
+          ],
+        ),
+      },
+    );
+
+    Future<void> pump(WidgetTester tester, CookPlan plan) async {
+      await tester.pumpWidget(
+        _host([
+          cookPlanRepositoryProvider.overrideWithValue(
+            FakeCookPlanRepository(plan),
+          ),
+          leftoverRepositoryProvider.overrideWithValue(
+            FakeLeftoverRepository(const [], {
+              'thu': LeftoverMeal(
+                entryId: 'thu',
+                day: DateTime.now(),
+                portions: 2,
+                place: LeftoverPlace.freezer,
+              ),
+            }),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('is one line, with no reminder, and the week is not '
+        'empty', (tester) async {
+      await pump(tester, plan());
+      expect(find.text('Beef Ragù · Thu · from the freezer'), findsOneWidget);
+      expect(find.text('nothing planned yet'), findsNothing);
+    });
+
+    testWidgets('cooks it when nobody ate Saturday’s', (tester) async {
+      await pump(tester, plan(ticked: false));
+      expect(find.text('Beef Ragù · Thu · cook it'), findsOneWidget);
+    });
+  });
+
   testWidgets('a split recipe is two sessions, each with its own strip', (
     tester,
   ) async {

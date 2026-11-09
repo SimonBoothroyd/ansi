@@ -176,6 +176,14 @@ void main() {
     expect(find.text('from Wednesday’s batch'), findsOneWidget);
   });
 
+  testWidgets('a meal before its batch is cooked never says it is from '
+      'it', (tester) async {
+    // Saturday: Wednesday skipped, Friday ticked. Wednesday's sheet.
+    final plan = _LivePlan()..emit(_helper({4: 2}));
+    await _open(tester, entry: _entry(2), now: _on(5, 10), plan: plan);
+    expect(find.textContaining('batch'), findsNothing);
+  });
+
   testWidgets('the meal that cooks for next week says so', (tester) async {
     final plan = _LivePlan()..emit(_helper(const {}, nextWeek: [3]));
     // Monday morning: Wednesday is the cook day.
@@ -217,6 +225,55 @@ void main() {
       ],
     );
     expect(find.text('cooked Fri · freeze by Mon'), findsOneWidget);
+  });
+
+  /// Opens Thursday's meal, eaten from [pot], on Monday morning.
+  Future<void> openFrom(WidgetTester tester, Leftover pot) => _open(
+    tester,
+    entry: _entry(3, cooking: pot.id),
+    now: _on(0, 9),
+    extra: [
+      leftoverRepositoryProvider.overrideWithValue(
+        FakeLeftoverRepository(
+          [pot],
+          {
+            'e3': LeftoverMeal(
+              entryId: 'e3',
+              day: _on(3),
+              portions: 2,
+              place: LeftoverPlace.freezer,
+            ),
+          },
+        ),
+      ),
+    ],
+  );
+
+  Leftover ragu({required DateTime since, bool cooked = true}) => Leftover(
+    id: 'sat',
+    place: LeftoverPlace.freezer,
+    recipeId: 'hh',
+    title: 'Hamburger Helper',
+    since: since,
+    goodUntil: since.add(const Duration(days: 30)),
+    box: 2,
+    planned: 2,
+    freezable: true,
+    cooked: cooked,
+  );
+
+  testWidgets('a meal from last week’s cooking names the week', (tester) async {
+    await openFrom(tester, ragu(since: _on(-2)));
+    expect(find.text('cooked last Sat'), findsOneWidget);
+    expect(find.text('leftover'), findsOneWidget);
+  });
+
+  testWidgets('a meal from a pot not cooked yet says when it cooks', (
+    tester,
+  ) async {
+    await openFrom(tester, ragu(since: _on(1), cooked: false));
+    expect(find.text('cooks Tue'), findsOneWidget);
+    expect(find.textContaining('cooked'), findsNothing);
   });
 
   testWidgets('Cook fresh instead says so, and its Undo eats from the '

@@ -6,7 +6,11 @@ import 'package:ansi/features/cook_plan/domain/leftover_repository.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 
 class FakeLeftoverRepository implements LeftoverRepository {
-  FakeLeftoverRepository([this.rows = const [], this.meals = const {}]);
+  FakeLeftoverRepository([
+    this.rows = const [],
+    this.meals = const {},
+    this.pots = const [],
+  ]);
 
   /// What [watchHouseholdLeftovers] hands out, whatever the day.
   final List<Leftover> rows;
@@ -14,9 +18,12 @@ class FakeLeftoverRepository implements LeftoverRepository {
   /// The meals served from a cooking, by entry id, beside [rows].
   final Map<String, LeftoverMeal> meals;
 
+  /// The pots not born yet, beside [rows].
+  final List<Leftover> pots;
+
   @override
   Stream<LeftoverShelves> watchHouseholdLeftovers({required DateTime today}) =>
-      Stream.value(LeftoverShelves(rows: rows, meals: meals));
+      Stream.value(LeftoverShelves(rows: rows, meals: meals, pots: pots));
 
   /// Every `(row, portions)` handed to [setLeftoverPortions].
   final portionWrites = <(Leftover, double)>[];
@@ -46,13 +53,16 @@ class FakeLeftoverRepository implements LeftoverRepository {
   @override
   Future<LeftoverUndo> freezeLeftover(Leftover left) async {
     freezes.add(left);
-    return (changes: ['freeze-${left.id}'], gone: const <String>[]);
+    return (changes: ['freeze-${left.id}'], gone: const <String, String?>{});
   }
 
   @override
   Future<LeftoverUndo> markLeftoversGone(List<Leftover> lefts) async {
     gone.add(lefts);
-    return (changes: const <String>[], gone: [for (final l in lefts) l.id]);
+    return (
+      changes: const <String>[],
+      gone: {for (final l in lefts) l.id: null},
+    );
   }
 
   /// Every undo handed to [undoLeftovers].

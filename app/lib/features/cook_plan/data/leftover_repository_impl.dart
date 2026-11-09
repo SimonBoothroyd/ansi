@@ -52,8 +52,11 @@ class SqliteLeftoverRepository implements LeftoverRepository {
             'LIMIT 1',
           )
           .asyncMap(
-            (_) async =>
-                readCookings(await loadCookingInputs(_db, today: today), today),
+            (_) async => readCookings(
+              await loadCookingInputs(_db, today: today),
+              today,
+              unborn: await loadUnbornMeals(_db, today),
+            ),
           );
 
   @override
@@ -85,7 +88,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
           fridge: -moving,
           freezer: moving,
         );
-        return (changes: [id], gone: const <String>[]);
+        return (changes: [id], gone: const <String, String?>{});
       });
 
   @override
@@ -93,8 +96,11 @@ class SqliteLeftoverRepository implements LeftoverRepository {
       _db.writeTransaction((tx) async {
         final today = _today();
         final now = DateTime.now().toUtc().toIso8601String();
+        // The day it was said, by the household's clock: what was in date
+        // then stays.
+        final saidAt = _clock().toUtc().toIso8601String();
         final changes = <String>[];
-        final gone = <String>[];
+        final gone = <String, String?>{};
         final byCooking = <String, Set<LeftoverPlace>>{};
         for (final left in lefts) {
           (byCooking[left.id] ??= {}).add(left.place);
@@ -103,27 +109,30 @@ class SqliteLeftoverRepository implements LeftoverRepository {
           final read = await readCookingIn(tx, id, today);
           if (read == null) continue;
           final other = {for (final r in read.rows) r.place}.difference(places);
-          if (other.isEmpty) {
-            // Every shelf it has goes: gone for good.
-            await tx.execute(
-              'UPDATE cooking SET gone_at = ?, updated_at = ? WHERE id = ?',
-              [now, now, id],
+          if (other.contains(LeftoverPlace.fridge)) {
+            // Only the freezer part gone off, beside a fridge part still in
+            // date: count it to nothing, leaving the fridge as it is.
+            changes.add(
+              await insertCookingChange(
+                tx,
+                householdId: _householdId,
+                cookingId: id,
+                freezer: read.freezer > 0 ? -read.freezer : 0,
+              ),
             );
-            gone.add(id);
             continue;
           }
-          // Food is left on the other shelf: count these to nothing.
-          double zero(LeftoverPlace place, double box) =>
-              places.contains(place) && box > 0 ? -box : 0;
-          changes.add(
-            await insertCookingChange(
-              tx,
-              householdId: _householdId,
-              cookingId: id,
-              fridge: zero(LeftoverPlace.fridge, read.fridge),
-              freezer: zero(LeftoverPlace.freezer, read.freezer),
-            ),
+          // Gone off for good: the fridge part never comes back, whatever
+          // is unticked after; a freezer part in date today stays.
+          final before = await tx.get(
+            'SELECT gone_at FROM cooking WHERE id = ?',
+            [id],
           );
+          await tx.execute(
+            'UPDATE cooking SET gone_at = ?, updated_at = ? WHERE id = ?',
+            [saidAt, now, id],
+          );
+          gone[id] = before['gone_at'] as String?;
         }
         return (changes: changes, gone: gone);
       });
@@ -139,10 +148,10 @@ class SqliteLeftoverRepository implements LeftoverRepository {
             [now, now, id],
           );
         }
-        for (final id in undo.gone) {
+        for (final MapEntry(key: id, value: was) in undo.gone.entries) {
           await tx.execute(
-            'UPDATE cooking SET gone_at = NULL, updated_at = ? WHERE id = ?',
-            [now, id],
+            'UPDATE cooking SET gone_at = ?, updated_at = ? WHERE id = ?',
+            [was, now, id],
           );
         }
       });

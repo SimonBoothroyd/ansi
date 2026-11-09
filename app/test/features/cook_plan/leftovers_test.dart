@@ -706,6 +706,113 @@ void main() {
       expect(leftoverOfferOn(frozen, _nov(2), _oct(30)), isNull);
     });
   });
+
+  group('Remove gone off is final', () {
+    // Cooked Wed 28 Oct, good in the fridge till Sat 31, frozen till 27 Nov.
+    final wed = _m('wed', _oct(28), eaten: 1);
+    final thu = _m('thu', _oct(29), eaten: 1);
+
+    test('a fridge part said gone stays gone, untick or no; the freezer part '
+        'in date that day stays', () {
+      CookingInput said({required double thuEaten}) => _cooking(
+        [wed, _m('thu', _oct(29), eaten: thuEaten)],
+        made: 6,
+        changes: (fridge: -2, freezer: 2),
+        goneAt: _nov(2),
+      );
+      final ticked = _read(said(thuEaten: 1), _nov(3));
+      expect(_fridge(ticked), isNull);
+      expect(_freezer(ticked)!.inBox, 2);
+      expect(ticked.fridge, 0);
+      // Thursday unticked after: its portion is not brought back.
+      final unticked = _read(said(thuEaten: 0), _nov(3));
+      expect(_fridge(unticked), isNull);
+      expect(_freezer(unticked)!.inBox, 2);
+    });
+
+    test('said gone once the freezer part is past its date too, it all '
+        'goes', () {
+      final read = _read(
+        _cooking(
+          [wed, thu],
+          made: 6,
+          changes: (fridge: -2, freezer: 2),
+          goneAt: _dec(1),
+        ),
+        _dec(2),
+      );
+      expect(read.rows, isEmpty);
+    });
+
+    test('a dish that does not freeze goes whole', () {
+      final read = _read(
+        _cooking([wed, thu], made: 6, goneAt: _nov(2), life: _fridgeOnly),
+        _nov(3),
+      );
+      expect(read.rows, isEmpty);
+    });
+  });
+
+  group('pots not cooked yet', () {
+    const ragu = (
+      title: 'Beef Ragù',
+      keepsForDays: 3,
+      freezable: true,
+      freezerDays: 60,
+    );
+    UnbornMeal meal(String id, int day, {String recipe = 'ragu'}) => (
+      entryId: id,
+      recipeId: recipe,
+      weekStart: _week,
+      dayOfWeek: day,
+      life: ragu,
+    );
+
+    test('planned meals no cooking holds group as a birth would, one pot '
+        'per group under its first meal', () {
+      final pots = plannedPots([
+        meal('sat', 6),
+        meal('sun-next', 7),
+        // Past the fridge date but freezable: the same pot.
+        meal('later', 6 + 10),
+      ]);
+      expect(pots, hasLength(1));
+      final pot = pots.single;
+      expect(
+        (pot.id, pot.since, pot.goodUntil, pot.cooked, pot.plannedIn),
+        ('sat', _oct(31), _nov(3), false, _week),
+      );
+      expect(pot.freezerUntil, _dec(30));
+    });
+
+    test('a week and a recipe each make their own pot', () {
+      final pots = plannedPots([meal('a', 1), meal('b', 2, recipe: 'curry')]);
+      expect(pots.map((p) => p.id), ['a', 'b']);
+    });
+
+    test('a pot not cooked yet is offered with nothing free, from its cook '
+        'day, and from the freezer past its fridge date', () {
+      final pot = plannedPots([meal('sat', 6)]).single;
+      expect(pot.portions, 0);
+      // Before its cook day it holds nothing to eat.
+      expect(leftoverOfferOn(pot, _oct(30), _oct(28)), isNull);
+      final soon = leftoverOfferOn(pot, _nov(2), _oct(28))!;
+      expect((soon.place, soon.cooked), (LeftoverPlace.fridge, false));
+      final later = leftoverOfferOn(pot, _nov(5), _oct(28))!;
+      expect((later.place, later.freezeBy), (LeftoverPlace.freezer, _nov(3)));
+      // Past its freezer life: not offered.
+      expect(leftoverOfferOn(pot, _dec(31), _oct(28)), isNull);
+    });
+
+    test('a cooking nobody ticked yet reads not cooked; a tick cooks it', () {
+      final ahead = _cooking([_m('sat', _oct(31))]);
+      final before = _fridge(_read(ahead, _oct(29)))!;
+      expect((before.cooked, before.since), (false, _oct(31)));
+      expect(leftoverOfferOn(before, _nov(2), _oct(29))?.id, 'c');
+      final ticked = _cooking([_m('sat', _oct(31), eaten: 1)], made: 2);
+      expect(_fridge(_read(ticked, _nov(1)))!.cooked, isTrue);
+    });
+  });
 }
 
 const CookingShelfLife _helperLife = (

@@ -252,7 +252,7 @@ void main() {
     expect(find.text('Removed 2 gone off.'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
-    expect(repo.undone.single.gone, ['s', 'f3']);
+    expect(repo.undone.single.gone.keys, ['s', 'f3']);
   });
 
   testWidgets('Freeze and Froze it say so, with an Undo', (tester) async {

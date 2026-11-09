@@ -5,6 +5,8 @@ library;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/week_shape.dart';
+import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../data/cook_plan_providers.dart';
 import '../domain/leftovers.dart';
@@ -43,16 +45,28 @@ bool anyLeftoverPastItsDate(Ref ref) {
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
 /// Empty for a day behind us.
+///
+/// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
+/// meals nobody ticked, and planned meals of an earlier week that no cooking
+/// holds yet ([LeftoverShelves.pots]). A pot of [day]'s own week is not: a
+/// meal there already shares it when it fits.
 @riverpod
 List<Leftover> leftoversGoodOn(Ref ref, DateTime day) {
   final today = ref.watch(todayProvider);
   if (DateTime(day.year, day.month, day.day).isBefore(today)) return const [];
-  final offers = [
-    for (final left
-        in ref.watch(fridgeAndFreezerProvider).asData?.value ??
-            const <Leftover>[])
-      if (leftoverOfferOn(left, day, today) case final offer?) offer,
-  ];
+  final shelves = ref.watch(leftoverShelvesProvider).asData?.value;
+  final week = ref.watch(weekShapeProvider).keyOf(day);
+  final uncooked = <String>{};
+  final offers = <Leftover>[];
+  for (final left in [
+    ...?shelves?.rows,
+    for (final pot in shelves?.pots ?? const <Leftover>[])
+      if (pot.plannedIn case final at? when isoDateOf(at) != week) pot,
+  ]) {
+    // A pot not cooked yet is one offer, whichever shelf it reads on.
+    if (!left.cooked && !uncooked.add(left.id)) continue;
+    if (leftoverOfferOn(left, day, today) case final offer?) offers.add(offer);
+  }
   // A freezer with no limit goes off last.
   final never = DateTime(9999);
   offers.sort((a, b) => (a.goodUntil ?? never).compareTo(b.goodUntil ?? never));

@@ -185,7 +185,8 @@ class _MealEditorSheet extends ConsumerWidget {
   }
 }
 
-/// Where a meal from a leftover comes from: its tag, its cook day, and the
+/// Where a meal from a leftover comes from: its tag, its cooking's day
+/// (`cooked last Sat`, or `cooks Sat` while nobody has ticked it), and the
 /// day it has to go in the freezer by, if it does.
 class _LeftoverSource extends ConsumerWidget {
   const _LeftoverSource({required this.entry});
@@ -196,12 +197,13 @@ class _LeftoverSource extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final today = ref.watch(todayProvider);
     final shape = ref.watch(weekShapeProvider);
-    final row = (ref.watch(fridgeAndFreezerProvider).asData?.value ?? const [])
-        .where((l) => l.meals.any((m) => m.entryId == entry.id))
+    // Either shelf of its cooking dates it the same.
+    final pot = (ref.watch(fridgeAndFreezerProvider).asData?.value ?? const [])
+        .where((l) => l.id == entry.cooking)
         .firstOrNull;
     final freezeBy = ref.watch(leftoverMealsProvider)[entry.id]?.freezeBy;
     final words = [
-      if (row != null) cookedOn(row.since, today, shape),
+      if (pot != null) potCookedLine(pot, today, shape),
       if (freezeBy != null && !today.isAfter(freezeBy))
         'freeze by ${leftoverDay(freezeBy, today, shape)}',
     ];
@@ -315,8 +317,11 @@ class _MealBatch extends ConsumerWidget {
       child: WeekStrip(
         days: CookTimelineSpec.of(session).stripDays(thisMeal: day),
         shape: shape,
+        // A meal before its batch is cooked is not from it: nothing to say.
         caption: day == session.cookDay
             ? nextWeekShareLine(session, weekStart, today, shape)
+            : day < session.cookDay
+            ? null
             : batchCaption(
                 session.cookDay,
                 shape,

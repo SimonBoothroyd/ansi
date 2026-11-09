@@ -48,8 +48,54 @@ void main() {
       '1¾ left · till Mon',
     );
     expect(leftoverTill(_today, _today, shape), 'till today');
-    expect(leftoverTill(DateTime(2026, 11, 21), _today, shape), 'till 21 Nov');
-    expect(leftoverTill(DateTime(2027, 1, 26), _today, shape), 'till Jan');
+    // A weekday within the coming six days, else its date.
+    expect(leftoverTill(DateTime(2026, 11, 17), _today, shape), 'till Tue');
+    expect(leftoverTill(DateTime(2026, 11, 18), _today, shape), 'till 18 Nov');
+    expect(leftoverTill(DateTime(2027, 1, 26), _today, shape), 'till 26 Jan');
+  });
+
+  test('the freezer says its month past the coming six days', () {
+    String till(DateTime until) =>
+        leftoverTill(until, _today, shape, frozen: true);
+    expect(till(DateTime(2026, 11, 17)), 'till Tue');
+    expect(till(DateTime(2026, 11, 21)), 'till Nov');
+    expect(till(DateTime(2027, 1, 26)), 'till Jan');
+  });
+
+  test('cooked names the week when it is not this one', () {
+    // Wednesday 11 November, in a week from Monday the 9th.
+    expect(cookedOn(_today, _today, shape), 'cooked today');
+    expect(cookedOn(DateTime(2026, 11, 9), _today, shape), 'cooked Mon');
+    expect(cookedOn(DateTime(2026, 11, 7), _today, shape), 'cooked last Sat');
+    expect(cookedOn(DateTime(2026, 11, 2), _today, shape), 'cooked last Mon');
+    expect(cookedOn(DateTime(2026, 10, 31), _today, shape), 'cooked 31 Oct');
+    // A Sunday week puts Saturday the 7th in last week, Sunday the 8th in
+    // this one.
+    expect(
+      cookedOn(DateTime(2026, 11, 8), _today, WeekShape.sunday),
+      'cooked Sun',
+    );
+  });
+
+  test('a pot not cooked yet says when it cooks, and has no count', () {
+    final pot = Leftover(
+      id: 'sat',
+      place: LeftoverPlace.fridge,
+      recipeId: 'ragu',
+      title: 'Beef Ragù',
+      since: DateTime(2026, 11, 14),
+      goodUntil: DateTime(2026, 11, 17),
+      box: 0,
+      freezable: true,
+      cooked: false,
+    );
+    expect(leftoverWhen(pot, _today, shape), 'cooks Sat');
+    expect(leftoverLine(pot, _today, shape), 'cooks Sat');
+    expect(
+      leftoverLine(pot.frozenForLater(), _today, shape),
+      'cooks Sat · freeze by Tue',
+    );
+    expect(potCookedLine(pot, _today, shape), 'cooks Sat');
   });
 
   test('a freezer row says its date; one with no date says its age', () {
