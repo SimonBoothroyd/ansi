@@ -474,33 +474,33 @@ void main() {
     // stew good until Monday that freezes; the freezer a chili and a soup in
     // the household's own words.
     final curry = Leftover(
-      batch: 'e-curry',
+      id: 'e-curry',
       place: LeftoverPlace.fridge,
       recipeId: 'r1',
       title: 'Weeknight Chicken Curry',
       since: DateTime(2026, 10, 29),
       goodUntil: DateTime(2026, 11, 4),
-      portions: 1.75,
+      box: 1.75,
     );
     final dal = Leftover(
-      batch: 'e-dal',
+      id: 'e-dal',
       place: LeftoverPlace.fridge,
       recipeId: 'r9',
       title: 'Red Lentil Dal',
       since: DateTime(2026, 10, 27),
       goodUntil: DateTime(2026, 11, 2),
-      portions: 1,
+      box: 1,
     );
     final stew = Leftover(
-      batch: 'e-stew',
+      id: 'e-stew',
       place: LeftoverPlace.fridge,
       recipeId: 'r3',
       title: 'Beef Stew',
       since: DateTime(2026, 10, 30),
       goodUntil: DateTime(2026, 11, 2),
-      portions: 2,
       freezable: true,
       freezerUntil: DateTime(2026, 11, 29),
+      box: 2,
     );
     final chili = Leftover(
       id: 'f1',
@@ -509,7 +509,7 @@ void main() {
       title: 'Black Bean Chili',
       since: DateTime(2026, 10, 18),
       goodUntil: DateTime(2027, 1, 16),
-      portions: 2,
+      box: 2,
     );
     final soup = Leftover(
       id: 'f2',
@@ -517,7 +517,7 @@ void main() {
       title: 'Soup from Mum',
       since: DateTime(2026, 10, 20),
       goodUntil: null,
-      portions: 2,
+      box: 2,
     );
 
     Widget host({
@@ -572,7 +572,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(picked, isA<PickedLeftover>());
       final left = picked! as PickedLeftover;
-      expect(left.leftover.batch, 'e-curry');
+      expect(left.leftover.id, 'e-curry');
       expect(left.recipe.id, 'r1');
 
       await tester.tap(find.text('open'));
@@ -596,13 +596,13 @@ void main() {
           leftovers: [
             for (var i = 0; i < 8; i++)
               Leftover(
-                batch: 'e-$i',
+                id: 'e-$i',
                 place: i.isEven ? LeftoverPlace.fridge : LeftoverPlace.freezer,
                 recipeId: 'r1',
                 title: 'Batch $i',
                 since: DateTime(2026, 10, 31),
                 goodUntil: DateTime(2026, 11, 20),
-                portions: 2,
+                box: 2,
               ),
           ],
         ),

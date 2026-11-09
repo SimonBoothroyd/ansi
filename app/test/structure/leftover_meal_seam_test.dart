@@ -1,20 +1,19 @@
-/// A meal eaten from a leftover names it one of two ways: a cooked batch
-/// (`plan_entry.leftover_of`) or a fridge or freezer row
-/// (`plan_entry.from_leftover`). Either way it is never cooked, bought or
-/// costed again, and every derivation that passes over one must pass over the
-/// other.
+/// The last release's leftover pointers and tables are read-only for this
+/// one: `plan_entry.leftover_of`, `plan_entry.from_leftover`, `leftover`
+/// and `batch_leftover` were carried over to cookings (0061) and are dropped
+/// a release later.
 ///
-/// The bug this holds is the second column forgotten: a meal from the freezer
-/// that the shop buys for again, on the one derivation nobody re-read. So:
+/// The bug this holds is a write that brings a second truth back: a meal
+/// pointed at a stored row the reader no longer reads, so the shop buys it
+/// again and the fridge never shows it. So:
 ///
-///  1. **in SQL**, every clause that says `leftover_of IS NULL` sits beside a
-///     `from_leftover IS NULL`, as many times in the same file; and
-///  2. **in Dart**, nothing under `lib/` asks `leftoverOf` for null except
-///     `PlanEntry.isFromLeftover` itself. A reader that means "was this meal
-///     cooked here?" asks the getter.
+///  1. **nothing under `lib/` writes them**: no INSERT, UPDATE or SET of the
+///     old tables and columns; and
+///  2. **one file reads them**: the carry-over (`cooking_store.dart`), which
+///     the release after this drops with the tables.
 ///
-/// **What it can be defeated by**: SQL built by interpolation, and a test of
-/// the column through a local variable. It stops the ordinary omission.
+/// **What it can be defeated by**: SQL built by interpolation. It stops the
+/// ordinary slip.
 library;
 
 import 'dart:io';
@@ -23,43 +22,45 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/source_scan.dart';
 
-/// Where `PlanEntry.isFromLeftover` is defined: the one place allowed to ask.
-const _getterIn = 'lib/features/planning/domain/planning.dart';
+/// The one reader allowed: the carry-over.
+const _carryOver = 'lib/features/cook_plan/data/cooking_store.dart';
 
-final _batchNull = RegExp(r'leftover_of\s+IS\s+NULL', caseSensitive: false);
-final _rowNull = RegExp(r'from_leftover\s+IS\s+NULL', caseSensitive: false);
-final _columnTest = RegExp(r'\.leftoverOf\s*[!=]=\s*null');
+/// Describes the dropped write of an old queued row: names, never reads.
+const _describer = 'lib/shared/dropped_write_subject.dart';
+
+final _write = RegExp(
+  r'(INSERT\s+INTO|UPDATE)\s+(leftover|batch_leftover)\b'
+  r'|SET\s+[^;]*\b(leftover_of|from_leftover)\s*=',
+  caseSensitive: false,
+);
+
+final _read = RegExp(
+  r'\b(FROM|JOIN)\s+(leftover|batch_leftover)\b'
+  r'|\bpe\.(leftover_of|from_leftover)\b',
+  caseSensitive: false,
+);
 
 void main() {
   final files = dartFiles(Directory('lib'));
 
-  test('every SQL pass over a batch leftover passes over a stored one', () {
+  test('nothing writes the old leftover tables or pointers', () {
     final offenders = <String>[];
-    var clauses = 0;
     for (final f in files) {
       final source = blankComments(f.readAsStringSync());
-      final batch = _batchNull.allMatches(source).length;
-      final row = _rowNull.allMatches(source).length;
-      clauses += batch;
-      if (batch != row) {
-        offenders.add('${f.path}: $batch × leftover_of, $row × from_leftover');
-      }
-    }
-    // The week's read the cook plan and the shop share at least: a scan that
-    // found none is broken.
-    expect(clauses, greaterThanOrEqualTo(1));
-    expect(offenders, isEmpty);
-  });
-
-  test('Dart asks isFromLeftover, never the leftoverOf column', () {
-    final offenders = <String>[];
-    for (final f in files) {
-      if (f.path.endsWith(_getterIn)) continue;
-      final source = blankNonCode(f.readAsStringSync());
-      for (final m in _columnTest.allMatches(source)) {
+      for (final m in _write.allMatches(source)) {
         offenders.add('${f.path}:${lineOf(source, m.start)}');
       }
     }
     expect(offenders, isEmpty);
+  });
+
+  test('only the carry-over reads them', () {
+    final readers = <String>{};
+    for (final f in files) {
+      if (f.path.endsWith(_describer)) continue;
+      final source = blankComments(f.readAsStringSync());
+      if (_read.hasMatch(source)) readers.add(f.path);
+    }
+    expect(readers, {_carryOver});
   });
 }

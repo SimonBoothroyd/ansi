@@ -39,15 +39,14 @@ String leftoverTill(DateTime until, DateTime today, WeekShape shape) =>
 String? leftoverFor(Leftover left, DateTime today, WeekShape shape) =>
     _days('for', _aheadDays(left, today, frozen: false), today, shape);
 
-/// `Wed needs 2`: each meal still to come planned from [left] that wants
-/// more than is there, said in amber. Null when there are none.
+/// `Wed needs 2`: each meal still to come from [left] that wants more than
+/// is there, said in amber. Null when there are none.
 String? leftoverShortFor(Leftover left, DateTime today, WeekShape shape) {
   String needs(LeftoverMeal m) =>
       '${leftoverDay(m.day, today, shape)} needs ${formatFraction(m.portions)}';
   final short = [
     for (final m in left.meals)
-      if (!m.own &&
-          m.warning == LeftoverWarning.notEnoughLeft &&
+      if (m.warning == LeftoverWarning.notEnoughLeft &&
           _daysBetween(today, m.day) >= 0)
         needs(m),
   ];
@@ -85,9 +84,9 @@ String freezeShareLine(
     '${shape.labelShort(shape.offsetOf(share.freezeBy))} for '
     '${_mealDays(share.forDays, weekStart, shape)}';
 
-/// `cook it all · freeze 2 for next Thu`: what the meal that cooks a batch
-/// says of the next week's meals the batch covers too; `keep 2` for those it
-/// reaches from the fridge. Null when it covers none.
+/// `cook it all · freeze 2 for next Thu`: what the meal that cooks a cooking
+/// says of its meals in later weeks; `keep 2` for those it reaches from the
+/// fridge. Null when it has none.
 String? nextWeekShareLine(
   CookSession session,
   DateTime weekStart,
@@ -99,7 +98,7 @@ String? nextWeekShareLine(
   final kept = <DateTime>[];
   var frozenPortions = 0.0;
   var keptPortions = 0.0;
-  for (final m in session.nextWeekCovers) {
+  for (final m in session.laterWeekCovers) {
     final still = m.portions - m.eatenPortions;
     if (still <= 1e-9) continue;
     final day = dateOfDay(weekStart, m.dayOfWeek);
@@ -179,7 +178,7 @@ List<DateTime> _aheadDays(
   for (final m in left.meals)
     if (_daysBetween(today, m.day) >= 0 &&
         m.portions > 1e-9 &&
-        !(!m.own && m.warning == LeftoverWarning.notEnoughLeft) &&
+        m.warning != LeftoverWarning.notEnoughLeft &&
         (m.freezeBy != null) == frozen)
       DateTime(m.day.year, m.day.month, m.day.day),
 }.toList()..sort();

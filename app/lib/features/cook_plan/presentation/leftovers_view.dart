@@ -173,8 +173,7 @@ class _Shelves extends HookConsumerWidget {
                   done: goneOff.length == 1
                       ? 'Removed ${goneOff.single.title}.'
                       : 'Removed ${goneOff.length} gone off.',
-                  before: goneOff,
-                  write: (container, host) => container.writeOk(
+                  write: (container, host) => container.write(
                     host,
                     'remove what has gone off',
                     () => repo.markLeftoversGone(goneOff),
@@ -198,39 +197,38 @@ class _Shelves extends HookConsumerWidget {
   }
 }
 
-/// Makes [write] about the rows [before] as the page drew them, then says
-/// [done] with an Undo that puts them back ([LeftoverRepository.
-/// restoreLeftovers]). The handles [write] is given are captured before it:
-/// the row that started it has moved shelves or gone by the time it lands.
+/// Makes [write], then says [done] with an Undo that takes back what it
+/// wrote ([LeftoverRepository.undoLeftovers]). The handles [write] is given
+/// are captured before it: the row that started it has moved shelves or gone
+/// by the time it lands.
 Future<void> writeWithUndo(
   BuildContext context,
   WidgetRef ref, {
   required String done,
-  required List<Leftover> before,
-  required Future<bool> Function(ProviderContainer container, HostContext host)
+  required Future<LeftoverUndo?> Function(
+    ProviderContainer container,
+    HostContext host,
+  )
   write,
 }) async {
   final container = ProviderScope.containerOf(context, listen: false);
   final host = hostContextOf(context);
   final repo = ref.read(leftoverRepositoryProvider);
-  if (!await write(container, host)) return;
+  final undo = await write(container, host);
+  if (undo == null) return;
   showAnsiUndoToast(
     // The host outlives the row, which has moved or gone.
     // ignore: use_build_context_synchronously
     host.context,
     what: done,
     onUndo: () => unawaited(
-      container.write(
-        host,
-        'put ${before.length == 1 ? before.single.title : 'them'} back',
-        () => repo.restoreLeftovers(before),
-      ),
+      container.write(host, 'put it back', () => repo.undoLeftovers(undo)),
     ),
   );
 }
 
-/// A row's identity across a write: its stored id, else its batch.
-String _keyOf(Leftover left) => left.id ?? 'batch:${left.batch}';
+/// A row's identity across a write: its cooking and its shelf.
+String _keyOf(Leftover left) => '${left.id}:${left.place.name}';
 
 class _Empty extends StatelessWidget {
   const _Empty();
@@ -336,8 +334,7 @@ class _LeftoverRow extends ConsumerWidget {
                 context,
                 ref,
                 done: 'Froze ${left.title}.',
-                before: [left],
-                write: (container, host) => container.writeOk(
+                write: (container, host) => container.write(
                   host,
                   'move ${left.title} to the freezer',
                   () => repo.freezeLeftover(left),

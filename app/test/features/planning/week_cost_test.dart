@@ -125,35 +125,12 @@ void main() {
     expect(cost.cents, 300);
   });
 
-  test(
-    'a meal from a leftover was costed in its own week: no cost, no gap',
-    () {
-      final cost = sumPlannedCost(
-        [
-          _meal('e1'),
-          _meal('e2', recipeId: 'r2', title: 'Dal').copyWith(leftoverOf: 'x'),
-        ],
-        costFor: (id) => id == 'r1' ? _cost(100) : _unpriced,
-        priceFor: _noPrice,
-        membersById: _members,
-      );
-      expect(cost.cents, 200);
-      expect(cost.counted, 1);
-      expect(cost.considered, 1);
-      expect(cost.unpriced, isEmpty);
-    },
-  );
-
-  test('a meal from a fridge or freezer row was costed when it was cooked: no '
+  test('a meal in a cooking bought in another week was costed there: no '
       'cost, no gap', () {
     final cost = sumPlannedCost(
       [
         _meal('e1'),
-        _meal(
-          'e2',
-          recipeId: 'r2',
-          title: 'Dal',
-        ).copyWith(fromLeftover: 'freezer-dal'),
+        _meal('e2', recipeId: 'r2', title: 'Dal').copyWith(cooking: 'x'),
       ],
       costFor: (id) => id == 'r1' ? _cost(100) : _unpriced,
       priceFor: _noPrice,
@@ -165,39 +142,38 @@ void main() {
     expect(cost.unpriced, isEmpty);
   });
 
-  test('a dish cooked once across the week edge is costed in the week that '
-      'buys it', () {
-    // The week after: its Thursday is cooked the Saturday before.
-    final after = sumPlannedCost(
-      [_meal('e1'), _meal('thu', recipeId: 'r2', title: 'Dal')],
+  test('a cooking is costed once, in the week that buys it, for what it '
+      'made', () {
+    final sat = _meal(
+      'sat',
+      recipeId: 'r2',
+      title: 'Dal',
+    ).copyWith(cooking: 'c');
+    const cookings = [
+      (recipeId: 'r2', portions: 6.0, entryIds: {'sat'}),
+    ];
+    final household = sumPlannedCost(
+      [_meal('e1'), sat],
       costFor: (id) => id == 'r1' ? _cost(100) : _cost(50),
       priceFor: _noPrice,
       membersById: _members,
-      cookedWeekBefore: const {'thu'},
+      cookings: cookings,
     );
-    expect(after.cents, 200);
-    expect(after.considered, 1);
-
-    // The week before: it buys next Thursday's share, 2 portions.
-    final before = sumPlannedCost(
-      [_meal('e1')],
-      costFor: (id) => id == 'r1' ? _cost(100) : _cost(50),
-      priceFor: _noPrice,
-      membersById: _members,
-      cookedForNextWeek: const [(recipeId: 'r2', portions: 2)],
-    );
-    expect(before.cents, 300);
-    // Under a lens it is next week's meal, so not counted.
+    // Its Saturday and next Thursday's pick: six portions, bought here.
+    expect(household.cents, 200 + 300);
+    expect(household.counted, 2);
+    expect(household.considered, 2);
+    // Under a lens it is the member's share of the meal, as any meal.
     expect(
       sumPlannedCost(
-        [_meal('e1')],
+        [_meal('e1'), sat],
         costFor: (id) => id == 'r1' ? _cost(100) : _cost(50),
         priceFor: _noPrice,
         lensMemberId: 'm1',
         membersById: _members,
-        cookedForNextWeek: const [(recipeId: 'r2', portions: 2)],
+        cookings: cookings,
       ).cents,
-      100,
+      150,
     );
   });
 

@@ -6,30 +6,17 @@ import 'package:ansi/features/cook_plan/domain/leftover_repository.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 
 class FakeLeftoverRepository implements LeftoverRepository {
-  FakeLeftoverRepository([
-    this.rows = const [],
-    this.places = const {},
-    this.meals = const {},
-  ]);
+  FakeLeftoverRepository([this.rows = const [], this.meals = const {}]);
 
   /// What [watchHouseholdLeftovers] hands out, whatever the day.
   final List<Leftover> rows;
 
-  /// What [watchLeftoverPlaces] hands out.
-  final Map<String, LeftoverPlace> places;
-
-  /// The meals served from a row, by entry id, beside [rows].
+  /// The meals served from a cooking, by entry id, beside [rows].
   final Map<String, LeftoverMeal> meals;
 
   @override
-  Stream<LeftoverShelves> watchHouseholdLeftovers({
-    required DateTime weekStart,
-    required DateTime today,
-  }) => Stream.value(LeftoverShelves(rows: rows, meals: meals));
-
-  @override
-  Stream<Map<String, LeftoverPlace>> watchLeftoverPlaces() =>
-      Stream.value(places);
+  Stream<LeftoverShelves> watchHouseholdLeftovers({required DateTime today}) =>
+      Stream.value(LeftoverShelves(rows: rows, meals: meals));
 
   /// Every `(row, portions)` handed to [setLeftoverPortions].
   final portionWrites = <(Leftover, double)>[];
@@ -57,17 +44,22 @@ class FakeLeftoverRepository implements LeftoverRepository {
       portionWrites.add((left, portions));
 
   @override
-  Future<void> freezeLeftover(Leftover left) async => freezes.add(left);
+  Future<LeftoverUndo> freezeLeftover(Leftover left) async {
+    freezes.add(left);
+    return (changes: ['freeze-${left.id}'], gone: const <String>[]);
+  }
 
   @override
-  Future<void> markLeftoversGone(List<Leftover> lefts) async => gone.add(lefts);
+  Future<LeftoverUndo> markLeftoversGone(List<Leftover> lefts) async {
+    gone.add(lefts);
+    return (changes: const <String>[], gone: [for (final l in lefts) l.id]);
+  }
 
-  /// Every list handed to [restoreLeftovers].
-  final restored = <List<Leftover>>[];
+  /// Every undo handed to [undoLeftovers].
+  final undone = <LeftoverUndo>[];
 
   @override
-  Future<void> restoreLeftovers(List<Leftover> lefts) async =>
-      restored.add(lefts);
+  Future<void> undoLeftovers(LeftoverUndo undo) async => undone.add(undo);
 
   @override
   Future<String> addLeftover({

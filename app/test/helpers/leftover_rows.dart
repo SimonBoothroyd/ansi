@@ -1,45 +1,44 @@
-/// Fridge and freezer rows for repository tests, written as a later build's
-/// Leftovers page will write them: plain INSERTs and UPDATEs, since
-/// PowerSync's local tables are views.
+/// Cookings for repository tests, written as the app writes them: plain
+/// INSERTs and UPDATEs, since PowerSync's local tables are views.
 library;
 
 import 'package:powersync/powersync.dart';
 
-/// Stores a `leftover` row in household `h`: a recipe's or, with [label], the
-/// household's own words.
-Future<void> insertLeftover(
+/// Stores a `cooking` row in household `h`. With [since], it is food said by
+/// hand on [place]; without, a cooking dated by its ticks.
+Future<void> insertCooking(
   PowerSyncDatabase db, {
   required String id,
-  String place = 'freezer',
   String? recipeId,
   String? label,
-  double portions = 2,
-  String since = '2026-08-24',
-  String? batch,
+  double? made,
+  String? place,
+  String? since,
+  String? goneAt,
 }) => db.execute(
-  'INSERT INTO leftover (id, household_id, place, recipe_id, label, '
-  'portions, since, batch, created_at, updated_at) '
+  'INSERT INTO cooking (id, household_id, recipe_id, label, made, place, '
+  'since, gone_at, created_at, updated_at) '
   'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
   [
     id,
     'h',
-    place,
     recipeId,
     label,
-    portions,
+    made,
+    place ?? (since == null ? null : 'fridge'),
     since,
-    batch,
+    goneAt,
     '2026-08-24T12:00:00Z',
     '2026-08-24T12:00:00Z',
   ],
 );
 
-/// Marks the meal [entryId] as eaten from the stored row [leftoverId].
-Future<void> planFromLeftover(
+/// Links the meal [entryId] to the cooking [cookingId].
+Future<void> linkToCooking(
   PowerSyncDatabase db,
   String entryId,
-  String leftoverId,
-) => db.execute('UPDATE plan_entry SET from_leftover = ? WHERE id = ?', [
-  leftoverId,
+  String cookingId,
+) => db.execute('UPDATE plan_entry SET cooking = ? WHERE id = ?', [
+  cookingId,
   entryId,
 ]);

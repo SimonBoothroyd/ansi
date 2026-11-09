@@ -11,24 +11,20 @@ import '../domain/leftovers.dart';
 
 part 'leftovers_view_models.g.dart';
 
-/// The household's leftovers today and every meal served from one, live.
-/// Read from the week holding today, whatever week is on screen: the fridge
-/// is now.
+/// The household's leftovers today and every meal served from one, live,
+/// whatever week is on screen: the fridge is now.
 @riverpod
 Stream<LeftoverShelves> leftoverShelves(Ref ref) => ref
     .watch(leftoverRepositoryProvider)
-    .watchHouseholdLeftovers(
-      weekStart: ref.watch(currentWeekStartProvider),
-      today: ref.watch(todayProvider),
-    );
+    .watchHouseholdLeftovers(today: ref.watch(todayProvider));
 
 /// The rows of [leftoverShelves], fridge first.
 @riverpod
 AsyncValue<List<Leftover>> fridgeAndFreezer(Ref ref) =>
     ref.watch(leftoverShelvesProvider).whenData((s) => s.rows);
 
-/// Each meal served from a leftover, judged on its own day, by `plan_entry`
-/// id: its shelf and any warning.
+/// Each meal linked to a cooking, judged on its own day, by `plan_entry` id:
+/// its shelf and any warning.
 @riverpod
 Map<String, LeftoverMeal> leftoverMeals(Ref ref) =>
     ref.watch(leftoverShelvesProvider).asData?.value.meals ?? const {};
@@ -41,12 +37,6 @@ bool anyLeftoverPastItsDate(Ref ref) {
     (l) => l.pastItsDate(today),
   );
 }
-
-/// Which shelf each stored row is on, by id: a meal planned from one wears
-/// that shelf's tag on the Week.
-@riverpod
-Stream<Map<String, LeftoverPlace>> leftoverPlaces(Ref ref) =>
-    ref.watch(leftoverRepositoryProvider).watchLeftoverPlaces();
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row

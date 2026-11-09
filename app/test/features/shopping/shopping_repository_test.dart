@@ -1597,10 +1597,11 @@ void main() {
       mealSlot: 'Lunch',
       recipeId: 'curry',
       eaterIds: ['a'],
-      leftoverOf: mon,
+      cooking: mon,
     );
     expect((await repo.watchShoppingList(next).first).groups, isEmpty);
-    // Its own week still buys for the batch, unchanged.
+    // Monday's week buys the cooking once, for both meals: it was not
+    // cooked yet when Tuesday was planned from it.
     expect(
       (await repo.watchShoppingList(_week).first)
           .groups
@@ -1610,7 +1611,7 @@ void main() {
           .totals
           .single
           .amount,
-      3,
+      4.5,
     );
   });
 
@@ -1618,8 +1619,8 @@ void main() {
     final next = _week.add(const Duration(days: 7));
 
     /// A recipe of 4 that keeps 3 days and freezes for 30: Saturday this
-    /// week, and [thursday] portions next Thursday.
-    Future<(String, String)> plan({required int thursday}) async {
+    /// week, and two portions next Thursday, [picked] from Saturday's pot.
+    Future<void> plan({required bool picked}) async {
       await _insertRecipe(
         db,
         'hh',
@@ -1638,40 +1639,44 @@ void main() {
         eaterIds: ['a', 'b'],
         portions: 2,
       );
-      final thu = await planning.addEntry(
+      await planning.addEntry(
         weekStart: next,
         dayOfWeek: 3,
         mealSlot: 'Dinner',
         recipeId: 'hh',
         eaterIds: ['a', 'b'],
-        portions: thursday,
+        portions: 2,
+        cooking: picked ? sat : null,
       );
-      return (sat, thu);
     }
 
     double? onions(ShoppingList list) => list.groups.isEmpty
         ? null
         : list.groups.single.items.single.totals.single.amount;
 
-    test(
-      'one whole recipe covers both: bought once, on Saturday’s week',
-      () async {
-        await plan(thursday: 2);
-        expect(onions(await repo.watchShoppingList(_week).first), 4);
-        expect(onions(await repo.watchShoppingList(next).first), isNull);
-      },
-    );
+    test('picked from Saturday: bought once, on Saturday’s week', () async {
+      await plan(picked: true);
+      expect(onions(await repo.watchShoppingList(_week).first), 4);
+      expect(onions(await repo.watchShoppingList(next).first), isNull);
+    });
 
-    test('one recipe does not cover both: each week buys its own', () async {
-      await plan(thursday: 3);
+    test('not picked: each week buys its own, with no fold', () async {
+      await plan(picked: false);
       expect(onions(await repo.watchShoppingList(_week).first), 2);
-      expect(onions(await repo.watchShoppingList(next).first), 3);
+      expect(onions(await repo.watchShoppingList(next).first), 2);
     });
   });
 
   test('a meal planned from a freezer row is never bought for again', () async {
     await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);
-    await insertLeftover(db, id: 'lo1', recipeId: 'curry');
+    await insertCooking(
+      db,
+      id: 'lo1',
+      recipeId: 'curry',
+      made: 2,
+      place: 'freezer',
+      since: '2026-08-20',
+    );
     final thu = await planning.addEntry(
       weekStart: _week,
       dayOfWeek: 3,
@@ -1680,7 +1685,7 @@ void main() {
       eaterIds: ['a', 'b'],
     );
     expect((await repo.watchShoppingList(_week).first).groups, isNotEmpty);
-    await planFromLeftover(db, thu, 'lo1');
+    await linkToCooking(db, thu, 'lo1');
     expect((await repo.watchShoppingList(_week).first).groups, isEmpty);
   });
 

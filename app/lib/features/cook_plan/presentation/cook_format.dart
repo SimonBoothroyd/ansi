@@ -221,48 +221,6 @@ List<GapFix> _lineFixes(ComponentGap gap) {
   ];
 }
 
-/// One of the week's meals the week before cooks: the dish, the day, and
-/// where it comes from.
-typedef FoldedMealLine = ({String words, bool frozen});
-
-/// `Beef Ragù · Thu · from the freezer`: each of the week's meals a batch of
-/// the week before cooks ([CookPlan.foldedBack]), in day order. A batch never
-/// ticked has the meal as its cook day: `cook it`, from what that week
-/// bought. [weekStart] is the week on screen.
-List<FoldedMealLine> foldedMealLines(
-  CookPlan plan,
-  WeekShape shape,
-  DateTime weekStart,
-  DateTime today,
-) {
-  final lines = <(int, FoldedMealLine)>[];
-  final before = DateTime(weekStart.year, weekStart.month, weekStart.day - 7);
-  for (final MapEntry(key: entryId, value: host) in plan.foldedBack.entries) {
-    final meal = host.covers.where((m) => m.entryId == entryId).firstOrNull;
-    if (meal == null) continue;
-    final cookDay = cookDayOf(host, before, today) ?? host.cookDay;
-    final gap = meal.dayOfWeek - cookDay;
-    final frozen =
-        host.freezable && gap > (host.keepsForDays ?? kAssumedFridgeDays);
-    final from = gap <= 0
-        ? 'cook it'
-        : frozen
-        ? 'from the freezer'
-        : 'from the fridge';
-    lines.add((
-      meal.dayOfWeek,
-      (
-        words:
-            '${host.recipeTitle} · ${shape.labelShort(meal.dayOfWeek - 7)} · '
-            '$from',
-        frozen: frozen && gap > 0,
-      ),
-    ));
-  }
-  lines.sort((a, b) => a.$1.compareTo(b.$1));
-  return [for (final (_, line) in lines) line];
-}
-
 /// The geometry of a session's freshness on the week's axis (day coordinates
 /// 0..6), which the week strip ([stripDays]) and the wide sheet's track draw.
 ///

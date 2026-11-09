@@ -132,8 +132,7 @@ class _LivePlanningRepo extends _FakePlanningRepo {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
-    String? leftoverOf,
-    String? fromLeftover,
+    String? cooking,
   }) async {
     // A NEW id, as the real repository gives: the undo puts the meal back, it
     // does not resurrect the row.
@@ -776,7 +775,7 @@ void main() {
                 title: 'Weeknight Chicken Curry',
                 since: DateTime(2026, 8, 10),
                 goodUntil: null,
-                portions: portions,
+                box: portions,
               ),
             ]),
           ),
@@ -815,8 +814,7 @@ void main() {
       await tester.tap(find.text('Frozen'));
       await tester.pumpAndSettle();
       await add(tester);
-      expect(planning.recipeEntries.single.fromLeftover, 'f1');
-      expect(planning.recipeEntries.single.leftoverOf, isNull);
+      expect(planning.recipeEntries.single.cooking, 'f1');
     });
 
     testWidgets('Cook fresh plans a meal to cook', (tester) async {
@@ -824,7 +822,7 @@ void main() {
       await tester.tap(find.text('Cook fresh'));
       await tester.pumpAndSettle();
       await add(tester);
-      expect(planning.recipeEntries.single.fromLeftover, isNull);
+      expect(planning.recipeEntries.single.cooking, isNull);
     });
 
     testWidgets('Frozen cannot take more than is left', (tester) async {
@@ -1069,7 +1067,7 @@ void main() {
         week: week.copyWith(
           entries: [
             week.entries.first,
-            week.entries.last.copyWith(fromLeftover: 'lo'),
+            week.entries.last.copyWith(cooking: 'lo'),
           ],
         ),
       ),
@@ -1077,9 +1075,14 @@ void main() {
       extra: [
         leftoverRepositoryProvider.overrideWithValue(
           FakeLeftoverRepository(const [], {
-            'lo': place == 'freezer'
-                ? LeftoverPlace.freezer
-                : LeftoverPlace.fridge,
+            week.entries.last.id: LeftoverMeal(
+              entryId: week.entries.last.id,
+              day: DateTime(2026, 8, 26),
+              portions: 2,
+              place: place == 'freezer'
+                  ? LeftoverPlace.freezer
+                  : LeftoverPlace.fridge,
+            ),
           }),
         ),
       ],
@@ -1110,13 +1113,13 @@ void main() {
         week: week.copyWith(
           entries: [
             week.entries.first,
-            wednesday.copyWith(fromLeftover: 'lo'),
+            wednesday.copyWith(cooking: 'lo'),
           ],
         ),
       ),
       extra: [
         leftoverRepositoryProvider.overrideWithValue(
-          FakeLeftoverRepository(const [], const {}, {
+          FakeLeftoverRepository(const [], {
             wednesday.id: LeftoverMeal(
               entryId: wednesday.id,
               day: DateTime(2026, 8, 26),
@@ -1768,7 +1771,7 @@ void main() {
         final week = _plannedWeek();
         final planning = _FakePlanningRepo(
           week: week.copyWith(
-            entries: [week.entries.single.copyWith(fromLeftover: 'lo')],
+            entries: [week.entries.single.copyWith(cooking: 'lo')],
           ),
         );
         await _pumpWeek(
@@ -1788,7 +1791,6 @@ void main() {
                   title: 'Weeknight Chicken Curry',
                   since: DateTime(2026, 8, 25),
                   goodUntil: DateTime(2026, 8, 29),
-                  portions: 0,
                   planned: 1,
                   meals: [
                     LeftoverMeal(
@@ -1798,6 +1800,7 @@ void main() {
                       place: LeftoverPlace.fridge,
                     ),
                   ],
+                  box: 1,
                 ),
               ]),
             ),

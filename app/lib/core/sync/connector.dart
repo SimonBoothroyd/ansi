@@ -54,6 +54,13 @@ Map<String, dynamic> _decodeJsonbColumns(
   return decoded;
 }
 
+/// Tables whose rows a phone only ever inserts whole and then patches: a PUT
+/// is a birth, and two phones can birth one row under one id (a cooking
+/// named by its group's first meal, a carried-over change). The second
+/// upload must not overwrite what the first said, so it is an insert that
+/// leaves an existing row alone.
+const Set<String> insertOnceTables = {'cooking', 'cooking_change'};
+
 /// The PostgREST upsert payload for a PUT op: the row image with jsonb columns
 /// decoded, the row id, and `deleted_at` defaulted to null.
 ///
@@ -104,7 +111,10 @@ class AnsiConnector extends PowerSyncBackendConnector {
         final table = _supabase.from(op.table);
         switch (op.op) {
           case UpdateType.put:
-            await table.upsert(putPayload(op));
+            await table.upsert(
+              putPayload(op),
+              ignoreDuplicates: insertOnceTables.contains(op.table),
+            );
           case UpdateType.patch:
             await table.update(patchPayload(op)).eq('id', op.id);
           case UpdateType.delete:

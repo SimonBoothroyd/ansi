@@ -199,18 +199,18 @@ void main() {
           recipeId: 'r1',
           recipeTitle: 'Curry',
           servingsBase: 4,
-          cookDay: 5,
+          cookDay: -2,
           keepsForDays: 3,
           freezable: true,
           covers: [
             CoveredMeal(
-              dayOfWeek: 5,
+              dayOfWeek: -2,
               mealSlot: 'Dinner',
               portions: 2,
               entryId: 'sat',
             ),
             CoveredMeal(
-              dayOfWeek: 10,
+              dayOfWeek: 3,
               mealSlot: 'Dinner',
               portions: 2,
               entryId: 'thu',
@@ -218,7 +218,7 @@ void main() {
           ],
         );
         // The week after the one the batch is in.
-        const plan = CookPlan(foldedBack: {'thu': host});
+        const plan = CookPlan(eatenFromEarlier: {'thu': host});
         final nextWeek = DateTime(2026, 8, 31);
         CookMarker? thu(DateTime today) => cookMarkerFor(
           plan,

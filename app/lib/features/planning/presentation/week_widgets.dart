@@ -675,9 +675,10 @@ class OutMealLine extends StatelessWidget {
   );
 }
 
-/// A meal eaten from a leftover says `leftover` where a cook marker would: it
-/// is not cooked again, so it has no batch of its own. The tag is the
-/// freezer's blue when its row is in the freezer, else the fridge's green.
+/// A meal eaten from a pot says `leftover` where a cook marker would: it is
+/// not cooked again, so it has no batch of its own. The tag is the freezer's
+/// blue when it is eaten from the freezer on its day, else the fridge's
+/// green.
 class LeftoverMealTag extends ConsumerWidget {
   const LeftoverMealTag({required this.entry, this.size = 9.5, super.key});
 
@@ -688,17 +689,10 @@ class LeftoverMealTag extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // The shelf on the meal's own day, and what no longer adds up.
+    // The shelf on the meal's own day, and what no longer adds up. Not
+    // judged yet (its cooking has not synced): the fridge.
     final judged = ref.watch(leftoverMealsProvider)[entry.id];
-    final row = entry.fromLeftover;
-    // Not judged (a row out of reach): a meal from a cooked batch
-    // (`leftover_of`) is from the fridge, one from a row from that row's shelf.
-    final place =
-        judged?.place ??
-        (row == null
-            ? LeftoverPlace.fridge
-            : ref.watch(leftoverPlacesProvider).asData?.value[row] ??
-                  LeftoverPlace.fridge);
+    final place = judged?.place ?? LeftoverPlace.fridge;
     return Align(
       alignment: Alignment.centerLeft,
       child: LeftoverTag(place: place, warning: judged?.warning, size: size),

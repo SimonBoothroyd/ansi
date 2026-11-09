@@ -27,17 +27,17 @@ class BatchLeftoverLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final key = session.leftoverKey;
-    if (key == null) return const SizedBox.shrink();
+    final key = session.cookingId;
     final today = ref.watch(todayProvider);
     final shape = ref.watch(weekShapeProvider);
     final weekStart = ref.watch(viewedWeekStartProvider);
     final share = freezeShareOf(session, weekStart, today);
     final shareDue = share != null && !today.isAfter(share.freezeBy);
-    final left = wasCooked(session)
+    // The cooking's fridge shelf first, else its freezer.
+    final left = key != null && wasCooked(session)
         ? (ref.watch(fridgeAndFreezerProvider).asData?.value ??
                   const <Leftover>[])
-              .where((l) => l.batch == key && l.isCookedBy(today))
+              .where((l) => l.id == key && l.isCookedBy(today))
               .firstOrNull
         : null;
 

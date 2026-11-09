@@ -268,48 +268,6 @@ void main() {
     expect(strip.days[2].eats, isTrue);
   });
 
-  testWidgets('a meal the week before cooks is a line, and the week is not '
-      'empty', (tester) async {
-    await tester.pumpWidget(
-      _host([
-        cookPlanRepositoryProvider.overrideWithValue(
-          FakeCookPlanRepository(
-            const CookPlan(
-              foldedBack: {
-                'thu': CookSession(
-                  recipeId: 'r',
-                  recipeTitle: 'Beef Ragù',
-                  servingsBase: 4,
-                  cookDay: 5,
-                  keepsForDays: 3,
-                  freezable: true,
-                  covers: [
-                    CoveredMeal(
-                      dayOfWeek: 5,
-                      mealSlot: 'Dinner',
-                      portions: 2,
-                      entryId: 'sat',
-                      eatenPortions: 2,
-                    ),
-                    CoveredMeal(
-                      dayOfWeek: 10,
-                      mealSlot: 'Dinner',
-                      portions: 2,
-                      entryId: 'thu',
-                    ),
-                  ],
-                ),
-              },
-            ),
-          ),
-        ),
-      ]),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Beef Ragù · Thu · from the freezer'), findsOneWidget);
-    expect(find.text('nothing planned yet'), findsNothing);
-  });
-
   testWidgets('a freezable far meal is a freezer day on the strip', (
     tester,
   ) async {
@@ -734,26 +692,33 @@ void main() {
   });
 
   group('what a cooked batch left over', () {
-    // Curry for Mon and Tue, 2 portions each; 3 of the 4 were ticked.
+    // Curry for Mon and Tue, 2 portions each, one cooking; 3 of the 4 were
+    // ticked.
     PlannedRecipe curry() => const PlannedRecipe(
       recipeId: 'curry',
       title: 'Curry',
       servingsBase: 4,
       keepsForDays: 4,
-      meals: [
-        CoveredMeal(
-          dayOfWeek: 0,
-          mealSlot: 'Dinner',
-          portions: 2,
-          entryId: 'mon',
-          eatenPortions: 2,
-        ),
-        CoveredMeal(
-          dayOfWeek: 1,
-          mealSlot: 'Dinner',
-          portions: 2,
-          entryId: 'tue',
-          eatenPortions: 1,
+      cookings: [
+        PlannedCooking(
+          id: 'mon',
+          made: 4,
+          meals: [
+            CoveredMeal(
+              dayOfWeek: 0,
+              mealSlot: 'Dinner',
+              portions: 2,
+              entryId: 'mon',
+              eatenPortions: 2,
+            ),
+            CoveredMeal(
+              dayOfWeek: 1,
+              mealSlot: 'Dinner',
+              portions: 2,
+              entryId: 'tue',
+              eatenPortions: 1,
+            ),
+          ],
         ),
       ],
     );
@@ -764,13 +729,13 @@ void main() {
       int untilInDays = 2,
       LeftoverPlace place = LeftoverPlace.fridge,
     }) => Leftover(
-      batch: 'mon',
+      id: 'mon',
       place: place,
       recipeId: 'curry',
       title: 'Curry',
       since: today.subtract(const Duration(days: 6)),
       goodUntil: today.add(Duration(days: untilInDays)),
-      portions: 1,
+      box: 1,
     );
 
     List<Override> overrides(List<Leftover> rows) => [
@@ -814,13 +779,12 @@ void main() {
       final sunday = today.add(const Duration(days: 1));
       await pump(tester, [
         Leftover(
-          batch: 'mon',
+          id: 'mon',
           place: LeftoverPlace.fridge,
           recipeId: 'curry',
           title: 'Curry',
           since: today.subtract(const Duration(days: 1)),
           goodUntil: today.add(const Duration(days: 3)),
-          portions: 0,
           planned: 1,
           meals: [
             LeftoverMeal(
@@ -830,6 +794,7 @@ void main() {
               place: LeftoverPlace.fridge,
             ),
           ],
+          box: 1,
         ),
       ]);
       final day = WeekShape.monday.labelShort(

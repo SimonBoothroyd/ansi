@@ -33,14 +33,14 @@ final _monday = WeekShape.monday.weekStartOf(DateTime.now());
 DateTime _on(int day, [int hour = 0]) =>
     DateTime(_monday.year, _monday.month, _monday.day + day, hour);
 
-PlanEntry _entry(int day, {String? fromLeftover}) => PlanEntry(
+PlanEntry _entry(int day, {String? cooking}) => PlanEntry(
   id: 'e$day',
   dayOfWeek: day,
   mealSlot: 'Dinner',
   recipeId: 'hh',
   recipeTitle: 'Hamburger Helper',
   eaterIds: const ['m1', 'm2'],
-  fromLeftover: fromLeftover,
+  cooking: cooking,
 );
 
 class _Planner extends FakePlanningRepository {
@@ -75,36 +75,46 @@ class _LivePlan implements CookPlanRepository {
 }
 
 /// Hamburger Helper of 8, Wed, Fri and Sat (keeps 3, freezes), with [eaten]
-/// ticked portions by day, and [nextWeek] meals folded in (days 7..13).
-CookPlan _helper(Map<int, double> eaten, {List<int> nextWeek = const []}) =>
-    buildCookPlan([
-      PlannedRecipe(
-        recipeId: 'hh',
-        title: 'Hamburger Helper',
-        servingsBase: 8,
-        keepsForDays: 3,
-        freezable: true,
-        meals: [
-          for (final d in [2, 4, 5])
-            CoveredMeal(
-              dayOfWeek: d,
-              mealSlot: 'Dinner',
-              portions: 2,
-              entryId: 'e$d',
-              eatenPortions: eaten[d] ?? 0,
-            ),
-        ],
-        nextWeek: [
-          for (final d in nextWeek)
-            CoveredMeal(
-              dayOfWeek: d,
-              mealSlot: 'Dinner',
-              portions: 2,
-              entryId: 'next$d',
-            ),
-        ],
+/// ticked portions by day. With [nextWeek], it is one cooking with those
+/// meals of the week after picked from it (days 7..13).
+CookPlan _helper(Map<int, double> eaten, {List<int> nextWeek = const []}) {
+  final meals = [
+    for (final d in [2, 4, 5])
+      CoveredMeal(
+        dayOfWeek: d,
+        mealSlot: 'Dinner',
+        portions: 2,
+        entryId: 'e$d',
+        eatenPortions: eaten[d] ?? 0,
       ),
-    ]);
+  ];
+  return buildCookPlan([
+    PlannedRecipe(
+      recipeId: 'hh',
+      title: 'Hamburger Helper',
+      servingsBase: 8,
+      keepsForDays: 3,
+      freezable: true,
+      meals: nextWeek.isEmpty ? meals : const [],
+      cookings: [
+        if (nextWeek.isNotEmpty)
+          PlannedCooking(
+            id: 'e2',
+            meals: [
+              ...meals,
+              for (final d in nextWeek)
+                CoveredMeal(
+                  dayOfWeek: d + 7,
+                  mealSlot: 'Dinner',
+                  portions: 2,
+                  entryId: 'next$d',
+                ),
+            ],
+          ),
+      ],
+    ),
+  ]);
+}
 
 Future<_Planner> _open(
   WidgetTester tester, {
@@ -183,7 +193,6 @@ void main() {
       title: 'Hamburger Helper',
       since: _on(4),
       goodUntil: _on(7),
-      portions: 0,
       planned: 2,
       freezable: true,
       meals: [
@@ -195,18 +204,15 @@ void main() {
           freezeBy: _on(7),
         ),
       ],
+      box: 2,
     );
     await _open(
       tester,
-      entry: _entry(6, fromLeftover: 'lo'),
+      entry: _entry(6, cooking: 'lo'),
       now: _on(5, 10),
       extra: [
         leftoverRepositoryProvider.overrideWithValue(
-          FakeLeftoverRepository(
-            [leftover],
-            const {},
-            {'e6': leftover.meals.single},
-          ),
+          FakeLeftoverRepository([leftover], {'e6': leftover.meals.single}),
         ),
       ],
     );
@@ -217,7 +223,7 @@ void main() {
       'leftover again', (tester) async {
     final planner = await _open(
       tester,
-      entry: _entry(6, fromLeftover: 'lo'),
+      entry: _entry(6, cooking: 'lo'),
       now: _on(5, 10),
       extra: [
         leftoverRepositoryProvider.overrideWithValue(FakeLeftoverRepository()),
@@ -229,6 +235,6 @@ void main() {
     expect(find.text('Cooking Hamburger Helper fresh on Sunday.'), findsOne);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
-    expect(planner.eatenFromLeftoverAgain, [('e6', null, 'lo')]);
+    expect(planner.eatenFromLeftoverAgain, [('e6', 'lo')]);
   });
 }

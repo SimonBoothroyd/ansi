@@ -48,13 +48,12 @@ const _recipes = [
 /// Good till Sunday; Tuesday's meal is from the freezer, so it goes in by
 /// Sunday.
 final _helper = Leftover(
-  batch: 'b1',
+  id: 'b1',
   place: LeftoverPlace.fridge,
   recipeId: 'hh',
   title: 'Hamburger Helper',
   since: DateTime(2026, 11, 9),
   goodUntil: DateTime(2026, 11, 15),
-  portions: 3,
   planned: 2,
   freezable: true,
   freezeBy: DateTime(2026, 11, 15),
@@ -67,6 +66,7 @@ final _helper = Leftover(
       freezeBy: DateTime(2026, 11, 15),
     ),
   ],
+  box: 5,
 );
 final _curry = Leftover(
   id: 'c',
@@ -75,7 +75,7 @@ final _curry = Leftover(
   title: 'Chickpea Curry',
   since: DateTime(2026, 11, 10),
   goodUntil: DateTime(2026, 11, 16),
-  portions: 1.75,
+  box: 1.75,
 );
 final _soup = Leftover(
   id: 's',
@@ -84,7 +84,7 @@ final _soup = Leftover(
   title: 'Squash Soup',
   since: DateTime(2026, 11, 4),
   goodUntil: DateTime(2026, 11, 8),
-  portions: 2,
+  box: 2,
 );
 final _chili = Leftover(
   id: 'f1',
@@ -93,7 +93,7 @@ final _chili = Leftover(
   title: 'Black Bean Chili',
   since: DateTime(2026, 10, 28),
   goodUntil: DateTime(2027, 1, 26),
-  portions: 2,
+  box: 2,
 );
 final _bolognese = Leftover(
   id: 'f2',
@@ -101,7 +101,6 @@ final _bolognese = Leftover(
   title: 'Lentil Bolognese',
   since: DateTime(2026, 11, 7),
   goodUntil: null,
-  portions: 0,
   planned: 2,
   meals: [
     LeftoverMeal(
@@ -111,6 +110,7 @@ final _bolognese = Leftover(
       place: LeftoverPlace.freezer,
     ),
   ],
+  box: 2,
 );
 final _pesto = Leftover(
   id: 'f3',
@@ -119,7 +119,7 @@ final _pesto = Leftover(
   title: 'Basil Pesto',
   since: DateTime(2026, 8, 2),
   goodUntil: DateTime(2026, 11, 2),
-  portions: 4,
+  box: 4,
 );
 
 Future<FakeLeftoverRepository> _pump(
@@ -211,7 +211,7 @@ void main() {
       title: 'Chickpea Curry',
       since: DateTime(2026, 11, 10),
       goodUntil: DateTime(2026, 11, 16),
-      portions: 1,
+      box: 1,
     );
     final repo = await _pump(tester, rows: [one]);
     await tester.tap(find.text('1 left'));
@@ -252,9 +252,7 @@ void main() {
     expect(find.text('Removed 2 gone off.'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
-    expect(repo.restored, [
-      [_soup, _pesto],
-    ]);
+    expect(repo.undone.single.gone, ['s', 'f3']);
   });
 
   testWidgets('Freeze and Froze it say so, with an Undo', (tester) async {
@@ -265,9 +263,7 @@ void main() {
     expect(find.text('Froze Hamburger Helper.'), findsOneWidget);
     await tester.tap(find.text('Undo'));
     await tester.pumpAndSettle();
-    expect(repo.restored, [
-      [_helper],
-    ]);
+    expect(repo.undone.single.changes, ['freeze-b1']);
 
     await tester.tap(find.text('Froze it'));
     await tester.pumpAndSettle();
@@ -283,8 +279,6 @@ void main() {
       title: 'Chickpea Curry',
       since: DateTime(2026, 11, 10),
       goodUntil: DateTime(2026, 11, 16),
-      portions: 0,
-      inBox: 1,
       meals: [
         LeftoverMeal(
           entryId: 'fri',
@@ -294,6 +288,7 @@ void main() {
           warning: LeftoverWarning.notEnoughLeft,
         ),
       ],
+      box: 1,
     );
     await _pump(tester, rows: [short]);
     expect(find.text('1 left'), findsOneWidget);

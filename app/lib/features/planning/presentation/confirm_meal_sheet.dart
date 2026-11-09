@@ -213,7 +213,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               .asData
               ?.value
               ?.entries
-              .where((e) => e.recipeId == recipe.id && !e.isFromLeftover)
+              .where((e) => e.recipeId == recipe.id && e.cooking == null)
               .map((e) => e.dayOfWeek)
               .toList();
     final hint = recipe == null
@@ -257,10 +257,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
             portions: portionsOverride.value,
-            fromLeftover: fromFreezer?.id,
+            cooking: fromFreezer?.id,
           ),
-          // A stored row is named by its id; a batch nobody has said anything
-          // about yet by its key, as a meal from one always was.
+          // Planned from a pot: the meal links to its cooking.
           LeftoverMeal(:final recipe, :final leftover) => repo.addEntry(
             weekStart: weekStart,
             dayOfWeek: dayOfWeek,
@@ -268,8 +267,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             recipeId: recipe.id,
             eaterIds: eaters.value.toList(),
             portions: portionsOverride.value,
-            leftoverOf: leftover.isStored ? null : leftover.batch,
-            fromLeftover: leftover.id,
+            cooking: leftover.id,
           ),
           SnackMeal(:final ingredient, :final quantity, :final unit) =>
             repo.addIngredientEntry(

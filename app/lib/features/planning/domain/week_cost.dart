@@ -100,20 +100,23 @@ PortionCost ingredientPortionCost(PlanEntry entry, UnitPrice? price) {
 /// excludes the meal by name. [priceFor] returns the price a vocabulary row's
 /// cost reads, which ingredient meals are costed from.
 ///
-/// A dish that freezes can be cooked once across the week edge: the meals
-/// [cookedWeekBefore] names (by entry id) were bought and costed in the week
-/// before, and are passed over like a meal from a leftover; [cookedForNextWeek]
-/// are the next week's meals this week's batches cook, costed here at their
-/// portions. Under a lens they are not counted: they are eaten next week.
+/// A cooking is bought and costed in the week of its earliest meal, for what
+/// it made: [cookings] are the ones bought in this week, each with the meals
+/// of the week it covers. The household's figure costs each once at its
+/// portions; under a lens its meals here are the member's shares, as any
+/// meal. A meal in a cooking bought elsewhere (or food said by hand) was
+/// bought there: like a meal out, neither a cost nor a gap here.
 PlannedCost sumPlannedCost(
   Iterable<PlanEntry> entries, {
   required RecipeCostSummary? Function(String recipeId) costFor,
   required UnitPrice? Function(String ingredientId) priceFor,
   String? lensMemberId,
   Map<String, Member> membersById = const {},
-  Set<String> cookedWeekBefore = const {},
-  Iterable<({String recipeId, double portions})> cookedForNextWeek = const [],
+  Iterable<({String recipeId, double portions, Set<String> entryIds})>
+      cookings =
+      const [],
 }) {
+  final boughtHere = {for (final c in cookings) ...c.entryIds};
   double? total;
   var counted = 0;
   var considered = 0;
@@ -141,10 +144,8 @@ PlannedCost sumPlannedCost(
       continue;
     }
 
-    // A meal from a leftover was bought and costed in the week it was cooked,
-    // as was one the week before's batch cooks: like a meal out, neither a
-    // cost nor a gap here.
-    if (entry.isFromLeftover || cookedWeekBefore.contains(entry.id)) {
+    // A meal in a cooking bought elsewhere was costed there.
+    if (entry.cooking != null && !boughtHere.contains(entry.id)) {
       considered--;
       continue;
     }
@@ -183,6 +184,11 @@ PlannedCost sumPlannedCost(
           continue;
         }
         perServing = summary.perServingCents;
+        // The household's figure costs a cooking once, below.
+        if (lensMemberId == null && boughtHere.contains(entry.id)) {
+          counted++;
+          continue;
+        }
     }
 
     final servings = lensMemberId == null
@@ -193,14 +199,14 @@ PlannedCost sumPlannedCost(
     counted++;
   }
 
-  // Bought this week for a meal of the next: its share of the batch.
+  // Each cooking bought this week, once, for what it made.
   if (lensMemberId == null) {
-    for (final meal in cookedForNextWeek) {
-      final summary = costFor(meal.recipeId);
-      if (summary == null || meal.portions <= 0) continue;
+    for (final cooking in cookings) {
+      final summary = costFor(cooking.recipeId);
+      if (summary == null || cooking.portions <= 0) continue;
       final perServing = summary.perServingCents;
       if (perServing == null) continue;
-      total = (total ?? 0) + perServing * meal.portions;
+      total = (total ?? 0) + perServing * cooking.portions;
     }
   }
 

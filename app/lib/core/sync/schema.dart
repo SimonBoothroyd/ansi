@@ -156,8 +156,7 @@ const schema = Schema([
     ..._audit,
   ]),
   // What became of a batch's uneaten portions (0057), keyed to its first
-  // covered meal. The leftover is derived; only the answer is stored. Newest
-  // `updated_at` wins on read.
+  // covered meal. Read-only: the carry-over to cookings reads it once.
   Table('batch_leftover', [
     Column.text('household_id'),
     Column.text('plan_entry_id'), // → plan_entry.id
@@ -166,10 +165,9 @@ const schema = Schema([
     Column.real('eaten'),
     ..._audit,
   ]),
-  // Cooked food in the fridge or the freezer, as the household says it is: a
-  // recipe or words, never both. A row with a `batch` replaces that batch's
-  // derived leftover; newest `updated_at` per batch wins on read. Shown until
-  // `gone_at`.
+  // Cooked food in the fridge or the freezer as the last release stored it.
+  // Read-only: each row became a cooking of the same id (0061), and the
+  // carry-over reads `batch` to find the meals one stood for.
   Table('leftover', [
     Column.text('household_id'),
     Column.text('place'), // 'fridge' | 'freezer'

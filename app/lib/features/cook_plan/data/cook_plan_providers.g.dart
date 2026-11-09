@@ -104,3 +104,56 @@ final class LeftoverRepositoryProvider
 
 String _$leftoverRepositoryHash() =>
     r'817606c5d00814fa7d2cb8fa900aa53ab3e6cfd5';
+
+/// The carry-over from the last release's fridge rows and answers
+/// ([carryOverCookings]): once a session is ready, after this launch's first
+/// download has finished, so the cookings the server converted are here
+/// before any is born on this phone. Idempotent, so a second run (a sign-in
+/// again) changes nothing. Listened from the app's root; it goes with the old
+/// tables.
+
+@ProviderFor(cookingCarryOver)
+const cookingCarryOverProvider = CookingCarryOverProvider._();
+
+/// The carry-over from the last release's fridge rows and answers
+/// ([carryOverCookings]): once a session is ready, after this launch's first
+/// download has finished, so the cookings the server converted are here
+/// before any is born on this phone. Idempotent, so a second run (a sign-in
+/// again) changes nothing. Listened from the app's root; it goes with the old
+/// tables.
+
+final class CookingCarryOverProvider
+    extends $FunctionalProvider<AsyncValue<void>, void, FutureOr<void>>
+    with $FutureModifier<void>, $FutureProvider<void> {
+  /// The carry-over from the last release's fridge rows and answers
+  /// ([carryOverCookings]): once a session is ready, after this launch's first
+  /// download has finished, so the cookings the server converted are here
+  /// before any is born on this phone. Idempotent, so a second run (a sign-in
+  /// again) changes nothing. Listened from the app's root; it goes with the old
+  /// tables.
+  const CookingCarryOverProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'cookingCarryOverProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$cookingCarryOverHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<void> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<void> create(Ref ref) {
+    return cookingCarryOver(ref);
+  }
+}
+
+String _$cookingCarryOverHash() => r'2a33705bd1e9c7b4a52eeae99f7d940df4228531';

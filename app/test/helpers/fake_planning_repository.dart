@@ -69,15 +69,7 @@ class FakePlanningRepository implements PlanningRepository {
 
   /// Every recipe meal handed to [addEntry], in order.
   final recipeEntries =
-      <
-        ({
-          int dayOfWeek,
-          String recipeId,
-          int? portions,
-          String? leftoverOf,
-          String? fromLeftover,
-        })
-      >[];
+      <({int dayOfWeek, String recipeId, int? portions, String? cooking})>[];
 
   @override
   Future<String> addEntry({
@@ -87,15 +79,13 @@ class FakePlanningRepository implements PlanningRepository {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
-    String? leftoverOf,
-    String? fromLeftover,
+    String? cooking,
   }) async {
     recipeEntries.add((
       dayOfWeek: dayOfWeek,
       recipeId: recipeId,
       portions: portions,
-      leftoverOf: leftoverOf,
-      fromLeftover: fromLeftover,
+      cooking: cooking,
     ));
     return 'e';
   }
@@ -172,16 +162,14 @@ class FakePlanningRepository implements PlanningRepository {
   Future<void> cookFreshInstead(String entryId) async =>
       cookedFresh.add(entryId);
 
-  /// Every `(entryId, leftoverOf, fromLeftover)` handed to
-  /// [eatFromLeftoverAgain], in order.
-  final eatenFromLeftoverAgain = <(String, String?, String?)>[];
+  /// Every `(entryId, cooking)` handed to [eatFromLeftoverAgain], in order.
+  final eatenFromLeftoverAgain = <(String, String)>[];
 
   @override
   Future<void> eatFromLeftoverAgain(
     String entryId, {
-    String? leftoverOf,
-    String? fromLeftover,
-  }) async => eatenFromLeftoverAgain.add((entryId, leftoverOf, fromLeftover));
+    required String cooking,
+  }) async => eatenFromLeftoverAgain.add((entryId, cooking));
 
   /// Every `(entryId, mealSlot)` handed to [setMealSlot], in order.
   final slotWrites = <(String, String)>[];

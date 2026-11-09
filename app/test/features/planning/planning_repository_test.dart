@@ -172,7 +172,8 @@ void main() {
       expect(await repo.watchWeek(_thisWeek).first, isNull);
     });
 
-    test('a meal from a leftover keeps the batch it came from', () async {
+    test('a meal planned from a pot not born yet is its birth: the group '
+        'and the meal join one cooking', () async {
       await _insertRecipe(db, 'r1', 'Curry');
       final batch = await repo.addEntry(
         weekStart: _thisWeek,
@@ -187,42 +188,48 @@ void main() {
         mealSlot: 'Lunch',
         recipeId: 'r1',
         eaterIds: ['m1'],
-        leftoverOf: batch,
+        cooking: batch,
       );
       final entries = (await repo.watchWeek(_thisWeek).first)!.entries;
-      expect([for (final e in entries) e.leftoverOf], [null, batch]);
+      expect([for (final e in entries) e.cooking], [batch, batch]);
+      final cooking = await db.get('SELECT id, made FROM cooking');
+      expect((cooking['id'], cooking['made']), (batch, null));
     });
 
-    test('a meal from a fridge or freezer row keeps the row it came from; '
-        'copy last week carries it as a meal to cook, a move keeps it '
-        'eaten', () async {
+    test('a move keeps the meal in its cooking; copy last week carries it '
+        'as a meal to cook', () async {
       await _insertRecipe(db, 'r1', 'Chili');
-      await insertLeftover(db, id: 'lo1', recipeId: 'r1');
+      await insertCooking(
+        db,
+        id: 'lo1',
+        recipeId: 'r1',
+        made: 2,
+        place: 'freezer',
+        since: '2026-08-20',
+      );
       final meal = await repo.addEntry(
         weekStart: _lastWeek,
         dayOfWeek: 4,
         mealSlot: 'Dinner',
         recipeId: 'r1',
         eaterIds: ['m1'],
+        cooking: 'lo1',
       );
-      await planFromLeftover(db, meal, 'lo1');
       final last = (await repo.watchWeek(_lastWeek).first)!.entries.single;
-      expect(last.fromLeftover, 'lo1');
-      expect(last.isFromLeftover, isTrue);
+      expect((last.id, last.cooking), (meal, 'lo1'));
 
       // A move is the same meal, whole: still eaten from the freezer.
       await repo.applyPlanChanges([
         PlanMove(last, weekStart: _lastWeek, dayOfWeek: 5, mealSlot: 'Lunch'),
       ]);
       final moved = (await repo.watchWeek(_lastWeek).first)!.entries.single;
-      expect((moved.dayOfWeek, moved.fromLeftover), (5, 'lo1'));
+      expect((moved.dayOfWeek, moved.cooking), (5, 'lo1'));
 
-      // Next week the freezer row may be gone: the copy is a meal to cook.
+      // Next week the food may be gone: the copy is a meal to cook.
       expect((await repo.copyLastWeek(_thisWeek)).meals, 1);
       final copied = (await repo.watchWeek(_thisWeek).first)!.entries.single;
       expect(copied.recipeId, 'r1');
-      expect(copied.fromLeftover, isNull);
-      expect(copied.leftoverOf, isNull);
+      expect(copied.cooking, isNull);
     });
 
     test('addEntry creates the week lazily and appears in watchWeek', () async {

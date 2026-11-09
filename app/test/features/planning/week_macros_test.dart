@@ -123,8 +123,8 @@ void main() {
     () {
       final macros = _sum([
         _entry(id: 'a'),
-        _entry(id: 'b', day: 1).copyWith(fromLeftover: 'freezer-curry'),
-        _entry(id: 'c', day: 2).copyWith(leftoverOf: 'a'),
+        _entry(id: 'b', day: 1).copyWith(cooking: 'freezer-curry'),
+        _entry(id: 'c', day: 2).copyWith(cooking: 'a'),
       ]);
       expect(macros.total!.kcal, 600);
       expect(macros.counted, 3);

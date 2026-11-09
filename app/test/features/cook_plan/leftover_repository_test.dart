@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansi/core/sync/connector.dart' show insertOnceTables;
+import 'package:ansi/features/cook_plan/data/cooking_store.dart';
 import 'package:ansi/features/cook_plan/data/leftover_repository_impl.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
@@ -9,8 +12,25 @@ import 'package:powersync/powersync.dart';
 import '../../helpers/leftover_rows.dart';
 import '../../helpers/test_db.dart';
 
+/// The week of Monday 24 August 2026; today is its Wednesday.
 final _week = DateTime(2026, 8, 24);
 final _wednesday = DateTime(2026, 8, 26);
+
+/// The curry, keeps 3 days, freezes for 90; Ada eats 1, Jun ¾.
+Future<void> _household(PowerSyncDatabase db) async {
+  await db.execute(
+    'INSERT INTO recipe (id, household_id, title, servings_base, '
+    'keeps_for_days, freezable, freezer_days, created_at, updated_at) '
+    "VALUES ('curry', 'h', 'Curry', 2, 3, 1, 90, '2026-01-01', "
+    "'2026-01-01')",
+  );
+  await db.execute(
+    'INSERT INTO household_member (id, household_id, display_name, '
+    'sort_order, portion_factor, created_at, updated_at) VALUES '
+    "('a', 'h', 'Ada', 0, 1, '2026-01-01', '2026-01-01'), "
+    "('b', 'h', 'Jun', 1, 0.75, '2026-01-01', '2026-01-01')",
+  );
+}
 
 void main() {
   late PowerSyncDatabase db;
@@ -18,290 +38,457 @@ void main() {
   late SqliteLeftoverRepository repo;
   late SqlitePlanningRepository planning;
 
+  Future<LeftoverShelves> read({DateTime? today}) =>
+      repo.watchHouseholdLeftovers(today: today ?? _wednesday).first;
+
   Future<List<Leftover>> shelves({DateTime? today}) async =>
-      (await repo
-              .watchHouseholdLeftovers(
-                weekStart: _week,
-                today: today ?? _wednesday,
-              )
-              .first)
-          .rows;
+      (await read(today: today)).rows;
 
-  Future<Map<String, Object?>> stored(String id) async =>
-      db.get('SELECT * FROM leftover WHERE id = ?', [id]);
+  Future<String> curry(int day, {DateTime? week}) => planning.addEntry(
+    weekStart: week ?? _week,
+    dayOfWeek: day,
+    mealSlot: 'Dinner',
+    recipeId: 'curry',
+    eaterIds: const ['a', 'b'],
+  );
 
-  /// A curry for Ada (1) and Jun (¾) on [day]; Jun ticks it, so Ada's 1 is
-  /// left.
-  Future<String> cookedCurry(int day) async {
-    final id = await planning.addEntry(
-      weekStart: _week,
-      dayOfWeek: day,
-      mealSlot: 'Dinner',
-      recipeId: 'curry',
-      eaterIds: const ['a', 'b'],
-    );
-    await planning.setMealEaten(
-      id,
-      memberId: 'b',
-      eatenAt: DateTime.utc(2026, 8, 24 + day, 19),
-    );
-    return id;
-  }
+  Future<void> tick(String entry, String member, {bool ate = true}) =>
+      planning.setMealEaten(
+        entry,
+        memberId: member,
+        eatenAt: ate ? DateTime.utc(2026, 8, 24, 19) : null,
+      );
 
   setUp(() async {
     (db, dir) = await openTestDb();
-    repo = SqliteLeftoverRepository(db, householdId: 'h');
-    planning = SqlitePlanningRepository(db, householdId: 'h');
-    await db.execute(
-      'INSERT INTO recipe (id, household_id, title, servings_base, '
-      'keeps_for_days, freezable, freezer_days, created_at, updated_at) '
-      "VALUES ('curry', 'h', 'Curry', 2, 3, 1, 90, '2026-01-01', "
-      "'2026-01-01')",
+    repo = SqliteLeftoverRepository(
+      db,
+      householdId: 'h',
+      clock: () => _wednesday,
     );
-    await db.execute(
-      'INSERT INTO household_member (id, household_id, display_name, '
-      'sort_order, portion_factor, created_at, updated_at) VALUES '
-      "('a', 'h', 'Ada', 0, 1, '2026-01-01', '2026-01-01'), "
-      "('b', 'h', 'Jun', 1, 0.75, '2026-01-01', '2026-01-01')",
+    planning = SqlitePlanningRepository(
+      db,
+      householdId: 'h',
+      clock: () => _wednesday,
     );
+    await _household(db);
   });
 
   tearDown(() => closeTestDb(db, dir));
 
-  test(
-    'a cooked batch reads as a fridge row, dated by its fridge life',
-    () async {
-      final mon = await cookedCurry(0);
-      final left = (await shelves()).single;
-      expect(left.isStored, isFalse);
-      expect(left.batch, mon);
-      expect(left.place, LeftoverPlace.fridge);
-      expect(left.portions, 1);
-      expect(left.goodUntil, DateTime(2026, 8, 27));
-    },
-  );
-
-  test('a derived row falls by the meals planned from its batch, and an old '
-      'answer from Cook reads as gone', () async {
-    final mon = await cookedCurry(0);
-    // Jun plans their usual ¾ from it, next Monday.
-    await planning.addEntry(
-      weekStart: _week.add(const Duration(days: 7)),
-      dayOfWeek: 0,
-      mealSlot: 'Lunch',
-      recipeId: 'curry',
-      eaterIds: const ['b'],
-      leftoverOf: mon,
-    );
-    final left = (await shelves()).single;
-    expect(left.portions, closeTo(0.25, 1e-9));
-    expect(left.planned, 0.75);
-
-    await db.execute(
-      'INSERT INTO batch_leftover (id, household_id, plan_entry_id, kept, '
-      'binned, eaten, created_at, updated_at) VALUES '
-      "('bl1', 'h', ?, 0, 0.25, 0, '2026-08-26', '2026-08-26')",
-      [mon],
-    );
-    expect(await shelves(), isEmpty);
-  });
-
-  test(
-    'a count set by hand moves with every tick and untick after it',
-    () async {
-      await cookedCurry(0);
-      // Tuesday's curry, both of them ticked: nothing of it left.
-      final tue = await planning.addEntry(
-        weekStart: _week,
-        dayOfWeek: 1,
-        mealSlot: 'Dinner',
-        recipeId: 'curry',
-        eaterIds: const ['a', 'b'],
+  group('the tick path', () {
+    test('a first tick births the group’s cooking and links the '
+        'group; the page reads it', () async {
+      final mon = await curry(0);
+      final tue = await curry(1);
+      await tick(tue, 'b');
+      final cooking = await db.get('SELECT * FROM cooking');
+      expect(cooking['id'], mon);
+      expect(cooking['made'], 3.5);
+      final row = (await shelves()).single;
+      // Tue cooked; Jun's ¾ eaten of 3½ made, Monday skipped.
+      expect(
+        (row.id, row.since, row.inBox),
+        (mon, DateTime(2026, 8, 25), 2.75),
       );
-      for (final m in ['a', 'b']) {
-        await planning.setMealEaten(
-          tue,
-          memberId: m,
-          eatenAt: DateTime.utc(2026, 8, 25, 19),
-        );
-      }
-      expect((await shelves()).single.inBox, 1);
-      await repo.setLeftoverPortions((await shelves()).single, 3);
-      expect((await shelves()).single.inBox, 3);
+    });
 
-      // Ada says she did not eat Tuesday's after all: her portion is back.
-      await planning.setMealEaten(tue, memberId: 'a', eatenAt: null);
-      expect((await shelves()).single.inBox, 4);
-
-      // And did: back to the three said.
-      await planning.setMealEaten(
-        tue,
-        memberId: 'a',
-        eatenAt: DateTime.utc(2026, 8, 25, 19),
-      );
-      expect((await shelves()).single.inBox, 3);
-    },
-  );
-
-  test('a write is undone as the page drew the row before it', () async {
-    await cookedCurry(0);
-    final derived = (await shelves()).single;
-    await repo.freezeLeftover(derived);
-    expect((await shelves()).single.place, LeftoverPlace.freezer);
-    // A derived row: the row the freeze stored goes, the batch reads again.
-    await repo.restoreLeftovers([derived]);
-    final back = (await shelves()).single;
-    expect(
-      (back.isStored, back.place, back.inBox),
-      (false, LeftoverPlace.fridge, 1.0),
-    );
-
-    // A stored row: its place, date and count said again, not gone.
-    await repo.setLeftoverPortions(back, 2);
-    final stored = (await shelves()).single;
-    await repo.markLeftoversGone([stored]);
-    expect(await shelves(), isEmpty);
-    await repo.restoreLeftovers([stored]);
-    final again = (await shelves()).single;
-    expect(
-      (again.id, again.place, again.inBox),
-      (stored.id, LeftoverPlace.fridge, 2.0),
-    );
-  });
-
-  test('a first touch on a derived row stores it, naming its batch', () async {
-    final mon = await cookedCurry(0);
-    await repo.setLeftoverPortions((await shelves()).single, 3);
-    final left = (await shelves()).single;
-    expect(left.isStored, isTrue);
-    expect(left.batch, mon);
-    expect(left.portions, 3);
-    // A second write finds the stored row rather than storing another.
-    await repo.setLeftoverPortions((await shelves()).single, 2);
-    final rows = await db.getAll('SELECT id, portions FROM leftover');
-    expect(rows.single['portions'], 2);
-  });
-
-  test(
-    'a write about a derived row a second phone stored reuses that row',
-    () async {
-      final mon = await cookedCurry(0);
-      final derived = (await shelves()).single;
-      await insertLeftover(
-        db,
-        id: 'lo1',
-        place: 'fridge',
-        recipeId: 'curry',
-        portions: 1,
-        batch: mon,
-      );
-      await repo.markLeftoversGone([derived]);
-      expect((await db.getAll('SELECT id FROM leftover')).single['id'], 'lo1');
-      expect((await stored('lo1'))['gone_at'], isNotNull);
-    },
-  );
-
-  test('the stepper sets what is in the box, and the meals eaten from it '
-      'since still come off', () async {
-    await insertLeftover(db, id: 'lo1', recipeId: 'curry', portions: 4);
-    // Ada's 1 on Monday is behind us; her 1 next Tuesday is to come.
-    for (final (week, day) in [
-      (_week, 0),
-      (_week.add(const Duration(days: 7)), 1),
-    ]) {
-      await planning.addEntry(
-        weekStart: week,
-        dayOfWeek: day,
-        mealSlot: 'Dinner',
-        recipeId: 'curry',
-        eaterIds: const ['a'],
-        fromLeftover: 'lo1',
-      );
-    }
-    final left = (await shelves()).single;
-    expect((left.inBox, left.portions, left.planned), (3.0, 2.0, 1.0));
-
-    await repo.setLeftoverPortions(left, 2);
-    expect((await stored('lo1'))['portions'], 2);
-    final set = (await shelves()).single;
-    expect((set.inBox, set.portions), (2.0, 1.0));
-
-    // Once its day is behind us the meal is eaten, no longer planned.
-    expect((await shelves(today: DateTime(2026, 9, 2))).single.planned, 0);
-  });
-
-  test('a count of nothing takes the row off the page', () async {
-    await cookedCurry(0);
-    await repo.setLeftoverPortions((await shelves()).single, 0);
-    expect(await shelves(), isEmpty);
-  });
-
-  test('Freeze moves a row to the freezer, dated from its cook day', () async {
-    await cookedCurry(0);
-    await repo.freezeLeftover((await shelves()).single);
-    final left = (await shelves()).single;
-    expect(left.place, LeftoverPlace.freezer);
-    expect(left.since, _week);
-    expect(left.goodUntil, DateTime(2026, 11, 22));
-    expect(left.portions, 1);
-  });
-
-  test(
-    'Gone hides each row named, derived or stored, and stays gone',
-    () async {
-      await cookedCurry(0);
-      await insertLeftover(db, id: 'lo1', label: 'Soup from Mum');
-      expect(await shelves(), hasLength(2));
-      await repo.markLeftoversGone(await shelves());
+    test('an untick writes nothing to the cooking; with every meal behind '
+        'us it reads never cooked', () async {
+      final mon = await curry(0);
+      await tick(mon, 'b');
+      await drainCrudQueue(db);
+      await tick(mon, 'b', ate: false);
+      final ops = await queuedCrudOps(db);
+      expect(ops.map((o) => o['type']).toSet(), {'meal_eaten'});
+      expect((await db.get('SELECT made FROM cooking'))['made'], 1.75);
       expect(await shelves(), isEmpty);
-      expect(
-        (await db.getAll(
-          'SELECT gone_at FROM leftover',
-        )).every((r) => r['gone_at'] != null),
-        isTrue,
-      );
-    },
-  );
+    });
 
-  test(
-    'Add stores a recipe or words, in either place, dated as said',
-    () async {
-      await repo.addLeftover(
-        place: LeftoverPlace.freezer,
-        portions: 4,
-        since: DateTime(2026, 8, 12),
-        label: '  Chili from Jo ',
-      );
-      await repo.addLeftover(
-        place: LeftoverPlace.fridge,
-        portions: 2,
-        since: DateTime(2026, 8, 25),
-        recipeId: 'curry',
-      );
-      final [curry, chili] = await shelves();
+    test('a birth checks for its id first: a cooking the other phone born '
+        'and synced is linked, never inserted again', () async {
+      final mon = await curry(0);
+      await insertCooking(db, id: mon, recipeId: 'curry', made: 1.75);
+      await drainCrudQueue(db);
+      await tick(mon, 'a');
+      final ops = await queuedCrudOps(db);
+      expect(ops.where((o) => o['type'] == 'cooking'), isEmpty);
       expect(
-        (curry.title, curry.place, curry.portions),
-        ('Curry', LeftoverPlace.fridge, 2),
+        (await db.get('SELECT cooking FROM plan_entry WHERE id = ?', [
+          mon,
+        ]))['cooking'],
+        mon,
       );
-      expect(curry.goodUntil, DateTime(2026, 8, 28));
-      expect(curry.batch, isNull);
-      expect(
-        (chili.title, chili.place, chili.since),
-        ('Chili from Jo', LeftoverPlace.freezer, DateTime(2026, 8, 12)),
-      );
-      expect(chili.goodUntil, isNull);
-    },
-  );
+    });
 
-  test('the places map every stored row, gone or not', () async {
-    await insertLeftover(db, id: 'lo1', recipeId: 'curry');
-    await insertLeftover(db, id: 'lo2', place: 'fridge', label: 'Rice');
-    await db.execute(
-      "UPDATE leftover SET gone_at = '2026-08-25' WHERE id = 'lo2'",
-    );
-    expect(await repo.watchLeftoverPlaces().first, {
-      'lo1': LeftoverPlace.freezer,
-      'lo2': LeftoverPlace.fridge,
+    test('a tick counts for a member taken off the meal since', () async {
+      final mon = await curry(0);
+      await tick(mon, 'b');
+      await planning.setEaters(mon, const ['a']);
+      // Made 1¾ at the tick; Jun's usual ¾ still came out of it.
+      expect((await shelves()).single.inBox, 1);
+    });
+
+    test('the read is one flat query: a cooking weeks old is still read, '
+        'past its date', () async {
+      final old = await curry(0, week: DateTime(2026, 7, 6));
+      await tick(old, 'b');
+      final row = (await shelves()).single;
+      expect(row.pastItsDate(_wednesday), isTrue);
     });
   });
+
+  group('the shelves’ writes', () {
+    late String mon;
+
+    setUp(() async {
+      mon = await curry(0);
+      await tick(mon, 'b');
+    });
+
+    test('the stepper writes the difference, and later ticks still move '
+        'it', () async {
+      final row = (await shelves()).single;
+      expect(row.inBox, 1);
+      await repo.setLeftoverPortions(row, 0.5);
+      final change = await db.get('SELECT fridge, freezer FROM cooking_change');
+      expect((change['fridge'], change['freezer']), (-0.5, 0.0));
+      expect((await shelves()).single.inBox, 0.5);
+      // Ada's tick takes her 1: nothing left to show.
+      await tick(mon, 'a');
+      expect(await shelves(), isEmpty);
+      await tick(mon, 'a', ate: false);
+      expect((await shelves()).single.inBox, 0.5);
+    });
+
+    test('Freeze moves the fridge box; Undo soft-deletes the change', () async {
+      final undo = await repo.freezeLeftover((await shelves()).single);
+      final frozen = await shelves();
+      expect(frozen.single.place, LeftoverPlace.freezer);
+      expect(frozen.single.inBox, 1);
+      await repo.undoLeftovers(undo);
+      expect((await shelves()).single.place, LeftoverPlace.fridge);
+      expect(
+        (await db.get('SELECT deleted_at FROM cooking_change'))['deleted_at'],
+        isNotNull,
+      );
+    });
+
+    test('Remove gone off says the cooking gone, for good: a late untick '
+        'does not bring it back; Undo does', () async {
+      final saturday = DateTime(2026, 8, 29);
+      final undo = await repo.markLeftoversGone([
+        (await shelves(today: saturday)).single,
+      ]);
+      expect(undo.gone, [mon]);
+      await tick(mon, 'b', ate: false);
+      await tick(mon, 'b');
+      expect(await shelves(today: saturday), isEmpty);
+      await repo.undoLeftovers(undo);
+      expect(await shelves(today: saturday), hasLength(1));
+    });
+
+    test('Remove gone off on a fridge part leaves the freezer’s', () async {
+      final row = (await shelves()).single;
+      await repo.setLeftoverPortions(row, 3);
+      final halves = await shelves();
+      // Freeze two, by a change of their own.
+      await insertCookingChangeFor(db, mon, fridge: -2, freezer: 2);
+      final fridge = (await shelves(
+        today: DateTime(2026, 8, 29),
+      )).singleWhere((l) => l.place == LeftoverPlace.fridge);
+      expect(halves, hasLength(1));
+      final undo = await repo.markLeftoversGone([fridge]);
+      expect(undo.gone, isEmpty);
+      final left = await shelves(today: DateTime(2026, 8, 29));
+      expect(left.single.place, LeftoverPlace.freezer);
+      expect(left.single.inBox, 2);
+    });
+  });
+
+  test('Add a leftover is food said by hand, on its shelf, dated', () async {
+    final id = await repo.addLeftover(
+      place: LeftoverPlace.freezer,
+      portions: 2,
+      since: DateTime(2026, 8, 12),
+      label: ' Mum’s lasagne ',
+    );
+    final row = await db.get('SELECT * FROM cooking WHERE id = ?', [id]);
+    expect(
+      (row['label'], row['made'], row['place'], row['since']),
+      ('Mum’s lasagne', 2.0, 'freezer', '2026-08-12'),
+    );
+    final shelf = (await shelves()).single;
+    expect(
+      (shelf.place, shelf.inBox, shelf.goodUntil),
+      (LeftoverPlace.freezer, 2.0, null),
+    );
+  });
+
+  group('the carry-over', () {
+    Future<void> carry() =>
+        carryOverCookings(db, householdId: 'h', today: _wednesday);
+
+    test('births a cooking for every group ticked in the last 28 days, '
+        'once', () async {
+      final mon = await curry(0);
+      // Ticked before this release: no cooking yet.
+      await db.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        "eaten_at, created_at, updated_at) VALUES ('t', 'h', ?, 'b', "
+        "'2026-08-24T19:00:00Z', '2026-08-24T19:00:00Z', "
+        "'2026-08-24T19:00:00Z')",
+        [mon],
+      );
+      final old = await curry(0, week: DateTime(2026, 7, 6));
+      await db.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        "eaten_at, created_at, updated_at) VALUES ('t2', 'h', ?, 'b', "
+        "'2026-07-06T19:00:00Z', '2026-07-06T19:00:00Z', "
+        "'2026-07-06T19:00:00Z')",
+        [old],
+      );
+      await carry();
+      final cookings = await db.getAll('SELECT id, made FROM cooking');
+      expect([for (final c in cookings) (c['id'], c['made'])], [(mon, 1.75)]);
+      await drainCrudQueue(db);
+      await carry();
+      expect(await queuedCrudOps(db), isEmpty);
+    });
+
+    test('a group an old fridge row names joins the cooking that row '
+        'became, at the count the row said', () async {
+      final mon = await curry(0);
+      final tue = await curry(1);
+      await db.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        "eaten_at, created_at, updated_at) VALUES ('t', 'h', ?, 'a', "
+        "'2026-08-24T19:00:00Z', '2026-08-24T19:00:00Z', "
+        "'2026-08-24T19:00:00Z')",
+        [mon],
+      );
+      // 0060's row and the cooking 0061 made of it: 2 said, in the fridge.
+      await db.execute(
+        'INSERT INTO leftover (id, household_id, place, recipe_id, portions, '
+        'since, batch, created_at, updated_at) VALUES '
+        "('lo', 'h', 'fridge', 'curry', 2, '2026-08-24', ?, "
+        "'2026-08-24T20:00:00Z', '2026-08-24T20:00:00Z')",
+        [mon],
+      );
+      await insertCooking(
+        db,
+        id: 'lo',
+        recipeId: 'curry',
+        made: 2,
+        since: '2026-08-24',
+      );
+      expect((await shelves()).single.inBox, 2);
+      await carry();
+      final linked = await db.getAll(
+        'SELECT cooking FROM plan_entry ORDER BY day_of_week',
+      );
+      expect([for (final r in linked) r['cooking']], ['lo', 'lo']);
+      // Still what the row said, though Monday's tick now comes off it; a
+      // tick after it moves it.
+      expect((await shelves()).single.inBox, 2);
+      await tick(tue, 'a');
+      expect((await shelves()).single.inBox, 1);
+      await carry();
+      expect(await db.getAll('SELECT id FROM cooking_change'), hasLength(1));
+    });
+
+    test('a batch some meal was planned from joins its cooking, ticked or '
+        'not', () async {
+      final mon = await curry(0);
+      final tue = await curry(1);
+      await insertCooking(db, id: mon, recipeId: 'curry');
+      final thu = await curry(3);
+      await linkToCooking(db, thu, mon);
+      await carry();
+      final linked = await db.getAll(
+        'SELECT id, cooking FROM plan_entry ORDER BY day_of_week',
+      );
+      expect(
+        {for (final r in linked) r['id']: r['cooking']},
+        {mon: mon, tue: mon, thu: mon},
+      );
+    });
+
+    test('an old answer that a batch was binned takes it to nothing, '
+        'once', () async {
+      final mon = await curry(0);
+      await db.execute(
+        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
+        "eaten_at, created_at, updated_at) VALUES ('t', 'h', ?, 'b', "
+        "'2026-08-24T19:00:00Z', '2026-08-24T19:00:00Z', "
+        "'2026-08-24T19:00:00Z')",
+        [mon],
+      );
+      await db.execute(
+        'INSERT INTO batch_leftover (id, household_id, plan_entry_id, binned, '
+        "created_at, updated_at) VALUES ('bl', 'h', ?, 1, "
+        "'2026-08-25T09:00:00Z', '2026-08-25T09:00:00Z')",
+        [mon],
+      );
+      await carry();
+      expect(await shelves(), isEmpty);
+      await carry();
+      expect(await db.getAll('SELECT id FROM cooking_change'), hasLength(1));
+    });
+  });
+
+  test('two phones offline — a tick, a correction and an untick on each — '
+      'converge whatever order they upload in', () async {
+    final (phoneB, dirB) = await openTestDb();
+    addTearDown(() => closeTestDb(phoneB, dirB));
+    await _household(phoneB);
+    // The same plan on both, synced before going offline.
+    final mon = await curry(0);
+    final tue = await curry(1);
+    for (final r in await db.getAll('SELECT * FROM week_plan')) {
+      await _apply(phoneB, 'week_plan', r['id'] as String, {...r});
+    }
+    for (final r in await db.getAll('SELECT * FROM plan_entry')) {
+      await _apply(phoneB, 'plan_entry', r['id'] as String, {...r});
+    }
+    await drainCrudQueue(db);
+    await drainCrudQueue(phoneB);
+
+    final planningB = SqlitePlanningRepository(
+      phoneB,
+      householdId: 'h',
+      clock: () => _wednesday,
+    );
+    final repoB = SqliteLeftoverRepository(
+      phoneB,
+      householdId: 'h',
+      clock: () => _wednesday,
+    );
+    // Phone A: Ada ticks Monday, sets the count to 2, unticks Tuesday's
+    // mistaken tick.
+    await tick(mon, 'a');
+    await tick(tue, 'a');
+    await repo.setLeftoverPortions((await shelves()).single, 2);
+    await tick(tue, 'a', ate: false);
+    // Phone B: Jun ticks Monday, sets the count to 1, and unticks Monday.
+    await planningB.setMealEaten(
+      mon,
+      memberId: 'b',
+      eatenAt: DateTime.utc(2026, 8, 24, 19),
+    );
+    await repoB.setLeftoverPortions(
+      (await repoB.watchHouseholdLeftovers(today: _wednesday).first)
+          .rows
+          .single,
+      1,
+    );
+    await planningB.setMealEaten(mon, memberId: 'b', eatenAt: null);
+
+    final opsA = await queuedCrudOps(db);
+    final opsB = await queuedCrudOps(phoneB);
+    Future<List<(String, String, double)>> serverAfter(
+      List<List<Map<String, dynamic>>> uploads,
+    ) async {
+      final (server, serverDir) = await openTestDb();
+      addTearDown(() => closeTestDb(server, serverDir));
+      await _household(server);
+      for (final r in await db.getAll('SELECT * FROM week_plan')) {
+        await _apply(server, 'week_plan', r['id'] as String, {...r});
+      }
+      for (final r in await db.getAll('SELECT * FROM plan_entry')) {
+        await _apply(server, 'plan_entry', r['id'] as String, {
+          ...r,
+          'cooking': null,
+        });
+      }
+      for (final ops in uploads) {
+        for (final op in ops) {
+          await _upload(server, op);
+        }
+      }
+      final shelves = await SqliteLeftoverRepository(
+        server,
+        householdId: 'h',
+        clock: () => _wednesday,
+      ).watchHouseholdLeftovers(today: _wednesday).first;
+      return [for (final r in shelves.rows) (r.id, r.place.name, r.box)];
+    }
+
+    final aFirst = await serverAfter([opsA, opsB]);
+    final bFirst = await serverAfter([opsB, opsA]);
+    expect(aFirst, bFirst);
+    // One cooking under one id. Made 3½; Ada's Monday is out, Jun's untick
+    // and Ada's Tuesday untick stand; A's +½ (1½ said 2) and B's −1¾ (2¾
+    // said 1) both apply: 1¼.
+    expect(aFirst, [(mon, 'fridge', 1.25)]);
+  });
+}
+
+/// A change row on [cookingId], as a phone's Freeze writes one.
+Future<void> insertCookingChangeFor(
+  PowerSyncDatabase db,
+  String cookingId, {
+  double fridge = 0,
+  double freezer = 0,
+}) => db.writeTransaction(
+  (tx) => insertCookingChange(
+    tx,
+    householdId: 'h',
+    cookingId: cookingId,
+    fridge: fridge,
+    freezer: freezer,
+  ),
+);
+
+/// Writes [data] as the row [id] of [table]: an UPDATE when it is there, an
+/// INSERT when not (local tables are views: no UPSERT).
+Future<void> _apply(
+  PowerSyncDatabase db,
+  String table,
+  String id,
+  Map<String, Object?> data,
+) async {
+  final columns = [
+    for (final k in data.keys)
+      if (k != 'id') k,
+  ];
+  final exists = await db.getOptional('SELECT id FROM $table WHERE id = ?', [
+    id,
+  ]);
+  if (exists != null) {
+    if (columns.isEmpty) return;
+    await db.execute(
+      'UPDATE $table SET ${columns.map((c) => '$c = ?').join(', ')} '
+      'WHERE id = ?',
+      [for (final c in columns) _sqlValue(data[c]), id],
+    );
+  } else {
+    await db.execute(
+      'INSERT INTO $table (id, ${columns.join(', ')}) '
+      'VALUES (?, ${List.filled(columns.length, '?').join(', ')})',
+      [id, for (final c in columns) _sqlValue(data[c])],
+    );
+  }
+}
+
+Object? _sqlValue(Object? v) => v is List || v is Map ? jsonEncode(v) : v;
+
+/// One queued op as the server takes it: a PUT of a table a phone only
+/// births ([insertOnceTables]) leaves a row already there alone; any other
+/// PUT writes the whole row; a PATCH writes its columns.
+Future<void> _upload(PowerSyncDatabase server, Map<String, dynamic> op) async {
+  final table = op['type'] as String;
+  final id = op['id'] as String;
+  final data = Map<String, Object?>.from(op['data'] as Map? ?? const {});
+  switch (op['op']) {
+    case 'PUT':
+      final there = await server.getOptional(
+        'SELECT id FROM $table WHERE id = ?',
+        [id],
+      );
+      if (there != null && insertOnceTables.contains(table)) return;
+      await _apply(server, table, id, data);
+    case 'PATCH':
+      await _apply(server, table, id, data);
+  }
 }

@@ -10,6 +10,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../core/week_shape.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/data/cook_plan_providers.dart';
 import '../../ingredients/data/ingredient_providers.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/domain/planning.dart';
@@ -157,6 +158,12 @@ Future<String> askCost(ProviderContainer c, AskFigureScope scope) async {
         ...await variants.watchVariantRecipeCosts(scope.weekStart).first,
       };
       final costPrices = await prices.watchCostPrices().first;
+      // A cooking is costed in the week it is bought in, as the Week's band
+      // costs it.
+      final cooked = await c
+          .read(cookPlanRepositoryProvider)
+          .watchCookPlan(scope.weekStart)
+          .first;
       String? spent;
       if (scope.date == null) {
         final receipts = await c
@@ -179,6 +186,7 @@ Future<String> askCost(ProviderContainer c, AskFigureScope scope) async {
           priceFor: (id) => costPrices[id],
           lensMemberId: scope.memberId,
           membersById: await _membersById(c),
+          cookings: cooked.cookings,
         ),
         scope: _scopeLabel(shape, scope),
         forWhom: scope.forWhom,

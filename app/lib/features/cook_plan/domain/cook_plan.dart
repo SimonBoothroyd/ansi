@@ -1,10 +1,12 @@
-/// The cook plan: a derived view of the week's meals, never persisted. Pure
+/// The cook plan: a derived view of one week's meals, never persisted. Pure
 /// Dart.
 ///
-/// [buildCookPlan] groups meals by recipe and [clusterSessions] splits each
-/// recipe into [CookSession]s bounded by its shelf life, folding freezable
-/// shares into one cook. Days are offsets 0..6 from the week's own first day;
-/// a meal of the next week a freezable batch folds in counts on, 7..13. A
+/// [buildCookPlan] groups meals by recipe. A recipe's meals not yet in a
+/// cooking (`plan_entry.cooking`) are split by [clusterSessions] into
+/// [CookSession]s bounded by its shelf life, within the week alone; a cooking
+/// bought this week (its earliest linked meal is here) is one session of its
+/// own, whatever weeks its other meals fall in. Days are offsets from the
+/// week's own first day, so a cooking's later meal can read 7 or more. A
 /// recipe's component lines derive batch-denominated sessions of their own,
 /// read through the `effectiveLines` seam for the week
 /// ([componentGraphForWeek]); an unresolvable component is a [ComponentGap],
@@ -27,10 +29,14 @@ import '../../recipes/domain/recipe.dart';
 
 part 'cook_plan.freezed.dart';
 
-/// One planned appearance of a recipe in the week: its [dayOfWeek] (0..6 from
-/// the week's first day; 7..13 for a meal of the next week folded into this
-/// week's batch), [mealSlot] and the [portions] it demands. Portions are
-/// fractional and never rounded here.
+/// The fridge life a recipe with none stated is taken to have: for its dates,
+/// and for grouping its meals into one cooking.
+const kAssumedFridgeDays = 7;
+
+/// One planned appearance of a recipe: its [dayOfWeek] (an offset from the
+/// week's first day, 0..6 for a meal of the week, beyond it for a cooking's
+/// meal in another week), [mealSlot] and the [portions] it demands. Portions
+/// are fractional and never rounded here.
 @freezed
 abstract class CoveredMeal with _$CoveredMeal {
   const factory CoveredMeal({
@@ -47,13 +53,20 @@ abstract class CoveredMeal with _$CoveredMeal {
   }) = _CoveredMeal;
 }
 
-/// What became of a cooked batch's leftover, said once it is past its use-by:
-/// binned (the only waste) or eaten after all. `kept` is only ever an older
-/// answer, and reads as no answer (`leftovers.dart`).
-typedef LeftoverAnswer = ({double kept, double binned, double eaten});
+/// A cooking bought in the week: its [id], what it [made] (null while it is
+/// still the live sum of its meals) and every live meal linked to it,
+/// counted from the week's first day.
+@freezed
+abstract class PlannedCooking with _$PlannedCooking {
+  const factory PlannedCooking({
+    required String id,
+    double? made,
+    @Default(<CoveredMeal>[]) List<CoveredMeal> meals,
+  }) = _PlannedCooking;
+}
 
-/// A recipe as it appears across the week, before clustering: its shelf life
-/// and every [meals] entry that calls for it. The clustering input.
+/// A recipe as it appears in the week, before clustering: its shelf life,
+/// the [meals] not yet in a cooking, and the [cookings] bought this week.
 @freezed
 abstract class PlannedRecipe with _$PlannedRecipe {
   const factory PlannedRecipe({
@@ -61,18 +74,19 @@ abstract class PlannedRecipe with _$PlannedRecipe {
     required String title,
     required double servingsBase,
 
-    /// Fridge shelf life in days; drives clustering. Null = unknown (the recipe
-    /// has no shelf-life set yet) → the recipe is never split.
+    /// Fridge shelf life in days; drives clustering. Null = unknown, taken to
+    /// be [kAssumedFridgeDays].
     int? keepsForDays,
     @Default(false) bool freezable,
 
     /// Freezer shelf life in days (only when [freezable]). Null = no limit.
     int? freezerDays,
+
+    /// The week's meals of it not yet in a cooking.
     @Default(<CoveredMeal>[]) List<CoveredMeal> meals,
 
-    /// The same recipe's meals in the week after, days 0..6 of that week:
-    /// the ones a freezable batch can fold in ([clusterSessions]).
-    @Default(<CoveredMeal>[]) List<CoveredMeal> nextWeek,
+    /// The cookings of it bought this week.
+    @Default(<PlannedCooking>[]) List<PlannedCooking> cookings,
   }) = _PlannedRecipe;
 }
 
@@ -138,6 +152,14 @@ abstract class CookSession with _$CookSession {
     /// The component demands this batch answers. Non-empty exactly
     /// for a component session.
     @Default(<ComponentDemand>[]) List<ComponentDemand> demands,
+
+    /// The cooking this batch is (`cooking.id`); null for meals not yet in
+    /// one, grouped by shelf life.
+    String? cookingId,
+
+    /// What the cooking made, fixed at its first tick; null while it is the
+    /// live sum of [covers].
+    double? made,
   }) = _CookSession;
 
   /// Whether this session feeds another recipe's component line rather than a
@@ -159,9 +181,8 @@ abstract class CookSession with _$CookSession {
     ];
   }
 
-  /// The meals of the next week this batch was folded across the week edge
-  /// to cover (days 7..13).
-  List<CoveredMeal> get nextWeekCovers => [
+  /// The meals of a later week this cooking covers (day 7 or more).
+  List<CoveredMeal> get laterWeekCovers => [
     for (final m in covers)
       if (m.dayOfWeek > 6) m,
   ];
@@ -179,9 +200,9 @@ abstract class CookSession with _$CookSession {
   /// The last day this batch is eaten.
   int get lastCoveredDay => coveredDays.isEmpty ? cookDay : coveredDays.last;
 
-  /// Portions to cook: the sum of every covered meal's demand, possibly
-  /// fractional. Zero on a component session.
-  double get totalPortions => covers.fold(0, (s, m) => s + m.portions);
+  /// Portions to cook: what the cooking [made], else the sum of every covered
+  /// meal's demand, possibly fractional. Zero on a component session.
+  double get totalPortions => made ?? covers.fold(0, (s, m) => s + m.portions);
 
   /// The portions its eaters said they ate.
   double get eatenPortions => covers.fold(0, (s, m) => s + m.eatenPortions);
@@ -191,9 +212,6 @@ abstract class CookSession with _$CookSession {
     final left = totalPortions - eatenPortions;
     return left > 1e-9 ? left : 0;
   }
-
-  /// The planned meal a leftover answer is keyed to: the batch's first.
-  String? get leftoverKey => covers.isEmpty ? null : covers.first.entryId;
 
   /// The multiplier the recipe's lines scale by: `total_portions /
   /// servings_base`, unrounded, for a meal session; the batch count for a
@@ -205,10 +223,10 @@ abstract class CookSession with _$CookSession {
   }
 
   /// Covered days past the fridge window, served from the freezer. Only
-  /// meaningful for a [freezable] recipe with a known [keepsForDays].
+  /// meaningful for a [freezable] recipe.
   List<int> get frozenDays {
-    final keeps = keepsForDays;
-    if (!freezable || keeps == null) return const [];
+    final keeps = keepsForDays ?? kAssumedFridgeDays;
+    if (!freezable) return const [];
     return [
       for (final d in coveredDays)
         if (d - cookDay > keeps) d,
@@ -340,20 +358,29 @@ abstract class CookPlan with _$CookPlan {
     @Default(<RecipeCookPlan>[]) List<RecipeCookPlan> recipes,
     @Default(<ComponentGap>[]) List<ComponentGap> gaps,
 
-    /// This week's meals the week before's batches cook, by entry id: each
-    /// with that batch, its days counted from the week before's first day
-    /// (so the meal's own day is 7..13 there). Not cooked, bought or costed
-    /// in this week.
-    @Default(<String, CookSession>{}) Map<String, CookSession> foldedBack,
+    /// This week's meals of a cooking bought in an earlier week, by entry id,
+    /// each with that cooking's session counted from this week's first day
+    /// (so its cook day is below 0). Not cooked, bought or costed here.
+    @Default(<String, CookSession>{}) Map<String, CookSession> eatenFromEarlier,
   }) = _CookPlan;
 
   bool get isEmpty => recipes.isEmpty && gaps.isEmpty;
 
-  /// The next week's meals this week's batches cook: bought and costed here.
-  List<({String recipeId, CoveredMeal meal})> get cookedForNextWeek => [
+  /// The cookings bought this week, each with the portions it is bought for
+  /// and the meals it covers, by entry id.
+  List<({String recipeId, double portions, Set<String> entryIds})>
+  get cookings => [
     for (final r in recipes)
       for (final s in r.mealSessions)
-        for (final m in s.nextWeekCovers) (recipeId: r.recipeId, meal: m),
+        if (s.cookingId != null)
+          (
+            recipeId: r.recipeId,
+            portions: s.totalPortions,
+            entryIds: {
+              for (final m in s.covers)
+                if (m.entryId case final id?) id,
+            },
+          ),
   ];
 
   /// How many components each planned recipe is short by, keyed by its id.
@@ -368,210 +395,52 @@ abstract class CookPlan with _$CookPlan {
   }
 }
 
-/// Greedy shelf-life clustering for one recipe: a meal joins the current
-/// session while it is within [PlannedRecipe.keepsForDays], or as a frozen
-/// share when the recipe is [PlannedRecipe.freezable] and within
+/// Greedy shelf-life clustering for one recipe's meals not yet in a cooking,
+/// within one week: a meal joins the current session while it is within
+/// [PlannedRecipe.keepsForDays] ([kAssumedFridgeDays] when unknown), or as a
+/// frozen share when the recipe is [PlannedRecipe.freezable] and within
 /// [PlannedRecipe.freezerDays] (null = no limit); otherwise it opens a new
-/// session.
+/// session. A negative shelf life is clamped to 0.
 ///
-/// An unknown shelf life never splits. A negative one is clamped to 0.
-///
-/// **Across the week edge**, a freezable recipe's last batch folds in the
-/// [PlannedRecipe.nextWeek] meals, in day order, while each is within
-/// [PlannedRecipe.freezerDays] of the batch's cook day and **one whole
-/// recipe** still covers them: the batch's portions with the folded ones are
-/// at most [PlannedRecipe.servingsBase] (a scale of ×1 or less). A fold stops
-/// at the first meal that fails either test. [PlannedRecipe.meals] never
-/// holds a meal the week before cooks ([plannedAcrossWeeks] takes those out),
-/// so a batch made of a folded meal never folds forward.
+/// Each of [PlannedRecipe.cookings] follows as one session of its own, never
+/// split or merged: what a cooking holds was fixed when it was born.
 List<CookSession> clusterSessions(PlannedRecipe recipe) {
-  final sessions = _clusterWeek(recipe);
-  if (sessions.isEmpty) return sessions;
-  final folded = _foldNextWeek(recipe, sessions.last);
-  return folded == null
-      ? sessions
-      : [...sessions.take(sessions.length - 1), folded];
-}
-
-List<CookSession> _clusterWeek(PlannedRecipe recipe) {
   final keeps = _clampWindow(recipe.keepsForDays);
   final freezerDays = _clampWindow(recipe.freezerDays);
+  CookSession session(
+    List<CoveredMeal> covers, {
+    String? cookingId,
+    double? made,
+  }) => CookSession(
+    recipeId: recipe.recipeId,
+    recipeTitle: recipe.title,
+    servingsBase: recipe.servingsBase,
+    cookDay: covers.first.dayOfWeek,
+    keepsForDays: keeps,
+    freezable: recipe.freezable,
+    freezerDays: freezerDays,
+    covers: List.unmodifiable(covers),
+    cookingId: cookingId,
+    made: made,
+  );
   return [
     for (final cluster in _clusterByDay<CoveredMeal>(
       recipe.meals,
       dayOf: (m) => m.dayOfWeek,
-      keepsForDays: keeps,
+      keepsForDays: keeps ?? kAssumedFridgeDays,
       freezable: recipe.freezable,
       freezerDays: freezerDays,
     ))
-      CookSession(
-        recipeId: recipe.recipeId,
-        recipeTitle: recipe.title,
-        servingsBase: recipe.servingsBase,
-        cookDay: cluster.first.dayOfWeek,
-        keepsForDays: keeps,
-        freezable: recipe.freezable,
-        freezerDays: freezerDays,
-        covers: List.unmodifiable(cluster),
-      ),
+      session(cluster),
+    for (final cooking in recipe.cookings)
+      if (cooking.meals.isNotEmpty)
+        session(
+          [...cooking.meals]
+            ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek)),
+          cookingId: cooking.id,
+          made: cooking.made,
+        ),
   ];
-}
-
-/// [host] with the next week's meals it folds in, or null when it folds none.
-CookSession? _foldNextWeek(PlannedRecipe recipe, CookSession host) {
-  if (!recipe.freezable ||
-      recipe.nextWeek.isEmpty ||
-      recipe.servingsBase <= 0) {
-    return null;
-  }
-  final freezerDays = _clampWindow(recipe.freezerDays);
-  final later = [...recipe.nextWeek]
-    ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek));
-  var portions = host.totalPortions;
-  final folded = <CoveredMeal>[];
-  for (final meal in later) {
-    final day = meal.dayOfWeek + 7;
-    if (freezerDays != null && day - host.cookDay > freezerDays) break;
-    if (portions + meal.portions > recipe.servingsBase + 1e-9) break;
-    portions += meal.portions;
-    folded.add(meal.copyWith(dayOfWeek: day));
-  }
-  if (folded.isEmpty) return null;
-  return host.copyWith(covers: List.unmodifiable([...host.covers, ...folded]));
-}
-
-/// Weeks in a run of folds: a dish planned every week starts afresh once
-/// every this many weeks ([foldCutsBefore]).
-const kFoldRunWeeks = 4;
-
-/// How many weeks before it a week's fold chain reads: enough to reach the
-/// last place a chain was cut, however the dish was planned ([foldCutsBefore]).
-const kFoldLookbackWeeks = 2 * kFoldRunWeeks;
-
-/// How far [weekStart]'s week is into its calendar run, 0 to
-/// [kFoldRunWeeks] − 1, counted from the epoch.
-int weeksIntoFoldRun(DateTime weekStart) {
-  final days = DateTime.utc(
-    weekStart.year,
-    weekStart.month,
-    weekStart.day,
-  ).difference(DateTime.utc(1970, 1, 4)).inDays;
-  return (days ~/ 7) % kFoldRunWeeks;
-}
-
-/// Whether a week takes no fold of a dish from the week before, given whether
-/// each of the [kFoldRunWeeks] weeks before it planned the dish
-/// ([plannedBefore], oldest first) and how far it is into its run.
-///
-/// A fold takes a prefix of the next week's meals, which changes that week's
-/// own last batch and so what it folds forward in turn: whether a week takes
-/// a fold hangs on every week before it. Every reader has to cut that chain
-/// in the same place, or two weeks read on one screen could each claim (or
-/// each disown) one meal and the shop buy it twice or never. A week after one
-/// that does not plan the dish is cut already. A dish planned every week for
-/// a whole run is cut where the calendar starts the next run, so the cut is
-/// the same from every week and a chain never reads further back than
-/// [kFoldLookbackWeeks].
-bool foldCutsBefore(int weeksIntoRun, List<bool> plannedBefore) =>
-    plannedBefore.isEmpty ||
-    !plannedBefore.last ||
-    (weeksIntoRun == 0 &&
-        plannedBefore.length >= kFoldRunWeeks &&
-        plannedBefore.every((p) => p));
-
-/// A week's planned recipes as its batches cook them, across both week edges:
-/// what [clusterSessions] needs from the neighbouring weeks, and the meals the
-/// week before already cooks.
-///
-/// [weeksBefore] are the [kFoldLookbackWeeks] weeks before [week] (which
-/// begins [weekStart]), oldest first. Down them, each week's meals a fold of
-/// the week before takes are taken out, and what is left clusters and folds
-/// the next week in its turn, unless [foldCutsBefore] cuts the chain there.
-/// So a batch made of a meal folded from the week before never folds forward,
-/// and a dish planned every week still folds each week its last batch can.
-///
-/// - Each of [week]'s recipes carries [weekAfter]'s meals of it
-///   ([PlannedRecipe.nextWeek]), unless the chain is cut before it.
-/// - A meal the week before's batch folds in is taken out of [week] and named
-///   in `foldedBack` with that batch.
-///
-/// Every list holds that week's recipe meals that are cooked (not one from a
-/// leftover), days 0..6 of its own week. A recipe left with no meals drops out.
-({List<PlannedRecipe> recipes, Map<String, CookSession> foldedBack})
-plannedAcrossWeeks({
-  required List<PlannedRecipe> week,
-  DateTime? weekStart,
-  List<List<PlannedRecipe>> weeksBefore = const [],
-  List<PlannedRecipe> weekAfter = const [],
-}) {
-  Map<String, PlannedRecipe> byId(List<PlannedRecipe> recipes) => {
-    for (final r in recipes)
-      if (r.meals.isNotEmpty) r.recipeId: r,
-  };
-  final run = [...weeksBefore.map(byId), byId(week), byId(weekAfter)];
-  final last = run.length - 2;
-  final into = weekStart == null
-      ? null
-      : weeksIntoFoldRun(
-          DateTime(
-            weekStart.year,
-            weekStart.month,
-            weekStart.day - 7 * weeksBefore.length,
-          ),
-        );
-  // Whether the fold of [recipeId] into week [k] of the run is cut.
-  bool cut(int k, String recipeId) =>
-      foldCutsBefore(into == null ? 1 : (into + k) % kFoldRunWeeks, [
-        for (var b = k - kFoldRunWeeks; b < k; b++)
-          if (b >= 0) run[b].containsKey(recipeId),
-      ]);
-
-  // Down the run: what each week cooks of its own, after the week before's
-  // fold took its share.
-  var foldedBack = <String, CookSession>{};
-  for (var k = 1; k <= last; k++) {
-    final folded = <String, CookSession>{};
-    for (final theirs in run[k].values) {
-      final host = run[k - 1][theirs.recipeId];
-      if (host == null || cut(k, theirs.recipeId)) continue;
-      final own = _withoutFolded(host, foldedBack);
-      if (own == null) continue;
-      for (final session in clusterSessions(
-        own.copyWith(nextWeek: theirs.meals),
-      )) {
-        for (final m in session.nextWeekCovers) {
-          if (m.entryId case final id?) folded[id] = session;
-        }
-      }
-    }
-    foldedBack = folded;
-  }
-
-  return (
-    recipes: [
-      for (final r in run[last].values)
-        if (_withoutFolded(r, foldedBack) case final own?)
-          own.copyWith(
-            nextWeek: cut(last + 1, r.recipeId)
-                ? const []
-                : run[last + 1][r.recipeId]?.meals ?? const [],
-          ),
-    ],
-    foldedBack: foldedBack,
-  );
-}
-
-/// [recipe] without the meals the week before's batches cook ([folded], by
-/// entry id); null when none is left.
-PlannedRecipe? _withoutFolded(
-  PlannedRecipe recipe,
-  Map<String, CookSession> folded,
-) {
-  final meals = [
-    for (final m in recipe.meals)
-      if (!folded.containsKey(m.entryId)) m,
-  ];
-  return meals.isEmpty ? null : recipe.copyWith(meals: meals);
 }
 
 /// [clusterSessions] over the component demands on one sub-recipe: each cluster
@@ -615,7 +484,8 @@ List<CookSession> clusterComponentSessions({
 int? _clampWindow(int? days) => days == null ? null : max(0, days);
 
 /// The greedy walk both clusterings share. An unknown [keepsForDays] yields one
-/// cluster covering everything.
+/// cluster covering everything: a component batch of a recipe with no shelf
+/// life is never split.
 List<List<T>> _clusterByDay<T>(
   List<T> items, {
   required int Function(T) dayOf,
@@ -856,13 +726,12 @@ Map<String, ComponentRecipe> componentGraphForWeek(
 /// cook day then title. [components] is the household's component graph; empty
 /// derives meal sessions only.
 ///
-/// [foldedBack] is this week's meals the week before cooks
-/// ([plannedAcrossWeeks]), carried onto the plan for the readers that skip
-/// them.
+/// [eatenFromEarlier] is this week's meals of cookings bought in an earlier
+/// week, carried onto the plan for the readers that pass over them.
 CookPlan buildCookPlan(
   List<PlannedRecipe> recipes, {
   Map<String, ComponentRecipe> components = const {},
-  Map<String, CookSession> foldedBack = const {},
+  Map<String, CookSession> eatenFromEarlier = const {},
 }) {
   final plans = <RecipeCookPlan>[];
   for (final r in recipes) {
@@ -921,7 +790,11 @@ CookPlan buildCookPlan(
     final c = a.firstCookDay.compareTo(b.firstCookDay);
     return c != 0 ? c : a.title.toLowerCase().compareTo(b.title.toLowerCase());
   });
-  return CookPlan(recipes: plans, gaps: gaps, foldedBack: foldedBack);
+  return CookPlan(
+    recipes: plans,
+    gaps: gaps,
+    eatenFromEarlier: eatenFromEarlier,
+  );
 }
 
 /// The planned recipe a walk descends from, fixed for the whole branch.

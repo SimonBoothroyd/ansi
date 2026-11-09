@@ -220,8 +220,7 @@ PlannedCost weekCost(Ref ref, String? lens) {
   final prices =
       ref.watch(costPriceMapProvider).asData?.value ??
       const <String, UnitPrice>{};
-  // A dish cooked once across the week edge is costed in the week it is
-  // bought in.
+  // A cooking is costed in the week it is bought in.
   final cooked = ref.watch(currentCookPlanProvider).asData?.value;
   return sumPlannedCost(
     plan?.entries ?? const [],
@@ -229,12 +228,7 @@ PlannedCost weekCost(Ref ref, String? lens) {
     priceFor: (id) => prices[id],
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
-    cookedWeekBefore: cooked?.foldedBack.keys.toSet() ?? const {},
-    cookedForNextWeek: [
-      if (cooked != null)
-        for (final m in cooked.cookedForNextWeek)
-          (recipeId: m.recipeId, portions: m.meal.portions),
-    ],
+    cookings: cooked?.cookings ?? const [],
   );
 }
 

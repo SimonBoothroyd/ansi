@@ -92,61 +92,6 @@ void main() {
     );
   });
 
-  group('foldedMealLines', () {
-    // Sunday weeks: the week on screen begins Sun 15 Nov; the week before's
-    // Saturday ragù cooks for this Thursday.
-    final week = DateTime(2026, 11, 15);
-    CookPlan folded({double satEaten = 0}) => CookPlan(
-      foldedBack: {
-        'thu': CookSession(
-          recipeId: 'r',
-          recipeTitle: 'Beef Ragù',
-          servingsBase: 4,
-          cookDay: 6,
-          keepsForDays: 3,
-          freezable: true,
-          covers: [
-            CoveredMeal(
-              dayOfWeek: 6,
-              mealSlot: 'Dinner',
-              portions: 2,
-              entryId: 'sat',
-              eatenPortions: satEaten,
-            ),
-            const CoveredMeal(
-              dayOfWeek: 11,
-              mealSlot: 'Dinner',
-              portions: 2,
-              entryId: 'thu',
-            ),
-          ],
-        ),
-      },
-    );
-
-    test('a meal the week before cooks is a line, from the freezer', () {
-      final lines = foldedMealLines(
-        folded(satEaten: 2),
-        WeekShape.sunday,
-        week,
-        DateTime(2026, 11, 16),
-      );
-      expect(lines, [
-        (words: 'Beef Ragù · Thu · from the freezer', frozen: true),
-      ]);
-    });
-
-    test('a Saturday never ticked makes Thursday cook it', () {
-      final lines = foldedMealLines(
-        folded(),
-        WeekShape.sunday,
-        week,
-        DateTime(2026, 11, 16),
-      );
-      expect(lines.single.words, 'Beef Ragù · Thu · cook it');
-    });
-  });
-
   group('the whole-batch switch', () {
     // 1¾ portions of a serves-4 recipe: ×0.44 exact, or ×1 with 2¼ spare.
     final session = _session(

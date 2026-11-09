@@ -138,9 +138,9 @@ typedef CookMarker = ({
 /// The cook day is the batch's as the ticks have it ([cookDayOf]) on [today],
 /// in the week beginning [weekStart]; without them it is the planned one. A
 /// meal after the cook day of a batch already cooked reads as a `leftover`.
-/// A meal of this week the week before's batch cooks ([CookPlan.foldedBack],
-/// found by [entryId]) reads as a `leftover` too, unless it has become that
-/// batch's cook day.
+/// A meal of this week of a cooking bought in an earlier week
+/// ([CookPlan.eatenFromEarlier], found by [entryId]) reads as a `leftover`
+/// too, unless it has become that cooking's cook day.
 CookMarker? cookMarkerFor(
   CookPlan plan, {
   required String recipeId,
@@ -150,17 +150,13 @@ CookMarker? cookMarkerFor(
   DateTime? weekStart,
   DateTime? today,
 }) {
-  if (plan.foldedBack[entryId] case final host?) {
-    final start = weekStart;
+  if (plan.eatenFromEarlier[entryId] case final host?) {
     return _markerOf(
       host,
-      day: dayOfWeek + 7,
-      weekStart: start == null
-          ? null
-          : DateTime(start.year, start.month, start.day - 7),
+      day: dayOfWeek,
+      weekStart: weekStart,
       today: today,
-      shift: 7,
-      folded: true,
+      boughtEarlier: true,
     );
   }
   for (final recipe in plan.recipes) {
@@ -185,15 +181,15 @@ CookMarker? cookMarkerFor(
   return null;
 }
 
-/// The marker of [session]'s meal on [day], both counted from [weekStart];
-/// [shift] is how far that is behind the week on screen.
+/// The marker of [session]'s meal on [day], both counted from [weekStart],
+/// the week on screen. [boughtEarlier] is a cooking bought in an earlier
+/// week: its meal here is eaten from it unless it is now its cook day.
 CookMarker? _markerOf(
   CookSession session, {
   required int day,
   required DateTime? weekStart,
   required DateTime? today,
-  int shift = 0,
-  bool folded = false,
+  bool boughtEarlier = false,
 }) {
   final cookDay = weekStart == null || today == null
       ? session.cookDay
@@ -205,14 +201,14 @@ CookMarker? _markerOf(
   final cooked = wasCooked(session);
   final kind = gap == 0
       ? CookMarkerKind.cooks
-      : folded || cooked
+      : boughtEarlier || cooked
       ? CookMarkerKind.leftover
       : frozen
       ? CookMarkerKind.freezerShare
       : CookMarkerKind.fromBatch;
   return (
     kind: kind,
-    cookDay: cookDay - shift,
+    cookDay: cookDay,
     batchPortions: session.totalPortions,
     position: keeps == null || keeps <= 0
         ? 0
@@ -220,6 +216,17 @@ CookMarker? _markerOf(
     frozen: frozen,
     cooked: cooked,
   );
+}
+
+/// Whether [entry] wears the `leftover` tag in place of a cook marker: a
+/// meal in a cooking eaten from it once cooked ([CookMarkerKind.leftover]),
+/// or from food said by hand, which has no batch in any week's [plan].
+bool eatsFromAPot(CookPlan? plan, PlanEntry entry, CookMarker? marker) {
+  if (entry.cooking == null || plan == null) return false;
+  final batched =
+      plan.eatenFromEarlier.containsKey(entry.id) ||
+      plan.cookings.any((c) => c.entryIds.contains(entry.id));
+  return !batched || marker?.kind == CookMarkerKind.leftover;
 }
 
 /// The marker's words. [todayDayOfWeek] is today's offset when the current week

@@ -168,15 +168,11 @@ abstract class PlanEntry with _$PlanEntry {
     /// member ate.
     @Default(<String, PlanEntry>{}) Map<String, PlanEntry> had,
 
-    /// Set on a meal planned from a cooked batch's leftover: that batch's key
-    /// (its first covered meal). It is eaten like any recipe meal, but never
-    /// cooked, bought or costed again — it was all three in its own week.
-    String? leftoverOf,
-
-    /// Set on a meal planned from a fridge or freezer row (`leftover`): that
-    /// row's id. Like [leftoverOf], eaten but never cooked, bought or costed
-    /// again. A meal names one or the other, never both.
-    String? fromLeftover,
+    /// The cooking (one pot) this recipe meal is cooked in or eaten from:
+    /// set at its group's first tick, or when it is planned from a pot. Null
+    /// before; such meals group by shelf life within their week. A cooking is
+    /// bought and costed in the week of its earliest meal only.
+    String? cooking,
 
     /// When the row was written. A substitute without a time of its own in
     /// [eatenAt] was eaten when it was said ([hadAt]).
@@ -196,12 +192,6 @@ abstract class PlanEntry with _$PlanEntry {
     PlanEntryKind.ingredient => ingredientName,
     PlanEntryKind.out => label,
   };
-
-  /// Whether this meal is eaten from a leftover — a cooked batch
-  /// ([leftoverOf]) or a fridge or freezer row ([fromLeftover]) — and so is
-  /// never cooked, bought or costed again. Ticks, macros and Health Connect
-  /// count it like any recipe meal.
-  bool get isFromLeftover => leftoverOf != null || fromLeftover != null;
 
   /// The [portions] override, or the eater head-count — before portion factors.
   /// The demand a plan cooks for is [demandPortions].
@@ -233,11 +223,10 @@ abstract class PlanEntry with _$PlanEntry {
       DateTime(weekStart.year, weekStart.month, weekStart.day + dayOfWeek);
 }
 
-/// The days [entries] cook [recipeId] on, ascending and distinct: its meals,
-/// less any eaten from a leftover, which was cooked where it came from.
+/// The days [entries] plan [recipeId] on, ascending and distinct.
 List<int> cookedDaysOf(Iterable<PlanEntry> entries, String? recipeId) => <int>{
   for (final e in entries)
-    if (e.recipeId == recipeId && !e.isFromLeftover) e.dayOfWeek,
+    if (e.recipeId == recipeId) e.dayOfWeek,
 }.toList()..sort();
 
 /// When something said at [now] to be eaten, for a meal on [mealDay], was

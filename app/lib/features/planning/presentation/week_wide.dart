@@ -406,8 +406,7 @@ class _PaneMeal extends ConsumerWidget {
     final plan = cookPlan;
     // Only a cooked recipe has a cook marker; a snack shows its amount, a meal
     // out its tag and figures, and a meal from a leftover says so instead.
-    final leftover = entry.isFromLeftover;
-    final marker = plan == null || kind != PlanEntryKind.recipe || leftover
+    final cooked = plan == null || kind != PlanEntryKind.recipe
         ? null
         : cookMarkerFor(
             plan,
@@ -418,6 +417,8 @@ class _PaneMeal extends ConsumerWidget {
             weekStart: ref.watch(viewedWeekStartProvider),
             today: ref.watch(todayProvider),
           );
+    final leftover = eatsFromAPot(plan, entry, cooked);
+    final marker = leftover ? null : cooked;
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
     final route = mealTitleRoute(entry, weekKey: weekKey);
     final edited =

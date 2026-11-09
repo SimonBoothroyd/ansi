@@ -76,6 +76,25 @@ class _MealEditorSheet extends ConsumerWidget {
     final mealDay = entry.dateIn(week!.weekStart);
     final ahead = mealDay.isAfter(ref.watch(todayProvider));
     final canTick = me != null && entry.eaterIds.contains(me) && !ahead;
+    // Eaten from a pot, as the Week tags it. Only a meal in a cooking can be.
+    final plan = entry.cooking == null
+        ? null
+        : ref.watch(currentCookPlanProvider).asData?.value;
+    final fromPot = eatsFromAPot(
+      plan,
+      entry,
+      plan == null || entry.kind != PlanEntryKind.recipe
+          ? null
+          : cookMarkerFor(
+              plan,
+              recipeId: entry.recipeId!,
+              dayOfWeek: entry.dayOfWeek,
+              mealSlot: entry.mealSlot,
+              entryId: entry.id,
+              weekStart: week.weekStart,
+              today: ref.watch(todayProvider),
+            ),
+    );
 
     return AnsiSheetShell(
       // Every control writes through, so the way out is "Close".
@@ -89,13 +108,13 @@ class _MealEditorSheet extends ConsumerWidget {
       topPadding: 16,
       scrollable: true,
       children: [
-        if (entry.isFromLeftover)
+        if (fromPot)
           _LeftoverSource(entry: entry)
         else if (entry.kind == PlanEntryKind.recipe)
           _MealBatch(entry: entry),
         // Before its day it can still be cooked after all; from its day on,
         // it was eaten or it wasn't.
-        if (entry.isFromLeftover && ahead) ...[
+        if (fromPot && ahead) ...[
           const SizedBox(height: 16),
           _CookFresh(entry: entry),
         ],
@@ -219,6 +238,8 @@ class _CookFresh extends ConsumerWidget {
     final host = hostContextOf(context);
     final repo = ref.read(planningRepositoryProvider);
     final day = ref.read(weekShapeProvider).labelFull(entry.dayOfWeek);
+    final cooking = entry.cooking;
+    if (cooking == null) return;
     final cooked = await ref.writeOk(
       context,
       'cook it fresh',
@@ -234,11 +255,7 @@ class _CookFresh extends ConsumerWidget {
         container.write(
           host,
           'eat it from the leftover again',
-          () => repo.eatFromLeftoverAgain(
-            entry.id,
-            leftoverOf: entry.leftoverOf,
-            fromLeftover: entry.fromLeftover,
-          ),
+          () => repo.eatFromLeftoverAgain(entry.id, cooking: cooking),
         ),
       ),
     );

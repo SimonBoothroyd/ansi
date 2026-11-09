@@ -16,14 +16,15 @@ Leftover _row({
   DateTime? freezeBy,
   List<LeftoverMeal> meals = const [],
 }) => Leftover(
+  id: 'left-1',
   place: place,
   title: 'Chili',
   since: since ?? DateTime(2026, 11, 9),
   goodUntil: until,
-  portions: portions,
   planned: planned,
   freezeBy: freezeBy,
   meals: meals,
+  box: portions + planned,
 );
 
 LeftoverMeal _meal(int day, {DateTime? freezeBy, double portions = 2}) =>

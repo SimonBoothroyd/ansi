@@ -67,7 +67,10 @@ String droppedWriteKind(String table) => switch (table) {
   'week_recipe_line_override' => 'this-week edit',
   'plan_entry' => 'meal change',
   'meal_eaten' => 'meal eaten',
-  'batch_leftover' || 'leftover' => 'leftovers',
+  'batch_leftover' ||
+  'leftover' ||
+  'cooking' ||
+  'cooking_change' => 'leftovers',
   'week_plan' => 'week change',
   'shopping_list_entry' ||
   'shopping_list_contribution' => 'shopping list change',
@@ -86,7 +89,7 @@ String _unfoundName(String table) => switch (table) {
   'recipe_measure' ||
   'week_recipe_line_override' => 'A recipe',
   'plan_entry' || 'meal_eaten' || 'batch_leftover' => 'A meal',
-  'leftover' => 'A leftover',
+  'leftover' || 'cooking' || 'cooking_change' => 'A leftover',
   'week_plan' => 'A week',
   'shopping_list_entry' || 'shopping_list_contribution' => 'A shopping item',
   'receipt' || 'receipt_line' => 'A receipt',
@@ -137,6 +140,16 @@ Future<DroppedWriteSubject> describeDroppedWrite(
         'SELECT COALESCE(r.title, lo.label) AS name FROM leftover lo '
         'LEFT JOIN recipe r ON r.id = lo.recipe_id WHERE lo.id = ?',
         id,
+        route: '/leftovers',
+      ),
+      'cooking' || 'cooking_change' => await _named(
+        db,
+        kind,
+        'SELECT COALESCE(r.title, c.label) AS name FROM cooking c '
+        'LEFT JOIN recipe r ON r.id = c.recipe_id WHERE c.id = ?',
+        write.table == 'cooking'
+            ? id
+            : await _parent(db, write.table, 'cooking_id', id),
         route: '/leftovers',
       ),
       'week_plan' => await _week(db, kind, id),

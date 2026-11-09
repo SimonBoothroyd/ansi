@@ -260,50 +260,22 @@ void main() {
     });
   });
 
-  test(
-    'cookedDaysOf is the days a dish is cooked for, never a leftover meal',
-    () {
-      const entries = [
-        PlanEntry(id: 'a', dayOfWeek: 3, mealSlot: 'Dinner', recipeId: 'r'),
-        PlanEntry(id: 'b', dayOfWeek: 1, mealSlot: 'Dinner', recipeId: 'r'),
-        PlanEntry(id: 'c', dayOfWeek: 1, mealSlot: 'Lunch', recipeId: 'r'),
-        PlanEntry(
-          id: 'd',
-          dayOfWeek: 5,
-          mealSlot: 'Lunch',
-          recipeId: 'r',
-          leftoverOf: 'b',
-        ),
-        PlanEntry(id: 'e', dayOfWeek: 2, mealSlot: 'Dinner', recipeId: 'other'),
-      ];
-      expect(cookedDaysOf(entries, 'r'), [1, 3]);
-    },
-  );
-
-  test('a meal from a fridge or freezer row is never one a dish is cooked '
-      'for', () {
+  test('cookedDaysOf is the days a week plans a dish, a meal from a pot '
+      'included', () {
     const entries = [
-      PlanEntry(id: 'a', dayOfWeek: 1, mealSlot: 'Dinner', recipeId: 'r'),
+      PlanEntry(id: 'a', dayOfWeek: 3, mealSlot: 'Dinner', recipeId: 'r'),
+      PlanEntry(id: 'b', dayOfWeek: 1, mealSlot: 'Dinner', recipeId: 'r'),
+      PlanEntry(id: 'c', dayOfWeek: 1, mealSlot: 'Lunch', recipeId: 'r'),
       PlanEntry(
-        id: 'b',
-        dayOfWeek: 4,
-        mealSlot: 'Dinner',
-        recipeId: 'r',
-        fromLeftover: 'freezer-chili',
-      ),
-    ];
-    expect(entries.map((e) => e.isFromLeftover), [false, true]);
-    expect(
-      const PlanEntry(
-        id: 'c',
-        dayOfWeek: 2,
+        id: 'd',
+        dayOfWeek: 5,
         mealSlot: 'Lunch',
         recipeId: 'r',
-        leftoverOf: 'a',
-      ).isFromLeftover,
-      isTrue,
-    );
-    expect(cookedDaysOf(entries, 'r'), [1]);
+        cooking: 'b',
+      ),
+      PlanEntry(id: 'e', dayOfWeek: 2, mealSlot: 'Dinner', recipeId: 'other'),
+    ];
+    expect(cookedDaysOf(entries, 'r'), [1, 3, 5]);
   });
 
   group('defaultEatenAt', () {

@@ -32,10 +32,9 @@ abstract interface class PlanningRepository {
   Stream<Map<String, DateTime>> watchLastPlanned();
 
   /// Adds a recipe meal to the week beginning [weekStart], creating the week if
-  /// needed. A null [portions] tracks the eater count. With [leftoverOf] (a
-  /// cooked batch's key) or [fromLeftover] (a fridge or freezer row's id),
-  /// never both, the meal is eaten from that leftover and is not cooked or
-  /// bought. Returns the new entry id.
+  /// needed. A null [portions] tracks the eater count. With [cooking] the meal
+  /// is planned from that pot: eaten from it, never bought here; a pot not
+  /// cooked yet makes its portions too. Returns the new entry id.
   Future<String> addEntry({
     required DateTime weekStart,
     required int dayOfWeek,
@@ -43,8 +42,7 @@ abstract interface class PlanningRepository {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
-    String? leftoverOf,
-    String? fromLeftover,
+    String? cooking,
   });
 
   /// Adds an ingredient meal, stating the amount of one portion. [quantity] and
@@ -83,19 +81,13 @@ abstract interface class PlanningRepository {
   /// explicitly.
   Future<void> setPortions(String entryId, int? portions);
 
-  /// Cooks a meal planned from a leftover fresh after all: it no longer
-  /// points at a cooked batch or a fridge or freezer row, so it is cooked,
-  /// bought and costed again, and the leftover's portions are free.
+  /// Cooks a meal in a cooking fresh after all: its link is cleared, so it
+  /// is cooked, bought and costed in its own week, and the portions it took
+  /// are free again.
   Future<void> cookFreshInstead(String entryId);
 
-  /// Undoes [cookFreshInstead]: the meal is eaten from the cooked batch
-  /// [leftoverOf] or the fridge or freezer row [fromLeftover] again, as it
-  /// was.
-  Future<void> eatFromLeftoverAgain(
-    String entryId, {
-    String? leftoverOf,
-    String? fromLeftover,
-  });
+  /// Undoes [cookFreshInstead]: the meal is in [cooking] again.
+  Future<void> eatFromLeftoverAgain(String entryId, {required String cooking});
 
   /// Moves an entry to another slot on the same day. [mealSlot] is a trimmed,
   /// non-empty label.
@@ -111,7 +103,8 @@ abstract interface class PlanningRepository {
   /// Says [memberId] ate the meal at [eatenAt], or — with null — that they did
   /// not. A second call moves the time. Only the member signed in on this
   /// phone may be named: the server refuses anyone else (0055). A tick takes
-  /// back whatever they had instead.
+  /// back whatever they had instead, and puts the meal's group in a cooking
+  /// if it is in none (the first tick is its birth).
   ///
   /// Named with a substitute's own id (a [PlanEntry.had] value), it sets when
   /// they had it instead ([PlanEntry.hadAt]).

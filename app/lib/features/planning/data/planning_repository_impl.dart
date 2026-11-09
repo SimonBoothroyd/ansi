@@ -15,6 +15,8 @@ import '../../../core/units/macros.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
+import '../../cook_plan/data/cooking_store.dart'
+    show cookingForPick, ensureCookingFor;
 import '../../ingredients/domain/default_amount.dart';
 import '../domain/plan_change.dart';
 import '../domain/planning.dart';
@@ -23,13 +25,20 @@ import '../domain/planning_repository.dart';
 const _uuid = Uuid();
 
 class SqlitePlanningRepository implements PlanningRepository {
-  const SqlitePlanningRepository(this._db, {required String householdId})
-    : _householdId = householdId;
+  const SqlitePlanningRepository(
+    this._db, {
+    required String householdId,
+    DateTime Function() clock = DateTime.now,
+  }) : _householdId = householdId,
+       _clock = clock;
 
   final SqliteConnection _db;
 
   /// The household stamped on rows this repo writes.
   final String _householdId;
+
+  /// The wall clock: which meals of a cooking a tick finds behind us.
+  final DateTime Function() _clock;
 
   /// The ISO date (YYYY-MM-DD) of the week's first day.
   String _weekKey(DateTime weekStart) => isoDateOf(weekStart);
@@ -77,8 +86,8 @@ class SqlitePlanningRepository implements PlanningRepository {
       'pe.portions, pe.ingredient_id, pe.quantity, pe.unit, pe.measure_id, '
       // `pe.macros` is aliased: it is per portion as stated, while the vocab
       // row's `macros` below is per 100 of a basis.
-      'pe.label, pe.macros AS stated_macros, pe.instead_of, pe.leftover_of, '
-      'pe.from_leftover, pe.created_at, '
+      'pe.label, pe.macros AS stated_macros, pe.instead_of, pe.cooking, '
+      'pe.created_at, '
       'r.title AS recipe_title, i.canonical_name AS ingredient_name, '
       'i.macros, i.density_g_per_ml, i.piece_basis_amount, '
       'im.label AS measure_label, im.basis_amount AS measure_amount, '
@@ -185,8 +194,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     eaterIds: (jsonDecode(e['eaters'] as String? ?? '[]') as List)
         .cast<String>(),
     portions: e['portions'] as int?,
-    leftoverOf: e['leftover_of'] as String?,
-    fromLeftover: e['from_leftover'] as String?,
+    cooking: e['cooking'] as String?,
     createdAt: DateTime.tryParse(e['created_at'] as String? ?? '')?.toLocal(),
   );
 
@@ -277,8 +285,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     required String recipeId,
     required List<String> eaterIds,
     int? portions,
-    String? leftoverOf,
-    String? fromLeftover,
+    String? cooking,
   }) => _insertEntry(
     weekStart: weekStart,
     dayOfWeek: dayOfWeek,
@@ -286,8 +293,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     recipeId: recipeId,
     eaterIds: eaterIds,
     portions: portions,
-    leftoverOf: leftoverOf,
-    fromLeftover: fromLeftover,
+    cooking: cooking,
   );
 
   @override
@@ -347,8 +353,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     String? unit,
     String? measureId,
     int? portions,
-    String? leftoverOf,
-    String? fromLeftover,
+    String? cooking,
   }) async {
     assert(
       [recipeId, ingredientId, label].where((t) => t != null).length == 1,
@@ -359,8 +364,18 @@ class SqlitePlanningRepository implements PlanningRepository {
       'a blank label names nothing (the server refuses it)',
     );
     final id = _uuid.v4();
-    await _db.writeTransaction(
-      (tx) => _insertIn(
+    await _db.writeTransaction((tx) async {
+      // The first pick from a pot not born yet is its birth.
+      final today = _clock();
+      final pot = cooking == null
+          ? null
+          : await cookingForPick(
+              tx,
+              cooking,
+              householdId: _householdId,
+              today: DateTime(today.year, today.month, today.day),
+            );
+      await _insertIn(
         tx,
         id: id,
         weekKey: _weekKey(weekStart),
@@ -377,10 +392,9 @@ class SqlitePlanningRepository implements PlanningRepository {
         unit: unit,
         measureId: measureId,
         portions: portions,
-        leftoverOf: leftoverOf,
-        fromLeftover: fromLeftover,
-      ),
-    );
+        cooking: pot,
+      );
+    });
     return id;
   }
 
@@ -401,8 +415,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     String? unit,
     String? measureId,
     int? portions,
-    String? leftoverOf,
-    String? fromLeftover,
+    String? cooking,
   }) async {
     final now = _now();
     final weekId = await _getOrCreateWeek(tx, weekKey);
@@ -415,9 +428,9 @@ class SqlitePlanningRepository implements PlanningRepository {
     await tx.execute(
       'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
       'meal_slot, recipe_id, ingredient_id, label, macros, quantity, unit, '
-      'measure_id, eaters, portions, leftover_of, from_leftover, sort_order, '
-      'created_at, updated_at) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'measure_id, eaters, portions, cooking, sort_order, created_at, '
+      'updated_at) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         id,
         _householdId,
@@ -433,8 +446,7 @@ class SqlitePlanningRepository implements PlanningRepository {
         measureId,
         eaters,
         portions,
-        leftoverOf,
-        fromLeftover,
+        cooking,
         order,
         now,
         now,
@@ -461,8 +473,7 @@ class SqlitePlanningRepository implements PlanningRepository {
   @override
   Future<void> cookFreshInstead(String entryId) async {
     await _db.execute(
-      'UPDATE plan_entry SET leftover_of = NULL, from_leftover = NULL, '
-      'updated_at = ? WHERE id = ?',
+      'UPDATE plan_entry SET cooking = NULL, updated_at = ? WHERE id = ?',
       [_now(), entryId],
     );
   }
@@ -470,13 +481,11 @@ class SqlitePlanningRepository implements PlanningRepository {
   @override
   Future<void> eatFromLeftoverAgain(
     String entryId, {
-    String? leftoverOf,
-    String? fromLeftover,
+    required String cooking,
   }) async {
     await _db.execute(
-      'UPDATE plan_entry SET leftover_of = ?, from_leftover = ?, '
-      'updated_at = ? WHERE id = ?',
-      [leftoverOf, fromLeftover, _now(), entryId],
+      'UPDATE plan_entry SET cooking = ?, updated_at = ? WHERE id = ?',
+      [cooking, _now(), entryId],
     );
   }
 
@@ -536,12 +545,22 @@ class SqlitePlanningRepository implements PlanningRepository {
           'UPDATE meal_eaten SET eaten_at = ?, updated_at = ? WHERE id = ?',
           [at, now, live['id']],
         );
-        return;
+      } else {
+        await tx.execute(
+          'INSERT INTO meal_eaten (id, household_id, plan_entry_id, '
+          'member_id, eaten_at, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [_uuid.v4(), _householdId, entryId, memberId, at, now, now],
+        );
       }
-      await tx.execute(
-        'INSERT INTO meal_eaten (id, household_id, plan_entry_id, member_id, '
-        'eaten_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [_uuid.v4(), _householdId, entryId, memberId, at, now, now],
+      // A tick is the cooking's birth, or fixes what it made: an untick
+      // needs no write, since "cooked" is read off the ticks.
+      final today = _clock();
+      await ensureCookingFor(
+        tx,
+        entryId,
+        householdId: _householdId,
+        today: DateTime(today.year, today.month, today.day),
       );
     });
   }
@@ -736,10 +755,9 @@ class SqlitePlanningRepository implements PlanningRepository {
             unit: row['unit'] as String?,
             measureId: row['measure_id'] as String?,
             portions: row['portions'] as int?,
-            // Still eaten from what it was eaten from: a move never makes a
-            // leftover meal one to cook and buy for.
-            leftoverOf: row['leftover_of'] as String?,
-            fromLeftover: row['from_leftover'] as String?,
+            // Still in the cooking it was in: a move never makes a meal from
+            // a pot one to cook and buy for again.
+            cooking: row['cooking'] as String?,
           );
         case PlanSetEaters(:final expected, :final eaterIds):
           await tx.execute(
@@ -758,8 +776,7 @@ class SqlitePlanningRepository implements PlanningRepository {
     if (expected == null) return null;
     final row = await tx.getOptional(
       'SELECT day_of_week, meal_slot, recipe_id, ingredient_id, label, '
-      'macros, quantity, unit, measure_id, eaters, portions, leftover_of, '
-      'from_leftover '
+      'macros, quantity, unit, measure_id, eaters, portions, cooking '
       'FROM plan_entry WHERE id = ? AND deleted_at IS NULL',
       [expected.id],
     );
@@ -842,7 +859,7 @@ Future<String> getOrCreateWeekPlan(
 
 /// The household's live members in display order. Shared with the cook-plan
 /// and shopping repositories. A row without a factor reads `1`, never zero.
-Future<List<Member>> loadMembers(SqliteConnection db) async => _membersFrom(
+Future<List<Member>> loadMembers(SqliteReadContext db) async => _membersFrom(
   await db.getAll(
     'SELECT id, display_name, portion_factor FROM household_member '
     'WHERE deleted_at IS NULL '

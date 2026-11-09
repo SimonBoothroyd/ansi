@@ -497,8 +497,7 @@ class _DishRow extends ConsumerWidget {
     final plan = cookPlan;
     // Only a cooked recipe has a cook marker; a snack shows its amount, a meal
     // out its tag and figures, and a meal from a leftover says so instead.
-    final leftover = entry.isFromLeftover;
-    final marker = plan == null || kind != PlanEntryKind.recipe || leftover
+    final cooked = plan == null || kind != PlanEntryKind.recipe
         ? null
         : cookMarkerFor(
             plan,
@@ -509,6 +508,8 @@ class _DishRow extends ConsumerWidget {
             weekStart: ref.watch(viewedWeekStartProvider),
             today: ref.watch(todayProvider),
           );
+    final leftover = eatsFromAPot(plan, entry, cooked);
+    final marker = leftover ? null : cooked;
     // The recipe page offers its week door only to an arrival naming a week
     // that plans the recipe.
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));

@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/sync/session.dart';
 import 'core/theme/ansi_theme.dart';
+import 'features/cook_plan/data/cook_plan_providers.dart';
 import 'features/health/presentation/health_sync.dart';
 import 'features/timers/presentation/timer_chrome.dart';
 import 'shared/ansi_scroll.dart';
@@ -24,7 +25,9 @@ class AnsiApp extends ConsumerWidget {
       // Keeps Health Connect in step with what was eaten, whatever is on
       // screen; it does nothing until the Account switch is on. Listened,
       // not watched: what it reports is Account's to show.
-      ..listen(healthSyncRunnerProvider, (_, _) {});
+      ..listen(healthSyncRunnerProvider, (_, _) {})
+      // Carries the last release's fridge rows over to cookings, once.
+      ..listen(cookingCarryOverProvider, (_, _) {});
     final theme = ansiThemeData();
     return MaterialApp.router(
       title: 'Ansi',

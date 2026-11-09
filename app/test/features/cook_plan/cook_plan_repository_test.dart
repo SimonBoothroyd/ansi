@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
@@ -748,17 +749,32 @@ void main() {
     });
   });
 
-  group('what is left of a batch', () {
-    Future<String> curryFor(int day) async => planning.addEntry(
-      weekStart: _week,
+  group('cookings', () {
+    Future<String> curryFor(
+      int day, {
+      DateTime? week,
+      String slot = 'Dinner',
+      String? cooking,
+    }) async => planning.addEntry(
+      weekStart: week ?? _week,
       dayOfWeek: day,
-      mealSlot: 'Dinner',
+      mealSlot: slot,
       recipeId: 'curry',
       eaterIds: const ['a', 'b'],
+      cooking: cooking,
     );
+    final nextWeek = DateTime.utc(2026, 8, 31);
 
     setUp(() async {
-      await _insertRecipe(db, 'curry', 'Curry');
+      await _insertRecipe(
+        db,
+        'curry',
+        'Curry',
+        servings: 4,
+        keepsForDays: 3,
+        freezable: true,
+        freezerDays: 30,
+      );
       await db.execute(
         'INSERT INTO household_member (id, household_id, display_name, '
         'sort_order, portion_factor, created_at, updated_at) VALUES '
@@ -767,53 +783,89 @@ void main() {
       );
     });
 
-    test('a covered meal knows the shares its eaters ticked', () async {
+    Future<CookSession> onlySession(DateTime week) async =>
+        (await repo.watchCookPlan(week).first).recipes.single.sessions.single;
+
+    test('a tick births the group’s cooking under its first meal, and '
+        'fixes what it made', () async {
+      final mon = await curryFor(0);
+      final tue = await curryFor(1);
+      await planning.setMealEaten(
+        tue,
+        memberId: 'b',
+        eatenAt: DateTime.utc(2026, 8, 25, 19),
+      );
+      final session = await onlySession(_week);
+      expect(session.cookingId, mon);
+      expect(session.made, 3.5);
+      expect(session.eatenPortions, 0.75);
+      final linked = await db.getAll(
+        'SELECT cooking FROM plan_entry ORDER BY day_of_week',
+      );
+      expect([for (final r in linked) r['cooking']], [mon, mon]);
+    });
+
+    test('made is fixed: a meal added to the cooking’s week later is '
+        'cooked apart, and one lowered leaves food over', () async {
       final mon = await curryFor(0);
       await planning.setMealEaten(
         mon,
-        memberId: 'b',
+        memberId: 'a',
         eatenAt: DateTime.utc(2026, 8, 24, 19),
       );
-      final session = (await repo.watchCookPlan(_week).first)
-          .recipes
-          .single
-          .sessions
-          .single;
-      expect(session.leftoverKey, mon);
-      expect(session.totalPortions, 1.75);
-      expect(session.eatenPortions, 0.75);
-      expect(session.uneatenPortions, 1);
-    });
-
-    test('a meal planned from a leftover is never cooked again', () async {
-      final mon = await curryFor(0);
-      await planning.addEntry(
-        weekStart: _week,
-        dayOfWeek: 2,
-        mealSlot: 'Lunch',
-        recipeId: 'curry',
-        eaterIds: const ['a'],
-        leftoverOf: mon,
-      );
+      await planning.setPortions(mon, 1);
+      final wed = await curryFor(2);
       final plan = await repo.watchCookPlan(_week).first;
-      final session = plan.recipes.single.sessions.single;
+      final sessions = plan.recipes.single.sessions;
+      expect(sessions, hasLength(2));
+      final cooking = sessions.singleWhere((s) => s.cookingId != null);
+      expect(cooking.totalPortions, 1.75);
+      expect(
+        sessions.singleWhere((s) => s.cookingId == null).covers.single.entryId,
+        wed,
+      );
+    });
+
+    test('Ragù Sat picked for next Thu: bought once, in Saturday’s '
+        'week, and Thursday’s week buys nothing', () async {
+      final sat = await curryFor(5);
+      final thu = await curryFor(3, week: nextWeek, cooking: sat);
+      final saturday = await onlySession(_week);
+      expect(saturday.cookingId, sat);
+      expect(saturday.coveredDays, [5, 10]);
+      expect(saturday.totalPortions, 3.5);
+      final after = await repo.watchCookPlan(nextWeek).first;
+      expect(after.recipes, isEmpty);
+      expect(after.eatenFromEarlier[thu]!.cookingId, sat);
+      expect(after.eatenFromEarlier[thu]!.cookDay, -2);
+    });
+
+    test('a pick from food said by hand is never cooked or bought', () async {
+      final mon = await curryFor(0);
+      await insertCooking(
+        db,
+        id: 'said',
+        recipeId: 'curry',
+        made: 2,
+        place: 'freezer',
+        since: '2026-08-20',
+      );
+      await curryFor(3, cooking: 'said');
+      final session = await onlySession(_week);
       expect(session.covers.map((m) => m.entryId), [mon]);
       expect(session.totalPortions, 1.75);
     });
 
-    test('a meal planned from a fridge or freezer row is never cooked '
-        'again', () async {
-      final mon = await curryFor(0);
-      await insertLeftover(db, id: 'lo1', recipeId: 'curry');
-      final thu = await curryFor(3);
-      await planFromLeftover(db, thu, 'lo1');
-      final session = (await repo.watchCookPlan(_week).first)
-          .recipes
-          .single
-          .sessions
-          .single;
-      expect(session.covers.map((m) => m.entryId), [mon]);
-      expect(session.totalPortions, 1.75);
+    test('cook fresh instead: the meal is cooked in its own week', () async {
+      final sat = await curryFor(5);
+      final thu = await curryFor(3, week: nextWeek, cooking: sat);
+      await planning.cookFreshInstead(thu);
+      expect((await onlySession(_week)).totalPortions, 1.75);
+      final after = await onlySession(nextWeek);
+      expect(after.cookingId, isNull);
+      expect(after.covers.single.entryId, thu);
+      await planning.eatFromLeftoverAgain(thu, cooking: sat);
+      expect((await repo.watchCookPlan(nextWeek).first).recipes, isEmpty);
     });
   });
 }

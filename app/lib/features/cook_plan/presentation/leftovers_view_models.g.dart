@@ -8,16 +8,14 @@ part of 'leftovers_view_models.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The household's leftovers today and every meal served from one, live.
-/// Read from the week holding today, whatever week is on screen: the fridge
-/// is now.
+/// The household's leftovers today and every meal served from one, live,
+/// whatever week is on screen: the fridge is now.
 
 @ProviderFor(leftoverShelves)
 const leftoverShelvesProvider = LeftoverShelvesProvider._();
 
-/// The household's leftovers today and every meal served from one, live.
-/// Read from the week holding today, whatever week is on screen: the fridge
-/// is now.
+/// The household's leftovers today and every meal served from one, live,
+/// whatever week is on screen: the fridge is now.
 
 final class LeftoverShelvesProvider
     extends
@@ -27,9 +25,8 @@ final class LeftoverShelvesProvider
           Stream<LeftoverShelves>
         >
     with $FutureModifier<LeftoverShelves>, $StreamProvider<LeftoverShelves> {
-  /// The household's leftovers today and every meal served from one, live.
-  /// Read from the week holding today, whatever week is on screen: the fridge
-  /// is now.
+  /// The household's leftovers today and every meal served from one, live,
+  /// whatever week is on screen: the fridge is now.
   const LeftoverShelvesProvider._()
     : super(
         from: null,
@@ -56,7 +53,7 @@ final class LeftoverShelvesProvider
   }
 }
 
-String _$leftoverShelvesHash() => r'4f24c3f4551e8fdc7b72ec14d05a7011e20f74ec';
+String _$leftoverShelvesHash() => r'2c9c1006b19d71e87b944b37aa37689333c2a134';
 
 /// The rows of [leftoverShelves], fridge first.
 
@@ -110,14 +107,14 @@ final class FridgeAndFreezerProvider
 
 String _$fridgeAndFreezerHash() => r'94cd70070cedfa594475719fe45131a73281e628';
 
-/// Each meal served from a leftover, judged on its own day, by `plan_entry`
-/// id: its shelf and any warning.
+/// Each meal linked to a cooking, judged on its own day, by `plan_entry` id:
+/// its shelf and any warning.
 
 @ProviderFor(leftoverMeals)
 const leftoverMealsProvider = LeftoverMealsProvider._();
 
-/// Each meal served from a leftover, judged on its own day, by `plan_entry`
-/// id: its shelf and any warning.
+/// Each meal linked to a cooking, judged on its own day, by `plan_entry` id:
+/// its shelf and any warning.
 
 final class LeftoverMealsProvider
     extends
@@ -127,8 +124,8 @@ final class LeftoverMealsProvider
           Map<String, LeftoverMeal>
         >
     with $Provider<Map<String, LeftoverMeal>> {
-  /// Each meal served from a leftover, judged on its own day, by `plan_entry`
-  /// id: its shelf and any warning.
+  /// Each meal linked to a cooking, judged on its own day, by `plan_entry` id:
+  /// its shelf and any warning.
   const LeftoverMealsProvider._()
     : super(
         from: null,
@@ -211,55 +208,6 @@ final class AnyLeftoverPastItsDateProvider
 
 String _$anyLeftoverPastItsDateHash() =>
     r'aacd63ba57c153b4bbc81c511b34452c7b6340fe';
-
-/// Which shelf each stored row is on, by id: a meal planned from one wears
-/// that shelf's tag on the Week.
-
-@ProviderFor(leftoverPlaces)
-const leftoverPlacesProvider = LeftoverPlacesProvider._();
-
-/// Which shelf each stored row is on, by id: a meal planned from one wears
-/// that shelf's tag on the Week.
-
-final class LeftoverPlacesProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<Map<String, LeftoverPlace>>,
-          Map<String, LeftoverPlace>,
-          Stream<Map<String, LeftoverPlace>>
-        >
-    with
-        $FutureModifier<Map<String, LeftoverPlace>>,
-        $StreamProvider<Map<String, LeftoverPlace>> {
-  /// Which shelf each stored row is on, by id: a meal planned from one wears
-  /// that shelf's tag on the Week.
-  const LeftoverPlacesProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'leftoverPlacesProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$leftoverPlacesHash();
-
-  @$internal
-  @override
-  $StreamProviderElement<Map<String, LeftoverPlace>> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
-
-  @override
-  Stream<Map<String, LeftoverPlace>> create(Ref ref) {
-    return leftoverPlaces(ref);
-  }
-}
-
-String _$leftoverPlacesHash() => r'4adad43ee856053e7780ee71fdf243379e850ca9';
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
