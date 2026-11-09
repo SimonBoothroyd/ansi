@@ -73,11 +73,6 @@ abstract class PlannedRecipe with _$PlannedRecipe {
     /// The same recipe's meals in the week after, days 0..6 of that week:
     /// the ones a freezable batch can fold in ([clusterSessions]).
     @Default(<CoveredMeal>[]) List<CoveredMeal> nextWeek,
-
-    /// Whether the week before plans this recipe too. Such a week's batch
-    /// folds nothing in, so a fold never chains from week to week and each
-    /// week can be read knowing only its neighbours.
-    @Default(false) bool plannedWeekBefore,
   }) = _PlannedRecipe;
 }
 
@@ -386,8 +381,9 @@ abstract class CookPlan with _$CookPlan {
 /// [PlannedRecipe.freezerDays] of the batch's cook day and **one whole
 /// recipe** still covers them: the batch's portions with the folded ones are
 /// at most [PlannedRecipe.servingsBase] (a scale of ×1 or less). A fold stops
-/// at the first meal that fails either test. A recipe the week before plans
-/// too ([PlannedRecipe.plannedWeekBefore]) folds nothing.
+/// at the first meal that fails either test. [PlannedRecipe.meals] never
+/// holds a meal the week before cooks ([plannedAcrossWeeks] takes those out),
+/// so a batch made of a folded meal never folds forward.
 List<CookSession> clusterSessions(PlannedRecipe recipe) {
   final sessions = _clusterWeek(recipe);
   if (sessions.isEmpty) return sessions;
@@ -424,7 +420,6 @@ List<CookSession> _clusterWeek(PlannedRecipe recipe) {
 /// [host] with the next week's meals it folds in, or null when it folds none.
 CookSession? _foldNextWeek(PlannedRecipe recipe, CookSession host) {
   if (!recipe.freezable ||
-      recipe.plannedWeekBefore ||
       recipe.nextWeek.isEmpty ||
       recipe.servingsBase <= 0) {
     return null;
@@ -445,64 +440,138 @@ CookSession? _foldNextWeek(PlannedRecipe recipe, CookSession host) {
   return host.copyWith(covers: List.unmodifiable([...host.covers, ...folded]));
 }
 
+/// Weeks in a run of folds: a dish planned every week starts afresh once
+/// every this many weeks ([foldCutsBefore]).
+const kFoldRunWeeks = 4;
+
+/// How many weeks before it a week's fold chain reads: enough to reach the
+/// last place a chain was cut, however the dish was planned ([foldCutsBefore]).
+const kFoldLookbackWeeks = 2 * kFoldRunWeeks;
+
+/// How far [weekStart]'s week is into its calendar run, 0 to
+/// [kFoldRunWeeks] − 1, counted from the epoch.
+int weeksIntoFoldRun(DateTime weekStart) {
+  final days = DateTime.utc(
+    weekStart.year,
+    weekStart.month,
+    weekStart.day,
+  ).difference(DateTime.utc(1970, 1, 4)).inDays;
+  return (days ~/ 7) % kFoldRunWeeks;
+}
+
+/// Whether a week takes no fold of a dish from the week before, given whether
+/// each of the [kFoldRunWeeks] weeks before it planned the dish
+/// ([plannedBefore], oldest first) and how far it is into its run.
+///
+/// A fold takes a prefix of the next week's meals, which changes that week's
+/// own last batch and so what it folds forward in turn: whether a week takes
+/// a fold hangs on every week before it. Every reader has to cut that chain
+/// in the same place, or two weeks read on one screen could each claim (or
+/// each disown) one meal and the shop buy it twice or never. A week after one
+/// that does not plan the dish is cut already. A dish planned every week for
+/// a whole run is cut where the calendar starts the next run, so the cut is
+/// the same from every week and a chain never reads further back than
+/// [kFoldLookbackWeeks].
+bool foldCutsBefore(int weeksIntoRun, List<bool> plannedBefore) =>
+    plannedBefore.isEmpty ||
+    !plannedBefore.last ||
+    (weeksIntoRun == 0 &&
+        plannedBefore.length >= kFoldRunWeeks &&
+        plannedBefore.every((p) => p));
+
 /// A week's planned recipes as its batches cook them, across both week edges:
 /// what [clusterSessions] needs from the neighbouring weeks, and the meals the
 /// week before already cooks.
 ///
+/// [weeksBefore] are the [kFoldLookbackWeeks] weeks before [week] (which
+/// begins [weekStart]), oldest first. Down them, each week's meals a fold of
+/// the week before takes are taken out, and what is left clusters and folds
+/// the next week in its turn, unless [foldCutsBefore] cuts the chain there.
+/// So a batch made of a meal folded from the week before never folds forward,
+/// and a dish planned every week still folds each week its last batch can.
+///
 /// - Each of [week]'s recipes carries [weekAfter]'s meals of it
-///   ([PlannedRecipe.nextWeek]) and whether [weekBefore] plans it.
-/// - A meal [weekBefore]'s batch folds in is taken out of [week] and named in
-///   `foldedBack` with that batch. Whether [weekBefore] could fold reads
-///   [twoWeeksBefore], and no further: a fold never chains.
+///   ([PlannedRecipe.nextWeek]), unless the chain is cut before it.
+/// - A meal the week before's batch folds in is taken out of [week] and named
+///   in `foldedBack` with that batch.
 ///
 /// Every list holds that week's recipe meals that are cooked (not one from a
 /// leftover), days 0..6 of its own week. A recipe left with no meals drops out.
 ({List<PlannedRecipe> recipes, Map<String, CookSession> foldedBack})
 plannedAcrossWeeks({
   required List<PlannedRecipe> week,
-  List<PlannedRecipe> weekBefore = const [],
-  List<PlannedRecipe> twoWeeksBefore = const [],
+  DateTime? weekStart,
+  List<List<PlannedRecipe>> weeksBefore = const [],
   List<PlannedRecipe> weekAfter = const [],
 }) {
   Map<String, PlannedRecipe> byId(List<PlannedRecipe> recipes) => {
     for (final r in recipes)
       if (r.meals.isNotEmpty) r.recipeId: r,
   };
-  final thisWeek = byId(week);
-  final before = byId(weekBefore);
-  final twoBefore = byId(twoWeeksBefore);
-  final after = byId(weekAfter);
+  final run = [...weeksBefore.map(byId), byId(week), byId(weekAfter)];
+  final last = run.length - 2;
+  final into = weekStart == null
+      ? null
+      : weeksIntoFoldRun(
+          DateTime(
+            weekStart.year,
+            weekStart.month,
+            weekStart.day - 7 * weeksBefore.length,
+          ),
+        );
+  // Whether the fold of [recipeId] into week [k] of the run is cut.
+  bool cut(int k, String recipeId) =>
+      foldCutsBefore(into == null ? 1 : (into + k) % kFoldRunWeeks, [
+        for (var b = k - kFoldRunWeeks; b < k; b++)
+          if (b >= 0) run[b].containsKey(recipeId),
+      ]);
 
-  final foldedBack = <String, CookSession>{};
-  for (final host in before.values) {
-    final mine = thisWeek[host.recipeId];
-    if (mine == null) continue;
-    final sessions = clusterSessions(
-      host.copyWith(
-        nextWeek: mine.meals,
-        plannedWeekBefore: twoBefore.containsKey(host.recipeId),
-      ),
-    );
-    for (final session in sessions) {
-      for (final m in session.nextWeekCovers) {
-        if (m.entryId case final id?) foldedBack[id] = session;
+  // Down the run: what each week cooks of its own, after the week before's
+  // fold took its share.
+  var foldedBack = <String, CookSession>{};
+  for (var k = 1; k <= last; k++) {
+    final folded = <String, CookSession>{};
+    for (final theirs in run[k].values) {
+      final host = run[k - 1][theirs.recipeId];
+      if (host == null || cut(k, theirs.recipeId)) continue;
+      final own = _withoutFolded(host, foldedBack);
+      if (own == null) continue;
+      for (final session in clusterSessions(
+        own.copyWith(nextWeek: theirs.meals),
+      )) {
+        for (final m in session.nextWeekCovers) {
+          if (m.entryId case final id?) folded[id] = session;
+        }
       }
     }
+    foldedBack = folded;
   }
 
   return (
     recipes: [
-      for (final r in thisWeek.values)
-        if (r.meals.where((m) => !foldedBack.containsKey(m.entryId)).toList()
-            case final meals when meals.isNotEmpty)
-          r.copyWith(
-            meals: meals,
-            nextWeek: after[r.recipeId]?.meals ?? const [],
-            plannedWeekBefore: before.containsKey(r.recipeId),
+      for (final r in run[last].values)
+        if (_withoutFolded(r, foldedBack) case final own?)
+          own.copyWith(
+            nextWeek: cut(last + 1, r.recipeId)
+                ? const []
+                : run[last + 1][r.recipeId]?.meals ?? const [],
           ),
     ],
     foldedBack: foldedBack,
   );
+}
+
+/// [recipe] without the meals the week before's batches cook ([folded], by
+/// entry id); null when none is left.
+PlannedRecipe? _withoutFolded(
+  PlannedRecipe recipe,
+  Map<String, CookSession> folded,
+) {
+  final meals = [
+    for (final m in recipe.meals)
+      if (!folded.containsKey(m.entryId)) m,
+  ];
+  return meals.isEmpty ? null : recipe.copyWith(meals: meals);
 }
 
 /// [clusterSessions] over the component demands on one sub-recipe: each cluster

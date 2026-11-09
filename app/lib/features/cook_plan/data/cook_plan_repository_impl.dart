@@ -91,7 +91,9 @@ Future<CookPlan> loadCookPlan(
 /// The week keyed [weekKey]'s recipe meals as its batches cook them, across
 /// both week edges ([plannedAcrossWeeks]): the one read the cook plan and the
 /// shop share, so a meal the week before cooks is skipped by both, and a meal
-/// of the next week this week cooks is bought here.
+/// of the next week this week cooks is bought here. It reads
+/// [kFoldLookbackWeeks] back, where a fold chain is cut ([foldCutsBefore]),
+/// and one week ahead.
 ///
 /// [leaveOut] names meals to read as not planned, in this week or the next.
 Future<({List<PlannedRecipe> recipes, Map<String, CookSession> foldedBack})>
@@ -103,8 +105,11 @@ loadPlannedWeek(
   final start = DateTime.parse(weekKey);
   String keyOf(int weeks) =>
       isoDateOf(DateTime(start.year, start.month, start.day + 7 * weeks));
-  final keys = [keyOf(-2), keyOf(-1), weekKey, keyOf(1)];
-  final weeks = await _loadWeeksMeals(db, keys);
+  // The weeks a fold chain reads back through, oldest first, and the week
+  // after.
+  final before = [for (var w = kFoldLookbackWeeks; w > 0; w--) keyOf(-w)];
+  final after = keyOf(1);
+  final weeks = await _loadWeeksMeals(db, [...before, weekKey, after]);
   List<PlannedRecipe> without(List<PlannedRecipe>? recipes) => [
     for (final r in recipes ?? const <PlannedRecipe>[])
       r.copyWith(
@@ -115,10 +120,10 @@ loadPlannedWeek(
       ),
   ];
   return plannedAcrossWeeks(
-    twoWeeksBefore: weeks[keys[0]] ?? const [],
-    weekBefore: weeks[keys[1]] ?? const [],
+    weekStart: start,
+    weeksBefore: [for (final k in before) weeks[k] ?? const []],
     week: without(weeks[weekKey]),
-    weekAfter: without(weeks[keys[3]]),
+    weekAfter: without(weeks[after]),
   );
 }
 

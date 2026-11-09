@@ -1250,7 +1250,6 @@ void main() {
       Map<int, num> next = const {},
       bool freezable = true,
       int? freezerDays = 30,
-      bool plannedWeekBefore = false,
     }) =>
         _recipe(
           days,
@@ -1270,7 +1269,6 @@ void main() {
                 entryId: 'next-${e.key}',
               ),
           ],
-          plannedWeekBefore: plannedWeekBefore,
         );
 
     test('Saturday cooks one whole recipe and freezes next Thursday’s '
@@ -1308,15 +1306,6 @@ void main() {
       expect(
         clusterSessions(
           helper({5: 2}, next: {3: 2}, freezable: false),
-        ).single.coveredDays,
-        [5],
-      );
-    });
-
-    test('a week the week before also plans the dish folds nothing', () {
-      expect(
-        clusterSessions(
-          helper({5: 2}, next: {3: 2}, plannedWeekBefore: true),
         ).single.coveredDays,
         [5],
       );
@@ -1366,7 +1355,9 @@ void main() {
 
         final after = plannedAcrossWeeks(
           week: [thursday],
-          weekBefore: [saturday],
+          weeksBefore: [
+            [saturday],
+          ],
         );
         expect(after.recipes, isEmpty);
         expect(after.foldedBack.keys, ['b3']);
@@ -1378,42 +1369,205 @@ void main() {
           week: [
             week({3: 3}, prefix: 'b'),
           ],
-          weekBefore: [
-            week({5: 2}, prefix: 'a'),
+          weeksBefore: [
+            [
+              week({5: 2}, prefix: 'a'),
+            ],
           ],
         );
         expect(after.foldedBack, isEmpty);
         expect(after.recipes.single.meals.single.entryId, 'b3');
       });
 
-      test('a fold never chains: a week eating from the week before cooks '
-          'its own', () {
-        final after = plannedAcrossWeeks(
+      test('a week before that plans the dish but folds nothing does not '
+          'stop this week folding', () {
+        // Last week's batch was a whole recipe already: it took nothing of
+        // this week, so Saturday still cooks for next Thursday.
+        final now = plannedAcrossWeeks(
+          weeksBefore: [
+            [
+              week({1: 4}, prefix: 'a'),
+            ],
+          ],
           week: [
-            week({3: 1}, prefix: 'c'),
+            week({5: 2}, prefix: 'b'),
           ],
-          weekBefore: [
-            week({5: 1}, prefix: 'b'),
-          ],
-          twoWeeksBefore: [
-            week({5: 1}, prefix: 'a'),
+          weekAfter: [
+            week({3: 2}, prefix: 'c'),
           ],
         );
-        expect(after.foldedBack, isEmpty);
-        // And the week before folds nothing forward either.
-        final middle = plannedAcrossWeeks(
+        expect(now.foldedBack, isEmpty);
+        final cooked = buildCookPlan(now.recipes);
+        expect(cooked.recipes.single.sessions.single.coveredDays, [5, 10]);
+      });
+
+      test('a batch made of a meal folded from the week before never folds '
+          'forward', () {
+        final now = plannedAcrossWeeks(
+          weeksBefore: [
+            [
+              week({5: 1}, prefix: 'a'),
+            ],
+          ],
           week: [
             week({5: 1}, prefix: 'b'),
-          ],
-          weekBefore: [
-            week({5: 1}, prefix: 'a'),
           ],
           weekAfter: [
             week({3: 1}, prefix: 'c'),
           ],
         );
-        expect(middle.foldedBack.keys, ['b5']);
-        expect(middle.recipes, isEmpty);
+        expect(now.foldedBack.keys, ['b5']);
+        expect(now.foldedBack['b5']!.coveredDays, [5, 12]);
+        // Nothing of this week is left to cook, so next Thursday cooks its
+        // own.
+        expect(now.recipes, isEmpty);
+      });
+
+      test('a dish planned every week folds each week', () {
+        // Sat cooks for next Thu, every week: each week's Thu is folded back,
+        // and its Sat cooks and folds forward in its turn.
+        final now = plannedAcrossWeeks(
+          weeksBefore: [
+            [
+              week({5: 2}, prefix: 'a'),
+            ],
+            [
+              week({3: 2, 5: 2}, prefix: 'b'),
+            ],
+          ],
+          week: [
+            week({3: 2, 5: 2}, prefix: 'c'),
+          ],
+          weekAfter: [
+            week({3: 2}, prefix: 'd'),
+          ],
+        );
+        expect(now.foldedBack.keys, ['c3']);
+        expect(now.foldedBack['c3']!.covers.map((m) => m.entryId), [
+          'b5',
+          'c3',
+        ]);
+        final session = buildCookPlan(now.recipes).recipes.single.sessions;
+        expect(session.single.covers.map((m) => m.entryId), ['c5', 'd3']);
+      });
+
+      test('a dish planned a whole run is cut where the calendar starts '
+          'the next', () {
+        // Planned each of the four weeks before a week that starts a run:
+        // that week takes no fold. Planned with a gap, it does.
+        var runStart = DateTime(2026, 11, 8);
+        while (weeksIntoFoldRun(runStart) != 0) {
+          runStart = DateTime(runStart.year, runStart.month, runStart.day + 7);
+        }
+        expect(foldCutsBefore(0, [true, true, true, true]), isTrue);
+        expect(foldCutsBefore(0, [false, true, true, true]), isFalse);
+        expect(foldCutsBefore(1, [true, true, true, true]), isFalse);
+        expect(foldCutsBefore(2, [true, true, true, false]), isTrue);
+
+        final beforeRunStart = DateTime(
+          runStart.year,
+          runStart.month,
+          runStart.day - 7,
+        );
+        PlannedRecipe w(String prefix) => week({1: 4}, prefix: prefix);
+        final cutHere = plannedAcrossWeeks(
+          weekStart: beforeRunStart,
+          weeksBefore: [
+            [w('a')],
+            [w('b')],
+            [w('c')],
+          ],
+          week: [
+            week({5: 2}, prefix: 'd'),
+          ],
+          weekAfter: [
+            week({3: 2}, prefix: 'e'),
+          ],
+        );
+        expect(buildCookPlan(cutHere.recipes).cookedForNextWeek, isEmpty);
+
+        final notCut = plannedAcrossWeeks(
+          weekStart: beforeRunStart,
+          weeksBefore: [
+            [w('a')],
+            [],
+            [w('c')],
+          ],
+          week: [
+            week({5: 2}, prefix: 'd'),
+          ],
+          weekAfter: [
+            week({3: 2}, prefix: 'e'),
+          ],
+        );
+        expect(
+          buildCookPlan(notCut.recipes).cookedForNextWeek.single.meal.entryId,
+          'e3',
+        );
+      });
+
+      test('every week reads the same fold of a meal: a week cooks a meal '
+          'of the next exactly when the next says so', () {
+        // A recipe of four, two portions a week: one Saturday can cover two,
+        // so which week cooks hangs on the weeks before. Each week is read
+        // as the loader reads it, [kFoldLookbackWeeks] back.
+        final start = DateTime(2026, 9, 6);
+        for (final pattern in [
+          [for (var i = 0; i < 24; i++) true],
+          [for (var i = 0; i < 24; i++) i % 7 != 3],
+          [for (var i = 0; i < 24; i++) i % 5 != 0],
+        ]) {
+          final weeks = [
+            for (var i = 0; i < 24; i++)
+              [
+                if (pattern[i]) week({5: 2}, prefix: 'w$i-'),
+              ],
+          ];
+          ({List<PlannedRecipe> recipes, Map<String, CookSession> foldedBack})
+          read(int i) => plannedAcrossWeeks(
+            weekStart: DateTime(start.year, start.month, start.day + 7 * i),
+            weeksBefore: [
+              for (var w = kFoldLookbackWeeks; w > 0; w--)
+                [if (i - w >= 0) ...weeks[i - w]],
+            ],
+            week: weeks[i],
+            weekAfter: weeks[i + 1],
+          );
+
+          var folds = 0;
+          for (var i = 0; i < 22; i++) {
+            final cooksForNext = {
+              for (final m in buildCookPlan(read(i).recipes).cookedForNextWeek)
+                m.meal.entryId,
+            };
+            folds += cooksForNext.length;
+            expect(
+              cooksForNext,
+              read(i + 1).foldedBack.keys.toSet(),
+              reason: 'week $i and week ${i + 1}',
+            );
+          }
+          expect(folds, greaterThan(0));
+        }
+      });
+
+      test('weeks run in fours by the calendar', () {
+        final start = DateTime(2026, 11, 8);
+        final runs = [
+          for (var i = 0; i < 8; i++)
+            weeksIntoFoldRun(
+              DateTime(start.year, start.month, start.day + 7 * i),
+            ),
+        ];
+        expect(runs.toSet(), {0, 1, 2, 3});
+        for (var i = 1; i < runs.length; i++) {
+          expect(runs[i], (runs[i - 1] + 1) % kFoldRunWeeks);
+        }
+        // A week that starts on Monday is in the run of the Sunday before.
+        expect(
+          weeksIntoFoldRun(DateTime(2026, 11, 9)),
+          weeksIntoFoldRun(DateTime(2026, 11, 8)),
+        );
       });
     });
   });
