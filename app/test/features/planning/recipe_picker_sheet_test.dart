@@ -582,6 +582,50 @@ void main() {
       expect((picked! as PickedLeftover).leftover.id, 'f1');
     });
 
+    testWidgets('a long Leftovers block scrolls with the list, the recipes '
+        "under it in reach, at a phone's size", (tester) async {
+      filterForuiSemanticsAssertions();
+      // An iPhone's logical size.
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      PickedMeal? picked;
+      await tester.pumpWidget(
+        host(
+          onPicked: (p) => picked = p,
+          leftovers: [
+            for (var i = 0; i < 8; i++)
+              Leftover(
+                batch: 'e-$i',
+                place: i.isEven ? LeftoverPlace.fridge : LeftoverPlace.freezer,
+                recipeId: 'r1',
+                title: 'Batch $i',
+                since: DateTime(2026, 10, 31),
+                goodUntil: DateTime(2026, 11, 20),
+                portions: 2,
+              ),
+          ],
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      // Eight rows overflow nothing: the block is part of the scroll.
+      expect(tester.takeException(), isNull);
+      expect(find.text('Batch 0'), findsOneWidget);
+      final recipe = find.text('Halloumi Salad');
+      await tester.scrollUntilVisible(
+        recipe,
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(recipe);
+      await tester.pumpAndSettle();
+      expect((picked! as PickedRecipe).recipe.id, 'r2');
+    });
+
     testWidgets('an empty shelf draws no subhead', (tester) async {
       filterForuiSemanticsAssertions();
       await tester.pumpWidget(host(leftovers: [chili]));

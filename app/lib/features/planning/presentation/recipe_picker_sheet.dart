@@ -231,12 +231,75 @@ class _RecipePickerSheet extends HookConsumerWidget {
       ],
     ];
 
+    // What is cooked already and what is planned already lead the list and
+    // scroll with it: a long Leftovers block must not push the recipes out of
+    // reach.
+    final leading = <Widget>[
+      if ((leftovers.isNotEmpty || offered.isNotEmpty) &&
+          query.value.isEmpty) ...[
+        UseUpBlock(
+          leftovers: leftovers,
+          suggestions: offered,
+          onPickRecipe: (s) {
+            final real = recipes.where((r) => r.id == s.recipeId);
+            pick(
+              real.isNotEmpty
+                  ? real.first
+                  : RecipeSummary(
+                      id: s.recipeId,
+                      title: s.title,
+                      servingsBase: 1,
+                    ),
+            );
+          },
+          onWhatsLeft: useUp == null
+              ? null
+              : () => unawaited(showWhatsLeftSheet(context, useUp)),
+          onPick: (left) {
+            final real = recipes.where((r) => r.id == left.recipeId);
+            Navigator.of(context).pop(
+              PickedLeftover(
+                left,
+                real.isNotEmpty
+                    ? real.first
+                    : RecipeSummary(
+                        // Leftovers offers only a recipe's row.
+                        id: left.recipeId!,
+                        title: left.title,
+                        servingsBase: 1,
+                      ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (alreadyThisWeek.isNotEmpty && query.value.isEmpty) ...[
+        _AlreadyThisWeek(
+          items: alreadyThisWeek,
+          onPick: (id, title) {
+            // Hand the confirm sheet the real summary (shelf life drives
+            // its "same batch" hint); a fabricated one only if the recipe
+            // vanished mid-build.
+            final real = recipes.where((r) => r.id == id);
+            pick(
+              real.isNotEmpty
+                  ? real.first
+                  : RecipeSummary(id: id, title: title, servingsBase: 1),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+      ],
+    ];
+
     final body = switch (tab.value) {
       1 => _BooksList(
         library: library,
         recipes: recipes,
         matches: matches,
         row: row,
+        leading: leading,
         trailing: ingredientSection,
       ),
       2 => _FavoritesList(
@@ -246,6 +309,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
         ],
         query: typed,
         row: row,
+        leading: leading,
         trailing: ingredientSection,
       ),
       _ => _RecentList(
@@ -255,6 +319,7 @@ class _RecipePickerSheet extends HookConsumerWidget {
         ),
         query: typed,
         row: row,
+        leading: leading,
         trailing: ingredientSection,
       ),
     };
@@ -282,62 +347,6 @@ class _RecipePickerSheet extends HookConsumerWidget {
           if (guessing) ...[
             const SizedBox(height: 12),
             const DidYouMeanHeader(),
-          ],
-          if ((leftovers.isNotEmpty || offered.isNotEmpty) &&
-              query.value.isEmpty) ...[
-            const SizedBox(height: 12),
-            UseUpBlock(
-              leftovers: leftovers,
-              suggestions: offered,
-              onPickRecipe: (s) {
-                final real = recipes.where((r) => r.id == s.recipeId);
-                pick(
-                  real.isNotEmpty
-                      ? real.first
-                      : RecipeSummary(
-                          id: s.recipeId,
-                          title: s.title,
-                          servingsBase: 1,
-                        ),
-                );
-              },
-              onWhatsLeft: useUp == null
-                  ? null
-                  : () => unawaited(showWhatsLeftSheet(context, useUp)),
-              onPick: (left) {
-                final real = recipes.where((r) => r.id == left.recipeId);
-                Navigator.of(context).pop(
-                  PickedLeftover(
-                    left,
-                    real.isNotEmpty
-                        ? real.first
-                        : RecipeSummary(
-                            // Leftovers offers only a recipe's row.
-                            id: left.recipeId!,
-                            title: left.title,
-                            servingsBase: 1,
-                          ),
-                  ),
-                );
-              },
-            ),
-          ],
-          if (alreadyThisWeek.isNotEmpty && query.value.isEmpty) ...[
-            const SizedBox(height: 12),
-            _AlreadyThisWeek(
-              items: alreadyThisWeek,
-              onPick: (id, title) {
-                // Hand the confirm sheet the real summary (shelf life drives
-                // its "same batch" hint); a fabricated one only if the recipe
-                // vanished mid-build.
-                final real = recipes.where((r) => r.id == id);
-                pick(
-                  real.isNotEmpty
-                      ? real.first
-                      : RecipeSummary(id: id, title: title, servingsBase: 1),
-                );
-              },
-            ),
           ],
         ],
       ),
@@ -571,8 +580,12 @@ class _RecentList extends StatelessWidget {
     required this.recipes,
     required this.query,
     required this.row,
+    this.leading = const [],
     this.trailing = const [],
   });
+
+  /// The Leftovers and *Already this week* blocks, at the head of the scroll.
+  final List<Widget> leading;
 
   final List<RecipeSummary> recipes;
 
@@ -589,19 +602,18 @@ class _RecentList extends StatelessWidget {
     // An ingredient hit is still an answer, so only both sections empty is an
     // empty screen.
     if (recipes.isEmpty && trailing.isEmpty) {
-      return Center(
-        child: Text(
-          emptyPickerLine(
-            query: query,
-            bare: 'No recipes yet',
-            shelf: 'the Library',
-          ),
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 12, color: AnsiColors.muted),
+      return _EmptyList(
+        leading: leading,
+        line: emptyPickerLine(
+          query: query,
+          bare: 'No recipes yet',
+          shelf: 'the Library',
         ),
       );
     }
-    return ListView(children: [for (final r in recipes) row(r), ...trailing]);
+    return ListView(
+      children: [...leading, for (final r in recipes) row(r), ...trailing],
+    );
   }
 }
 
@@ -610,9 +622,11 @@ class _FavoritesList extends StatelessWidget {
     required this.recipes,
     required this.query,
     required this.row,
+    this.leading = const [],
     this.trailing = const [],
   });
 
+  final List<Widget> leading;
   final List<RecipeSummary> recipes;
   final String query;
   final Widget Function(RecipeSummary r, {Filing? explicitFiling}) row;
@@ -621,19 +635,18 @@ class _FavoritesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (recipes.isEmpty && trailing.isEmpty) {
-      return Center(
-        child: Text(
-          emptyPickerLine(
-            query: query,
-            bare: 'No favorites yet. Star a recipe from its page.',
-            shelf: 'your favorites',
-          ),
-          textAlign: TextAlign.center,
-          style: ansiMono(size: 12, color: AnsiColors.muted),
+      return _EmptyList(
+        leading: leading,
+        line: emptyPickerLine(
+          query: query,
+          bare: 'No favorites yet. Star a recipe from its page.',
+          shelf: 'your favorites',
         ),
       );
     }
-    return ListView(children: [for (final r in recipes) row(r), ...trailing]);
+    return ListView(
+      children: [...leading, for (final r in recipes) row(r), ...trailing],
+    );
   }
 }
 
@@ -643,8 +656,11 @@ class _BooksList extends StatelessWidget {
     required this.recipes,
     required this.matches,
     required this.row,
+    this.leading = const [],
     this.trailing = const [],
   });
+
+  final List<Widget> leading;
 
   final List<Book> library;
   final List<RecipeSummary> recipes;
@@ -659,6 +675,7 @@ class _BooksList extends StatelessWidget {
     final byId = {for (final r in recipes) r.id: r};
     return ListView(
       children: [
+        ...leading,
         for (final b in library) ...[
           for (final s in b.sections)
             for (final r in s.recipes)
@@ -675,6 +692,30 @@ class _BooksList extends StatelessWidget {
               ),
         ],
         ...trailing,
+      ],
+    );
+  }
+}
+
+/// A list with nothing to show but its [leading] blocks, then [line].
+class _EmptyList extends StatelessWidget {
+  const _EmptyList({required this.leading, required this.line});
+
+  final List<Widget> leading;
+  final String line;
+
+  @override
+  Widget build(BuildContext context) {
+    final words = Text(
+      line,
+      textAlign: TextAlign.center,
+      style: ansiMono(size: 12, color: AnsiColors.muted),
+    );
+    if (leading.isEmpty) return Center(child: words);
+    return ListView(
+      children: [
+        ...leading,
+        Padding(padding: const EdgeInsets.only(top: 24), child: words),
       ],
     );
   }
