@@ -43,6 +43,10 @@ class _RecordedCall {
   final String method; // 'upsert' | 'update'
   final Map<String, dynamic> payload;
   final Map<String, Object> filters = {};
+
+  /// An upsert's `ignoreDuplicates`: true makes it an insert that leaves a
+  /// row already there alone.
+  bool ignoreDuplicates = false;
 }
 
 /// A recording stand-in for the PostgREST layer. Set [error] to make every
@@ -96,7 +100,7 @@ class _FakeQueryBuilder extends Fake implements SupabaseQueryBuilder {
       _table,
       'upsert',
       (values as Map).cast<String, dynamic>(),
-    );
+    )..ignoreDuplicates = ignoreDuplicates;
     _backend.calls.add(call);
     return _FakeFilterBuilder(_backend, call);
   }
@@ -255,6 +259,58 @@ void main() {
 
       // The transaction was acknowledged: nothing left to upload.
       expect(await queuedCrudOps(db), isEmpty);
+    });
+
+    test('a recipe PUT overwrites: an upsert that updates a row already '
+        'there', () async {
+      await insertRecipe();
+      await connector.uploadData(db);
+      expect(backend.calls.single.ignoreDuplicates, isFalse);
+    });
+
+    test('a cooking or cooking_change PUT is an insert that leaves a row '
+        'already there alone', () async {
+      // Two phones birth one cooking under one id; the second upload must
+      // not undo what the first said (its made, or a gone_at since).
+      await db.execute(
+        'INSERT INTO cooking (id, household_id, recipe_id, created_at, '
+        'updated_at) VALUES (?, ?, ?, ?, ?)',
+        ['c1', 'h', 'r1', now, now],
+      );
+      await db.execute(
+        'INSERT INTO cooking_change (id, household_id, cooking_id, fridge, '
+        'freezer, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        ['x1', 'h', 'c1', -2, 2, now, now],
+      );
+      await connector.uploadData(db);
+      while ((await queuedCrudOps(db)).isNotEmpty) {
+        await connector.uploadData(db);
+      }
+
+      expect(
+        [for (final c in backend.calls) (c.table, c.method, c.payload['id'])],
+        [('cooking', 'upsert', 'c1'), ('cooking_change', 'upsert', 'x1')],
+      );
+      expect(backend.calls.every((c) => c.ignoreDuplicates), isTrue);
+      expect(insertOnceTables, {'cooking', 'cooking_change'});
+    });
+
+    test('a PATCH of a cooking still updates it: gone_at, made', () async {
+      await db.execute(
+        'INSERT INTO cooking (id, household_id, recipe_id, created_at, '
+        'updated_at) VALUES (?, ?, ?, ?, ?)',
+        ['c1', 'h', 'r1', now, now],
+      );
+      await drainCrudQueue(db);
+      await db.execute('UPDATE cooking SET gone_at = ? WHERE id = ?', [
+        now,
+        'c1',
+      ]);
+      await connector.uploadData(db);
+      final call = backend.calls.single;
+      expect((call.table, call.method), ('cooking', 'update'));
+      expect(call.payload['gone_at'], now);
+      expect(call.filters, {'id': 'c1'});
     });
 
     test('PATCH updates with decoded jsonb, filtered on id', () async {
