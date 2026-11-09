@@ -42,7 +42,8 @@ planning/
     confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal
                               out; Frozen · Cook fresh for a dish in the freezer
     meal_editor_sheet.dart    edit a placed meal; a leftover meal's source and,
-                              before its day, Cook fresh instead; the variant
+                              before its day, Cook fresh instead (with Undo,
+                              `eatFromLeftoverAgain`); the variant
                               door at its foot
     meal_fields.dart          controls both sheets share
     week_macro_widgets.dart   day foot, week band, the spent line
@@ -121,19 +122,21 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
    leads with *Leftovers*: the fridge rows good for the day, then the freezer
    rows, each soonest to go off first (`leftoversGoodOn` over the cook plan's `householdLeftovers`; a row
    in words names no recipe and is left out), each a `PickedLeftover`, then
-   the recipes that use the most of last week's spare food. Returns a
-   `PickedMeal`.
+   the recipes that use the most of last week's spare food. That block and
+   *Already this week* lead the list's own scroll, so however many rows it
+   offers the recipes stay in reach. Returns a `PickedMeal`.
 2. **The quantity sheet**, for an ingredient only, opened filled in with its
    usual amount (`ingredients/domain/default_amount.dart`): the last meal of
    it that stated one, else one of its word for one (`1 pot`), else one
    piece; with none of those, empty on the row's first chip.
 3. **`showConfirmMealSheet`** — slot, eaters, portions (`plan_entry.portions`,
-   null = track the eaters). A meal out gets an optional per-portion macros
+   null = track the eaters; a step back to the eaters' own total clears it). A meal out gets an optional per-portion macros
    fold; left empty or half-filled, the meal is placed and named as uncounted.
    A leftover's card caps the portions at what is left; the meal names a
    stored row by `from_leftover` and an untouched batch by `leftover_of`. A
-   recipe with a freezer row asks **Frozen (n left) · Cook fresh**, Frozen
-   selected, which plans the meal from the oldest such row.
+   recipe with a freezer row asks **Frozen (n left) · Cook fresh** with
+   neither picked, and *Add* waits for one; Frozen plans the meal from the
+   oldest such row.
 
 Both sheets open on `defaultMealSlot`, the day's first unfilled default slot.
 Recipe rows show shelf-life chips and a "same batch" hint

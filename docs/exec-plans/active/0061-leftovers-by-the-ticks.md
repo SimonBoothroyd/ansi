@@ -1,6 +1,6 @@
 # Exec plan: Leftovers by the ticks
 
-- **Status:** built — phases 1–4 on 2026-11-08, unreleased; `make test-sim` and the release owed
+- **Status:** built — phases 1–4 and the sim-review fixes on 2026-11-08, unreleased; `make test-sim` and the release owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); follows [plan 0060](./0060-leftovers-fridge-and-freezer.md)
 - **Created:** 2026-11-08
@@ -87,14 +87,16 @@ for the board frames.
 
 - **Leftovers page**:
   - Rows go soonest to go off first, past-date rows last.
-  - Counts are tappable `N left` chips that open the stepper. Later ticks
-    still come off a set count, and a count never goes below 0.
+  - Counts are tappable `N left` chips that open the stepper. A count set
+    by hand is an adjustment: every later tick or untick moves it (*After
+    the sim review*, G), and a count never goes below 0.
   - A row says what is planned from it (`1 left · for Sun`,
     `❄ freeze by Mon for Wed`).
   - **Freeze** sits on in-date rows of a dish that freezes; **Froze it**
     on past-date ones. **Gone** goes: set the count to 0.
   - **Clear all** becomes **Remove gone off**, and clears past-date rows
-    from both the Fridge and the Freezer.
+    from both the Fridge and the Freezer. It is one link at the page's foot
+    (*After the sim review*, H).
 - **Cook**: a check marks a cooked batch (`✓ Cooked Fri`). `×1` shows only
   when the scale isn't 1. One line says what's left (`2 left · freeze by
   Mon for Wed`). The day strip stays as it is.
@@ -109,6 +111,34 @@ for the board frames.
   portions.
 - **Kept**: the Week's `−`, the bare `＋` on Leftovers, the eater avatars,
   and the fridge icon's dot while anything is past its date.
+
+### After the sim review
+
+Ruled by the owner on 2026-11-08, after a hands-on simulator review.
+
+- **A. Next week's Cook** shows a folded meal as a line, `Beef Ragù · Thu ·
+  from the freezer`. No reminder, no notification, and never `nothing
+  planned yet` for it.
+- **B. The host meal's sheet** (Saturday's) says `cook it all · freeze 2 for
+  next Thu`.
+- **C. Typed leftovers** (in words, no recipe) in the fridge keep one week
+  from their date; then they are `past its date` and **Remove gone off**
+  clears them. A typed freezer row keeps today's behaviour: no date, an age.
+- **D. The Leftovers row warns in amber** when meals planned from it want
+  more than is there: `1 left · Wed needs 2`.
+- **E. The confirm sheet's Frozen / Cook fresh** preselects neither; *Add*
+  stays disabled until one is picked. This replaces plan 0060's "Frozen
+  first".
+- **F. Undo toasts** after Freeze, Froze it, Remove gone off and Cook fresh
+  instead, the `Done · Undo` pattern removing a meal already uses.
+- **G. A count set by hand survives, and every tick or untick after it adds
+  or takes off**, whichever meal it is on: set to 1, untick Friday's 2, and
+  it reads 3; tick it again and it is 1. It never reads below 0. No
+  migration.
+- **H. Remove gone off** is one link at the foot of the Leftovers page,
+  under both sections, shown only while something is past its date.
+- Fold copy uses weekday names: `freeze 2 by Tue for next Thu`, `covers Sat
+  + next Thu breakfast`.
 
 ### Rejected
 
@@ -339,10 +369,71 @@ Append-only.
   - **Not done here:** `make test-sim` (no simulator in this lane) and the
     roadmap row.
 
+- 2026-11-08 — Sim-review fixes (one lane). The owner's rulings A–H are under
+  *After the sim review*, above. Fixed and decided in the lane:
+  - **The picker's Leftovers block scrolls.** It and *Already this week* now
+    lead the list's own scroll instead of sitting above it, so six or more
+    rows no longer overflow and the recipes stay in reach.
+  - **The fold guard is narrowed.** A batch made of a meal folded from the
+    week before never folds forward; any other batch does, so a week before
+    that planned the dish but folded nothing no longer blocks a fold, and a
+    dish planned every week folds each week its batch can. That makes
+    whether a week takes a fold hang on every week before it, so every
+    reader must cut the chain in the same place or two weeks on one screen
+    could each claim (or disown) one meal and the shop buy it twice or
+    never. The cut (`foldCutsBefore`): after a week without the dish, and,
+    for a dish planned in each of the four weeks before, at the start of a
+    four-week calendar run (`weeksIntoFoldRun`, from the epoch). So a
+    weekly staple takes no fold into one week in four; anything with a gap
+    in the four weeks before is exact. `loadPlannedWeek` reads eight weeks
+    back, which always reaches a cut; a property test holds that every
+    week reads the same fold as its neighbour.
+  - **The cook day follows the ticks everywhere.** `sessionByTicks` gives a
+    batch its cook day by the ticks in place of the planned one, for Cook's
+    strip, the wide sheet's track and the meal sheet's strip and caption;
+    the cook plan's watch already re-fires on a tick, so an open sheet
+    follows. A cooked batch's cook day on the Week reads `cooked Fri`.
+  - **The count model (G).** A stored row naming a batch reads as the box
+    the batch derives now, plus what was said, less what the batch derived
+    when it was said (`updated_at`). "What it derived then" is rebuilt from
+    the `meal_eaten` rows' own `created_at` and `deleted_at`: an untick
+    soft-deletes and a tick again inserts, so every tick is a span. The read
+    of then uses today's plan and the day the count was said, so only ticks
+    and the passing days move it. `Leftover.aside` is gone; the stepper,
+    Freeze and Froze it store the box as said. A row with no batch read
+    moves only by the meals planned from it since. A clock ahead of the
+    household's is clamped to today. Rows stored before read their count as
+    the box when said; where a meal from them was already behind them, that
+    meal no longer comes off a second time. No migration.
+  - **Undo (F)** is `LeftoverRepository.restoreLeftovers` (a derived row:
+    soft-delete the row the write stored for its batch; a stored one: say
+    its place, date and count again, not gone) and
+    `PlanningRepository.eatFromLeftoverAgain`. The toasts reuse
+    `showAnsiUndoToast`, with the handles captured before the write.
+  - **D's amber words** replace the day in `for …` for the meal they name,
+    on the page and on Cook's line alike.
+  - **Fold copy.** The freeze-by day is a plain weekday; a meal in the week
+    after the batch's reads `next Thu`. Next week's Cook says `cook it` for a
+    folded meal that has become the cook day (Saturday never ticked), and
+    `from the fridge` for one inside the fridge window. Saturday's sheet says
+    `keep 2 for next Mon` for a next-week meal inside the fridge window.
+  - **Cosmetics.** The leftover warning is its own amber chip beside the
+    tag, on the caution ground; the leftover sheet line joins its words with
+    ` · `; a portions step back to the eaters' own total writes no override;
+    *Add a leftover* lists no recipe when the words hit none (the best tier
+    of no hits had matched every title).
+  - **Tests pinned to a clock.** The Cook screen and week-variant tests now
+    run on the morning of this week's Monday: their strips read the ticks'
+    cook day, which moved with the real day.
+  - **Not done here:** `make test-sim` (no simulator in this lane), the
+    release.
+
 ## Notes / open questions
 
 - **The cross-week fold looks one week ahead only.** A freezer life of
   months could reach further; one week matches how the household plans.
+- **A weekly staple takes no fold into one week in four** (the calendar
+  cut). If the owner notices it, a longer run is the dial.
 - **Ask Ansi** reading the new cook day is its own follow-up.
 
 ## Step-done checklist

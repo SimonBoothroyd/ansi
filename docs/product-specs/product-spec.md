@@ -789,14 +789,17 @@ go. There is no re-chip — tokenization happens only inside the import call.
   [plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md))
   — **cooked food in the fridge or the freezer, as the household says it
   is**: a recipe or its own words (exactly one), portions (fractional, never
-  negative), and `since`, the day it was cooked (fridge) or frozen
-  (freezer). A row with a `batch` (the batch's key, as `leftover_of`)
+  negative), and `since`, the day it was cooked. `portions` is the box as
+  said at `updated_at`; on a row naming a batch it is read as an adjustment
+  to what the ticks made of the batch then, so every tick or untick after it
+  still moves the count (*Leftovers*, below). A row with a `batch` (the batch's key, as `leftover_of`)
   **replaces that batch's derived leftover**; one without was added by hand.
   No unique index: two phones storing one batch offline both upload, and the
   newest `updated_at` is read. Nothing clears a row: it is shown until
   `gone_at`, however far past its date. Its date is `since` plus the
-  recipe's `keeps_for_days` in the fridge or `freezer_days` in the freezer
-  (null: no limit); a row in words has no date. The Leftovers page writes
+  recipe's `keeps_for_days` in the fridge (a week when unknown) or
+  `freezer_days` in the freezer (null: no limit); a row in words keeps a week
+  in the fridge and has only an age in the freezer. The Leftovers page writes
   them (*Leftovers*, below).
 - `plan_entry.from_leftover` (migration 0060) — **a meal eaten from a
   fridge or freezer row**: a recipe meal naming the `leftover` it comes
@@ -867,11 +870,25 @@ into **cook sessions** bounded by shelf life:
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
 - **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) — display only, per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
+- **One cooking across the week edge** ([plan 0061](../exec-plans/active/0061-leftovers-by-the-ticks.md)):
+  a freezable dish's last batch of the week folds in the next week's meals
+  of it while one whole recipe covers them and the freezer reaches them, so
+  it is cooked and bought once. Its card says `covers Sat + next Thu
+  breakfast` and, until it is cooked, `freeze 2 by Tue for next Thu` —
+  weekdays, never dates. Saturday's sheet says `cook it all · freeze 2 for
+  next Thu`. Next week's Cook lists the meal as a line, `Beef Ragù · Thu ·
+  from the freezer`, with no reminder; if Saturday is never ticked, Thursday
+  cooks it (`cook it`) from what was bought. A batch made of a meal the week
+  before folded in never folds forward, but any other batch does, so a dish
+  planned every week folds each week its batch can. A dish planned every
+  week for a whole four-week run starts afresh where the calendar starts the
+  next run, so every week reads the same fold.
 - **What a cooked batch left over** ([plan 0060](../exec-plans/active/0060-leftovers-fridge-and-freezer.md),
   [plan 0061](../exec-plans/active/0061-leftovers-by-the-ticks.md)):
   **no tick means you didn't eat it.** A batch is cooked on the earliest
   day anybody ticked one of its meals, whatever order the ticks came in. One
-  nobody has ticked reads `Cook Fri` at its next meal; once all its days are
+  nobody has ticked reads `Cook Fri` at its next meal, and the strip, the
+  meal's sheet and the Week follow that day as ticks come in; once all its days are
   over it was never cooked and has no leftover — its ingredients are last
   week's spare food (Shop and the picker's *Leftovers*, below). Made is what
   was planned and bought for. What is left is the portions of its meals
@@ -1474,9 +1491,11 @@ source-tab slot, footer slot):
   Wednesday") and on the button ("Add to Wednesday"). A wrong day is one
   back-tap while the sheet is open, and remove-and-re-add once it is placed.
   A dish picked from Recent, Books or Favorites that has a **freezer** row
-  asks once, above the slot: **Frozen (2 left) · Cook fresh**, Frozen
-  selected. Frozen plans the meal from the oldest such row (`from_leftover`):
-  not cooked, bought or costed, no batch strip, and capped at what is left.
+  asks once, above the slot: **Frozen (2 left) · Cook fresh**, neither
+  picked; *Add* waits for one. Frozen plans the meal from the oldest such row
+  (`from_leftover`): not cooked, bought or costed, no batch strip, and capped
+  at what is left. Stepping the portions back to the eaters' own total
+  clears the override.
 
 **The Week screen (week v3, design board "Week · v3"):** one screen, one
 state. v2 split it into a presentation mode and an edit mode because "the mode
@@ -1488,7 +1507,8 @@ say what each tap means without one.
   beneath it the
   **cook marker**, read back off `buildCookPlan` for the same week (`cooks
   today · batch of 4` with the mini fresh→gone bar · `from Monday's batch` ·
-  `Tuesday's freezer share ❄`). A single-meal cook gets **no marker** — "cooks
+  `Tuesday's freezer share ❄`); once anybody ticked the batch its cook day
+  reads `cooked Fri`. A single-meal cook gets **no marker** — "cooks
   today" on every row is noise, and an absent second line collapses the row
   back to one. The marker and the day's macro line are **never hidden**: v2's
   edit mode suppressed both, which blanked the numbers you were editing
@@ -1498,7 +1518,7 @@ say what each tap means without one.
   **`leftover`** where the marker sits, a tag in the fridge's green, or the
   freezer's blue with a ❄ when it is eaten from the freezer. One that no
   longer adds up keeps its colour and adds `not enough left` or `past its
-  date` in amber; the plan is never edited.
+  date` in amber, on amber's own ground; the plan is never edited.
 - **A row's controls are the facts the row prints (E7).** The **title** opens
   the recipe it names. The **portions chip + eater avatars are one target**,
   opening a compact editor holding exactly those two fields — one target and
@@ -1530,10 +1550,11 @@ say what each tap means without one.
   unchanged, and so is the sheet of a phone that does not yet know who it is
   (a token from before the claim, until it refreshes).
 - **A meal from a leftover** says where it comes from on its sheet: its
-  `leftover` tag, `cooked Fri`, and `freeze by Mon` while that is due. Before
+  `leftover` tag, then `cooked Fri · freeze by Mon` while that is due. Before
   its day the sheet offers **Cook fresh instead**, one tap that takes it off
   the leftover: it is cooked, bought and costed again and the row's portions
-  are free. From its day on it offers *Ate this* and *Something else*
+  are free. A toast says so with an **Undo** that eats from the leftover
+  again. From its day on it offers *Ate this* and *Something else*
   instead, never both.
 - **Something else** opens the planning picker (recipes, bare items and a
   meal eaten out in one search), then a bare item's amount or a meal out's
@@ -1604,29 +1625,37 @@ said on a particular day.
   its date — `till Sun`, `till Jan` in the freezer, its age (`4 days`) for a
   row with no date — then an **`N left` chip**, what is in the box, and what
   is planned from it: `for Sun`, or, for meals it reaches only from the
-  freezer, `❄ freeze by Mon for Wed` until Mon.
+  freezer, `❄ freeze by Mon for Wed` until Mon. A meal planned from it that
+  wants more than is there is said in amber instead: `1 left · Wed needs 2`.
 - **A fridge row starts from the ticks** (*What a cooked batch left over*,
   above). Its chip opens a **stepper** in its place: a whole portion a step
   (`1¾` steps to `1` or `2`), down to nothing, which takes the row off the
   page. A correction wins from then on: the first touch on a derived row
-  stores it (`leftover.batch`). Ticks on the batch's meals from the day it
-  was set still come off it, and a meal nobody ticked stays in the box; a
-  count never reads below nothing.
+  stores it (`leftover.batch`). **A count set by hand is an adjustment** to
+  what the ticks make of the batch: every tick or untick after it adds or
+  takes off, whichever meal it is on — set to 1, then untick Friday's 2, and
+  it reads 3; tick it again and it is 1. A meal nobody ticked stays in the
+  box; a count never reads below nothing.
 - **Freeze** sits on an in-date fridge row of a freezable recipe or of
   words; **Froze it** on one past its date. Both move it to the freezer
   dated from its cook day.
 - **Nothing clears itself.** A row past its date reads `past its date` and
-  stays, so it can be seen and put right. The Fridge heading carries
-  **Remove gone off** while any row on either shelf is past its date,
-  clearing every one of them.
-- **＋ in the bar opens *Add a leftover***: a recipe found by title or the
-  typed words themselves, **Fridge · Freezer**, portions, and **This week ·
+  stays, so it can be seen and put right. One **Remove gone off** link sits
+  at the foot of the page, under both shelves, while any row on either is
+  past its date, clearing every one of them.
+- **Undo, not confirm:** Freeze, Froze it and Remove gone off each raise the
+  Week's `Done · Undo` toast, which puts the rows back as the page drew
+  them.
+- **＋ in the bar opens *Add a leftover***: a recipe found by title (only
+  the titles the words hit) or the typed words themselves, **Fridge · Freezer**, portions, and **This week ·
   Last week · Earlier** (dated today, 7 and 14 days back). It covers food the
   app never saw: a pot cooked unplanned, a batch frozen without a word, food
   given to you.
 - A row's **date** is its `since` plus the recipe's `keeps_for_days` in the
-  fridge or `freezer_days` in the freezer (null: no limit). A row in words has
-  no date and is never past it.
+  fridge (a week when unknown) or `freezer_days` in the freezer (null: no
+  limit). A row in words keeps one week in the fridge, then reads `past its
+  date` and goes with *Remove gone off*; in the freezer it has only an age
+  and is never past it.
 
 **Macros on a set of meals — the rule (invariant 3 at a new scope):**
 

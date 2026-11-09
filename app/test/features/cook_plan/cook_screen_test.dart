@@ -47,8 +47,14 @@ final _monday = WeekShape.monday
     .weekStartOf(DateTime.now())
     .add(const Duration(hours: 9));
 
+/// [overrides] on the clock of [_monday].
+List<Override> _pinned(List<Override> overrides) => [
+  clockProvider.overrideWithValue(() => _monday),
+  ...overrides,
+];
+
 Widget _host(List<Override> overrides) => ProviderScope(
-  overrides: [clockProvider.overrideWithValue(() => _monday), ...overrides],
+  overrides: _pinned(overrides),
   child: MaterialApp(
     home: FTheme(data: ansiThemeData(), child: const CookView()),
   ),
@@ -58,7 +64,7 @@ Widget _host(List<Override> overrides) => ProviderScope(
 Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
     routedHost(
       initial: '/cook',
-      overrides: [clockProvider.overrideWithValue(() => _monday), ...overrides],
+      overrides: _pinned(overrides),
       expose: expose,
       routes: {
         '/cook': (_, _) => const CookView(),

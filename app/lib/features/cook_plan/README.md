@@ -14,8 +14,9 @@ what it left in one line (`2 left · freeze by Mon for Wed`), opening
 **Leftovers** (`/leftovers`) is this feature's one writing page: the
 household's **fridge and freezer**, the derived batches merged with the
 `leftover` rows it has stored (`readLeftovers`, below), soonest to go off
-first, put right with each row's `N left` chip (it opens a stepper), Freeze,
-Froze it, Remove gone off and *Add a leftover*. Its door is the fridge in the
+first, put right with each row's `N left` chip (it opens a stepper), Freeze and
+Froze it, one Remove gone off link at the page's foot, and *Add a leftover*;
+Freeze, Froze it and Remove gone off each raise an Undo toast. Its door is the fridge in the
 Week header. The planning picker's *Leftovers* offers its rows back, judged on
 the day being planned.
 
@@ -82,15 +83,26 @@ fold stops at the first meal that fails either test. A folded meal is a cover
 on days 7..13 (`CookSession.nextWeekCovers`), so the batch is scaled, bought
 and costed for it in its own week.
 
-A recipe the week before also plans folds nothing (`plannedWeekBefore`), so a
-fold never chains and each week reads only its neighbours: `loadPlannedWeek`
-reads two weeks back and one ahead, and `plannedAcrossWeeks` takes a meal the
-week before cooks out of this week, naming it in `CookPlan.foldedBack` with
-that batch. That read is the **one choke point** the cook plan and the shop
+`plannedAcrossWeeks` walks the weeks before in order: each week's meals the
+week before's batch folded in are taken out of it, and what is left
+clusters and folds the next week in its turn, naming the meals it took in
+`CookPlan.foldedBack` with that batch. So a batch made of a folded meal
+never folds forward, and any other batch does: a dish planned every week
+folds each week its batch can. Whether a week takes a fold hangs on every
+week before it, so every reader cuts that chain in the same place
+(`foldCutsBefore`): after a week without the dish, and, for a dish planned
+each of the four weeks before, where the calendar starts a run
+(`weeksIntoFoldRun`, every `kFoldRunWeeks`). `loadPlannedWeek` reads
+`kFoldLookbackWeeks` (8) back and one ahead, which always reaches a cut. That read is the **one choke point** the cook plan and the shop
 share, as `leftover_of` / `from_leftover` are; the Week's cost passes over
 `foldedBack` and adds `CookPlan.cookedForNextWeek` (the household view only).
 A Saturday never ticked makes the folded Thursday its cook day by the ticks'
-rule, with nothing bought again.
+rule, with nothing bought again. The batch's card says `covers Sat + next Thu
+breakfast` and `freeze 2 by Tue for next Thu` (weekdays, never dates;
+`leftover_format.dart`), Saturday's meal sheet `cook it all · freeze 2 for
+next Thu` (`nextWeekShareLine`), and next week's Cook lists the meal as one
+line, `Beef Ragù · Thu · from the freezer` (`foldedMealLines`), or `cook it`
+once it has become the cook day.
 
 ## The cook day, by the ticks
 
@@ -101,12 +113,14 @@ the first of its meals not yet behind us (`Cook Fri`); with every meal behind
 and none ticked, null: never cooked, nothing left. `useByOf` is that day plus
 `keeps_for_days`, that day included, and never stretches to a later meal; a
 recipe with no fridge life keeps `kAssumedFridgeDays` (7), derived and stored
-rows alike. `freezeShareOf` is the part of a freezable batch past that date,
+rows alike. `sessionByTicks` is a batch with that cook day in place of its
+planned one: what the strips on Cook, its wide sheet and the meal's sheet
+draw, live as ticks come in. `freezeShareOf` is the part of a freezable batch past that date,
 which Cook's batch line says until the freeze is due: `freeze 2 by Tue for
 Thu`.
 
 The Week reads the same rule (`cookMarkerFor` in `planning`): a meal before
-the cook day says nothing, the cook day says `cooks Fri · batch of 6`, and a
+the cook day says nothing, the cook day says `cooks Fri · batch of 6` (`cooked Fri` once ticked), and a
 later meal of a batch already cooked wears the `leftover` tag, blue past the
 fridge date; a meal the week before cooks wears it too, until it becomes that
 batch's cook day.
@@ -129,16 +143,21 @@ household has on a day, and judges every meal served from it
 - **Stored rows** (`leftover`) are what was said: a correction, a freeze, a
   dish the app never saw. A row with a `batch` replaces that batch's derived
   row, gone or not; two rows for one batch read as the newest `updated_at`.
-  Its `portions` are the box as said plus what comes off it on read
-  (`Leftover.aside`): every meal planned from it (`from_leftover` and the
-  batch's `leftover_of` alike), and the ticks on the batch's later meals
-  dated on or after the day it was said (`updated_at`, local). Those meals
-  ride on it as on a derived row: still to come, they are spoken for; a tick
-  takes its portion out; once behind us unticked, they stay in the box. The
-  box never reads below nothing.
+  Its `portions` are the box as said at `updated_at`. **On a row naming a
+  batch, that count is an adjustment**: the box reads what the batch derives
+  now, plus what was said less what the batch derived when it was said
+  (`_batchBox`), so every tick or untick after it moves it, whichever meal
+  it is on. What was ticked then is read off the `meal_eaten` rows' own
+  `created_at` and `deleted_at` (`TickSpan`; an untick soft-deletes, a tick
+  again inserts), so no column was added. A row with no batch read moves
+  only by the meals planned from it since. Every meal planned from it
+  (`from_leftover` and the batch's `leftover_of` alike) and the batch's own
+  later meals ride on it as on a derived row: still to come, they are
+  spoken for. The box never reads below nothing.
   A fridge row is good until `since` + `keeps_for_days` (7 when unknown), a
   freezer row until `since` + `freezer_days` (null: no limit); `since` is the
-  cook day. A row in words has no date.
+  cook day. A row in words keeps a week in the fridge; in the freezer it has
+  no date, only an age.
 - **Each row's portions fall by the meals planned from it**: `leftover_of`
   for a derived batch, `from_leftover` for a stored row (summed across a
   batch's duplicates). `Leftover.inBox` is what is in the box, spoken for or
@@ -147,7 +166,8 @@ household has on a day, and judges every meal served from it
   come. A row shows while its box holds anything or meals are still to come.
 - **Each meal planned from a row is judged on its own day**, in day order:
   `notEnoughLeft` once the meals before it and it ask more than is left (or
-  it falls before the cook day, or the row is gone or never cooked),
+  it falls before the cook day, or the row is gone or never cooked; the
+  page and Cook say `Wed needs 2` in amber),
   `pastItsDate` when its day is past every date the row can reach. The Week
   prints either in amber on the meal's tag. Nothing edits the plan.
 - **Freeze by.** A fridge row of a dish that freezes reaches past its fridge
@@ -173,13 +193,16 @@ write finds that row (the newest live one for the batch) rather than storing
 another. Local tables are views, so each is a SELECT then an INSERT or
 UPDATE.
 
-- **The stepper** sets the box (`inBox`), down to nothing, and stores it
-  plus `Leftover.aside`, so the read gives back what was set and later ticks
-  come off it. Nothing takes a row off the page sooner.
+- **The stepper** sets the box (`inBox`), down to nothing, and stores it as
+  said, so the read gives back what was set and later ticks move it.
+  Nothing takes a row off the page sooner.
 - **Freeze** and **Froze it** set `place = freezer`, keep `since`, the cook
   day (freezer dates count from it), and store the count as it stands, since
   `updated_at` moves. **Remove gone off** sets `gone_at` on every row past
   its date, on both shelves.
+- **Undo** (`restoreLeftovers`) puts rows back as the page drew them: a
+  derived row by soft-deleting the row the write stored for its batch, a
+  stored one by saying its place, date and count again, not gone.
 - **Add a leftover** inserts a row with no `batch`: a recipe or the
   household's words, either place, `since` from the chip (today, 7 or 14
   days back).
