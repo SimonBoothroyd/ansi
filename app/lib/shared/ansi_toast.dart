@@ -15,6 +15,9 @@ import '../core/theme/ansi_theme.dart';
 /// Long enough to read a sentence and reach for Retry.
 const _toastDuration = Duration(seconds: 6);
 
+/// An Undo stays longer: the hand that just acted has to find it.
+const kUndoToastDuration = Duration(seconds: 10);
+
 /// A context below the app's one `FToaster`, for a caller outside the widget
 /// tree (the zone handler). Null until the first frame.
 final ansiToastAnchor = GlobalKey(debugLabel: 'ansi toast anchor');
@@ -26,18 +29,19 @@ final ansiToastAnchor = GlobalKey(debugLabel: 'ansi toast anchor');
 /// keeps the downward swipe; a [Dismissible] adds both horizontal ones, then
 /// hands the toast back to Forui to remove. No resize: the toast is already
 /// off-screen, and a resizing [Dismissible] asserts if it is still in the tree.
-void _showAnsiToast(
+FToasterEntry _showAnsiToast(
   BuildContext context, {
   required Widget icon,
   required Widget title,
   FToastVariant variant = FToastVariant.primary,
+  Duration duration = _toastDuration,
   Widget? description,
   Widget Function(BuildContext context, FToasterEntry entry)? suffixBuilder,
 }) {
-  showRawFToast(
+  return showRawFToast(
     context: context,
     variant: variant,
-    duration: _toastDuration,
+    duration: duration,
     builder: (context, entry) => Dismissible(
       key: ObjectKey(entry),
       resizeDuration: null,
@@ -52,6 +56,9 @@ void _showAnsiToast(
     ),
   );
 }
+
+/// The Undo toast each toaster shows, if any: a newer one takes its place.
+final _undoShowing = Expando<FToasterEntry>('undo toast');
 
 /// Reports that one thing the user asked for did not happen.
 ///
@@ -124,16 +131,27 @@ void showAnsiCopiedToast(BuildContext context, {required String what}) {
 /// (`docs/design-docs/errors-and-sync-health.md`, D1).
 ///
 /// [what] is what went, in the user's own nouns; [detail] names what would
-/// come back. Primary, not destructive.
+/// come back. Primary, not destructive. It stays [kUndoToastDuration].
+///
+/// One Undo at a time: a newer one replaces it. Stacked, Forui draws the
+/// older toast peeking above the newer, and that strip is painted but takes
+/// no tap, so a thumb aimed at it lands on the row underneath.
 void showAnsiUndoToast(
   BuildContext context, {
   required String what,
   required VoidCallback onUndo,
   String? detail,
 }) {
-  _showAnsiToast(
+  final toaster = context.findAncestorStateOfType<FToasterState>();
+  if (toaster != null) {
+    if (_undoShowing[toaster] case final older? when older.showing) {
+      older.dismiss();
+    }
+  }
+  final entry = _showAnsiToast(
     context,
     icon: const Icon(FLucideIcons.minus),
+    duration: kUndoToastDuration,
     title: Text(what),
     description: detail == null
         ? null
@@ -148,4 +166,5 @@ void showAnsiUndoToast(
       child: const Text('Undo'),
     ),
   );
+  if (toaster != null) _undoShowing[toaster] = entry;
 }
