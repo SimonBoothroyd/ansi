@@ -406,28 +406,17 @@ class LeftoverTag extends StatelessWidget {
     final frozen = place == LeftoverPlace.freezer;
     final ink = frozen ? AnsiColors.chillInk : AnsiColors.herbDeep;
     final warned = warning;
-    final words = warned == null
-        ? Text(
-            label,
-            style: ansiMono(size: size, color: ink),
-          )
-        : Text.rich(
-            TextSpan(
-              text: label,
-              children: [
-                TextSpan(
-                  text: ' · ${leftoverWarningWords(warned)}',
-                  style: ansiMono(size: size, color: AnsiColors.cautionInk),
-                ),
-              ],
-            ),
-            style: ansiMono(size: size, color: ink),
-          );
-    return Container(
+    final words = Text(
+      label,
+      style: ansiMono(size: size, color: ink),
+    );
+    final tag = Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: frozen ? AnsiColors.chill : AnsiColors.herbSoft,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: warned == null
+            ? BorderRadius.circular(6)
+            : const BorderRadius.horizontal(left: Radius.circular(6)),
       ),
       child: frozen
           ? Row(
@@ -439,6 +428,30 @@ class LeftoverTag extends StatelessWidget {
               ],
             )
           : words,
+    );
+    if (warned == null) return tag;
+    // The warning rides on the tag in the caution amber, on its own ground,
+    // so it reads on the freezer's blue as well as the fridge's green.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        tag,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: const BoxDecoration(
+            color: AnsiColors.caution,
+            borderRadius: BorderRadius.horizontal(right: Radius.circular(6)),
+          ),
+          child: Text(
+            leftoverWarningWords(warned),
+            style: ansiMono(
+              size: size,
+              color: AnsiColors.cautionInk,
+              weight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -6,6 +6,7 @@ library;
 import 'dart:async';
 
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
@@ -15,6 +16,7 @@ import 'package:ansi/features/planning/presentation/copy_last_week.dart';
 import 'package:ansi/features/planning/presentation/meal_editor_sheet.dart';
 import 'package:ansi/features/planning/presentation/week_variant_editor.dart';
 import 'package:ansi/features/planning/presentation/week_view.dart';
+import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/planning/presentation/week_widgets.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
@@ -111,6 +113,13 @@ class _Planner extends FakePlanningRepository {
 }
 
 List<Override> _overrides(FakeWeekVariantRepository variants) => [
+  // A Monday: nothing of the week is behind us, so the batch cooks on its
+  // first meal.
+  clockProvider.overrideWithValue(
+    () => WeekShape.monday
+        .weekStartOf(DateTime.now())
+        .add(const Duration(hours: 9)),
+  ),
   // The meal editor reads its batch off the cook plan, by the meal's id.
   cookPlanRepositoryProvider.overrideWithValue(
     FakeCookPlanRepository.of([

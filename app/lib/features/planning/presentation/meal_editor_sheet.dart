@@ -23,9 +23,11 @@ import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/ansi_tap.dart';
+import '../../../shared/ansi_toast.dart';
 import '../../../shared/week_strip.dart';
 import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/domain/leftovers.dart' show sessionByTicks;
 import '../../cook_plan/presentation/cook_format.dart' show CookTimelineSpec;
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../cook_plan/presentation/leftover_format.dart';
@@ -144,7 +146,7 @@ class _MealEditorSheet extends ConsumerWidget {
             ref.write(
               context,
               'change the portions',
-              () => repo.setPortions(entry.id, v < 1 ? 1 : v),
+              () => repo.setPortions(entry.id, v),
             ),
           ),
         ),
@@ -192,8 +194,11 @@ class _LeftoverSource extends ConsumerWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           LeftoverMealTag(entry: entry),
-          for (final w in words)
-            Text(w, style: ansiMono(size: 10.5, color: AnsiColors.muted)),
+          if (words.isNotEmpty)
+            Text(
+              words.join(' · '),
+              style: ansiMono(size: 10.5, color: AnsiColors.muted),
+            ),
         ],
       ),
     );
@@ -201,11 +206,43 @@ class _LeftoverSource extends ConsumerWidget {
 }
 
 /// *Cook fresh instead*: one tap puts the meal back on the shopping list and
-/// frees the leftover's portions.
+/// frees the leftover's portions, with an Undo that eats from it again.
 class _CookFresh extends ConsumerWidget {
   const _CookFresh({required this.entry});
 
   final PlanEntry entry;
+
+  Future<void> _cookFresh(BuildContext context, WidgetRef ref) async {
+    // Captured before the write: the sheet's leftover rows redraw as a
+    // cooked meal's, and this one is gone when the toast's Undo fires.
+    final container = ProviderScope.containerOf(context, listen: false);
+    final host = hostContextOf(context);
+    final repo = ref.read(planningRepositoryProvider);
+    final day = ref.read(weekShapeProvider).labelFull(entry.dayOfWeek);
+    final cooked = await ref.writeOk(
+      context,
+      'cook it fresh',
+      () => repo.cookFreshInstead(entry.id),
+    );
+    if (!cooked) return;
+    showAnsiUndoToast(
+      // The host outlives the sheet's row.
+      // ignore: use_build_context_synchronously
+      host.context,
+      what: 'Cooking ${entry.title ?? 'it'} fresh on $day.',
+      onUndo: () => unawaited(
+        container.write(
+          host,
+          'eat it from the leftover again',
+          () => repo.eatFromLeftoverAgain(
+            entry.id,
+            leftoverOf: entry.leftoverOf,
+            fromLeftover: entry.fromLeftover,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Container(
@@ -215,13 +252,7 @@ class _CookFresh extends ConsumerWidget {
     padding: const EdgeInsets.only(top: 4),
     alignment: Alignment.centerLeft,
     child: AnsiTap(
-      onTap: () => unawaited(
-        ref.write(
-          context,
-          'cook it fresh',
-          () => ref.read(planningRepositoryProvider).cookFreshInstead(entry.id),
-        ),
-      ),
+      onTap: () => unawaited(_cookFresh(context, ref)),
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         'Cook fresh instead',
@@ -236,9 +267,13 @@ class _CookFresh extends ConsumerWidget {
 }
 
 /// The batch this meal comes from, as the full week strip with the meal
-/// outlined, read off the cook plan by the meal's own id. The sheet cannot move
-/// a meal, so this is the batch as planned, not a preview. Draws nothing until
-/// the plan has the meal.
+/// outlined, read off the cook plan by the meal's own id, cooked on the day
+/// the ticks say ([sessionByTicks]), so a tick shows here at once. The sheet
+/// cannot move a meal, so this is the batch as planned, not a preview. Draws
+/// nothing until the plan has the meal.
+///
+/// The meal that cooks a batch for the next week too says so: `cook it all ·
+/// freeze 2 for next Thu`.
 class _MealBatch extends ConsumerWidget {
   const _MealBatch({required this.entry});
 
@@ -247,13 +282,16 @@ class _MealBatch extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(currentCookPlanProvider).asData?.value;
-    final session = plan?.recipes
+    final planned = plan?.recipes
         .where((r) => r.recipeId == entry.recipeId)
         .expand((r) => r.mealSessions)
         .where((s) => s.covers.any((m) => m.entryId == entry.id))
         .firstOrNull;
-    if (session == null) return const SizedBox.shrink();
+    if (planned == null) return const SizedBox.shrink();
     final shape = ref.watch(weekShapeProvider);
+    final weekStart = ref.watch(viewedWeekStartProvider);
+    final today = ref.watch(todayProvider);
+    final session = sessionByTicks(planned, weekStart, today);
     final day = entry.dayOfWeek;
     return Padding(
       padding: const EdgeInsets.only(top: 14),
@@ -261,7 +299,7 @@ class _MealBatch extends ConsumerWidget {
         days: CookTimelineSpec.of(session).stripDays(thisMeal: day),
         shape: shape,
         caption: day == session.cookDay
-            ? null
+            ? nextWeekShareLine(session, weekStart, today, shape)
             : batchCaption(
                 session.cookDay,
                 shape,

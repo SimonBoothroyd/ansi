@@ -27,6 +27,7 @@ import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
+import '../domain/leftovers.dart';
 import 'batch_leftover_line.dart';
 import 'cook_format.dart';
 import 'cook_sheet.dart';
@@ -102,9 +103,10 @@ class CookView extends ConsumerWidget {
               const EdgeInsets.only(top: 6, bottom: 24),
             ),
             children: [
-              if (data.isEmpty)
+              _FoldedMeals(plan: data),
+              if (data.isEmpty && data.foldedBack.isEmpty)
                 const _NothingToCookLine()
-              else
+              else if (!data.isEmpty)
                 CookSheet(plan: data),
             ],
           ),
@@ -114,7 +116,8 @@ class CookView extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 6, bottom: 24),
       children: [
-        if (data.isEmpty) const _NothingToCookLine(),
+        _FoldedMeals(plan: data),
+        if (data.isEmpty && data.foldedBack.isEmpty) const _NothingToCookLine(),
         for (final recipe in data.recipes) ...[
           // A recipe both planned and demanded as a component shows two cards,
           // never summed.
@@ -481,12 +484,73 @@ class _SessionTile extends ConsumerWidget {
           ],
           const SizedBox(height: 10),
           WeekStrip(
-            days: CookTimelineSpec.of(session).stripDays(),
+            // The cook day the ticks say, so a skipped first meal moves it.
+            days: CookTimelineSpec.of(
+              sessionByTicks(
+                session,
+                ref.watch(viewedWeekStartProvider),
+                ref.watch(todayProvider),
+              ),
+            ).stripDays(),
             shape: shape,
             size: WeekStripSize.compact,
           ),
           if (!session.isComponent && !speech.cooked)
             BatchLeftoverLine(session: session),
+        ],
+      ),
+    );
+  }
+}
+
+/// The week's meals the week before cooks, one line each: `Beef Ragù · Thu ·
+/// from the freezer`. Nothing to cook or buy here, and nothing asked.
+class _FoldedMeals extends ConsumerWidget {
+  const _FoldedMeals({required this.plan});
+
+  final CookPlan plan;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lines = foldedMealLines(
+      plan,
+      ref.watch(weekShapeProvider),
+      ref.watch(viewedWeekStartProvider),
+      ref.watch(todayProvider),
+    );
+    if (lines.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final line in lines)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                children: [
+                  if (line.frozen) ...[
+                    const Icon(
+                      FLucideIcons.snowflake,
+                      size: 11,
+                      color: AnsiColors.chillInk,
+                    ),
+                    const SizedBox(width: 5),
+                  ],
+                  Flexible(
+                    child: Text(
+                      line.words,
+                      style: ansiMono(
+                        size: 11.5,
+                        color: line.frozen
+                            ? AnsiColors.chillInk
+                            : AnsiColors.herbDeep,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

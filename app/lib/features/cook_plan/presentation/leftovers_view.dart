@@ -29,6 +29,7 @@ import '../../../shared/ansi_search_field.dart';
 import '../../../shared/ansi_sheet_shell.dart';
 import '../../../shared/ansi_stepper_row.dart';
 import '../../../shared/ansi_tap.dart';
+import '../../../shared/ansi_toast.dart';
 import '../../../shared/dashed_border_box.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../../shared/write.dart';
@@ -37,6 +38,7 @@ import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../data/cook_plan_providers.dart';
+import '../domain/leftover_repository.dart';
 import '../domain/leftovers.dart';
 import 'leftover_format.dart';
 import 'leftovers_view_models.dart';
@@ -138,34 +140,7 @@ class _Shelves extends HookConsumerWidget {
         const EdgeInsets.fromLTRB(20, 8, 20, 28),
       ),
       children: [
-        Row(
-          children: [
-            Expanded(child: Text('FRIDGE', style: ansiLabel())),
-            if (goneOff.isNotEmpty)
-              AnsiTap(
-                onTap: () => unawaited(
-                  ref.write(
-                    context,
-                    'remove what has gone off',
-                    () => repo.markLeftoversGone(goneOff),
-                  ),
-                ),
-                semanticsLabel: 'Remove gone off',
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 12,
-                ),
-                child: Text(
-                  'Remove gone off',
-                  style: ansiSans(
-                    size: 12.5,
-                    color: AnsiColors.herbDeep,
-                    weight: FontWeight.w500,
-                  ),
-                ),
-              ),
-          ],
-        ),
+        Text('FRIDGE', style: ansiLabel()),
         const SizedBox(height: 6),
         if (fridge.isEmpty) const _Empty(),
         for (final l in fridge) row(l),
@@ -186,9 +161,72 @@ class _Shelves extends HookConsumerWidget {
         ),
         if (freezer.isEmpty) const _Empty(),
         for (final l in freezer) row(l),
+        // One link under both shelves, while anything has gone off.
+        if (goneOff.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: AnsiTap(
+              onTap: () => unawaited(
+                writeWithUndo(
+                  context,
+                  ref,
+                  done: goneOff.length == 1
+                      ? 'Removed ${goneOff.single.title}.'
+                      : 'Removed ${goneOff.length} gone off.',
+                  before: goneOff,
+                  write: (container, host) => container.writeOk(
+                    host,
+                    'remove what has gone off',
+                    () => repo.markLeftoversGone(goneOff),
+                  ),
+                ),
+              ),
+              semanticsLabel: 'Remove gone off',
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Remove gone off',
+                style: ansiSans(
+                  size: 12.5,
+                  color: AnsiColors.herbDeep,
+                  weight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
+}
+
+/// Makes [write] about the rows [before] as the page drew them, then says
+/// [done] with an Undo that puts them back ([LeftoverRepository.
+/// restoreLeftovers]). The handles [write] is given are captured before it:
+/// the row that started it has moved shelves or gone by the time it lands.
+Future<void> writeWithUndo(
+  BuildContext context,
+  WidgetRef ref, {
+  required String done,
+  required List<Leftover> before,
+  required Future<bool> Function(ProviderContainer container, HostContext host)
+  write,
+}) async {
+  final container = ProviderScope.containerOf(context, listen: false);
+  final host = hostContextOf(context);
+  final repo = ref.read(leftoverRepositoryProvider);
+  if (!await write(container, host)) return;
+  showAnsiUndoToast(
+    // The host outlives the row, which has moved or gone.
+    // ignore: use_build_context_synchronously
+    host.context,
+    what: done,
+    onUndo: () => unawaited(
+      container.write(
+        host,
+        'put ${before.length == 1 ? before.single.title : 'them'} back',
+        () => repo.restoreLeftovers(before),
+      ),
+    ),
+  );
 }
 
 /// A row's identity across a write: its stored id, else its batch.
@@ -231,6 +269,7 @@ class _LeftoverRow extends ConsumerWidget {
     final past = left.pastItsDate(today);
     final forDays = leftoverFor(left, today, shape);
     final freezeFor = leftoverFreezeFor(left, today, shape);
+    final short = leftoverShortFor(left, today, shape);
     final when = leftoverWhen(left, today, shape);
 
     final head = Semantics(
@@ -240,6 +279,7 @@ class _LeftoverRow extends ConsumerWidget {
         left.title,
         when,
         leftCount(left.inBox),
+        ?short,
         ?forDays,
         ?freezeFor,
       ].join(', '),
@@ -292,10 +332,16 @@ class _LeftoverRow extends ConsumerWidget {
             // Frozen on the night and not said, or now: dated from its cook
             // day either way.
             onTap: () => unawaited(
-              ref.write(
+              writeWithUndo(
                 context,
-                'move ${left.title} to the freezer',
-                () => repo.freezeLeftover(left),
+                ref,
+                done: 'Froze ${left.title}.',
+                before: [left],
+                write: (container, host) => container.writeOk(
+                  host,
+                  'move ${left.title} to the freezer',
+                  () => repo.freezeLeftover(left),
+                ),
               ),
             ),
           );
@@ -312,6 +358,16 @@ class _LeftoverRow extends ConsumerWidget {
                 _PortionStepper(left: left)
               else
                 _CountChip(portions: left.inBox, onTap: onToggle),
+              // A meal planned from it that wants more than is there.
+              if (short != null)
+                Text(
+                  short,
+                  style: ansiMono(
+                    size: 10.5,
+                    color: AnsiColors.cautionInk,
+                    weight: FontWeight.w600,
+                  ),
+                ),
               if (forDays != null)
                 Text(
                   forDays,
@@ -551,7 +607,8 @@ class _AddLeftoverSheet extends HookConsumerWidget {
     final tier = bestTier([
       for (final r in recipes) recipeTitleHit(r.title, typed),
     ]);
-    final hits = typed.isEmpty
+    // Only titles the words hit, at the best tier: no hit at all lists none.
+    final hits = typed.isEmpty || tier == null
         ? const <RecipeSummary>[]
         : [
             for (final r in recipes)

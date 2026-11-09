@@ -41,8 +41,14 @@ FakeRecipeRepository _recipeRepo({double? yieldQty, Unit? yieldUnit}) =>
       ],
     );
 
+/// The morning of this week's Monday: the first day of the week on screen, so
+/// nothing is behind us and a batch nobody ticked cooks on its first meal.
+final _monday = WeekShape.monday
+    .weekStartOf(DateTime.now())
+    .add(const Duration(hours: 9));
+
 Widget _host(List<Override> overrides) => ProviderScope(
-  overrides: overrides,
+  overrides: [clockProvider.overrideWithValue(() => _monday), ...overrides],
   child: MaterialApp(
     home: FTheme(data: ansiThemeData(), child: const CookView()),
   ),
@@ -52,7 +58,7 @@ Widget _host(List<Override> overrides) => ProviderScope(
 Widget _routedHost(List<Override> overrides, void Function(GoRouter) expose) =>
     routedHost(
       initial: '/cook',
-      overrides: overrides,
+      overrides: [clockProvider.overrideWithValue(() => _monday), ...overrides],
       expose: expose,
       routes: {
         '/cook': (_, _) => const CookView(),
@@ -97,7 +103,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final monday = WeekShape.monday.weekStartOf(DateTime.now());
+    final monday = WeekShape.monday.weekStartOf(_monday);
     String titleFor(int weeksAhead) {
       final t = formatWeekTitle(
         monday.add(Duration(days: 7 * weeksAhead)),
@@ -218,6 +224,84 @@ void main() {
       ],
     );
     expect(strips.last.days[5].fill, WeekStripFill.cooked);
+  });
+
+  testWidgets('the strip is cooked on the day the ticks say', (tester) async {
+    // Wednesday skipped, Friday and Saturday ticked: cooked Friday.
+    await tester.pumpWidget(
+      _host([
+        cookPlanRepositoryProvider.overrideWithValue(
+          FakeCookPlanRepository.of([
+            PlannedRecipe(
+              recipeId: 'hh',
+              title: 'Hamburger Helper',
+              servingsBase: 6,
+              keepsForDays: 3,
+              freezable: true,
+              meals: [
+                for (final (day, eaten) in [(2, 0.0), (4, 2.0), (5, 2.0)])
+                  CoveredMeal(
+                    dayOfWeek: day,
+                    mealSlot: 'Dinner',
+                    portions: 2,
+                    entryId: 'e$day',
+                    eatenPortions: eaten,
+                  ),
+              ],
+            ),
+          ]),
+        ),
+        leftoverRepositoryProvider.overrideWithValue(FakeLeftoverRepository()),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Cooked Fri'), findsOneWidget);
+    final strip = tester.widget<WeekStrip>(find.byType(WeekStrip));
+    expect(strip.days[4].fill, WeekStripFill.cooked);
+    expect(strip.days[2].fill, isNot(WeekStripFill.cooked));
+    expect(strip.days[2].eats, isTrue);
+  });
+
+  testWidgets('a meal the week before cooks is a line, and the week is not '
+      'empty', (tester) async {
+    await tester.pumpWidget(
+      _host([
+        cookPlanRepositoryProvider.overrideWithValue(
+          FakeCookPlanRepository(
+            const CookPlan(
+              foldedBack: {
+                'thu': CookSession(
+                  recipeId: 'r',
+                  recipeTitle: 'Beef Ragù',
+                  servingsBase: 4,
+                  cookDay: 5,
+                  keepsForDays: 3,
+                  freezable: true,
+                  covers: [
+                    CoveredMeal(
+                      dayOfWeek: 5,
+                      mealSlot: 'Dinner',
+                      portions: 2,
+                      entryId: 'sat',
+                      eatenPortions: 2,
+                    ),
+                    CoveredMeal(
+                      dayOfWeek: 10,
+                      mealSlot: 'Dinner',
+                      portions: 2,
+                      entryId: 'thu',
+                    ),
+                  ],
+                ),
+              },
+            ),
+          ),
+        ),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Beef Ragù · Thu · from the freezer'), findsOneWidget);
+    expect(find.text('nothing planned yet'), findsNothing);
   });
 
   testWidgets('a freezable far meal is a freezer day on the strip', (
@@ -382,7 +466,7 @@ void main() {
     // write it.
     expect(
       router.state.uri.toString(),
-      '/recipes/r1?week=${WeekShape.monday.keyOf(DateTime.now())}',
+      '/recipes/r1?week=${WeekShape.monday.keyOf(_monday)}',
     );
     expect(find.text('recipe r1'), findsOneWidget);
   });
@@ -555,7 +639,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         router.state.uri.toString(),
-        '/recipes/r1?week=${WeekShape.monday.keyOf(DateTime.now())}',
+        '/recipes/r1?week=${WeekShape.monday.keyOf(_monday)}',
       );
     });
 
@@ -668,11 +752,7 @@ void main() {
       ],
     );
 
-    final today = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    );
+    final today = DateTime(_monday.year, _monday.month, _monday.day);
 
     Leftover left({
       int untilInDays = 2,

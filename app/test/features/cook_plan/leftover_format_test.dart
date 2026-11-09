@@ -1,4 +1,5 @@
 import 'package:ansi/core/week_shape.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/cook_plan/presentation/leftover_format.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,6 +99,78 @@ void main() {
     expect(leftoverFreezeFor(_row(), _today, shape), isNull);
   });
 
+  test('a meal that wants more than is there is said, not listed', () {
+    final row = _row(
+      meals: [
+        LeftoverMeal(
+          entryId: 'wed',
+          day: DateTime(2026, 11, 11),
+          portions: 2,
+          place: LeftoverPlace.fridge,
+          warning: LeftoverWarning.notEnoughLeft,
+        ),
+        _meal(13, portions: 1),
+      ],
+    );
+    expect(leftoverShortFor(row, _today, shape), 'today needs 2');
+    expect(leftoverFor(row, _today, shape), 'for Fri');
+    final later = _row(
+      meals: [
+        LeftoverMeal(
+          entryId: 'fri',
+          day: DateTime(2026, 11, 13),
+          portions: 2,
+          place: LeftoverPlace.fridge,
+          warning: LeftoverWarning.notEnoughLeft,
+        ),
+      ],
+    );
+    expect(leftoverShortFor(later, _today, shape), 'Fri needs 2');
+    expect(leftoverFor(later, _today, shape), isNull);
+    expect(leftoverShortFor(_row(), _today, shape), isNull);
+  });
+
+  test('the meal that cooks for next week says so', () {
+    // Sunday weeks: Saturday 14 Nov cooks it all, next Thursday frozen.
+    const host = CookSession(
+      recipeId: 'r',
+      recipeTitle: 'Beef Ragù',
+      servingsBase: 4,
+      cookDay: 6,
+      keepsForDays: 3,
+      freezable: true,
+      covers: [
+        CoveredMeal(dayOfWeek: 6, mealSlot: 'Dinner', portions: 2),
+        CoveredMeal(dayOfWeek: 11, mealSlot: 'Dinner', portions: 2),
+      ],
+    );
+    final week = DateTime(2026, 11, 8);
+    expect(
+      nextWeekShareLine(host, week, DateTime(2026, 11, 9), WeekShape.sunday),
+      'cook it all · freeze 2 for next Thu',
+    );
+    // A next-week meal inside the fridge life is kept, not frozen.
+    final soon = host.copyWith(
+      covers: const [
+        CoveredMeal(dayOfWeek: 6, mealSlot: 'Dinner', portions: 2),
+        CoveredMeal(dayOfWeek: 8, mealSlot: 'Dinner', portions: 1),
+      ],
+    );
+    expect(
+      nextWeekShareLine(soon, week, DateTime(2026, 11, 9), WeekShape.sunday),
+      'cook it all · keep 1 for next Mon',
+    );
+    expect(
+      nextWeekShareLine(
+        host.copyWith(covers: [host.covers.first]),
+        week,
+        DateTime(2026, 11, 9),
+        WeekShape.sunday,
+      ),
+      isNull,
+    );
+  });
+
   test('the count is what is left', () {
     expect(leftCount(2), '2 left');
     expect(leftCount(1.75), '1¾ left');
@@ -111,8 +184,24 @@ void main() {
         freezeBy: DateTime(2026, 11, 14),
         forDays: [DateTime(2026, 11, 16)],
       );
-      expect(freezeShareLine(share, _today, shape), 'freeze 2 by Sat for Mon');
-      expect(freezeShareFor(share, _today, shape), 'freeze by Sat for Mon');
+      // Weekdays, never dates: the batch's week began Mon 9 Nov, so Mon 16
+      // is next Mon.
+      final week = DateTime(2026, 11, 9);
+      expect(
+        freezeShareLine(share, week, shape),
+        'freeze 2 by Sat for next Mon',
+      );
+      expect(freezeShareFor(share, week, shape), 'freeze by Sat for next Mon');
+      // As ruled: Saturday cooks for next Thursday, to freeze by Tuesday.
+      final far = (
+        portions: 2.0,
+        freezeBy: DateTime(2026, 11, 17),
+        forDays: [DateTime(2026, 11, 19)],
+      );
+      expect(
+        freezeShareLine(far, DateTime(2026, 11, 8), WeekShape.sunday),
+        'freeze 2 by Tue for next Thu',
+      );
     },
   );
 }

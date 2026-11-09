@@ -53,7 +53,8 @@ String recipeSummaryLine(RecipeCookPlan recipe, {bool editedThisWeek = false}) {
 }
 
 /// A session's "covers …" line, ending with the portion count. Collapses the
-/// slot when every covered meal shares one ("Tue + Sat dinner"). With [spare]
+/// slot when every covered meal shares one ("Tue + Sat dinner"); a meal of
+/// the next week reads "Sat + next Thu dinner". With [spare]
 /// (the whole batch on screen) it ends with the portions left over instead:
 /// "covers Mon dinner · 2¼ portions spare".
 String coversLine(CookSession session, WeekShape shape, {double? spare}) {
@@ -66,17 +67,18 @@ String coversLine(CookSession session, WeekShape shape, {double? spare}) {
       ? formatPortions(session.totalPortions)
       : '${formatPortions(spare)} spare';
 
+  // A meal of the next week the batch folds in is `next Thu`.
+  String day(int d) =>
+      d > 6 ? 'next ${shape.labelShort(d - 7)}' : shape.labelShort(d);
   if (slots.length == 1) {
     // Distinct days, one shared slot.
     final days = (<int>{
       for (final m in covers) m.dayOfWeek,
-    }.toList()..sort()).map(shape.labelShort).join(' + ');
+    }.toList()..sort()).map(day).join(' + ');
     return 'covers $days ${slots.first} · $portions';
   }
   final meals = covers
-      .map(
-        (m) => '${shape.labelShort(m.dayOfWeek)} ${m.mealSlot.toLowerCase()}',
-      )
+      .map((m) => '${day(m.dayOfWeek)} ${m.mealSlot.toLowerCase()}')
       .join(' + ');
   return 'covers $meals · $portions';
 }
@@ -217,6 +219,48 @@ List<GapFix> _lineFixes(ComponentGap gap) {
           ),
         ),
   ];
+}
+
+/// One of the week's meals the week before cooks: the dish, the day, and
+/// where it comes from.
+typedef FoldedMealLine = ({String words, bool frozen});
+
+/// `Beef Ragù · Thu · from the freezer`: each of the week's meals a batch of
+/// the week before cooks ([CookPlan.foldedBack]), in day order. A batch never
+/// ticked has the meal as its cook day: `cook it`, from what that week
+/// bought. [weekStart] is the week on screen.
+List<FoldedMealLine> foldedMealLines(
+  CookPlan plan,
+  WeekShape shape,
+  DateTime weekStart,
+  DateTime today,
+) {
+  final lines = <(int, FoldedMealLine)>[];
+  final before = DateTime(weekStart.year, weekStart.month, weekStart.day - 7);
+  for (final MapEntry(key: entryId, value: host) in plan.foldedBack.entries) {
+    final meal = host.covers.where((m) => m.entryId == entryId).firstOrNull;
+    if (meal == null) continue;
+    final cookDay = cookDayOf(host, before, today) ?? host.cookDay;
+    final gap = meal.dayOfWeek - cookDay;
+    final frozen =
+        host.freezable && gap > (host.keepsForDays ?? kAssumedFridgeDays);
+    final from = gap <= 0
+        ? 'cook it'
+        : frozen
+        ? 'from the freezer'
+        : 'from the fridge';
+    lines.add((
+      meal.dayOfWeek,
+      (
+        words:
+            '${host.recipeTitle} · ${shape.labelShort(meal.dayOfWeek - 7)} · '
+            '$from',
+        frozen: frozen && gap > 0,
+      ),
+    ));
+  }
+  lines.sort((a, b) => a.$1.compareTo(b.$1));
+  return [for (final (_, line) in lines) line];
 }
 
 /// The geometry of a session's freshness on the week's axis (day coordinates
@@ -369,7 +413,11 @@ class SessionSpeech {
     final byTicks = weekStart == null || today == null || component
         ? null
         : cookDayOf(session, weekStart, today);
-    final day = shape.labelShort(byTicks ?? session.cookDay);
+    final cookDay = byTicks ?? session.cookDay;
+    // Never ticked, its meal of the next week becomes its cook day.
+    final day = cookDay > 6
+        ? 'next ${shape.labelShort(cookDay - 7)}'
+        : shape.labelShort(cookDay);
     final rawScale = formatScale(session.scaleFactor);
     return SessionSpeech(
       when: component

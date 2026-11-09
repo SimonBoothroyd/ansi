@@ -172,6 +172,17 @@ class FakePlanningRepository implements PlanningRepository {
   Future<void> cookFreshInstead(String entryId) async =>
       cookedFresh.add(entryId);
 
+  /// Every `(entryId, leftoverOf, fromLeftover)` handed to
+  /// [eatFromLeftoverAgain], in order.
+  final eatenFromLeftoverAgain = <(String, String?, String?)>[];
+
+  @override
+  Future<void> eatFromLeftoverAgain(
+    String entryId, {
+    String? leftoverOf,
+    String? fromLeftover,
+  }) async => eatenFromLeftoverAgain.add((entryId, leftoverOf, fromLeftover));
+
   /// Every `(entryId, mealSlot)` handed to [setMealSlot], in order.
   final slotWrites = <(String, String)>[];
 

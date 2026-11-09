@@ -124,6 +124,10 @@ typedef CookMarker = ({
 
   /// Eaten from the freezer: past the batch's fridge date.
   bool frozen,
+
+  /// Somebody ticked a meal of the batch: it was cooked, so its cook day
+  /// reads in the past tense (`cooked Fri`).
+  bool cooked,
 });
 
 /// Reads the cook marker for the meal on [dayOfWeek] / [mealSlot] off the cook
@@ -198,9 +202,10 @@ CookMarker? _markerOf(
   final keeps = session.keepsForDays;
   final gap = day - cookDay;
   final frozen = session.freezable && gap > (keeps ?? kAssumedFridgeDays);
+  final cooked = wasCooked(session);
   final kind = gap == 0
       ? CookMarkerKind.cooks
-      : folded || wasCooked(session)
+      : folded || cooked
       ? CookMarkerKind.leftover
       : frozen
       ? CookMarkerKind.freezerShare
@@ -213,16 +218,22 @@ CookMarker? _markerOf(
         ? 0
         : math.min(1, math.max(0, gap / keeps)),
     frozen: frozen,
+    cooked: cooked,
   );
 }
 
 /// The marker's words. [todayDayOfWeek] is today's offset when the current week
-/// is on screen, else null.
+/// is on screen, else null. A batch's cook day once ticked reads `cooked Fri`.
 String cookMarkerLabel(
   CookMarker marker,
   WeekShape shape, {
   int? todayDayOfWeek,
 }) => switch (marker.kind) {
+  // Once cooked, the batch's size is history; the day is what it says.
+  CookMarkerKind.cooks when marker.cooked =>
+    todayDayOfWeek == marker.cookDay
+        ? 'cooked today'
+        : 'cooked ${shape.labelShort(marker.cookDay)}',
   CookMarkerKind.cooks =>
     todayDayOfWeek == marker.cookDay
         ? 'cooks today · batch of ${formatFraction(marker.batchPortions)}'

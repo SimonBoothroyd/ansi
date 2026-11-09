@@ -160,6 +160,25 @@ void main() {
         expect(cookMarkerLabel(wed, WeekShape.monday), 'leftover');
       });
 
+      test('a cooked batch says its cook day in the past tense', () {
+        final plan = ticked({0, 2});
+        final fri = on(plan, 0, DateTime(2026, 8, 28))!;
+        expect(fri.kind, CookMarkerKind.cooks);
+        expect(fri.cooked, isTrue);
+        expect(cookMarkerLabel(fri, WeekShape.monday), 'cooked Mon');
+        expect(
+          cookMarkerLabel(fri, WeekShape.monday, todayDayOfWeek: 0),
+          'cooked today',
+        );
+        // Not ticked yet: what it will cook.
+        final ahead = on(ticked(const {}), 0, DateTime(2026, 8, 24))!;
+        expect(ahead.cooked, isFalse);
+        expect(
+          cookMarkerLabel(ahead, WeekShape.monday),
+          'cooks Mon · batch of 6',
+        );
+      });
+
       test('a skipped first meal moves the cook day; the meal before it says '
           'nothing', () {
         final plan = ticked({2});

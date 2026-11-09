@@ -460,7 +460,10 @@ class MealPortionsStepper extends StatelessWidget {
   /// Who is eating, and the roster their factors and names come from.
   final List<String> eaterIds;
   final List<Member> roster;
-  final ValueChanged<int> onChanged;
+
+  /// The new override, never below 1; null when a step lands back on the
+  /// eaters' own total, which then tracks them again.
+  final ValueChanged<int?> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -501,7 +504,7 @@ class MealPortionsStepper extends StatelessWidget {
         ),
         _StepButton(
           icon: FLucideIcons.minus,
-          onTap: () => onChanged(demand.ceil() - 1),
+          onTap: () => onChanged(_overrideFor(demand.ceil() - 1, usual)),
         ),
         SizedBox(
           width: 40,
@@ -513,11 +516,18 @@ class MealPortionsStepper extends StatelessWidget {
         ),
         _StepButton(
           icon: FLucideIcons.plus,
-          onTap: () => onChanged(demand.floor() + 1),
+          onTap: () => onChanged(_overrideFor(demand.floor() + 1, usual)),
         ),
       ],
     );
   }
+}
+
+/// [next] as an override of the eaters' [usual] total: never below 1, and
+/// null on [usual] itself, so stepping back to it tracks the eaters again.
+int? _overrideFor(int next, double usual) {
+  final value = next < 1 ? 1 : next;
+  return (value - usual).abs() < 1e-9 ? null : value;
 }
 
 class _StepButton extends StatelessWidget {

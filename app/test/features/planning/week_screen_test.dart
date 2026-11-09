@@ -796,12 +796,24 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('asks Frozen or Cook fresh, Frozen first, and plans the meal '
-        'from the freezer row', (tester) async {
+    testWidgets('asks Frozen or Cook fresh, picks neither, and Frozen plans '
+        'the meal from the freezer row', (tester) async {
       final planning = await openConfirm(tester);
       expect(find.text('Frozen'), findsOneWidget);
       expect(find.text('2 left'), findsOneWidget);
       expect(find.text('Cook fresh'), findsOneWidget);
+      // Nothing is picked for the household, so Add waits.
+      for (final choice in ['Frozen', 'Cook fresh']) {
+        expect(
+          tester.getSemantics(find.bySemanticsLabel(RegExp('^$choice'))),
+          isNot(matchesSemantics(isSelected: true)),
+        );
+      }
+      await add(tester);
+      expect(planning.recipeEntries, isEmpty);
+
+      await tester.tap(find.text('Frozen'));
+      await tester.pumpAndSettle();
       await add(tester);
       expect(planning.recipeEntries.single.fromLeftover, 'f1');
       expect(planning.recipeEntries.single.leftoverOf, isNull);
@@ -818,11 +830,8 @@ void main() {
     testWidgets('Frozen cannot take more than is left', (tester) async {
       final planning = await openConfirm(tester, portions: 1);
       // Ada and Jun both eat: two portions from one.
-      debugPrint(
-        [
-          for (final t in tester.widgetList<Text>(find.byType(Text))) t.data,
-        ].join('|'),
-      );
+      await tester.tap(find.text('Frozen'));
+      await tester.pumpAndSettle();
       await add(tester);
       expect(find.text('only 1 portion left'), findsOneWidget);
       expect(planning.recipeEntries, isEmpty);
@@ -859,6 +868,37 @@ void main() {
       expect(find.textContaining('Thursday · '), findsNothing);
       expect(find.textContaining('Monday · '), findsNothing);
       expect(find.byType(MealSlotPicker), findsOneWidget);
+    });
+
+    testWidgets("stepping the portions back to the eaters' own clears the "
+        'override', (tester) async {
+      filterForuiSemanticsAssertions();
+      final planning = _FakePlanningRepo(week: _plannedWeek());
+      await _pumpWeek(tester, planning: planning, recipes: _recipesRepo(null));
+      await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry').last);
+      await tester.pumpAndSettle();
+
+      final stepper = find.byType(MealPortionsStepper);
+      await tester.ensureVisible(stepper);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: stepper, matching: find.byIcon(FLucideIcons.plus)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('overrides the eaters'), findsOneWidget);
+      await tester.tap(
+        find.descendant(of: stepper, matching: find.byIcon(FLucideIcons.minus)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('overrides the eaters'), findsNothing);
+
+      await tester.ensureVisible(find.text('Add to Thursday'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add to Thursday'));
+      await tester.pumpAndSettle();
+      expect(planning.recipeEntries.single.portions, isNull);
     });
 
     testWidgets("the slot is the one question, and it opens on the day's "
@@ -1088,13 +1128,16 @@ void main() {
         ),
       ],
     );
-    expect(find.text('leftover · not enough left'), findsOneWidget);
-    final tag = tester.widget<Text>(find.text('leftover · not enough left'));
+    // The tag keeps the freezer's blue; the warning is amber on amber's own
+    // ground, beside it, so it reads on the blue.
+    final tag = tester.widget<Text>(find.text('leftover'));
     expect(tag.style!.color, AnsiColors.chillInk);
-    expect(
-      (tag.textSpan! as TextSpan).children!.single.style!.color,
-      AnsiColors.cautionInk,
+    final warning = find.text('not enough left');
+    expect(tester.widget<Text>(warning).style!.color, AnsiColors.cautionInk);
+    final ground = tester.widget<Container>(
+      find.ancestor(of: warning, matching: find.byType(Container)).first,
     );
+    expect((ground.decoration! as BoxDecoration).color, AnsiColors.caution);
   });
 
   testWidgets('the row has three targets: title \u2192 recipe, cluster \u2192 '
@@ -1731,6 +1774,8 @@ void main() {
         await _pumpWeek(
           tester,
           planning: planning,
+          // Routed, with the toaster above: Cook fresh instead says so.
+          expose: (_) {},
           extra: [
             currentMemberIdProvider.overrideWithValue('m1'),
             clockProvider.overrideWithValue(() => now),

@@ -165,8 +165,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // A meal out's optional figures, as typed. Blank places the meal uncounted.
     final stated = useState(const MacroDraft());
 
-    // A dish in the freezer is offered from there first: Frozen or Cook fresh.
-    final cookFresh = useState(false);
+    // A dish in the freezer asks Frozen or Cook fresh, and answers neither
+    // for the household: null until one is picked.
+    final cookFresh = useState<bool?>(null);
 
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
@@ -202,7 +203,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
                     leftoverOfferOn(l, mealDay, today) != null,
               )
               .firstOrNull;
-    final fromFreezer = cookFresh.value ? null : frozen;
+    final fromFreezer = cookFresh.value == false ? frozen : null;
     // Eaten from the freezer, it is not cooked: no batch strip.
     final recipe = fromFreezer == null ? picked : null;
     final plannedDays = recipe == null
@@ -322,14 +323,14 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               _Choice(
                 label: 'Frozen',
                 detail: '${formatFraction(frozen.portions)} left',
-                selected: !cookFresh.value,
+                selected: cookFresh.value == false,
                 frozen: true,
                 onTap: () => cookFresh.value = false,
               ),
               const SizedBox(width: 8),
               _Choice(
                 label: 'Cook fresh',
-                selected: cookFresh.value,
+                selected: cookFresh.value ?? false,
                 onTap: () => cookFresh.value = true,
               ),
             ],
@@ -370,7 +371,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           portionsOverride: portionsOverride.value,
           eaterIds: eaters.value.toList(),
           roster: members.asData?.value ?? const [],
-          onChanged: (v) => portionsOverride.value = v < 1 ? 1 : v,
+          onChanged: (v) => portionsOverride.value = v,
         ),
         if (after != null)
           Padding(
@@ -394,8 +395,13 @@ class _ConfirmMealSheet extends HookConsumerWidget {
         ],
         const SizedBox(height: 20),
         FButton(
-          // A meal cannot eat more of a leftover than is left.
-          onPress: (after?.tooMuch ?? false) ? null : add,
+          // A meal cannot eat more of a leftover than is left, and a dish in
+          // the freezer waits for Frozen or Cook fresh.
+          onPress:
+              (after?.tooMuch ?? false) ||
+                  (frozen != null && cookFresh.value == null)
+              ? null
+              : add,
           child: Text('Add to ${shape.labelFull(dayOfWeek)}'),
         ),
       ],

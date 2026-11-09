@@ -2,6 +2,7 @@
 /// gone off*, *Add a leftover*, and the Week's door with its dot.
 library;
 
+import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/account/data/household_providers.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
@@ -128,18 +129,23 @@ Future<FakeLeftoverRepository> _pump(
   final repo = FakeLeftoverRepository(
     rows ?? [_helper, _curry, _soup, _chili, _bolognese, _pesto],
   );
-  await tester.pumpAnsiApp(
-    const LeftoversView(),
-    overrides: [
-      leftoverRepositoryProvider.overrideWithValue(repo),
-      recipeRepositoryProvider.overrideWithValue(
-        FakeRecipeRepository(summaries: _recipes),
-      ),
-      clockProvider.overrideWithValue(
-        () => _today.add(const Duration(hours: 9)),
-      ),
-      weekShapeProvider.overrideWithValue(WeekShape.monday),
-    ],
+  // Under a router with the toaster above it, as in the app: an Undo's
+  // toast is raised through the root overlay.
+  await tester.pumpWidget(
+    routedHost(
+      initial: '/leftovers',
+      routes: {'/leftovers': (_, _) => const LeftoversView()},
+      overrides: [
+        leftoverRepositoryProvider.overrideWithValue(repo),
+        recipeRepositoryProvider.overrideWithValue(
+          FakeRecipeRepository(summaries: _recipes),
+        ),
+        clockProvider.overrideWithValue(
+          () => _today.add(const Duration(hours: 9)),
+        ),
+        weekShapeProvider.overrideWithValue(WeekShape.monday),
+      ],
+    ),
   );
   await tester.pumpAndSettle();
   return repo;
@@ -223,14 +229,78 @@ void main() {
     expect(repo.freezes, [_soup]);
   });
 
-  testWidgets('Remove gone off clears every row past its date, from both '
-      'shelves', (tester) async {
+  testWidgets('Remove gone off is one link under both shelves; it clears '
+      'every row past its date, from both, and can be undone', (tester) async {
     final repo = await _pump(tester);
-    await tester.tap(find.text('Remove gone off'));
+    final link = find.text('Remove gone off');
+    await tester.scrollUntilVisible(
+      link,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(link, findsOneWidget);
+    expect(
+      tester.getTopLeft(link).dy,
+      greaterThan(tester.getTopLeft(find.text('Basil Pesto')).dy),
+    );
+    await tester.tap(link);
     await tester.pumpAndSettle();
     expect(repo.gone, [
       [_soup, _pesto],
     ]);
+    expect(find.text('Removed 2 gone off.'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(repo.restored, [
+      [_soup, _pesto],
+    ]);
+  });
+
+  testWidgets('Freeze and Froze it say so, with an Undo', (tester) async {
+    final repo = await _pump(tester);
+    await tester.tap(find.text('Freeze'));
+    await tester.pumpAndSettle();
+    expect(repo.freezes, [_helper]);
+    expect(find.text('Froze Hamburger Helper.'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(repo.restored, [
+      [_helper],
+    ]);
+
+    await tester.tap(find.text('Froze it'));
+    await tester.pumpAndSettle();
+    expect(find.text('Froze Squash Soup.'), findsOneWidget);
+  });
+
+  testWidgets('a row warns in amber when a meal from it wants more than is '
+      'there', (tester) async {
+    final short = Leftover(
+      id: 'c',
+      place: LeftoverPlace.fridge,
+      recipeId: 'cc',
+      title: 'Chickpea Curry',
+      since: DateTime(2026, 11, 10),
+      goodUntil: DateTime(2026, 11, 16),
+      portions: 0,
+      inBox: 1,
+      meals: [
+        LeftoverMeal(
+          entryId: 'fri',
+          day: DateTime(2026, 11, 13),
+          portions: 2,
+          place: LeftoverPlace.fridge,
+          warning: LeftoverWarning.notEnoughLeft,
+        ),
+      ],
+    );
+    await _pump(tester, rows: [short]);
+    expect(find.text('1 left'), findsOneWidget);
+    final words = tester.widget<Text>(find.text('Fri needs 2'));
+    expect(words.style!.color, AnsiColors.cautionInk);
+    // Said once: not also listed as what it is for.
+    expect(find.text('for Fri'), findsNothing);
   });
 
   testWidgets('no row past its date, no Remove gone off', (tester) async {
@@ -270,6 +340,25 @@ void main() {
       ),
     ]);
     expect(find.text('Add a leftover'), findsNothing);
+  });
+
+  testWidgets('Add a leftover lists only the recipes the words hit', (
+    tester,
+  ) async {
+    filterForuiSemanticsAssertions();
+    await _pump(tester, rows: const []);
+    await tester.tap(find.bySemanticsLabel('Add a leftover'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(EditableText), 'Walnut pasta');
+    await tester.pumpAndSettle();
+    for (final r in _recipes) {
+      expect(find.text(r.title), findsNothing, reason: r.title);
+    }
+    expect(find.text('“Walnut pasta”'), findsOneWidget);
+    await tester.enterText(find.byType(EditableText), 'soup');
+    await tester.pumpAndSettle();
+    expect(find.text('Squash Soup'), findsOneWidget);
+    expect(find.text('Hamburger Helper'), findsNothing);
   });
 
   testWidgets('Add a leftover in the household’s own words', (tester) async {

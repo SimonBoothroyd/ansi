@@ -16,7 +16,8 @@ import 'leftover_format.dart';
 import 'leftovers_view_models.dart';
 
 /// `2 left · till Mon`, `1 left · for Sun`, `2 left · freeze by Mon for Wed`,
-/// `2 left · past its date`: what is in the batch's box and what it is for.
+/// `2 left · past its date`, `1 left · Wed needs 2`: what is in the batch's
+/// box and what it is for.
 /// Before anybody ticked it, `freeze 2 by Tue for Thu` for its later meals
 /// reached from the freezer. Nothing while it has nothing left or to come.
 class BatchLeftoverLine extends ConsumerWidget {
@@ -30,11 +31,8 @@ class BatchLeftoverLine extends ConsumerWidget {
     if (key == null) return const SizedBox.shrink();
     final today = ref.watch(todayProvider);
     final shape = ref.watch(weekShapeProvider);
-    final share = freezeShareOf(
-      session,
-      ref.watch(viewedWeekStartProvider),
-      today,
-    );
+    final weekStart = ref.watch(viewedWeekStartProvider);
+    final share = freezeShareOf(session, weekStart, today);
     final shareDue = share != null && !today.isAfter(share.freezeBy);
     final left = wasCooked(session)
         ? (ref.watch(fridgeAndFreezerProvider).asData?.value ??
@@ -47,19 +45,21 @@ class BatchLeftoverLine extends ConsumerWidget {
     if (left == null) {
       // Not cooked yet: what it will put in the freezer.
       if (!shareDue || wasCooked(session)) return const SizedBox.shrink();
-      parts = [(freezeShareLine(share, today, shape), AnsiColors.chillInk)];
+      parts = [(freezeShareLine(share, weekStart, shape), AnsiColors.chillInk)];
     } else {
       final past = left.pastItsDate(today);
       final frozen = left.place == LeftoverPlace.freezer;
       final forDays = leftoverFor(left, today, shape);
+      final short = leftoverShortFor(left, today, shape);
       final freeze = shareDue
-          ? freezeShareFor(share, today, shape)
+          ? freezeShareFor(share, weekStart, shape)
           : leftoverFreezeFor(left, today, shape);
       parts = [
         (leftCount(left.inBox), AnsiColors.herbDeep),
+        if (short != null) (short, AnsiColors.cautionInk),
         if (forDays != null) (forDays, AnsiColors.herbDeep),
         if (freeze != null) (freeze, AnsiColors.chillInk),
-        if (forDays == null && freeze == null)
+        if (forDays == null && freeze == null && short == null)
           (
             leftoverWhen(left, today, shape),
             past

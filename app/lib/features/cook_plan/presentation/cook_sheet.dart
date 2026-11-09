@@ -17,6 +17,7 @@ import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
+import '../domain/leftovers.dart';
 import 'batch_leftover_line.dart';
 import 'cook_format.dart';
 import 'cook_view_models.dart';
@@ -249,7 +250,14 @@ class _MealRow extends ConsumerWidget {
         rowKey: recipe.recipeId,
         days: cookTrackDays([
           for (final (i, session) in sessions.indexed)
-            (session, speeches[i].trackScale),
+            (
+              sessionByTicks(
+                session,
+                ref.watch(viewedWeekStartProvider),
+                ref.watch(todayProvider),
+              ),
+              speeches[i].trackScale,
+            ),
         ]),
       ),
       says: Column(

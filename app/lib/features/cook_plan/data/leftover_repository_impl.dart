@@ -276,7 +276,7 @@ class SqliteLeftoverRepository implements LeftoverRepository {
     String? label,
   }) async {
     assert(
-      (recipeId == null) != (label == null),
+      [recipeId, label].whereType<String>().length == 1,
       'a recipe or words, never both (the server refuses it)',
     );
     final id = const Uuid().v4();

@@ -5,6 +5,7 @@ library;
 import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
+import '../domain/cook_plan.dart';
 import '../domain/leftovers.dart';
 
 /// `2 left`, `1¾ left`, `0 left`.
@@ -33,9 +34,25 @@ String leftoverTill(DateTime until, DateTime today, WeekShape shape) =>
     : 'till ${formatMonthShort(until)}';
 
 /// `for Sun`, `for Sat + Sun`: the days of the meals still to come that are
-/// served from [left] where it is. Null when there are none.
+/// served from [left] where it is, but for those [leftoverShortFor] says.
+/// Null when there are none.
 String? leftoverFor(Leftover left, DateTime today, WeekShape shape) =>
     _days('for', _aheadDays(left, today, frozen: false), today, shape);
+
+/// `Wed needs 2`: each meal still to come planned from [left] that wants
+/// more than is there, said in amber. Null when there are none.
+String? leftoverShortFor(Leftover left, DateTime today, WeekShape shape) {
+  String needs(LeftoverMeal m) =>
+      '${leftoverDay(m.day, today, shape)} needs ${formatFraction(m.portions)}';
+  final short = [
+    for (final m in left.meals)
+      if (!m.own &&
+          m.warning == LeftoverWarning.notEnoughLeft &&
+          _daysBetween(today, m.day) >= 0)
+        needs(m),
+  ];
+  return short.isEmpty ? null : short.join(' · ');
+}
 
 /// `freeze by Mon for Wed`: the meals a fridge row reaches only from the
 /// freezer, and the day it has to go in by. Null when there are none.
@@ -50,22 +67,78 @@ String? leftoverFreezeFor(Leftover left, DateTime today, WeekShape shape) {
   );
 }
 
-/// `freeze by Tue for Thu`: what a batch puts in the freezer for its later
-/// meals, and by when.
-String freezeShareFor(FreezeShare share, DateTime today, WeekShape shape) =>
-    _days(
-      'freeze by ${leftoverDay(share.freezeBy, today, shape)} for',
-      share.forDays,
-      today,
-      shape,
-    )!;
+/// `freeze by Tue for next Thu`: what a batch of the week beginning
+/// [weekStart] puts in the freezer for its later meals, and by when.
+String freezeShareFor(FreezeShare share, DateTime weekStart, WeekShape shape) =>
+    'freeze by ${shape.labelShort(shape.offsetOf(share.freezeBy))} for '
+    '${_mealDays(share.forDays, weekStart, shape)}';
 
-/// `freeze 2 by Tue for Thu`: what a batch not cooked yet will put in the
-/// freezer for its later meals, and by when.
-String freezeShareLine(FreezeShare share, DateTime today, WeekShape shape) =>
+/// `freeze 2 by Tue for next Thu`: what a batch of the week beginning
+/// [weekStart], not cooked yet, will put in the freezer for its later meals,
+/// and by when. Weekdays, never dates; a meal of the next week is `next Thu`.
+String freezeShareLine(
+  FreezeShare share,
+  DateTime weekStart,
+  WeekShape shape,
+) =>
     'freeze ${formatFraction(share.portions)} by '
-    '${leftoverDay(share.freezeBy, today, shape)} for '
-    '${share.forDays.map((d) => leftoverDay(d, today, shape)).join(' + ')}';
+    '${shape.labelShort(shape.offsetOf(share.freezeBy))} for '
+    '${_mealDays(share.forDays, weekStart, shape)}';
+
+/// `cook it all · freeze 2 for next Thu`: what the meal that cooks a batch
+/// says of the next week's meals the batch covers too; `keep 2` for those it
+/// reaches from the fridge. Null when it covers none.
+String? nextWeekShareLine(
+  CookSession session,
+  DateTime weekStart,
+  DateTime today,
+  WeekShape shape,
+) {
+  final until = useByOf(session, weekStart, today);
+  final frozen = <DateTime>[];
+  final kept = <DateTime>[];
+  var frozenPortions = 0.0;
+  var keptPortions = 0.0;
+  for (final m in session.nextWeekCovers) {
+    final still = m.portions - m.eatenPortions;
+    if (still <= 1e-9) continue;
+    final day = dateOfDay(weekStart, m.dayOfWeek);
+    if (until != null && day.isAfter(until) && session.freezable) {
+      frozen.add(day);
+      frozenPortions += still;
+    } else {
+      kept.add(day);
+      keptPortions += still;
+    }
+  }
+  if (frozen.isEmpty && kept.isEmpty) return null;
+  final keep = formatFraction(keptPortions);
+  final freeze = formatFraction(frozenPortions);
+  return [
+    'cook it all',
+    if (kept.isNotEmpty) 'keep $keep for ${_mealDays(kept, weekStart, shape)}',
+    if (frozen.isNotEmpty)
+      'freeze $freeze for ${_mealDays(frozen, weekStart, shape)}',
+  ].join(' · ');
+}
+
+/// `Thu`, `Sat + next Thu`: meal days by their weekday, counted from the week
+/// beginning [weekStart].
+String _mealDays(List<DateTime> days, DateTime weekStart, WeekShape shape) =>
+    (days.toSet().toList()..sort())
+        .map((d) => weekdayFrom(weekStart, d, shape))
+        .join(' + ');
+
+/// [day] by its weekday, counted from the week beginning [weekStart]: `Thu`
+/// within it, `next Thu` in the week after, its date otherwise.
+String weekdayFrom(DateTime weekStart, DateTime day, WeekShape shape) {
+  final days = _daysBetween(weekStart, day);
+  if (days >= 0 && days < 7) return shape.labelShort(shape.offsetOf(day));
+  if (days >= 7 && days < 14) {
+    return 'next ${shape.labelShort(shape.offsetOf(day))}';
+  }
+  return formatDayMonth(day);
+}
 
 /// `2 left · till Mon`, `2 left · freeze by Mon`: what can still be planned
 /// from [left], and [leftoverWhen].
@@ -106,6 +179,7 @@ List<DateTime> _aheadDays(
   for (final m in left.meals)
     if (_daysBetween(today, m.day) >= 0 &&
         m.portions > 1e-9 &&
+        !(!m.own && m.warning == LeftoverWarning.notEnoughLeft) &&
         (m.freezeBy != null) == frozen)
       DateTime(m.day.year, m.day.month, m.day.day),
 }.toList()..sort();
