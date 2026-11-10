@@ -859,7 +859,7 @@ into **cook sessions** bounded by shelf life:
 - `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ demandPortions over covered — a double) · scale_factor (total_portions / recipe.servings_base)`
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
-- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) — display only, per session; the honest raw factor stays what everything (the shopping list included) scales by. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
+- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) while it is still to cook. The side picked is kept on the session's cooking (born then if need be): with the whole batch, what it makes rounds up to whole batches, the shopping list and the cost buy that, and the spare portions are left over once it is cooked. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
 - **A cooking is remembered** ([plan 0062](../exec-plans/active/0062-leftovers-remembered.md)):
   one pot, born at the first tick on any of its meals or the first pick
@@ -1469,7 +1469,8 @@ source-tab slot, footer slot):
   used`) and where the cut falls. *Had instead* is
   offered neither.
 - **Recipe picker** (planning): Recent · Books · Favorites tabs; day-tagged
-  "already this week" quick picks; rows carry filing, last-planned recency,
+  "already this week" quick picks, one per dish naming every day it is
+  planned (`Fri + Sat`); rows carry filing, last-planned recency,
   shelf-life chips, and per-serving macros or the `incomplete` badge with
   its reason; an "Eating: Ada & Jun · shared" footer. Title search is the same
   three-tier rule the ingredient picker uses — as is the editor's "Your
@@ -1512,9 +1513,10 @@ say what each tap means without one.
   **cook marker**, read back off `buildCookPlan` for the same week (`cooks
   today · batch of 4` with the mini fresh→gone bar · `from Monday's batch` ·
   `Tuesday's freezer share ❄`); once anybody ticked the batch its cook day
-  reads `cooked Fri`. A single-meal cook gets **no marker** — "cooks
-  today" on every row is noise, and an absent second line collapses the row
-  back to one. The marker and the day's macro line are **never hidden**: v2's
+  reads `cooked Fri`. A single-meal cook gets **no marker** until it is
+  cooked — "cooks today" on every row is noise, and an absent second line
+  collapses the row back to one; once ticked it reads `cooked Fri` as a batch
+  of several does, since what it made is now in the fridge. The marker and the day's macro line are **never hidden**: v2's
   edit mode suppressed both, which blanked the numbers you were editing
   against.
   A meal eaten from food already cooked — planned from a leftover, or a

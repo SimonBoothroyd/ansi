@@ -6,10 +6,14 @@
 The **Cook** screen: the counterpart to the Week. It groups the active week's
 meals by recipe into **cook sessions**: a **cooking** (one pot, remembered)
 for each the week buys, and shelf-life groups (spec §4) for meals not in one
-yet. Edit the Week and this re-derives. Cook asks nothing: a cooked batch's
-card leads with a check (`Cooked Fri`), shows its scale only when it isn't
-`×1`, and in place of its covers line says what it left in one line (`2 left
-· freeze by Mon for Wed`), opening **Leftovers**.
+yet. Edit the Week and this re-derives. A dish's card lists its sessions in
+day order under the portions its week's own meals plan (`4 portions across
+the week`: a pot's later-week meals and what a cooking made beyond the plan
+are its sessions' to say). Cook asks nothing: a cooked batch's card leads
+with a check (`Cooked Fri`), shows its scale only when it isn't `×1`, and in
+place of its covers line says what it left in one line (`2 left · freeze by
+Mon for Wed`), opening **Leftovers**. A batch not cooked yet tints its keep
+days on the strip only until the dish's next cook (`timelinesOf`).
 
 **Leftovers** (`/leftovers`) is this feature's one writing page: the
 household's **fridge and freezer**, every cooking read on today
@@ -49,7 +53,8 @@ cook_plan/
   presentation/   CookView (each session draws the compact week strip,
                   shared/week_strip.dart; a meal eaten from an earlier
                   cooking is one line) + CookSheet; cook_format.dart (copy
-                  + strip geometry, pure Dart); cook_view_models.dart;
+                  + strip geometry, pure Dart); cook_view_models.dart (the plan,
+                  and chooseWholeBatch);
                   batch_leftover_line.dart (a batch card's one line);
                   leftovers_view.dart (the page, its rows, Add a leftover,
                   and LeftoversDoor); leftovers_view_models.dart;
@@ -74,12 +79,18 @@ merged.
   strip and the clustering read. When it was actually cooked is the ticks'
   (`cookDayOf`, below).
 - The **scale factor** is the raw `total_portions / servings_base` — honest, not
-  rounded to a whole batch (whole-ingredient scaling is deferred); the
-  session's exact-or-whole switch is display only. A cooking's
-  `totalPortions` is what it **made** once fixed, else the live sum of its
-  meals. A meal's demand is Σ of its eaters' portion factors (`1¾` for a 1
-  and a ¾ eater), and every count is printed as a fraction (`core/units/
-  portions.dart`), the whole-batch switch's spare portions included.
+  rounded to a whole batch (whole-ingredient scaling is deferred) unless the
+  cook chose the **whole batch**. The session's exact-or-whole switch is kept
+  on its cooking (`setWholeBatch`, born then if need be): a `cooking_change`
+  row with a fixed id (`wholeBatchChangeId`) that moves no portions, and
+  soft-deleted to go back. With it, `totalPortions` and what the cooking made
+  round up to whole batches, so the shop and the cost buy the whole batch
+  and its spare is left over once cooked. A cooked batch shows no switch.
+  A cooking's `plannedPortions` is what it **made** once fixed, else the
+  live sum of its meals. A meal's demand is Σ of its eaters' portion factors
+  (`1¾` for a 1 and a ¾ eater), and every count is printed as a fraction
+  (`core/units/portions.dart`), the whole-batch switch's spare portions
+  included.
 
 `batchHintFor` reuses `clusterSessions` so the planner's "same batch" hint on the
 add-a-meal flow can never disagree with the cook plan.
@@ -98,10 +109,25 @@ re-derived (`domain/cooking.dart`).
   the id first: local tables are views, and the other phone's birth may have
   synced here. The connector uploads a cooking's (and a change's) PUT as an
   insert that leaves a row already there alone (`insertOnceTables`). Then the
-  whole group links (`plan_entry.cooking`).
+  whole group links (`plan_entry.cooking`). Choosing the whole batch on a
+  group not in a cooking births it too.
+- **Joining a pot not cooked yet.** While nobody has ticked a cooking, an
+  unlinked meal of its recipe in the week it is bought in that the grouping
+  puts with its meals joins it (`joinersOf`, `loadJoiners`): Ragù Saturday
+  picked for next Thursday, then added for Friday, is one pot cooked Friday.
+  Every reader (Cook, the shop, the Leftovers read, the picker) counts the
+  joiner in the pot; its next write links it (`joinUncookedCooking` before a
+  tick lands, `linkJoiners` on a pick). After the first tick, a meal added to
+  the week is a choice (*From leftovers · Cook fresh*), never a join.
 - **Made** is fixed at the first tick, from the live sum of its meals; before
-  that it is that live sum (`madeOf`). Deleting a meal or cutting portions
-  after the first tick leaves that food in the fridge; raising them warns.
+  that it is that live sum (`madeOf`), rounded up to whole batches while the
+  whole batch is chosen. Deleting a meal or cutting portions after the first
+  tick leaves that food in the fridge; raising them warns.
+- **A meal removed after somebody ticked it** is still read
+  (`CookingMeal.removed`): its live ticks still cook the pot, date it and
+  take from it, and it plans nothing more. Removing the meal everybody ate
+  leaves its leftovers where they were, and Undo puts the meal back with
+  nothing moved.
 - **Cooked** and the **cook day** are read off the live ticks every time
   (`cookDayOfCooking`): the earliest ticked day. An untick writes nothing.
   Untick everything and it reads not cooked: cooked on its next meal if one
@@ -142,7 +168,8 @@ draw, live as ticks come in.
 
 The Week reads the same rule (`cookMarkerFor` in `planning`): a meal before
 the cook day says nothing, the cook day says `cooks Fri · batch of 6`
-(`cooked Fri` once ticked), and a later meal of a cooking already cooked
+(`cooked Fri` once ticked; a one-meal cook says nothing until it is cooked,
+then `cooked Fri` too), and a later meal of a cooking already cooked
 wears the `leftover` tag, blue past the fridge date; a meal of a cooking
 bought in an earlier week wears it too, until it becomes that cooking's cook
 day. A meal from food said by hand wears it always (`eatsFromAPot`).
@@ -169,8 +196,9 @@ meal's id, not cooked (`Leftover.cooked`).
   got it (as after a Freeze). After it, of a dish that freezes and within its
   freezer life, it is a **freezer meal**: its portions go in the freezer by
   the fridge date with no write (what the freezer has spare already covers
-  that much), and it takes from the freezer. Otherwise the fridge, `past its
-  date`.
+  that much), as far as the fridge has them: only what is there is frozen,
+  and the rest warns. It takes from the freezer. Otherwise the fridge, `past
+  its date`. A meal removed after it was ticked takes its ticked shares.
 - **Counts**, per shelf and unclamped, so an untick reverses exactly: the
   fridge is made (or, said by hand, on its `place`) plus its change rows,
   less what its meals take and less what freezer meals move out; the freezer
@@ -213,7 +241,10 @@ INSERT or UPDATE.
   what was set and the shelf's box: later ticks and unticks still move it,
   and two phones correcting offline both apply.
 - **Freeze** and **Froze it** write one change moving the fridge box to the
-  freezer (−n, +n). Dates still count from the cook day.
+  freezer (−n, +n). Dates still count from the cook day. A row with nothing
+  in its box offers neither.
+- **The whole batch** (`setWholeBatch`) writes, or soft-deletes, the
+  cooking's one whole-batch change row; it moves no portions.
 - **Remove gone off** sets `gone_at`, by the household's clock: the
   cooking's fridge part is gone for good, and its freezer part too unless
   it is still in date that day (`readCooking`). Final: an untick after it

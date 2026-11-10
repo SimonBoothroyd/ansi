@@ -1,6 +1,6 @@
 # Exec plan: Leftovers, remembered
 
-- **Status:** phases 1–3 built on 2026-11-09 (two lanes), unreleased; `make test-sim`, a hands-on sim review and the release owed
+- **Status:** phases 1–3 built on 2026-11-09 (two lanes); the third sim review's fixes built on 2026-11-10; unreleased; `make test-sim`, a fresh hands-on sim review and the release owed
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); reworks the model under [plan 0061](./0061-leftovers-by-the-ticks.md), whose screens and rules stay
 - **Created:** 2026-11-09
@@ -66,6 +66,25 @@ between the orchestrator and an Opus reviewer.
 - **Nothing visible is lost on update.** Every leftover today's page can show
   (28 days) carries over, with any old *binned / eaten* answers.
 
+Added after the third sim review, 2026-11-10:
+
+- **Removing a meal somebody ate keeps its leftovers.** A removed meal with
+  a live tick does not un-cook its pot: its ticks still count toward cooked,
+  the cook day and what it takes. Undo puts the meal back, and the count
+  does not move.
+- **You can't plan more from leftovers than is there; a shortfall later only
+  warns.** Picking *From leftovers* keeps Add disabled with `only 1 portion
+  left`. A shortfall that comes afterwards (a tick, a correction, portions
+  raised) reads `not enough left` on the Week's tag and `Tue needs 3` beside
+  the row's `N left`; the plan is never edited.
+- **A pot not cooked yet takes a meal added beside it.** While nobody has
+  ticked a cooking, a new unlinked meal of the same recipe in the cooking's
+  own week that the shelf-life grouping puts with it joins it; *made* is
+  still the live sum. After the first tick, a meal added to the week is a
+  choice (*From leftovers · Cook fresh*).
+- **Made is what was planned and bought.** Choosing Cook's *×1 whole batch*
+  makes the whole batch: it is bought, and its spare is left over.
+
 ## Design
 
 ### Data
@@ -100,6 +119,12 @@ between the orchestrator and an Opus reviewer.
 - **Before birth,** a week's unlinked meals of a recipe group into one
   cooking by the shelf-life clustering. This uses one week only, days 0..6,
   with fridge life `keeps_for_days ?? 7`.
+- **A cooking not cooked yet** (no live tick on any linked meal, removed
+  ones included; not said by hand or gone) is grouped with its buy week's
+  unlinked meals of the recipe the same way. One that lands in its group
+  joins it: every reader counts it, and the cooking's next write (a tick,
+  read before the tick lands, or a pick) links it. A *made* already fixed
+  (unticked into nothing since) grows by the joiner's portions as it links.
 - **Birth** (first tick or first pick on a group):
   - Reuse a cooking already linked to any meal in the group, or one whose id
     is a group meal's id.
@@ -107,17 +132,23 @@ between the orchestrator and an Opus reviewer.
     Two phones compute the same id; the upload is an upsert, so it is
     idempotent.
   - Then link the whole group.
-- **Cooked** = a linked meal has a live tick.
+- **Made, whole batch.** A cooking whose cook chose the whole batch rounds
+  made (fixed or live) up to whole batches of its recipe. The choice is one
+  `cooking_change` row with a fixed id that moves no portions.
+- **Cooked** = a linked meal has a live tick, a removed one's too.
   - **Cook day** = the earliest day with a live tick.
   - A hand-added cooking uses `since`.
 - **What a meal takes:**
   - a day behind today takes its ticked shares, capped at its portions;
-  - today or later takes its planned portions in full ("spoken for").
+  - today or later takes its planned portions in full ("spoken for");
+  - a meal removed after it was ticked takes its ticked shares, whatever
+    its day, and is spoken for no more.
 - **Where it takes from:**
   - on or before the fridge date (cook day + `keeps_for_days ?? 7`), the
     fridge;
   - after it, the freezer, if the dish freezes and is within freezer life
-    (the assumed freeze);
+    (the assumed freeze, of only what the fridge has: `min(planned,
+    available)`; the rest warns);
   - otherwise the fridge, with `past its date`.
 - **Counts:**
   - fridge = made + Σ fridge changes − portions of freezer meals − fridge
@@ -193,6 +224,18 @@ between the orchestrator and an Opus reviewer.
 29. **Week start changed:** there is no stored week. The buy week follows
     the linked meals.
 30. **Recipe fridge or freezer days edited:** dates read live.
+31. **Remove a meal both ate** (curry Sun, both tick, 2 left): still 2 left,
+    dated Sunday; Undo, still 2 left (a ruling).
+32. **Ragù Sat picked for next Thu, then Fri added in the same week:** one
+    pot, cooked Fri, covering Fri, Sat and next Thu; Friday's first tick
+    links it and fixes made at all three.
+33. **The same, after Saturday's first tick:** Friday is its own cook unless
+    picked *From leftovers*.
+34. **The assumed freeze with 1 in the fridge and 3 planned:** the freezer
+    reads 1, never 3, and Tue warns. After *Freeze*, the fridge row at 0
+    goes, with its *Freeze*, and the warning is the freezer row's.
+35. **Whole batch:** curry serves 4, planned for 2, ×1 whole batch, both
+    tick: 2 left. The shop buys the whole batch.
 
 ## Approach
 
@@ -390,6 +433,54 @@ Append-only.
     simulator in this lane). A meal of an earlier cooking that has become
     its cook day (`cook it`) draws no strip on its sheet: its batch is in the
     week before.
+
+- 2026-11-10 — Sim review 3 (one lane). A hands-on simulator review found a
+  crash and five model bugs; the owner ruled two points (Rulings, *Added
+  after the third sim review*). No migration. Decided in the lane:
+  - **A double-tapped Add popped twice** and go_router asserted on its last
+    page. Add is single-shot (disabled while saving), and every save that
+    pops after an await goes through `popIfCurrent`, which pops only a route
+    still mounted and on top. Swept: *Add a leftover* (single-shot too), at
+    home, top-up, price, label photo and the sub-recipe picker.
+    `test/structure/pop_after_save_test.dart` holds it.
+  - **Joining is read, then written.** Every reader (Cook, the shop and cost,
+    the Leftovers read, the picker's pots) counts a joiner in the pot; the
+    link is written at the pot's next write, a tick (read before the tick
+    lands, so the first tick still sees an uncooked pot) or a pick. A
+    joiner is no pot of its own in the picker. The confirm sheet's batch
+    strip counts the pot's meals too. A writer groups against that cooking
+    alone, a reader against every uncooked cooking of the week: they differ
+    only with two uncooked pots of one dish in one week.
+  - **A removed meal's ticks still read**; removal keeps the link and writes
+    nothing. The cooking read takes a removed meal's ticked shares and gives
+    it no tag. Cook and the shop still read live meals only, so a cooking
+    whose meals are all removed has no session there.
+  - **The assumed freeze moves `min(planned, available)`.** Before the
+    fridge date the shortfall is the fridge row's (`1 left · Tue needs 3`);
+    after it, or once *Freeze* has emptied the fridge, the freezer row's. A
+    fridge row with nothing in it offers no *Freeze*.
+  - **The whole-batch choice was not stored**: it was a per-session
+    display toggle, reset on scroll. It is now one `cooking_change` row per
+    cooking with a fixed id (`wholeBatchChangeId`) that moves no portions;
+    choosing it on a group not in a cooking births one. Made's snapshot stays
+    the planned sum and the rounding is read on top, so going back to exact
+    is clean. The shop and the cost follow it (*planned and bought*), and a
+    cooked batch shows no switch. The tech-debt row narrows to the cook day.
+  - **Cook's order** is by day across kinds; its header counts the week's own
+    meals (days 0..6), not what a pot made or a later week eats.
+  - **The strip:** a batch not cooked yet tints its keep days only until the
+    dish's next cook; a cooked batch's window is what its leftovers really
+    keep, so it stands.
+  - **The picker's *Already this week*** is one chip per dish naming every
+    day (`Fri + Sat`).
+  - **A single-meal cook wears its marker once cooked** (`cooked Sun`). Plan
+    0061's rule (*a single-meal cook gets none*) was about the uncooked
+    plan, where `cooks Sun · batch of 2` is noise; it still holds there.
+  - **The not-enough copy was already consistent** (`only 1 portion left` at
+    the pick, `not enough left` on the tag, `Tue needs 3` beside `N left`);
+    no string changed.
+  - **Not done here:** `make test-sim` and a fresh hands-on sim review (no
+    simulator in this lane), and the release.
 
 ## Notes / open questions
 
