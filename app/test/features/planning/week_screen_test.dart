@@ -1137,6 +1137,11 @@ void main() {
       await _pumpWeek(
         tester,
         planning: _FakePlanningRepo(week: _plannedWeek()),
+        extra: [
+          clockProvider.overrideWithValue(
+            () => DateTime(monday.year, monday.month, monday.day, 9),
+          ),
+        ],
       );
       expect(find.textContaining('batch of'), findsNothing);
     },
