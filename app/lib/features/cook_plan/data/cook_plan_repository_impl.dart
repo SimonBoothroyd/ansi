@@ -42,7 +42,7 @@ class SqliteCookPlanRepository implements CookPlanRepository {
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, hm.id, '
-          'wro.id, rm.id, me.id, c.id '
+          'wro.id, rm.id, me.id, c.id, cc.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
@@ -50,6 +50,9 @@ class SqliteCookPlanRepository implements CookPlanRepository {
           'LEFT JOIN meal_eaten me ON me.plan_entry_id = pe.id '
           // What a cooking made is what it is bought for.
           'LEFT JOIN cooking c ON c.id = pe.cooking '
+          // Its change rows: the whole-batch choice is one, and moves
+          // nothing else.
+          'LEFT JOIN cooking_change cc ON cc.cooking_id = pe.cooking '
           'LEFT JOIN week_recipe_line_override wro '
           'ON wro.week_plan_id = wp.id AND wro.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '

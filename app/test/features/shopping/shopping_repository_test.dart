@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
+import 'package:ansi/features/cook_plan/data/leftover_repository_impl.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
@@ -211,6 +212,41 @@ void main() {
     expect(onion.totals.single.amount, 6); // 3 × 2
     final flour = list.groups.last.items.single;
     expect(flour.totals.single.amount, 200); // 100 g × 2
+  });
+
+  test('the list follows the whole-batch choice, a write to its change row '
+      'alone, both ways', () async {
+    await _insertRecipe(db, 'curry', 'Curry', lines: [('flour', 100, g)]);
+    final mon = await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a'],
+      portions: 1,
+    );
+    final leftovers = SqliteLeftoverRepository(
+      db,
+      householdId: 'h',
+      clock: () => DateTime(2026, 8, 24, 9),
+    );
+    await leftovers.setWholeBatch(mon, whole: true);
+    final stream = StreamIterator(repo.watchShoppingList(_week));
+    addTearDown(stream.cancel);
+    Future<double> flour() async {
+      expect(
+        await stream.moveNext().timeout(const Duration(seconds: 5)),
+        isTrue,
+      );
+      return stream.current.groups.single.items.single.totals.single.amount;
+    }
+
+    // One portion of a 2-serving recipe: 50 g exact, 100 g whole.
+    expect(await flour(), 100);
+    await leftovers.setWholeBatch(mon, whole: false);
+    expect(await flour(), 50);
+    await leftovers.setWholeBatch(mon, whole: true);
+    expect(await flour(), 100);
   });
 
   test('the list scales by the same fractional demand the cook plan derives '

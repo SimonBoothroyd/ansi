@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart';
+import 'package:ansi/features/cook_plan/data/leftover_repository_impl.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
 import 'package:ansi/features/planning/data/week_variant_repository_impl.dart';
@@ -854,6 +855,35 @@ void main() {
       final session = await onlySession(_week);
       expect(session.covers.map((m) => m.entryId), [mon]);
       expect(session.totalPortions, 1.75);
+    });
+
+    test('the whole-batch switch follows a write to its change row alone, '
+        'both ways', () async {
+      final mon = await curryFor(0);
+      await curryFor(1);
+      final leftovers = SqliteLeftoverRepository(
+        db,
+        householdId: 'h',
+        clock: () => DateTime(2026, 8, 24, 9),
+      );
+      // Born by the first choice, so the next writes touch only
+      // `cooking_change`.
+      await leftovers.setWholeBatch(mon, whole: true);
+      final stream = StreamIterator(repo.watchCookPlan(_week));
+      addTearDown(stream.cancel);
+      Future<double> next() async {
+        expect(
+          await stream.moveNext().timeout(const Duration(seconds: 5)),
+          isTrue,
+        );
+        return stream.current.recipes.single.sessions.single.totalPortions;
+      }
+
+      expect(await next(), 4);
+      await leftovers.setWholeBatch(mon, whole: false);
+      expect(await next(), 3.5);
+      await leftovers.setWholeBatch(mon, whole: true);
+      expect(await next(), 4);
     });
 
     test('cook fresh instead: the meal is cooked in its own week', () async {

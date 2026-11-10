@@ -76,10 +76,14 @@ class SqliteShoppingRepository implements ShoppingRepository {
     return _db
         .watch(
           'SELECT wp.id, pe.id, r.keeps_for_days, g.id, li.id, se.id, sc.id, '
-          'i.id, im.id, hm.id, wro.id, rm.id '
+          'i.id, im.id, hm.id, wro.id, rm.id, c.id, cc.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
+          // A cooking is bought for what it made, rounded up while its
+          // whole-batch change row stands.
+          'LEFT JOIN cooking c ON c.id = pe.cooking '
+          'LEFT JOIN cooking_change cc ON cc.cooking_id = pe.cooking '
           // This week's variant changes what the list buys, so a change to it
           // must re-fire the list exactly as a changed recipe line does.
           'LEFT JOIN week_recipe_line_override wro '
