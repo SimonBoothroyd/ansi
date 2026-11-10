@@ -1,6 +1,6 @@
 # Exec plan: Leftovers, remembered
 
-- **Status:** phases 1–2 built on 2026-11-09 (one lane), unreleased; phase 3 (screens), the docs beyond the READMEs, `make test-sim` and the release owed
+- **Status:** phases 1–3 built on 2026-11-09 (two lanes), unreleased; `make test-sim`, a hands-on sim review and the release owed
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); reworks the model under [plan 0061](./0061-leftovers-by-the-ticks.md), whose screens and rules stay
 - **Created:** 2026-11-09
@@ -261,7 +261,7 @@ build, and both phones update the same day. Back up cloud before the deploy.
 - [ ] Two phones: a tick, a correction and an untick made offline on both
       converge after sync (repository test with two databases, as the
       dropped-write tests do).
-- [ ] Docs: product spec, `db-schema.md`, the cook_plan and planning
+- [x] Docs: product spec, `db-schema.md`, the cook_plan and planning
       READMEs, `ARCHITECTURE.md`, and the board.
 - [ ] `make test-sim` green, then a fresh hands-on sim review.
 
@@ -328,6 +328,69 @@ Append-only.
     board, `make test-sim` (no simulator in this lane), and recreating the
     local PowerSync container from this checkout.
 
+- 2026-11-09 — Phase 3 built (one lane): the screens, with the owner's
+  rulings of that day (the choice sheet, pots not cooked yet in the picker,
+  next week's Cook line, the host meal's sheet, Remove gone off final, the
+  second sim review's fixes). The product spec, `ARCHITECTURE.md`, the
+  READMEs, the board and a tech-debt row for the old columns. Decided in the
+  lane:
+  - **A pot is what the picker would offer for the day.** The confirm sheet
+    asks **From leftovers · Cook fresh** when `leftoversGoodOn` offers the
+    dish, and links to the first offer (fridge before freezer, soonest to go
+    off first). A pot not cooked yet caps nothing and has no `N left`: its
+    choice and card say `cooks Sat`, and the card *Cooked with it, bought
+    once*.
+  - **Two kinds of pot not cooked yet.** A cooking nobody has ticked (born by
+    a pick) is a row like any other, flagged `Leftover.cooked` false, and
+    offered once whatever shelf it reads on, even in its own week. Planned
+    meals no cooking holds yet are `LeftoverShelves.pots`, grouped as a birth
+    would group them under their first meal's id; they are offered only to a
+    later week than their own, because a meal in the same week already shares
+    the batch when it fits, and *Cook fresh* there would be the same pot.
+  - **The unborn read is a second flat query** (`loadUnbornMeals`): planned
+    recipe meals from today on with no cooking, by date. It walks no weeks,
+    but it is the one read beside the cooking reader that spans more than a
+    week.
+  - **Remove gone off:** `gone_at` (now the household's clock, not the
+    wall's) puts the fridge part away for good, and the freezer part too
+    unless it is still in date that day. No change row is written for a
+    fridge part any more, so an untick cannot refill it. The line is drawn
+    by the freezer date alone, which an untick moves by days against a life
+    of months; a fridge-past-date test would have flipped when an untick
+    moved the cook day. A cooking said gone off is read while its recipe
+    freezes (or it was said into the freezer), so the read keeps those for
+    good. Undo puts back the `gone_at` it had before, so removing twice and
+    undoing once leaves the first. A freezer part gone off beside a fridge
+    part in date (a freezer life shorter than the fridge's) is still counted
+    to nothing by a change, not final.
+  - **Next week's Cook** lists a meal eaten from an earlier cooking as one
+    line (`earlierMealsOf`), placed after the cards, in the shelf's ink, no
+    icon (a snowflake never goes before a dish's name); `cook it` once nobody
+    ticked the earlier meals and the meal has become the cook day. The host
+    meal's sheet already said `cook it all · freeze 2 for next Thu` from the
+    link; a test holds it.
+  - **The meal's sheet** dates its pot by the cooking's id, not by which row
+    lists the meal, and says `cooks Sat` until it is cooked. A meal before
+    its batch's cook day (by the ticks) gets no caption.
+  - **Dates:** one formatter. `till` reads a weekday within six days, else a
+    date from the fridge and a month from the freezer (a freezer row within
+    six days says its weekday). `cooked` reads the week by the household's
+    week shape: `cooked Sat`, `cooked last Sat`, then a date.
+  - **Undo toasts** stay 10 s. The fall-through was the stack: Forui paints an
+    older toast peeking above a newer one, and that strip takes no tap (its
+    hit test is at the toast's laid-out place, not its painted one). A newer
+    Undo now replaces the one on screen; a test holds that a tap on a lone
+    toast's words or padding never reaches what is under it.
+  - **The default slot is not broken.** The picker opened on Saturday,
+    whose card was empty: the first unfilled default of an empty day is
+    Breakfast, by the rule.
+  - **The slot label** stands level with its dish's first line and never
+    wraps, so a wrapped name's second line no longer reads beside it.
+  - **Not done here:** `make test-sim` and a hands-on sim review (no
+    simulator in this lane). A meal of an earlier cooking that has become
+    its cook day (`cook it`) draws no strip on its sheet: its batch is in the
+    week before.
+
 ## Notes / open questions
 
 - **Drop `leftover`, `leftover_of`, `from_leftover` and `batch_leftover`**
@@ -342,11 +405,11 @@ done and moving this file to `completed/`.
 
 - [ ] Roadmap row updated: status flipped, one line on what shipped and what was
       deliberately deferred.
-- [ ] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
+- [x] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
       can't reach), and the result recorded here.
-- [ ] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
+- [x] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
 - [ ] New migrations or seed changes? Say in the roadmap row whether they have
       reached **cloud** yet, and append a `docs/cloud-setup.md` ledger entry

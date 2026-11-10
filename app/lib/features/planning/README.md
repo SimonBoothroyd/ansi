@@ -35,13 +35,16 @@ planning/
     week_in_the_location.dart the viewed week in the URL, shared by Week/Cook/Shop
     recipe_picker_sheet.dart  the add flow's one door (Recent · Books · Favorites)
     use_up_block.dart         Leftovers: fridge, freezer (soonest to go off
-                              first), then recipes using spare food;
-                              LeftoverTag (a snowflake on the freezer's blue)
+                              first; a pot not cooked yet `cooks Sat`), then
+                              recipes using spare food; LeftoverTag (a
+                              snowflake on the freezer's blue)
     whats_left_sheet.dart     the spare food and the ranking's cut
     use_up_view_models.dart   useUp: last week's spare, scored and offered
     confirm_meal_sheet.dart   slot, eaters, portions; macros fold for a meal
-                              out; Frozen · Cook fresh for a dish in the freezer
-    meal_editor_sheet.dart    edit a placed meal; a leftover meal's source and,
+                              out; From leftovers · Cook fresh for a dish
+                              with a pot to eat from
+    meal_editor_sheet.dart    edit a placed meal; a leftover meal's source
+                              (`cooked last Sat`, `cooks Sat`) and,
                               before its day, Cook fresh instead (with Undo,
                               `eatFromLeftoverAgain`); the variant
                               door at its foot
@@ -122,8 +125,12 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
    search recipes and the household vocabulary; when they hit nothing, the
    footer offers `＋ note it` for a meal eaten out. With nothing typed it
    leads with *Leftovers*: the fridge rows good for the day, then the freezer
-   rows, each soonest to go off first (`leftoversGoodOn` over the cook plan's `householdLeftovers`; a row
-   in words names no recipe and is left out), each a `PickedLeftover`, then
+   rows, each soonest to go off first (`leftoversGoodOn` over the shelves; a
+   row in words names no recipe and is left out), and the pots not cooked
+   yet (`cooks Sat`): a cooking nobody ticked, or an earlier week's meals no
+   cooking holds yet (`LeftoverShelves.pots`; the day's own week is left
+   out, since a meal there already shares its batch). Each is a
+   `PickedLeftover`, then
    the recipes that use the most of last week's spare food. That block and
    *Already this week* lead the list's own scroll, so however many rows it
    offers the recipes stay in reach. Returns a `PickedMeal`.
@@ -136,9 +143,11 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
    fold; left empty or half-filled, the meal is placed and named as uncounted.
    A leftover's card caps the portions at what is left; the meal links to
    its cooking (`addEntry(cooking:)`; a pot not born yet is born by the
-   pick). A recipe with a freezer row asks **Frozen (n left) · Cook fresh**
-   with neither picked, and *Add* waits for one; Frozen plans the meal from
-   the oldest such row.
+   pick). A pot not cooked yet caps nothing: the meal's portions add to what
+   it makes (*Cooked with it, bought once*). A recipe with a pot the day can
+   eat from (the first `leftoversGoodOn` offers for it) asks **From
+   leftovers · Cook fresh** with neither picked, wherever it was found, and
+   *Add* waits for one; From leftovers links the meal to that pot.
 
 Both sheets open on `defaultMealSlot`, the day's first unfilled default slot.
 Recipe rows show shelf-life chips and a "same batch" hint

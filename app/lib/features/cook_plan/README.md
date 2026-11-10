@@ -18,7 +18,8 @@ household's **fridge and freezer**, every cooking read on today
 link at the page's foot, and *Add a leftover*; Freeze, Froze it and Remove
 gone off each raise an Undo toast. Its door is the fridge in the Week header.
 The planning picker's *Leftovers* offers its rows back, judged on the day
-being planned.
+being planned, with the pots not cooked yet (`cooks Sat`). A cooking not
+cooked yet is not on the page.
 
 ## Layout
 
@@ -35,6 +36,7 @@ cook_plan/
     leftovers.dart              cookDayOf, useByOf, freezeShareOf (a
                                 session's); Leftover, LeftoverMeal,
                                 LeftoverShelves, readCooking + readCookings,
+                                plannedPots (pots not born yet),
                                 leftoverOfferOn
     cook_plan_repository.dart   the plan (read only)
     leftover_repository.dart    the shelves, and every write to them
@@ -42,16 +44,18 @@ cook_plan/
                   loadCookPlan, read once; loadPlannedWeek, the week's
                   recipe meals and the cookings it buys, which the shop
                   reads too); SqliteLeftoverRepository; cooking_store.dart
-                  (the flat cooking read, the tick's birth, the pick's,
-                  and the carry-over); providers
+                  (the flat cooking read, the unborn meals' read, the
+                  tick's birth, the pick's, and the carry-over); providers
   presentation/   CookView (each session draws the compact week strip,
-                  shared/week_strip.dart) + CookSheet; cook_format.dart (copy
+                  shared/week_strip.dart; a meal eaten from an earlier
+                  cooking is one line) + CookSheet; cook_format.dart (copy
                   + strip geometry, pure Dart); cook_view_models.dart;
                   batch_leftover_line.dart (a batch card's one line);
                   leftovers_view.dart (the page, its rows, Add a leftover,
                   and LeftoversDoor); leftovers_view_models.dart;
                   leftover_format.dart (`2 left`, `till Mon`, `for Sun`,
-                  `freeze by Mon for Wed`, pure Dart)
+                  `freeze by Mon for Wed`, `cooks Sat`, `cooked last Sat`,
+                  pure Dart)
 ```
 
 ## The clustering rule (spec §4)
@@ -109,9 +113,14 @@ re-derived (`domain/cooking.dart`).
   shop and cost read that week's unlinked meals, the cookings it buys, and
   (as `CookPlan.eatenFromEarlier`) its meals of cookings bought earlier — one
   week, never a walk over weeks (`loadPlannedWeek`). Food said by hand is
-  bought nowhere.
+  bought nowhere. Cook lists each meal eaten from an earlier cooking as one
+  line (`earlierMealsOf`): `Beef Ragù · Thu · from the freezer` (or `from
+  the fridge`), or `cook it` once nobody ticked the earlier meals and it has
+  become the cook day; the week is not `nothing planned yet` for it.
 - **No automatic cross-week sharing.** A meal shares a cooking only when it
-  is picked from one. Picking from a cooking not cooked yet adds the meal's
+  is picked from one: the picker's pot row, or **From leftovers** on the
+  confirm sheet, which asks whenever the dish has a pot the day can eat from
+  (planning's README). Picking from a cooking not cooked yet adds the meal's
   portions to what it makes: *Ragù Sat* picked for next Thursday is bought
   once, on Saturday's week, and Saturday's card says `freeze 2 by Tue for
   next Thu` (`freezeShareOf`), its meal sheet `cook it all · freeze 2 for
@@ -144,8 +153,13 @@ day. A meal from food said by hand wears it always (`eatsFromAPot`).
 day, and judges every meal linked to a cooking (`LeftoverShelves`: the rows,
 and the meals by `plan_entry` id). It reads every live cooking with its live
 linked meals, their ticks and its change rows in one flat query
-(`loadCookingInputs`); a cooking said gone is read only while a meal from it
-is still to come, which it warns.
+(`loadCookingInputs`); a cooking said gone off is read only while a meal
+from it is still to come, which it warns, or while a freezer part of it
+could still be in date. Beside them, the planned meals from today on that
+no cooking holds yet (`loadUnbornMeals`, one flat read by date) are the
+**pots not born yet** (`plannedPots`, `LeftoverShelves.pots`): each week's
+meals of a recipe grouped as a birth would group them, under the first
+meal's id, not cooked (`Leftover.cooked`).
 
 - **What a meal takes:** a meal behind today, its ticked shares, capped at
   its portions (a tick counts even if its member was since taken off the
@@ -175,12 +189,18 @@ is still to come, which it warns.
 - **Dates:** a fridge row is good until the cook day plus `keeps_for_days`
   (7 when unknown), a freezer row until the cook day plus `freezer_days` (no
   limit when null). Food in words keeps a week in the fridge; in the freezer
-  it has no date, only an age. Dates read the recipe live.
+  it has no date, only an age. Dates read the recipe live. Every screen
+  prints them through `leftover_format.dart`: a weekday within the coming
+  six days, else `15 Nov`; the freezer `till Jan` past six days; `cooked
+  Sat` this week, `cooked last Sat` the week before, then a date; `cooks
+  Sat` for a pot not cooked yet.
 - **The picker** (`leftoverOfferOn`) judges a row on the day being planned: a
   fridge row in date then, from the fridge; one that would need freezing by
   then, under Freezer as `freeze by Mon`; a freezer row in date then. A row
-  past its date today, food in words, and a row with nothing free are never
-  offered.
+  past its date today, food in words, and a cooked row with nothing free are
+  never offered. A pot not cooked yet is offered from its cook day for as
+  long as it would keep, whatever it has free, once (`leftoversGoodOn`); a
+  pot not born yet only to a later week than its own.
 
 ### The writes
 
@@ -194,11 +214,15 @@ INSERT or UPDATE.
   and two phones correcting offline both apply.
 - **Freeze** and **Froze it** write one change moving the fridge box to the
   freezer (−n, +n). Dates still count from the cook day.
-- **Remove gone off** sets `gone_at` on a cooking whose every shelf is gone
-  off: final, an untick never brings it back. A shelf gone off beside food
-  still good on the other is counted to nothing by a change instead.
-- **Undo** (`undoLeftovers`) soft-deletes the change rows a write made, or
-  clears its `gone_at`.
+- **Remove gone off** sets `gone_at`, by the household's clock: the
+  cooking's fridge part is gone for good, and its freezer part too unless
+  it is still in date that day (`readCooking`). Final: an untick after it
+  never brings either back, since the fridge part is never read again and
+  the freezer line moves only with the cook day, by days against months. A
+  freezer part gone off beside a fridge part still in date (only a freezer
+  life shorter than the fridge's) is counted to nothing by a change.
+- **Undo** (`undoLeftovers`) soft-deletes the change rows a write made, and
+  puts back the `gone_at` each cooking had before.
 - **Add a leftover** inserts a cooking said by hand: a recipe or the
   household's words, its `place`, `since` from the chip (today, 7 or 14 days
   back) and `made`.
