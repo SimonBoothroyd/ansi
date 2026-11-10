@@ -14,6 +14,7 @@ import 'package:ansi/features/ingredients/domain/default_amount.dart';
 import 'package:ansi/features/ingredients/domain/ingredient.dart';
 import 'package:ansi/features/ingredients/domain/price.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
+import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/domain/use_up.dart';
 import 'package:ansi/features/planning/domain/use_up_repository.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
@@ -38,6 +39,7 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
+import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_week_variant_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
@@ -52,6 +54,26 @@ class _FakeUseUp implements UseUpRepository {
     DateTime weekStart, {
     required DateTime today,
   }) async => facts;
+}
+
+/// A week with one meal planned, eaten from leftovers: nothing to buy.
+class _PlannedWeekRepo extends FakePlanningRepository {
+  @override
+  Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(
+    WeekPlan(
+      id: 'w',
+      weekStart: weekStart,
+      entries: const [
+        PlanEntry(
+          id: 'tue',
+          dayOfWeek: 1,
+          mealSlot: 'Dinner',
+          recipeId: 'hh',
+          eaterIds: ['a'],
+        ),
+      ],
+    ),
+  );
 }
 
 /// A canned shopping list; mutations are no-ops (the screen just renders)
@@ -320,6 +342,24 @@ void main() {
     expect(find.text('plan a meal'), findsOneWidget);
     // The add field works with no plan at all, so it is never swapped away.
     expect(find.byKey(kShopAddFieldKey), findsOneWidget);
+  });
+
+  testWidgets('meals that need nothing bought (from leftovers) say so, with '
+      'no door to plan a meal', (tester) async {
+    await tester.pumpWidget(
+      _host([
+        shoppingRepositoryProvider.overrideWithValue(
+          _FakeShoppingRepo(const ShoppingList()),
+        ),
+        cookPlanRepositoryProvider.overrideWithValue(FakeCookPlanRepository()),
+        planningRepositoryProvider.overrideWithValue(_PlannedWeekRepo()),
+      ]),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('nothing to buy'), findsOneWidget);
+    expect(find.text('nothing to buy yet'), findsNothing);
+    expect(find.text('plan a meal'), findsNothing);
   });
 
   testWidgets('an empty list but a live plan explains the missing '

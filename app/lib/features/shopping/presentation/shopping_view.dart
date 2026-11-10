@@ -1610,11 +1610,27 @@ class _NothingToBuyLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Two causes, told apart by the way out: nothing planned at all, versus
-    // meals planned whose recipes have no ingredients to sum.
+    // Three causes, told apart by the way out: nothing planned at all;
+    // meals planned whose recipes have no ingredients to sum; or meals that
+    // need nothing bought (from leftovers, or out), which have no way out.
     final plannedButNoIngredients = ref
         .watch(currentCookPlanProvider)
         .maybeWhen(data: (plan) => !plan.isEmpty, orElse: () => false);
+    final mealsPlanned = ref
+        .watch(viewedWeekProvider)
+        .maybeWhen(
+          data: (week) => week?.entries.isNotEmpty ?? false,
+          orElse: () => false,
+        );
+    if (mealsPlanned && !plannedButNoIngredients) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+        child: Text(
+          'nothing to buy',
+          style: ansiMono(size: 11.5, color: AnsiColors.muted),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
