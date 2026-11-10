@@ -92,6 +92,19 @@ class AnsiModalSurface extends InheritedWidget {
   bool updateShouldNotify(AnsiModalSurface old) => dialog != old.dialog;
 }
 
+/// Closes the sheet or dialog [context] is in after a save landed, once.
+///
+/// A save awaits its write before it closes, so two taps in one frame both
+/// reach this line: the second pop would take the page under the sheet with
+/// it (go_router asserts on popping its last page). Only a route that is
+/// still mounted and on top is popped. `test/structure/pop_after_save_test.dart`
+/// holds that no save pops past it.
+void popIfCurrent<T>(BuildContext context, [T? result]) {
+  if (!context.mounted) return;
+  if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+  Navigator.of(context).pop(result);
+}
+
 /// Shows a dialog above the whole shell.
 Future<T?> showAnsiDialog<T>({
   required BuildContext context,

@@ -107,7 +107,7 @@ class _EditTopUpSheet extends ConsumerWidget {
           ),
         },
       );
-      if (saved && context.mounted) Navigator.of(context).pop();
+      if (saved && context.mounted) popIfCurrent<void>(context);
     }
 
     Future<void> remove() async {
@@ -118,7 +118,7 @@ class _EditTopUpSheet extends ConsumerWidget {
             .read(shoppingRepositoryProvider)
             .removeContribution(contributionId: contributionId),
       );
-      if (removed && context.mounted) Navigator.of(context).pop();
+      if (removed && context.mounted) popIfCurrent<void>(context);
     }
 
     return QuantityUnitEditor(

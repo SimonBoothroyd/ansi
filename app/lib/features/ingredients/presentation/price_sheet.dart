@@ -54,7 +54,7 @@ Future<bool?> showPriceSheet(
     builder: (sheetContext) => PriceEditor(
       ingredient: ingredient,
       editing: editing,
-      onSaved: () => Navigator.of(sheetContext).pop(true),
+      onSaved: () => popIfCurrent(sheetContext, true),
     ),
   );
 }

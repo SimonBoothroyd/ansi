@@ -105,7 +105,7 @@ class AtHomeEditor extends ConsumerWidget {
           ),
         },
       );
-      if (saved && !inPane && context.mounted) Navigator.of(context).pop();
+      if (saved && !inPane && context.mounted) popIfCurrent<void>(context);
     }
 
     Future<void> remove() async {
@@ -117,7 +117,7 @@ class AtHomeEditor extends ConsumerWidget {
             .read(shoppingRepositoryProvider)
             .clearAtHome(ingredientId: ingredientId, weekStart: week),
       );
-      if (removed && !inPane && context.mounted) Navigator.of(context).pop();
+      if (removed && !inPane && context.mounted) popIfCurrent<void>(context);
     }
 
     return QuantityUnitEditor(

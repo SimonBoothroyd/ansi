@@ -30,7 +30,7 @@ Future<String?> pickLabelPhoto(BuildContext context, WidgetRef ref) {
           onPick: (source) async {
             final paths = await intake.pickAndCrop(source);
             if (!sheetContext.mounted) return;
-            Navigator.of(sheetContext).pop(paths.isEmpty ? null : paths.first);
+            popIfCurrent(sheetContext, paths.isEmpty ? null : paths.first);
           },
         ),
       ],

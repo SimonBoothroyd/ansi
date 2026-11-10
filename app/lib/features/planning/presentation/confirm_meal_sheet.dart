@@ -168,6 +168,9 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // A dish with a pot to eat from asks From leftovers or Cook fresh, and
     // answers neither for the household: null until one is picked.
     final fromLeftovers = useState<bool?>(null);
+    // Add is single-shot: a second tap while the write is in flight would
+    // insert the meal twice and pop the page under the sheet.
+    final saving = useState(false);
 
     final members = ref.watch(membersProvider);
     final shape = ref.watch(weekShapeProvider);
@@ -239,6 +242,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           );
 
     Future<void> add() async {
+      if (saving.value) return;
+      saving.value = true;
       // The sheet closes only on a write that landed; a throw must not leave it
       // open and inert.
       final repo = ref.read(planningRepositoryProvider);
@@ -290,7 +295,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           ),
         },
       );
-      if (added != null && context.mounted) Navigator.of(context).pop();
+      if (!context.mounted) return;
+      if (added == null) {
+        saving.value = false;
+        return;
+      }
+      popIfCurrent<void>(context);
     }
 
     return AnsiSheetShell(
@@ -394,7 +404,8 @@ class _ConfirmMealSheet extends HookConsumerWidget {
           // A meal cannot eat more of a leftover than is left, and a dish
           // with a pot waits for From leftovers or Cook fresh.
           onPress:
-              (after?.tooMuch ?? false) ||
+              saving.value ||
+                  (after?.tooMuch ?? false) ||
                   (pot != null && fromLeftovers.value == null)
               ? null
               : add,

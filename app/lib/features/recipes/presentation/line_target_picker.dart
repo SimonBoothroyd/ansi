@@ -175,7 +175,7 @@ class _LineTargetPickerSheet extends HookConsumerWidget {
             'would make a loop.';
         return;
       }
-      Navigator.of(context).pop(PickedSubRecipe(target));
+      popIfCurrent(context, PickedSubRecipe(target));
     }
 
     return PickerShell(

@@ -597,6 +597,9 @@ class _AddLeftoverSheet extends HookConsumerWidget {
     final place = useState(LeftoverPlace.fridge);
     final portions = useState<double>(2);
     final when = useState(AddedWhen.thisWeek);
+    // Add is single-shot: a second tap while the insert is in flight would
+    // add the food twice and pop the page under the sheet.
+    final saving = useState(false);
 
     final recipes =
         ref.watch(recipeListProvider).asData?.value ?? const <RecipeSummary>[];
@@ -615,6 +618,8 @@ class _AddLeftoverSheet extends HookConsumerWidget {
     final ready = chosen != null || (words.value && typed.isNotEmpty);
 
     Future<void> add() async {
+      if (saving.value) return;
+      saving.value = true;
       final today = ref.read(todayProvider);
       final ok = await ref.writeOk(
         context,
@@ -629,7 +634,12 @@ class _AddLeftoverSheet extends HookConsumerWidget {
               label: chosen == null ? typed : null,
             ),
       );
-      if (ok && context.mounted) Navigator.of(context).pop();
+      if (!context.mounted) return;
+      if (!ok) {
+        saving.value = false;
+        return;
+      }
+      popIfCurrent<void>(context);
     }
 
     Widget pick({
@@ -771,7 +781,10 @@ class _AddLeftoverSheet extends HookConsumerWidget {
           ],
         ),
         const SizedBox(height: 22),
-        FButton(onPress: ready ? add : null, child: const Text('Add')),
+        FButton(
+          onPress: ready && !saving.value ? add : null,
+          child: const Text('Add'),
+        ),
       ],
     );
   }

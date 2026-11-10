@@ -75,6 +75,37 @@ class _FakePlanningRepo extends FakePlanningRepository {
   }
 }
 
+/// A planner whose recipe add lands only when [landed] completes: a write
+/// still in flight when the Add button is tapped again.
+class _SlowAddPlanningRepo extends _FakePlanningRepo {
+  _SlowAddPlanningRepo(WeekPlan week, this.landed) : super(week: week);
+
+  final Future<void> landed;
+
+  @override
+  Future<String> addEntry({
+    required DateTime weekStart,
+    required int dayOfWeek,
+    required String mealSlot,
+    required String recipeId,
+    required List<String> eaterIds,
+    int? portions,
+    String? cooking,
+  }) async {
+    final id = await super.addEntry(
+      weekStart: weekStart,
+      dayOfWeek: dayOfWeek,
+      mealSlot: mealSlot,
+      recipeId: recipeId,
+      eaterIds: eaterIds,
+      portions: portions,
+      cooking: cooking,
+    );
+    await landed;
+    return id;
+  }
+}
+
 /// A planner whose writes are REAL to the stream: `removeEntry` re-emits the
 /// week without the entry, `restoreEntry` brings the same row back and
 /// `addEntry` re-emits it with a new one, which is what lets a test watch the
@@ -987,6 +1018,38 @@ void main() {
       await tester.tap(find.text('Add to Thursday'));
       await tester.pumpAndSettle();
       expect(planning.recipeEntries.single.portions, isNull);
+    });
+
+    testWidgets('a double-tapped Add writes once and closes only the sheet', (
+      tester,
+    ) async {
+      filterForuiSemanticsAssertions();
+      final landed = Completer<void>();
+      final planning = _SlowAddPlanningRepo(_plannedWeek(), landed.future);
+      await _pumpWeek(
+        tester,
+        planning: planning,
+        recipes: _recipesRepo(null),
+        expose: (_) {},
+      );
+      await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Add to Thursday'));
+      await tester.pumpAndSettle();
+      // Two taps while the first write is still in flight.
+      await tester.tap(find.text('Add to Thursday'));
+      await tester.pump();
+      await tester.tap(find.text('Add to Thursday'), warnIfMissed: false);
+      await tester.pump();
+      landed.complete();
+      await tester.pumpAndSettle();
+
+      expect(planning.recipeEntries, hasLength(1));
+      expect(find.text('Add to plan'), findsNothing, reason: 'sheet closed');
+      expect(find.byType(WeekView), findsOneWidget, reason: 'page kept');
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets("the slot is the one question, and it opens on the day's "
