@@ -420,7 +420,13 @@ class _PaneMeal extends ConsumerWidget {
     final leftover = eatsFromAPot(plan, entry, cooked);
     final marker = leftover ? null : cooked;
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
-    final route = mealTitleRoute(entry, weekKey: weekKey);
+    final route = mealTitleRoute(
+      entry,
+      weekKey: weekKey,
+      servings: kind == PlanEntryKind.recipe
+          ? mealCookingPortions(plan, entry, {for (final m in roster) m.id: m})
+          : null,
+    );
     final edited =
         (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
                 const [])

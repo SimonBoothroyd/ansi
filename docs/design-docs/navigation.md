@@ -346,7 +346,7 @@ So the bar reads, per screen:
 | On screen | The bar |
 |---|---|
 | the four tab roots | `#/`, `#/week?week=…`, `#/cook?week=…`, `#/shop?week=…` |
-| a recipe, and as the week plans it | `#/recipes/<id>`, `#/recipes/<id>?week=…` |
+| a recipe, as the week plans it, and at a cooking's amount | `#/recipes/<id>`, `#/recipes/<id>?week=…`, `#/recipes/<id>?week=…&servings=N` |
 | its editor, landed on a fix, and week mode | `#/recipes/<id>/edit`, `#/recipes/<id>/edit?focus=makes`, `#/recipes/<id>/edit?line=<line id>`, `#/recipes/<id>/edit?week=…` |
 | a new recipe | `#/recipes/new` (`?title=`, `?book=`, `?section=`, `?handback=1`) |
 | a book, the manager, one row, its form | `#/books/<id>`, `#/ingredients`, `#/ingredients/<id>`, `#/ingredients/<id>?edit=1` |
@@ -402,6 +402,10 @@ sits at the same depth under both and the element is reused. Two builders would
 put it at two depths, and the first pick would throw the screen away and rebuild
 it — the scroll, the search field's text and the pane's posture with it. A
 restatement that reloads the screen is not a restatement.
+
+**`?servings=N` on `/recipes/:id`** is the amount Cook's titles and a Week
+meal's title open the page at; the page seeds its stepper from it once, and
+the stepper owns it from then on.
 
 One more parameter is a door rather than view state: **`?step=N` on
 `/recipes/:id`**, which a timer's dock row and notification use to open the

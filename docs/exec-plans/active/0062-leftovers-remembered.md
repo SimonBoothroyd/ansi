@@ -482,6 +482,23 @@ Append-only.
   - **Not done here:** `make test-sim` and a fresh hands-on sim review (no
     simulator in this lane), and the release.
 
+- 2026-11-10 — **A recipe opened from a cooking opens at its amount**
+  (owner's ask). Cook's titles (phone card, desk row, component card) and the
+  Week dish row's title — the existing doors, none added — carry
+  `?servings=N` beside `?week=`; the page seeds its servings provider once
+  on arrival, and the stepper and Ask move it as before.
+  - **From Cook, the batch the title names:** the first session not cooked
+    yet, else the last. A split recipe has one title over two batches, and
+    the one still to cook is the one being cooked.
+  - **The amount is `totalPortions`**, so the stored whole-batch choice opens
+    whole; a component batch opens at batches × its servings.
+  - **From the Week, the pot is the cook plan's session** (a cooking, or the
+    week's grouping before one is born, or a pot bought in an earlier week),
+    not only `plan_entry.cooking`: the pot is cooked before anyone ticks.
+    A meal no session covers opens at its own `demandPortions`.
+  - Library, search and back-links send no amount and open at the recipe's
+    own servings.
+
 ## Notes / open questions
 
 - **Drop `leftover`, `leftover_of`, `from_leftover` and `batch_leftover`**

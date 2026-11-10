@@ -200,7 +200,8 @@ class _RecipeCard extends ConsumerWidget {
                 const [])
             .isNotEmpty;
     // The title link carries the viewed week (`?week=`) so the recipe page can
-    // offer "Edit for this week".
+    // offer "Edit for this week", and the batch's amount (`?servings=`) so it
+    // opens scaled to what is cooked.
     final weekStart = ref.watch(viewedWeekStartProvider);
     final weekKey = isoDateOf(weekStart);
     // The cook day the ticks say, so a skipped first meal moves it; a batch
@@ -212,8 +213,13 @@ class _RecipeCard extends ConsumerWidget {
     return _Card(
       title: recipe.title,
       subtitle: recipeSummaryLine(recipe, editedThisWeek: edited),
-      onTitleTap: () =>
-          context.pushOnce('/recipes/${recipe.recipeId}?week=$weekKey'),
+      onTitleTap: () => context.pushOnce(
+        recipePageRoute(
+          recipe.recipeId,
+          weekKey: weekKey,
+          servings: cookTitleServings(meals),
+        ),
+      ),
       children: [
         for (final (i, session) in meals.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
@@ -247,7 +253,9 @@ class _ComponentCard extends ConsumerWidget {
     return _Card(
       title: componentCardTitle(recipe.title, parents),
       subtitle: componentSummaryLine(recipe),
-      onTitleTap: () => context.pushOnce('/recipes/${recipe.recipeId}'),
+      onTitleTap: () => context.pushOnce(
+        recipePageRoute(recipe.recipeId, servings: cookTitleServings(sessions)),
+      ),
       children: [
         for (final (i, session) in sessions.indexed) ...[
           if (i > 0) const SizedBox(height: 8),

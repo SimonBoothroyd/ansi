@@ -50,11 +50,36 @@ Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
   return ref.watch(recipeRepositoryProvider).usedIn(id);
 }
 
+/// The recipe page's location: `?week=` when opened from a week that plans
+/// it ([weekKey]), `?servings=` when opened at a cooking's amount
+/// ([servings]; dropped unless it is a positive number).
+String recipePageRoute(String recipeId, {String? weekKey, double? servings}) {
+  final query = {
+    if (weekKey != null) 'week': weekKey,
+    if (servings != null && servings.isFinite && servings > 0)
+      'servings': servings == servings.truncateToDouble()
+          ? '${servings.toInt()}'
+          : '$servings',
+  };
+  return Uri(
+    path: '/recipes/$recipeId',
+    queryParameters: query.isEmpty ? null : query,
+  ).toString();
+}
+
+/// The servings a recipe page's `?servings=` asks it to open at, or null when
+/// the parameter is absent or is not a positive number.
+double? servingsFromQuery(String? raw) {
+  final value = raw == null ? null : double.tryParse(raw);
+  return value != null && value.isFinite && value > 0 ? value : null;
+}
+
 /// The servings a recipe page's stepper shows, or null until it moves (the
 /// page reads null as the recipe's own). A provider rather than page state so
 /// Ansi reads the servings on screen and its `set_servings` moves the
-/// stepper. Auto-disposed: a page opened fresh starts at the
-/// recipe's own servings, as it always has.
+/// stepper. Auto-disposed: a page opened fresh starts at the recipe's own
+/// servings, or at the cooking's amount it was opened from (`?servings=`),
+/// which the page seeds here once.
 @riverpod
 class RecipeServings extends _$RecipeServings {
   @override

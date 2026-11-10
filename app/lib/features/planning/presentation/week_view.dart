@@ -523,7 +523,13 @@ class _DishRow extends ConsumerWidget {
     // The recipe page offers its week door only to an arrival naming a week
     // that plans the recipe.
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
-    final route = mealTitleRoute(entry, weekKey: weekKey);
+    final route = mealTitleRoute(
+      entry,
+      weekKey: weekKey,
+      servings: kind == PlanEntryKind.recipe
+          ? mealCookingPortions(plan, entry, {for (final m in roster) m.id: m})
+          : null,
+    );
     // The variant is per (week, recipe), so every planned day of it says so.
     final edited =
         (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??

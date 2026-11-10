@@ -38,6 +38,19 @@ String formatCookCount(int sessions) => switch (sessions) {
   whole: '×${nudge.factor} whole batch',
 );
 
+/// The servings a Cook title opens its recipe page at: the batch it names —
+/// the first of [sessions] not cooked yet, else the last — as servings of the
+/// recipe. [CookSession.scaleFactor] times its servings, so a whole batch
+/// opens whole and a component batch at its batches. Null with no sessions.
+double? cookTitleServings(List<CookSession> sessions) {
+  if (sessions.isEmpty) return null;
+  final session = sessions.firstWhere(
+    (s) => !wasCooked(s),
+    orElse: () => sessions.last,
+  );
+  return session.scaleFactor * session.servingsBase;
+}
+
 /// The recipe card's summary line: the portions the week's own meals plan,
 /// plus shelf life ("4 portions across the week · keeps 4 d"). A pot's
 /// later-week meals and what a cooking made beyond the plan are its

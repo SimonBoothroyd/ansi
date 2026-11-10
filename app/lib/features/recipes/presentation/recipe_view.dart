@@ -5,7 +5,9 @@
 /// component); two columns with no tabs at [AnsiLayout.expanded], built from
 /// the same widgets. Opened from a week that plans it (`?week=`), the
 /// ingredients show that week's effective lines and the `optional` tag becomes
-/// the switch that writes the week's include row.
+/// the switch that writes the week's include row. Opened from a cooking
+/// (`?servings=`, from Cook or a Week meal), the servings start at that
+/// cooking's amount.
 library;
 
 import 'dart:async';
@@ -69,10 +71,16 @@ class RecipeView extends ConsumerWidget {
     required this.recipeId,
     this.weekKey,
     this.step,
+    this.arrivalServings,
     super.key,
   });
 
   final String recipeId;
+
+  /// The servings to open at (`?servings=N`): the amount of the cooking this
+  /// page was opened from. Null from anywhere else, which opens at the
+  /// recipe's own servings.
+  final double? arrivalServings;
 
   /// The method step to open on (`?step=N`, from 0): a timer's dock row or
   /// notification asked for it.
@@ -106,13 +114,23 @@ class RecipeView extends ConsumerWidget {
                 ),
               ),
             )
-          : _RecipeBody(recipe: recipe, weekKey: weekKey, step: step),
+          : _RecipeBody(
+              recipe: recipe,
+              weekKey: weekKey,
+              step: step,
+              arrivalServings: arrivalServings,
+            ),
     );
   }
 }
 
 class _RecipeBody extends HookConsumerWidget {
-  const _RecipeBody({required this.recipe, this.weekKey, this.step});
+  const _RecipeBody({
+    required this.recipe,
+    this.weekKey,
+    this.step,
+    this.arrivalServings,
+  });
 
   final Recipe recipe;
 
@@ -122,14 +140,30 @@ class _RecipeBody extends HookConsumerWidget {
   /// See [RecipeView.step].
   final int? step;
 
+  /// See [RecipeView.arrivalServings].
+  final double? arrivalServings;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Held in a provider rather than the page so Ansi can read the servings
-    // on screen and move them; null until the stepper moves.
+    // on screen and move them; null until the stepper moves, or until an
+    // arrival at a cooking's amount seeds it.
     final servings =
-        ref.watch(recipeServingsProvider(recipe.id)) ?? recipe.servingsBase;
-    void setServings(double v) =>
-        ref.read(recipeServingsProvider(recipe.id).notifier).set(v);
+        ref.watch(recipeServingsProvider(recipe.id)) ??
+        arrivalServings ??
+        recipe.servingsBase;
+    final servingsNotifier = ref.read(
+      recipeServingsProvider(recipe.id).notifier,
+    );
+    void setServings(double v) => servingsNotifier.set(v);
+    // The arrival's amount is written once, so Ansi reads the number on
+    // screen; from then on the stepper and Ansi move it as they always have.
+    // After the frame, because a provider cannot change while widgets build.
+    useEffect(() {
+      final seed = arrivalServings;
+      if (seed != null) scheduleMicrotask(() => servingsNotifier.set(seed));
+      return null;
+    }, [recipe.id, arrivalServings]);
     // Opened at a timer's step, the page opens on the method.
     final tab = useState(step == null ? 0 : 1);
     // What the cook has ticked off in the method. Page-local and unsynced, and

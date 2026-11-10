@@ -22,6 +22,8 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/leftovers.dart';
 import '../../cook_plan/presentation/leftovers_view_models.dart';
+import '../../recipes/presentation/recipe_view_models.dart'
+    show recipePageRoute;
 import '../data/planning_providers.dart';
 import '../domain/planning.dart';
 import 'meal_editor_sheet.dart';
@@ -233,12 +235,21 @@ String mealTitleText(PlanEntry entry) =>
     entry.title ?? deletedTargetLabel(entry);
 
 /// Where a meal's title goes: a recipe's page with the week it is planned in
-/// (`?week=`), a bare ingredient's page, or null for a deleted target or a meal
-/// eaten out.
-String? mealTitleRoute(PlanEntry entry, {required String weekKey}) {
+/// (`?week=`) and the [servings] to open at (`?servings=`, the amount of the
+/// cooking it belongs to: [mealCookingPortions]), a bare ingredient's page,
+/// or null for a deleted target or a meal eaten out.
+String? mealTitleRoute(
+  PlanEntry entry, {
+  required String weekKey,
+  double? servings,
+}) {
   if (entry.title == null) return null;
   return switch (entry.kind) {
-    PlanEntryKind.recipe => '/recipes/${entry.recipeId}?week=$weekKey',
+    PlanEntryKind.recipe => recipePageRoute(
+      entry.recipeId!,
+      weekKey: weekKey,
+      servings: servings,
+    ),
     PlanEntryKind.ingredient => '/ingredients/${entry.ingredientId}',
     PlanEntryKind.out => null,
   };

@@ -126,6 +126,13 @@ the `optional` tag becomes the switch: one tap writes the week's `include` row
 through `WeekVariantRepository.setLineIncluded`, and the panel reads the week's
 own re-summation (`watchVariantRecipeMacros`).
 
+**The page opens at a cooking's amount.** `?servings=N` (built by
+`recipePageRoute`, read by `servingsFromQuery`) seeds `recipeServingsProvider`
+once on arrival, so Ansi reads the number on screen; the stepper and Ansi's
+`set_servings` move it afterwards. Cook's titles send the batch they name
+(`cookTitleServings`), a Week meal's title the whole pot of its batch
+(`mealCookingPortions`).
+
 ## A component line and a recipe's own measures
 
 The model is [ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md):

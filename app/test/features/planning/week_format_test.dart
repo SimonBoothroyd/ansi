@@ -535,4 +535,81 @@ void main() {
       expect(kNotCookedNotBought, 'not cooked, not bought');
     });
   });
+
+  group('mealCookingPortions', () {
+    const ada = Member(id: 'm1', displayName: 'Ada');
+    const roster = {'m1': ada};
+    const entry = PlanEntry(
+      id: 'e1',
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'r1',
+      recipeTitle: 'Curry',
+      eaterIds: ['m1'],
+    );
+    CoveredMeal meal(String id, int day, double portions) => CoveredMeal(
+      dayOfWeek: day,
+      mealSlot: 'Dinner',
+      portions: portions,
+      entryId: id,
+    );
+
+    test('is the whole pot of the batch the meal is in', () {
+      final plan = buildCookPlan([
+        PlannedRecipe(
+          recipeId: 'r1',
+          title: 'Curry',
+          servingsBase: 2,
+          meals: [meal('e1', 0, 1), meal('e2', 2, 2)],
+        ),
+      ]);
+      expect(mealCookingPortions(plan, entry, roster), 3);
+    });
+
+    test('rounded up when its cook chose the whole batch', () {
+      final plan = buildCookPlan([
+        PlannedRecipe(
+          recipeId: 'r1',
+          title: 'Curry',
+          servingsBase: 2,
+          cookings: [
+            PlannedCooking(
+              id: 'e1',
+              wholeBatch: true,
+              meals: [meal('e1', 0, 1), meal('e2', 2, 2)],
+            ),
+          ],
+        ),
+      ]);
+      expect(mealCookingPortions(plan, entry, roster), 4);
+    });
+
+    test('a pot bought in an earlier week is that pot', () {
+      final plan = CookPlan(
+        eatenFromEarlier: {
+          'e1': CookSession(
+            recipeId: 'r1',
+            recipeTitle: 'Curry',
+            servingsBase: 2,
+            cookDay: -2,
+            made: 5,
+            covers: [meal('e0', -2, 2), meal('e1', 0, 1)],
+          ),
+        },
+      );
+      expect(mealCookingPortions(plan, entry, roster), 5);
+    });
+
+    test('a meal no batch covers is its own portions', () {
+      expect(mealCookingPortions(null, entry, roster), 1);
+      expect(
+        mealCookingPortions(
+          const CookPlan(),
+          entry.copyWith(portions: 3),
+          roster,
+        ),
+        3,
+      );
+    });
+  });
 }

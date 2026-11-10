@@ -233,15 +233,21 @@ class _MealRow extends ConsumerWidget {
         ),
     ];
     // The title carries the week it is cooking for, so the recipe page can
-    // offer "Edit for this week" beside its own Edit. Cook stays read-only.
+    // offer "Edit for this week" beside its own Edit, and the batch's amount,
+    // so it opens scaled to what is cooked. Cook stays read-only.
     final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
 
     return _SheetRow(
       name: _Name(
         title: recipe.title,
         facts: recipeSummaryLine(recipe, editedThisWeek: edited),
-        onTap: () =>
-            context.pushOnce('/recipes/${recipe.recipeId}?week=$weekKey'),
+        onTap: () => context.pushOnce(
+          recipePageRoute(
+            recipe.recipeId,
+            weekKey: weekKey,
+            servings: cookTitleServings(sessions),
+          ),
+        ),
       ),
       track: CookTrack(
         rowKey: recipe.recipeId,
@@ -314,7 +320,12 @@ class _ComponentRow extends ConsumerWidget {
       name: _Name(
         title: componentCardTitle(recipe.title, parents),
         facts: componentSummaryLine(recipe),
-        onTap: () => context.pushOnce('/recipes/${recipe.recipeId}'),
+        onTap: () => context.pushOnce(
+          recipePageRoute(
+            recipe.recipeId,
+            servings: cookTitleServings(sessions),
+          ),
+        ),
       ),
       track: CookTrack(
         rowKey: '${recipe.recipeId}-component',

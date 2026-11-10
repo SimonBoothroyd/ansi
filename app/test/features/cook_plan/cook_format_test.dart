@@ -789,4 +789,65 @@ void main() {
       expect(formatCookCount(2), '2 cooks');
     });
   });
+
+  group('cookTitleServings', () {
+    CookSession session({
+      double servingsBase = 2,
+      List<CoveredMeal> covers = const [],
+      bool wholeBatch = false,
+      List<ComponentDemand> demands = const [],
+    }) => CookSession(
+      recipeId: 'r1',
+      recipeTitle: 'Curry',
+      servingsBase: servingsBase,
+      cookDay: 0,
+      covers: covers,
+      wholeBatch: wholeBatch,
+      demands: demands,
+    );
+    CoveredMeal meal(int day, double portions, {double eaten = 0}) =>
+        CoveredMeal(
+          dayOfWeek: day,
+          mealSlot: 'Dinner',
+          portions: portions,
+          eatenPortions: eaten,
+        );
+
+    test('is the batch’s portions, whole when the cook chose the whole '
+        'batch', () {
+      final covers = [meal(0, 1), meal(2, 2)];
+      expect(cookTitleServings([session(covers: covers)]), 3);
+      expect(cookTitleServings([session(covers: covers, wholeBatch: true)]), 4);
+    });
+
+    test('of a split, the first batch not cooked yet, else the last', () {
+      final cooked = session(covers: [meal(0, 2, eaten: 2)]);
+      final next = session(covers: [meal(4, 3)]);
+      final later = session(covers: [meal(6, 5)]);
+      expect(cookTitleServings([cooked, next, later]), 3);
+      expect(
+        cookTitleServings([
+          cooked,
+          session(covers: [meal(4, 3, eaten: 1)]),
+        ]),
+        3,
+      );
+      expect(cookTitleServings(const []), isNull);
+    });
+
+    test('a component batch opens at its batches of the recipe', () {
+      const demand = ComponentDemand(
+        parentRecipeId: 'p',
+        parentTitle: 'Sliders',
+        cookDay: 0,
+        batches: 1.5,
+      );
+      expect(
+        cookTitleServings([
+          session(servingsBase: 4, demands: [demand]),
+        ]),
+        6,
+      );
+    });
+  });
 }

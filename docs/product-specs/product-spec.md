@@ -489,6 +489,15 @@ its steps.
   `makes` states that unit's family
   ([ADR-0018](../decisions/0018-a-recipe-measure-is-a-named-amount.md)).
 - Scaling = quantity × factor (imprecise units left as-is).
+- **The page opens at a cooking's amount.** From Cook (a card's or a sheet
+  row's title) or from a Week meal's title, the recipe page opens with its
+  servings at that cooking's amount (`?servings=`, beside `?week=`): from
+  Cook, the batch the title names — the first not cooked yet, else the last —
+  as Cook cooks it, so *×1 whole batch* opens whole and a component at its
+  batches; from a Week meal, the whole pot of the batch it belongs to, or the
+  meal's own portions while no batch covers it. The amount is set once on
+  arrival; the stepper and Ansi move it as ever. Opened any other way (the
+  Library, search, a back-link) the page opens at `servings_base`.
 - **Optional lines (plan 0025, D6a/D6b).** `optional` is a stored fact about
   a line — "lime, to serve (optional)" — not about its amount: the page
   still prints `1 lime`, with a muted `optional` tag after the note in the

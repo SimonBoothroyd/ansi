@@ -27,6 +27,9 @@ import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/domain/recipe_repository.dart';
+import 'package:ansi/features/recipes/presentation/recipe_view.dart';
+import 'package:ansi/features/recipes/presentation/recipe_view_models.dart'
+    show servingsFromQuery;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
@@ -1361,12 +1364,13 @@ void main() {
 
     // E2 — the title opens the recipe it names, with no mode in the way, and
     // carries the week it is planned in: that is what lets the recipe page
-    // offer "Edit for this week" beside its own Edit.
+    // offer "Edit for this week" beside its own Edit. A meal no batch covers
+    // opens at its own portions.
     await tester.tap(find.text('Weeknight Chicken Curry'));
     await tester.pumpAndSettle();
     expect(
       router.state.uri.toString(),
-      '/recipes/r1?week=${WeekShape.monday.keyOf(DateTime.now())}',
+      '/recipes/r1?week=${WeekShape.monday.keyOf(DateTime.now())}&servings=1',
     );
     expect(find.text('recipe r1'), findsOneWidget);
 
@@ -2173,6 +2177,140 @@ void main() {
       await tester.tap(find.bySemanticsLabel(RegExp('^Who is eating')));
       await tester.pumpAndSettle();
       expect(find.text('Something else'), findsOneWidget);
+    });
+  });
+
+  group('a meal title opens its recipe at its cooking', () {
+    /// The Monday of the week on screen, at nine: the meals below are all
+    /// ahead, so nothing about the batch depends on the day the test runs.
+    final monday = WeekShape.monday
+        .weekStartOf(DateTime.now())
+        .add(const Duration(hours: 9));
+
+    /// The curry on Monday (one portion) and Thursday (two), as one week.
+    final week = WeekPlan(
+      id: 'w',
+      weekStart: WeekShape.monday.weekStartOf(monday),
+      entries: const [
+        PlanEntry(
+          id: 'e1',
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+          recipeId: 'r1',
+          recipeTitle: 'Weeknight Chicken Curry',
+          eaterIds: ['m1'],
+        ),
+        PlanEntry(
+          id: 'e2',
+          dayOfWeek: 3,
+          mealSlot: 'Lunch',
+          recipeId: 'r1',
+          recipeTitle: 'Weeknight Chicken Curry',
+          eaterIds: ['m1'],
+          portions: 2,
+        ),
+      ],
+    );
+
+    /// The Week and the real recipe page under one router, over [cook].
+    Future<GoRouter> pumpWeekToPage(
+      WidgetTester tester,
+      CookPlanRepository cook,
+    ) async {
+      filterForuiSemanticsAssertions();
+      late GoRouter router;
+      await tester.pumpWidget(
+        routedHost(
+          initial: '/week',
+          overrides: _withCook([
+            clockProvider.overrideWithValue(() => monday),
+            planningRepositoryProvider.overrideWithValue(
+              _FakePlanningRepo(week: week),
+            ),
+            recipeRepositoryProvider.overrideWithValue(
+              FakeRecipeRepository(
+                summaries: const [
+                  RecipeSummary(
+                    id: 'r1',
+                    title: 'Weeknight Chicken Curry',
+                    servingsBase: 2,
+                  ),
+                ],
+                recipe: const Recipe(
+                  id: 'r1',
+                  title: 'Weeknight Chicken Curry',
+                  servingsBase: 2,
+                ),
+              ),
+            ),
+          ], cook),
+          expose: (r) => router = r,
+          routes: {
+            '/week': (_, _) => const WeekView(),
+            '/recipes/:id': (_, state) => RecipeView(
+              recipeId: state.pathParameters['id']!,
+              weekKey: state.uri.queryParameters['week'],
+              arrivalServings: servingsFromQuery(
+                state.uri.queryParameters['servings'],
+              ),
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry').first);
+      await tester.pumpAndSettle();
+      return router;
+    }
+
+    CoveredMeal meal(String id, int day, double portions) => CoveredMeal(
+      dayOfWeek: day,
+      mealSlot: 'Dinner',
+      portions: portions,
+      entryId: id,
+    );
+
+    testWidgets('the whole pot, not just this meal', (tester) async {
+      final router = await pumpWeekToPage(
+        tester,
+        FakeCookPlanRepository.of([
+          PlannedRecipe(
+            recipeId: 'r1',
+            title: 'Weeknight Chicken Curry',
+            servingsBase: 2,
+            meals: [meal('e1', 0, 1), meal('e2', 3, 2)],
+          ),
+        ]),
+      );
+      // Monday's title opens at Thursday's portions too: one pot.
+      expect(
+        router.state.uri.toString(),
+        '/recipes/r1?week=${WeekShape.monday.keyOf(monday)}&servings=3',
+      );
+      expect(find.text('3 servings'), findsOneWidget);
+    });
+
+    testWidgets('a whole batch rounds the pot up', (tester) async {
+      final router = await pumpWeekToPage(
+        tester,
+        FakeCookPlanRepository.of([
+          PlannedRecipe(
+            recipeId: 'r1',
+            title: 'Weeknight Chicken Curry',
+            servingsBase: 2,
+            cookings: [
+              PlannedCooking(
+                id: 'e1',
+                wholeBatch: true,
+                meals: [meal('e1', 0, 1), meal('e2', 3, 2)],
+              ),
+            ],
+          ),
+        ]),
+      );
+      // Three portions planned, cooked as two whole batches of two.
+      expect(router.state.uri.queryParameters['servings'], '4');
+      expect(find.text('4 servings'), findsOneWidget);
     });
   });
 }

@@ -11,12 +11,16 @@ import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_sheet.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_view.dart';
+import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/presentation/week_format.dart';
 import 'package:ansi/features/planning/presentation/week_header.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/component_math.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/presentation/recipe_view.dart';
+import 'package:ansi/features/recipes/presentation/recipe_view_models.dart'
+    show servingsFromQuery;
 import 'package:ansi/shared/week_strip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +31,10 @@ import 'package:hooks_riverpod/misc.dart' show Override;
 
 import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_leftover_repository.dart';
+import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
+import '../../helpers/fake_week_variant_repository.dart';
+import '../../helpers/forui_semantics.dart';
 import '../../helpers/pump_app.dart';
 
 /// The recipe list the component card reads its target's yield off.
@@ -534,13 +541,105 @@ void main() {
     await tester.pumpAndSettle();
 
     // The week rides along (`?week=`), so the recipe page can offer the week
-    // door. Cook itself stays read-only — it carries the week, it does not
-    // write it.
+    // door, and so does the batch's amount (`?servings=`). Cook itself stays
+    // read-only — it carries the week, it does not write it.
     expect(
       router.state.uri.toString(),
-      '/recipes/r1?week=${WeekShape.monday.keyOf(_monday)}',
+      '/recipes/r1?week=${WeekShape.monday.keyOf(_monday)}&servings=2',
     );
     expect(find.text('recipe r1'), findsOneWidget);
+  });
+
+  group('the recipe page a title opens', () {
+    /// Cook and the real recipe page under one router, so the amount a title
+    /// carries is the amount the page shows.
+    Future<GoRouter> pumpCookToPage(
+      WidgetTester tester,
+      List<PlannedRecipe> recipes,
+    ) async {
+      filterForuiSemanticsAssertions();
+      late GoRouter router;
+      await tester.pumpWidget(
+        routedHost(
+          initial: '/cook',
+          overrides: _pinned([
+            cookPlanRepositoryProvider.overrideWithValue(
+              FakeCookPlanRepository.of(recipes),
+            ),
+            recipeRepositoryProvider.overrideWithValue(
+              FakeRecipeRepository(
+                recipe: const Recipe(
+                  id: 'r1',
+                  title: 'Chicken Curry',
+                  servingsBase: 2,
+                ),
+              ),
+            ),
+            planningRepositoryProvider.overrideWithValue(
+              FakePlanningRepository(),
+            ),
+            weekVariantRepositoryProvider.overrideWithValue(
+              FakeWeekVariantRepository(),
+            ),
+          ]),
+          expose: (r) => router = r,
+          routes: {
+            '/cook': (_, _) => const CookView(),
+            '/recipes/:id': (_, state) => RecipeView(
+              recipeId: state.pathParameters['id']!,
+              weekKey: state.uri.queryParameters['week'],
+              arrivalServings: servingsFromQuery(
+                state.uri.queryParameters['servings'],
+              ),
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chicken Curry'));
+      await tester.pumpAndSettle();
+      return router;
+    }
+
+    testWidgets('is scaled to the batch: every meal it covers', (tester) async {
+      final router = await pumpCookToPage(tester, [
+        _recipe('Chicken Curry', {0: 2, 2: 3}, id: 'r1', keeps: 4),
+      ]);
+      expect(router.state.uri.queryParameters['servings'], '5');
+      expect(find.text('5 servings'), findsOneWidget);
+    });
+
+    testWidgets('a whole batch opens whole', (tester) async {
+      final router = await pumpCookToPage(tester, [
+        _recipe('Chicken Curry', const {}, id: 'r1').copyWith(
+          cookings: const [
+            PlannedCooking(
+              id: 'c1',
+              wholeBatch: true,
+              meals: [
+                CoveredMeal(
+                  dayOfWeek: 0,
+                  mealSlot: 'Dinner',
+                  portions: 3,
+                  entryId: 'r1-0',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ]);
+      // Three portions planned, cooked as two whole batches of two.
+      expect(router.state.uri.queryParameters['servings'], '4');
+      expect(find.text('4 servings'), findsOneWidget);
+    });
+
+    testWidgets('a split names the batch still to cook', (tester) async {
+      final router = await pumpCookToPage(tester, [
+        _recipe('Chicken Curry', {0: 2, 5: 3}, id: 'r1', keeps: 2),
+      ]);
+      expect(router.state.uri.queryParameters['servings'], '2');
+      expect(find.text('2 servings'), findsOneWidget);
+    });
   });
 
   group('at a desk', () {
@@ -707,12 +806,13 @@ void main() {
       expect(find.text('covers Mon dinner · ¼ portion spare'), findsOneWidget);
       expect(marks(tester, 'r1', 0).cookScale, '×1');
 
-      // The title is the same door, carrying the same week.
+      // The title is the same door, carrying the same week, and the batch as
+      // the switch now has it: whole.
       await tester.tap(find.text('Curry'));
       await tester.pumpAndSettle();
       expect(
         router.state.uri.toString(),
-        '/recipes/r1?week=${WeekShape.monday.keyOf(_monday)}',
+        '/recipes/r1?week=${WeekShape.monday.keyOf(_monday)}&servings=2',
       );
     });
 

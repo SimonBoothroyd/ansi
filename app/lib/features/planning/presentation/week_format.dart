@@ -220,6 +220,26 @@ CookMarker? _markerOf(
   );
 }
 
+/// The portions a recipe meal's title opens its recipe page at: the whole pot
+/// of the batch it belongs to, as Cook cooks it ([CookSession.totalPortions],
+/// whole-batch rounding included), whether that batch is a cooking already or
+/// still the week's grouping. A meal no batch of [plan] covers opens at its
+/// own [demandPortions].
+double mealCookingPortions(
+  CookPlan? plan,
+  PlanEntry entry,
+  Map<String, Member> membersById,
+) {
+  final session =
+      plan?.eatenFromEarlier[entry.id] ??
+      plan?.recipes
+          .where((r) => r.recipeId == entry.recipeId)
+          .expand((r) => r.mealSessions)
+          .where((s) => s.covers.any((m) => m.entryId == entry.id))
+          .firstOrNull;
+  return session?.totalPortions ?? demandPortions(entry, membersById);
+}
+
 /// Whether [entry] wears the `leftover` tag in place of a cook marker: a
 /// meal in a cooking eaten from it once cooked ([CookMarkerKind.leftover]),
 /// or from food said by hand, which has no batch in any week's [plan].
