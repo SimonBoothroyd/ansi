@@ -534,7 +534,10 @@ CookingRead readCooking(CookingInput input, DateTime today) {
     // Never cooked: nothing is left, and nothing can be eaten from it.
     return (
       rows: const [],
-      meals: [for (final m in meals) warned(m)],
+      meals: [
+        for (final m in meals)
+          if (!m.removed) warned(m),
+      ],
       fridge: 0,
       freezer: 0,
     );
@@ -568,7 +571,7 @@ CookingRead readCooking(CookingInput input, DateTime today) {
         rows: const [],
         meals: [
           for (final m in meals)
-            if (!_dateOnly(m.day).isBefore(day)) warned(m),
+            if (!m.removed && !_dateOnly(m.day).isBefore(day)) warned(m),
         ],
         fridge: 0,
         freezer: 0,
@@ -587,11 +590,18 @@ CookingRead readCooking(CookingInput input, DateTime today) {
   var spokenFridge = 0.0;
   var spokenFreezer = 0.0;
   final judged = <({LeftoverMeal meal, bool onFridgeRow})>[];
+  // A meal taken off the plan has no tag left to judge: it only takes.
+  final removed = {
+    for (final m in meals)
+      if (m.removed) m.entryId,
+  };
 
   for (final m in meals) {
     final mealDay = _dateOnly(m.day);
     final take = m.takeOn(day);
-    final ahead = !mealDay.isBefore(day);
+    // A meal removed after it was ticked: eaten, so it takes, and plans
+    // nothing more; no tag is left to judge.
+    final ahead = !m.removed && !mealDay.isBefore(day);
     if (mealDay.isBefore(cookDay)) {
       // Eaten before it was cooked: a meal of food said by hand planned
       // before its date. A meal skipped before the cook day takes nothing.
@@ -604,20 +614,26 @@ CookingRead readCooking(CookingInput input, DateTime today) {
 
     if (inFridge && !inFridgeDate && freezable && inFreezerDate) {
       // A freezer meal: its portions go in the freezer by the fridge date,
-      // as far as the freezer has not got them spare already.
-      final covered = min(m.portions, freezer > 0 ? freezer : 0.0);
-      final moved = m.portions - covered;
-      final short = ahead && moved > (fridge > 0 ? fridge : 0) + 1e-9;
-      fridge -= moved;
-      freezer += moved - take;
-      final pending = freezePending && moved > 1e-9;
-      if (ahead) {
-        if (pending) {
-          spokenFridge += moved;
-          spokenFreezer += take - moved;
-        } else {
-          spokenFreezer += take;
-        }
+      // as far as the freezer has not got them spare already, and as far as
+      // the fridge has them: only what is there is frozen. The rest is short.
+      final wanted = m.removed ? take : m.portions;
+      final covered = min(wanted, freezer > 0 ? freezer : 0.0);
+      final needed = wanted - covered;
+      final moved = min(needed, fridge > 0 ? fridge : 0.0);
+      final short = ahead && needed > moved + 1e-9;
+      // Until the fridge date the portions still sit in the fridge, and the
+      // meal (and any shortfall) is the fridge row's to say; after it, the
+      // freezer's.
+      final pending = ahead && freezePending && moved > 1e-9;
+      if (pending) {
+        fridge -= needed;
+        freezer -= covered;
+        spokenFridge += needed;
+        spokenFreezer += covered;
+      } else {
+        fridge -= moved;
+        freezer += moved - take;
+        if (ahead) spokenFreezer += take;
       }
       judged.add((
         meal: LeftoverMeal(
@@ -676,7 +692,8 @@ CookingRead readCooking(CookingInput input, DateTime today) {
   final showFreezer = freezerBox > 1e-9 || spokenFreezer > 1e-9;
   List<LeftoverMeal> on({required bool fridgeRow}) => [
     for (final j in judged)
-      if (j.onFridgeRow == fridgeRow) j.meal,
+      if (j.onFridgeRow == fridgeRow && !removed.contains(j.meal.entryId))
+        j.meal,
   ];
   final fridgeMeals = on(fridgeRow: true);
   final rows = <Leftover>[
@@ -719,7 +736,10 @@ CookingRead readCooking(CookingInput input, DateTime today) {
   ];
   return (
     rows: rows,
-    meals: [for (final j in judged) j.meal],
+    meals: [
+      for (final j in judged)
+        if (!removed.contains(j.meal.entryId)) j.meal,
+    ],
     fridge: fridgeBox,
     freezer: freezerBox,
   );

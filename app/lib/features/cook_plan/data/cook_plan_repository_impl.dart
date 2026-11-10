@@ -198,6 +198,10 @@ loadPlannedWeek(
       if (leaveOut.contains(r['id'])) continue;
       (byCooking[r['cooking'] as String] ??= []).add(r);
     }
+    final whole = await loadWholeBatches(db, ids);
+    // The cookings bought this week, before the meals that join them.
+    final boughtHere = <({String recipeId, PlannedCooking cooking})>[];
+    final candidates = <JoinCandidate>[];
     for (final MapEntry(key: id, value: meals) in byCooking.entries) {
       final row = stored[id];
       // Food said by hand was bought already, and a cooking taken away is
@@ -229,6 +233,7 @@ loadPlannedWeek(
       final cooking = PlannedCooking(
         id: id,
         made: (row?['made'] as num?)?.toDouble(),
+        wholeBatch: whole.contains(id),
         meals: covers,
       );
       final buyWeek = boughtIn(Cooking(id: id, recipeId: recipeId), [
@@ -244,7 +249,23 @@ loadPlannedWeek(
           ),
       ]);
       if (buyWeek != null && _daysBetween(weekStart, buyWeek) == 0) {
-        (cookings[recipeId] ??= []).add(cooking);
+        boughtHere.add((recipeId: recipeId, cooking: cooking));
+        // Not cooked yet (nobody ticked a meal of it, nor said it gone): the
+        // week's meals it groups with join it.
+        final ticked = meals.any(
+          (r) => (linkedTicks[r['id']] ?? const {}).isNotEmpty,
+        );
+        if (!ticked && row?['gone_at'] == null) {
+          candidates.add((
+            id: id,
+            recipeId: recipeId,
+            weekStart: weekStart,
+            days: [
+              for (final m in covers)
+                if (m.dayOfWeek >= 0 && m.dayOfWeek <= 6) m.dayOfWeek,
+            ],
+          ));
+        }
         continue;
       }
       // Bought in another week: this week's meals of it eat from there.
@@ -256,6 +277,27 @@ loadPlannedWeek(
           eatenFromEarlier[m.entryId!] = session;
         }
       }
+    }
+
+    final joined = await loadJoiners(db, candidates);
+    for (final (:recipeId, :cooking) in boughtHere) {
+      final joiners = [
+        for (final r in joined[cooking.id] ?? const <Row>[])
+          if (!leaveOut.contains(r['id'])) r,
+      ];
+      final ids = {for (final r in joiners) r['id']};
+      unlinked[recipeId]?.removeWhere((m) => ids.contains(m.entryId));
+      (cookings[recipeId] ??= []).add(
+        joiners.isEmpty
+            ? cooking
+            : cooking.copyWith(
+                meals: [
+                  ...cooking.meals,
+                  for (final r in joiners)
+                    _covered(r, r['day_of_week'] as int, ticks, members),
+                ],
+              ),
+      );
     }
   }
 

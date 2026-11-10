@@ -289,7 +289,7 @@ as double,
 /// @nodoc
 mixin _$PlannedCooking {
 
- String get id; double? get made; List<CoveredMeal> get meals;
+ String get id; double? get made; bool get wholeBatch; List<CoveredMeal> get meals;
 /// Create a copy of PlannedCooking
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -300,16 +300,16 @@ $PlannedCookingCopyWith<PlannedCooking> get copyWith => _$PlannedCookingCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlannedCooking&&(identical(other.id, id) || other.id == id)&&(identical(other.made, made) || other.made == made)&&const DeepCollectionEquality().equals(other.meals, meals));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlannedCooking&&(identical(other.id, id) || other.id == id)&&(identical(other.made, made) || other.made == made)&&(identical(other.wholeBatch, wholeBatch) || other.wholeBatch == wholeBatch)&&const DeepCollectionEquality().equals(other.meals, meals));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,made,const DeepCollectionEquality().hash(meals));
+int get hashCode => Object.hash(runtimeType,id,made,wholeBatch,const DeepCollectionEquality().hash(meals));
 
 @override
 String toString() {
-  return 'PlannedCooking(id: $id, made: $made, meals: $meals)';
+  return 'PlannedCooking(id: $id, made: $made, wholeBatch: $wholeBatch, meals: $meals)';
 }
 
 
@@ -320,7 +320,7 @@ abstract mixin class $PlannedCookingCopyWith<$Res>  {
   factory $PlannedCookingCopyWith(PlannedCooking value, $Res Function(PlannedCooking) _then) = _$PlannedCookingCopyWithImpl;
 @useResult
 $Res call({
- String id, double? made, List<CoveredMeal> meals
+ String id, double? made, bool wholeBatch, List<CoveredMeal> meals
 });
 
 
@@ -337,11 +337,12 @@ class _$PlannedCookingCopyWithImpl<$Res>
 
 /// Create a copy of PlannedCooking
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? made = freezed,Object? meals = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? made = freezed,Object? wholeBatch = null,Object? meals = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,made: freezed == made ? _self.made : made // ignore: cast_nullable_to_non_nullable
-as double?,meals: null == meals ? _self.meals : meals // ignore: cast_nullable_to_non_nullable
+as double?,wholeBatch: null == wholeBatch ? _self.wholeBatch : wholeBatch // ignore: cast_nullable_to_non_nullable
+as bool,meals: null == meals ? _self.meals : meals // ignore: cast_nullable_to_non_nullable
 as List<CoveredMeal>,
   ));
 }
@@ -427,10 +428,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double? made,  List<CoveredMeal> meals)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double? made,  bool wholeBatch,  List<CoveredMeal> meals)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlannedCooking() when $default != null:
-return $default(_that.id,_that.made,_that.meals);case _:
+return $default(_that.id,_that.made,_that.wholeBatch,_that.meals);case _:
   return orElse();
 
 }
@@ -448,10 +449,10 @@ return $default(_that.id,_that.made,_that.meals);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double? made,  List<CoveredMeal> meals)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double? made,  bool wholeBatch,  List<CoveredMeal> meals)  $default,) {final _that = this;
 switch (_that) {
 case _PlannedCooking():
-return $default(_that.id,_that.made,_that.meals);case _:
+return $default(_that.id,_that.made,_that.wholeBatch,_that.meals);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -468,10 +469,10 @@ return $default(_that.id,_that.made,_that.meals);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double? made,  List<CoveredMeal> meals)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double? made,  bool wholeBatch,  List<CoveredMeal> meals)?  $default,) {final _that = this;
 switch (_that) {
 case _PlannedCooking() when $default != null:
-return $default(_that.id,_that.made,_that.meals);case _:
+return $default(_that.id,_that.made,_that.wholeBatch,_that.meals);case _:
   return null;
 
 }
@@ -483,11 +484,12 @@ return $default(_that.id,_that.made,_that.meals);case _:
 
 
 class _PlannedCooking implements PlannedCooking {
-  const _PlannedCooking({required this.id, this.made, final  List<CoveredMeal> meals = const <CoveredMeal>[]}): _meals = meals;
+  const _PlannedCooking({required this.id, this.made, this.wholeBatch = false, final  List<CoveredMeal> meals = const <CoveredMeal>[]}): _meals = meals;
   
 
 @override final  String id;
 @override final  double? made;
+@override@JsonKey() final  bool wholeBatch;
  final  List<CoveredMeal> _meals;
 @override@JsonKey() List<CoveredMeal> get meals {
   if (_meals is EqualUnmodifiableListView) return _meals;
@@ -506,16 +508,16 @@ _$PlannedCookingCopyWith<_PlannedCooking> get copyWith => __$PlannedCookingCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlannedCooking&&(identical(other.id, id) || other.id == id)&&(identical(other.made, made) || other.made == made)&&const DeepCollectionEquality().equals(other._meals, _meals));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlannedCooking&&(identical(other.id, id) || other.id == id)&&(identical(other.made, made) || other.made == made)&&(identical(other.wholeBatch, wholeBatch) || other.wholeBatch == wholeBatch)&&const DeepCollectionEquality().equals(other._meals, _meals));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,made,const DeepCollectionEquality().hash(_meals));
+int get hashCode => Object.hash(runtimeType,id,made,wholeBatch,const DeepCollectionEquality().hash(_meals));
 
 @override
 String toString() {
-  return 'PlannedCooking(id: $id, made: $made, meals: $meals)';
+  return 'PlannedCooking(id: $id, made: $made, wholeBatch: $wholeBatch, meals: $meals)';
 }
 
 
@@ -526,7 +528,7 @@ abstract mixin class _$PlannedCookingCopyWith<$Res> implements $PlannedCookingCo
   factory _$PlannedCookingCopyWith(_PlannedCooking value, $Res Function(_PlannedCooking) _then) = __$PlannedCookingCopyWithImpl;
 @override @useResult
 $Res call({
- String id, double? made, List<CoveredMeal> meals
+ String id, double? made, bool wholeBatch, List<CoveredMeal> meals
 });
 
 
@@ -543,11 +545,12 @@ class __$PlannedCookingCopyWithImpl<$Res>
 
 /// Create a copy of PlannedCooking
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? made = freezed,Object? meals = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? made = freezed,Object? wholeBatch = null,Object? meals = null,}) {
   return _then(_PlannedCooking(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,made: freezed == made ? _self.made : made // ignore: cast_nullable_to_non_nullable
-as double?,meals: null == meals ? _self._meals : meals // ignore: cast_nullable_to_non_nullable
+as double?,wholeBatch: null == wholeBatch ? _self.wholeBatch : wholeBatch // ignore: cast_nullable_to_non_nullable
+as bool,meals: null == meals ? _self._meals : meals // ignore: cast_nullable_to_non_nullable
 as List<CoveredMeal>,
   ));
 }
@@ -1159,7 +1162,9 @@ mixin _$CookSession {
 /// one, grouped by shelf life.
  String? get cookingId;/// What the cooking made, fixed at its first tick; null while it is the
 /// live sum of [covers].
- double? get made;
+ double? get made;/// Whether the cook chose the whole batch: [totalPortions] rounds up to
+/// whole batches, and the spare is made, bought and left over.
+ bool get wholeBatch;
 /// Create a copy of CookSession
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1170,16 +1175,16 @@ $CookSessionCopyWith<CookSession> get copyWith => _$CookSessionCopyWithImpl<Cook
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CookSession&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other.covers, covers)&&const DeepCollectionEquality().equals(other.demands, demands)&&(identical(other.cookingId, cookingId) || other.cookingId == cookingId)&&(identical(other.made, made) || other.made == made));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CookSession&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other.covers, covers)&&const DeepCollectionEquality().equals(other.demands, demands)&&(identical(other.cookingId, cookingId) || other.cookingId == cookingId)&&(identical(other.made, made) || other.made == made)&&(identical(other.wholeBatch, wholeBatch) || other.wholeBatch == wholeBatch));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,recipeId,recipeTitle,servingsBase,cookDay,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(covers),const DeepCollectionEquality().hash(demands),cookingId,made);
+int get hashCode => Object.hash(runtimeType,recipeId,recipeTitle,servingsBase,cookDay,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(covers),const DeepCollectionEquality().hash(demands),cookingId,made,wholeBatch);
 
 @override
 String toString() {
-  return 'CookSession(recipeId: $recipeId, recipeTitle: $recipeTitle, servingsBase: $servingsBase, cookDay: $cookDay, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, covers: $covers, demands: $demands, cookingId: $cookingId, made: $made)';
+  return 'CookSession(recipeId: $recipeId, recipeTitle: $recipeTitle, servingsBase: $servingsBase, cookDay: $cookDay, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, covers: $covers, demands: $demands, cookingId: $cookingId, made: $made, wholeBatch: $wholeBatch)';
 }
 
 
@@ -1190,7 +1195,7 @@ abstract mixin class $CookSessionCopyWith<$Res>  {
   factory $CookSessionCopyWith(CookSession value, $Res Function(CookSession) _then) = _$CookSessionCopyWithImpl;
 @useResult
 $Res call({
- String recipeId, String recipeTitle, double servingsBase, int cookDay, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> covers, List<ComponentDemand> demands, String? cookingId, double? made
+ String recipeId, String recipeTitle, double servingsBase, int cookDay, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> covers, List<ComponentDemand> demands, String? cookingId, double? made, bool wholeBatch
 });
 
 
@@ -1207,7 +1212,7 @@ class _$CookSessionCopyWithImpl<$Res>
 
 /// Create a copy of CookSession
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? recipeTitle = null,Object? servingsBase = null,Object? cookDay = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? covers = null,Object? demands = null,Object? cookingId = freezed,Object? made = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? recipeId = null,Object? recipeTitle = null,Object? servingsBase = null,Object? cookDay = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? covers = null,Object? demands = null,Object? cookingId = freezed,Object? made = freezed,Object? wholeBatch = null,}) {
   return _then(_self.copyWith(
 recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
 as String,recipeTitle: null == recipeTitle ? _self.recipeTitle : recipeTitle // ignore: cast_nullable_to_non_nullable
@@ -1220,7 +1225,8 @@ as int?,covers: null == covers ? _self.covers : covers // ignore: cast_nullable_
 as List<CoveredMeal>,demands: null == demands ? _self.demands : demands // ignore: cast_nullable_to_non_nullable
 as List<ComponentDemand>,cookingId: freezed == cookingId ? _self.cookingId : cookingId // ignore: cast_nullable_to_non_nullable
 as String?,made: freezed == made ? _self.made : made // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,wholeBatch: null == wholeBatch ? _self.wholeBatch : wholeBatch // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -1305,10 +1311,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String recipeTitle,  double servingsBase,  int cookDay,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> covers,  List<ComponentDemand> demands,  String? cookingId,  double? made)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String recipeId,  String recipeTitle,  double servingsBase,  int cookDay,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> covers,  List<ComponentDemand> demands,  String? cookingId,  double? made,  bool wholeBatch)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CookSession() when $default != null:
-return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDay,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.covers,_that.demands,_that.cookingId,_that.made);case _:
+return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDay,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.covers,_that.demands,_that.cookingId,_that.made,_that.wholeBatch);case _:
   return orElse();
 
 }
@@ -1326,10 +1332,10 @@ return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDa
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String recipeTitle,  double servingsBase,  int cookDay,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> covers,  List<ComponentDemand> demands,  String? cookingId,  double? made)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String recipeId,  String recipeTitle,  double servingsBase,  int cookDay,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> covers,  List<ComponentDemand> demands,  String? cookingId,  double? made,  bool wholeBatch)  $default,) {final _that = this;
 switch (_that) {
 case _CookSession():
-return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDay,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.covers,_that.demands,_that.cookingId,_that.made);case _:
+return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDay,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.covers,_that.demands,_that.cookingId,_that.made,_that.wholeBatch);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1346,10 +1352,10 @@ return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDa
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String recipeTitle,  double servingsBase,  int cookDay,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> covers,  List<ComponentDemand> demands,  String? cookingId,  double? made)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String recipeId,  String recipeTitle,  double servingsBase,  int cookDay,  int? keepsForDays,  bool freezable,  int? freezerDays,  List<CoveredMeal> covers,  List<ComponentDemand> demands,  String? cookingId,  double? made,  bool wholeBatch)?  $default,) {final _that = this;
 switch (_that) {
 case _CookSession() when $default != null:
-return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDay,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.covers,_that.demands,_that.cookingId,_that.made);case _:
+return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDay,_that.keepsForDays,_that.freezable,_that.freezerDays,_that.covers,_that.demands,_that.cookingId,_that.made,_that.wholeBatch);case _:
   return null;
 
 }
@@ -1361,7 +1367,7 @@ return $default(_that.recipeId,_that.recipeTitle,_that.servingsBase,_that.cookDa
 
 
 class _CookSession extends CookSession {
-  const _CookSession({required this.recipeId, required this.recipeTitle, required this.servingsBase, required this.cookDay, this.keepsForDays, this.freezable = false, this.freezerDays, final  List<CoveredMeal> covers = const <CoveredMeal>[], final  List<ComponentDemand> demands = const <ComponentDemand>[], this.cookingId, this.made}): _covers = covers,_demands = demands,super._();
+  const _CookSession({required this.recipeId, required this.recipeTitle, required this.servingsBase, required this.cookDay, this.keepsForDays, this.freezable = false, this.freezerDays, final  List<CoveredMeal> covers = const <CoveredMeal>[], final  List<ComponentDemand> demands = const <ComponentDemand>[], this.cookingId, this.made, this.wholeBatch = false}): _covers = covers,_demands = demands,super._();
   
 
 @override final  String recipeId;
@@ -1399,6 +1405,9 @@ class _CookSession extends CookSession {
 /// What the cooking made, fixed at its first tick; null while it is the
 /// live sum of [covers].
 @override final  double? made;
+/// Whether the cook chose the whole batch: [totalPortions] rounds up to
+/// whole batches, and the spare is made, bought and left over.
+@override@JsonKey() final  bool wholeBatch;
 
 /// Create a copy of CookSession
 /// with the given fields replaced by the non-null parameter values.
@@ -1410,16 +1419,16 @@ _$CookSessionCopyWith<_CookSession> get copyWith => __$CookSessionCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CookSession&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other._covers, _covers)&&const DeepCollectionEquality().equals(other._demands, _demands)&&(identical(other.cookingId, cookingId) || other.cookingId == cookingId)&&(identical(other.made, made) || other.made == made));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CookSession&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeTitle, recipeTitle) || other.recipeTitle == recipeTitle)&&(identical(other.servingsBase, servingsBase) || other.servingsBase == servingsBase)&&(identical(other.cookDay, cookDay) || other.cookDay == cookDay)&&(identical(other.keepsForDays, keepsForDays) || other.keepsForDays == keepsForDays)&&(identical(other.freezable, freezable) || other.freezable == freezable)&&(identical(other.freezerDays, freezerDays) || other.freezerDays == freezerDays)&&const DeepCollectionEquality().equals(other._covers, _covers)&&const DeepCollectionEquality().equals(other._demands, _demands)&&(identical(other.cookingId, cookingId) || other.cookingId == cookingId)&&(identical(other.made, made) || other.made == made)&&(identical(other.wholeBatch, wholeBatch) || other.wholeBatch == wholeBatch));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,recipeId,recipeTitle,servingsBase,cookDay,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(_covers),const DeepCollectionEquality().hash(_demands),cookingId,made);
+int get hashCode => Object.hash(runtimeType,recipeId,recipeTitle,servingsBase,cookDay,keepsForDays,freezable,freezerDays,const DeepCollectionEquality().hash(_covers),const DeepCollectionEquality().hash(_demands),cookingId,made,wholeBatch);
 
 @override
 String toString() {
-  return 'CookSession(recipeId: $recipeId, recipeTitle: $recipeTitle, servingsBase: $servingsBase, cookDay: $cookDay, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, covers: $covers, demands: $demands, cookingId: $cookingId, made: $made)';
+  return 'CookSession(recipeId: $recipeId, recipeTitle: $recipeTitle, servingsBase: $servingsBase, cookDay: $cookDay, keepsForDays: $keepsForDays, freezable: $freezable, freezerDays: $freezerDays, covers: $covers, demands: $demands, cookingId: $cookingId, made: $made, wholeBatch: $wholeBatch)';
 }
 
 
@@ -1430,7 +1439,7 @@ abstract mixin class _$CookSessionCopyWith<$Res> implements $CookSessionCopyWith
   factory _$CookSessionCopyWith(_CookSession value, $Res Function(_CookSession) _then) = __$CookSessionCopyWithImpl;
 @override @useResult
 $Res call({
- String recipeId, String recipeTitle, double servingsBase, int cookDay, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> covers, List<ComponentDemand> demands, String? cookingId, double? made
+ String recipeId, String recipeTitle, double servingsBase, int cookDay, int? keepsForDays, bool freezable, int? freezerDays, List<CoveredMeal> covers, List<ComponentDemand> demands, String? cookingId, double? made, bool wholeBatch
 });
 
 
@@ -1447,7 +1456,7 @@ class __$CookSessionCopyWithImpl<$Res>
 
 /// Create a copy of CookSession
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? recipeTitle = null,Object? servingsBase = null,Object? cookDay = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? covers = null,Object? demands = null,Object? cookingId = freezed,Object? made = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? recipeId = null,Object? recipeTitle = null,Object? servingsBase = null,Object? cookDay = null,Object? keepsForDays = freezed,Object? freezable = null,Object? freezerDays = freezed,Object? covers = null,Object? demands = null,Object? cookingId = freezed,Object? made = freezed,Object? wholeBatch = null,}) {
   return _then(_CookSession(
 recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: cast_nullable_to_non_nullable
 as String,recipeTitle: null == recipeTitle ? _self.recipeTitle : recipeTitle // ignore: cast_nullable_to_non_nullable
@@ -1460,7 +1469,8 @@ as int?,covers: null == covers ? _self._covers : covers // ignore: cast_nullable
 as List<CoveredMeal>,demands: null == demands ? _self._demands : demands // ignore: cast_nullable_to_non_nullable
 as List<ComponentDemand>,cookingId: freezed == cookingId ? _self.cookingId : cookingId // ignore: cast_nullable_to_non_nullable
 as String?,made: freezed == made ? _self.made : made // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,wholeBatch: null == wholeBatch ? _self.wholeBatch : wholeBatch // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

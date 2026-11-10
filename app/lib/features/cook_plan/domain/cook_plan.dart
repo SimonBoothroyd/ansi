@@ -54,13 +54,16 @@ abstract class CoveredMeal with _$CoveredMeal {
 }
 
 /// A cooking bought in the week: its [id], what it [made] (null while it is
-/// still the live sum of its meals) and every live meal linked to it,
-/// counted from the week's first day.
+/// still the live sum of its meals), whether its cook chose the
+/// [wholeBatch], and every live meal linked to it (and, while it is not
+/// cooked, every meal of the week that joins it), counted from the week's
+/// first day.
 @freezed
 abstract class PlannedCooking with _$PlannedCooking {
   const factory PlannedCooking({
     required String id,
     double? made,
+    @Default(false) bool wholeBatch,
     @Default(<CoveredMeal>[]) List<CoveredMeal> meals,
   }) = _PlannedCooking;
 }
@@ -160,6 +163,10 @@ abstract class CookSession with _$CookSession {
     /// What the cooking made, fixed at its first tick; null while it is the
     /// live sum of [covers].
     double? made,
+
+    /// Whether the cook chose the whole batch: [totalPortions] rounds up to
+    /// whole batches, and the spare is made, bought and left over.
+    @Default(false) bool wholeBatch,
   }) = _CookSession;
 
   /// Whether this session feeds another recipe's component line rather than a
@@ -200,9 +207,26 @@ abstract class CookSession with _$CookSession {
   /// The last day this batch is eaten.
   int get lastCoveredDay => coveredDays.isEmpty ? cookDay : coveredDays.last;
 
-  /// Portions to cook: what the cooking [made], else the sum of every covered
-  /// meal's demand, possibly fractional. Zero on a component session.
-  double get totalPortions => made ?? covers.fold(0, (s, m) => s + m.portions);
+  /// The portions planned for: what the cooking [made], else the sum of
+  /// every covered meal's demand, possibly fractional. Zero on a component
+  /// session.
+  double get plannedPortions =>
+      made ?? covers.fold(0, (s, m) => s + m.portions);
+
+  /// Portions to cook: [plannedPortions], rounded up to whole batches when
+  /// the cook chose the [wholeBatch].
+  double get totalPortions {
+    final planned = plannedPortions;
+    if (!wholeBatch || servingsBase <= 0 || planned <= 0) return planned;
+    return (planned / servingsBase - 1e-9).ceil() * servingsBase;
+  }
+
+  /// The portions of this week's own meals (days 0..6): what the week plans
+  /// of it, whatever another week eats from the pot.
+  double get portionsThisWeek => covers.fold(
+    0,
+    (s, m) => m.dayOfWeek >= 0 && m.dayOfWeek <= 6 ? s + m.portions : s,
+  );
 
   /// The portions its eaters said they ate.
   double get eatenPortions => covers.fold(0, (s, m) => s + m.eatenPortions);
@@ -214,12 +238,20 @@ abstract class CookSession with _$CookSession {
   }
 
   /// The multiplier the recipe's lines scale by: `total_portions /
-  /// servings_base`, unrounded, for a meal session; the batch count for a
-  /// component session.
+  /// servings_base` for a meal session (whole when the cook chose the
+  /// [wholeBatch]); the batch count for a component session.
   double get scaleFactor {
     final batches = batchesToCook;
     if (batches != null) return batches;
     return servingsBase == 0 ? 0 : totalPortions / servingsBase;
+  }
+
+  /// The exact multiplier for what is planned, never rounded to a whole
+  /// batch: the exact side of the switch.
+  double get exactScaleFactor {
+    final batches = batchesToCook;
+    if (batches != null) return batches;
+    return servingsBase == 0 ? 0 : plannedPortions / servingsBase;
   }
 
   /// Covered days past the fridge window, served from the freezer. Only
@@ -268,6 +300,12 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
   /// Total portions of this recipe cooked across the week (all sessions).
   /// Component sessions contribute nothing — they are counted in batches.
   double get totalPortions => sessions.fold(0, (s, x) => s + x.totalPortions);
+
+  /// The portions the week's own meals of this recipe plan (days 0..6): a
+  /// cooking's later-week meals and what it made beyond the plan are not
+  /// counted twice.
+  double get portionsThisWeek =>
+      sessions.fold(0, (s, x) => s + x.portionsThisWeek);
 
   /// Distinct days this recipe is eaten across the week, ascending.
   List<int> get days {
@@ -411,6 +449,7 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
     List<CoveredMeal> covers, {
     String? cookingId,
     double? made,
+    bool wholeBatch = false,
   }) => CookSession(
     recipeId: recipe.recipeId,
     recipeTitle: recipe.title,
@@ -422,8 +461,9 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
     covers: List.unmodifiable(covers),
     cookingId: cookingId,
     made: made,
+    wholeBatch: wholeBatch,
   );
-  return [
+  final sessions = [
     for (final cluster in _clusterByDay<CoveredMeal>(
       recipe.meals,
       dayOf: (m) => m.dayOfWeek,
@@ -439,8 +479,17 @@ List<CookSession> clusterSessions(PlannedRecipe recipe) {
             ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek)),
           cookingId: cooking.id,
           made: cooking.made,
+          wholeBatch: cooking.wholeBatch,
         ),
   ];
+  // In day order, so a cooking cooked Sunday reads before a cook on
+  // Wednesday, whichever kind each is; a tie keeps the order above.
+  final order = [for (var i = 0; i < sessions.length; i++) i]
+    ..sort((a, b) {
+      final d = sessions[a].cookDay.compareTo(sessions[b].cookDay);
+      return d != 0 ? d : a.compareTo(b);
+    });
+  return [for (final i in order) sessions[i]];
 }
 
 /// [clusterSessions] over the component demands on one sub-recipe: each cluster
@@ -527,13 +576,13 @@ typedef WholeBatchNudge = ({
 });
 
 /// The nudge for [session], or null when the factor is already whole, the
-/// session is a component one, or its inputs are degenerate.
-///
-/// Display advice only: everything else, the shopping list included, scales by
-/// the raw factor.
+/// session is a component one, or its inputs are degenerate. Read off what is
+/// planned ([CookSession.exactScaleFactor]), so it stands while the whole
+/// batch is chosen ([CookSession.wholeBatch]), which the shop and the
+/// leftovers then follow.
 WholeBatchNudge? wholeBatchNudgeFor(CookSession session) {
   if (session.isComponent) return null;
-  final raw = session.scaleFactor;
+  final raw = session.exactScaleFactor;
   if (session.servingsBase <= 0 || raw <= 0) return null;
   if ((raw - raw.round()).abs() < 1e-9) return null; // already whole
   final factor = raw.ceil();
@@ -541,7 +590,7 @@ WholeBatchNudge? wholeBatchNudgeFor(CookSession session) {
   return (
     factor: factor,
     batchPortions: batchPortions,
-    leftoverPortions: batchPortions - session.totalPortions,
+    leftoverPortions: batchPortions - session.plannedPortions,
   );
 }
 

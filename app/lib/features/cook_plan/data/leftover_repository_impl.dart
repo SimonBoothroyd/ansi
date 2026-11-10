@@ -51,13 +51,23 @@ class SqliteLeftoverRepository implements LeftoverRepository {
             'LEFT JOIN household_member hm ON 1 = 1 '
             'LIMIT 1',
           )
-          .asyncMap(
-            (_) async => readCookings(
-              await loadCookingInputs(_db, today: today),
+          .asyncMap((_) async {
+            final inputs = await loadCookingInputs(_db, today: today);
+            // A meal that joins a cooking not cooked yet is in its pot, not
+            // a pot of its own.
+            final held = {
+              for (final input in inputs)
+                for (final m in input.meals) m.entryId,
+            };
+            return readCookings(
+              inputs,
               today,
-              unborn: await loadUnbornMeals(_db, today),
-            ),
-          );
+              unborn: [
+                for (final m in await loadUnbornMeals(_db, today))
+                  if (!held.contains(m.entryId)) m,
+              ],
+            );
+          });
 
   @override
   Future<void> setLeftoverPortions(Leftover left, double portions) =>
@@ -154,6 +164,39 @@ class SqliteLeftoverRepository implements LeftoverRepository {
             [was, now, id],
           );
         }
+      });
+
+  @override
+  Future<void> setWholeBatch(String pot, {required bool whole}) =>
+      _db.writeTransaction((tx) async {
+        final id = await cookingForPick(
+          tx,
+          pot,
+          householdId: _householdId,
+          today: _today(),
+        );
+        final flag = wholeBatchChangeId(id);
+        final now = DateTime.now().toUtc().toIso8601String();
+        final row = await tx.getOptional(
+          'SELECT deleted_at FROM cooking_change WHERE id = ?',
+          [flag],
+        );
+        if (row == null) {
+          if (whole) {
+            await insertCookingChange(
+              tx,
+              householdId: _householdId,
+              cookingId: id,
+              id: flag,
+            );
+          }
+          return;
+        }
+        await tx.execute(
+          'UPDATE cooking_change SET deleted_at = ?, updated_at = ? '
+          'WHERE id = ?',
+          [if (whole) null else now, now, flag],
+        );
       });
 
   @override

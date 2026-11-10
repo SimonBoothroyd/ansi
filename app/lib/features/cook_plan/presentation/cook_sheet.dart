@@ -228,9 +228,6 @@ class _MealRow extends ConsumerWidget {
         SessionSpeech.of(
           session,
           shape,
-          showWholeBatch: ref.watch(
-            wholeBatchDisplayProvider(cookSessionKey(session)),
-          ),
           weekStart: ref.watch(viewedWeekStartProvider),
           today: ref.watch(todayProvider),
         ),
@@ -271,11 +268,11 @@ class _MealRow extends ConsumerWidget {
               left: speeches[i].cooked
                   ? BatchLeftoverLine(session: session)
                   : null,
-              onWholeBatch: (whole) => ref
-                  .read(
-                    wholeBatchDisplayProvider(cookSessionKey(session)).notifier,
-                  )
-                  .show(whole: whole),
+              // What was made is fixed once it is cooked.
+              onWholeBatch: speeches[i].cooked
+                  ? null
+                  : (whole) =>
+                        chooseWholeBatch(context, ref, session, whole: whole),
             ),
             // What the batch will freeze, as on the phone.
             if (!speeches[i].cooked) BatchLeftoverLine(session: session),
@@ -451,8 +448,8 @@ class _Says extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final choice = speech.wholeBatch;
     final onWholeBatch = this.onWholeBatch;
+    final choice = onWholeBatch == null ? null : speech.wholeBatch;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

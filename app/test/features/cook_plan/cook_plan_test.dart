@@ -1295,6 +1295,50 @@ void main() {
       expect(cooking.entryIds, {'sat', 'thu'});
     });
 
+    test('sessions read in day order: a cooking cooked Sunday before a cook '
+        'on Wednesday', () {
+      const sunday = [
+        CoveredMeal(
+          dayOfWeek: 0,
+          mealSlot: 'Dinner',
+          portions: 2,
+          entryId: 'sun',
+          eatenPortions: 2,
+        ),
+      ];
+      final sessions = clusterSessions(
+        _recipe({3: 2}, keeps: 4).copyWith(
+          cookings: const [PlannedCooking(id: 'c', made: 4, meals: sunday)],
+        ),
+      );
+      expect(
+        [for (final s in sessions) (s.cookDay, s.cookingId)],
+        [(0, 'c'), (3, null)],
+      );
+    });
+
+    test('a whole batch is bought whole, and the switch still offers the '
+        'exact side', () {
+      // Serves 2, planned for 1¾: the whole batch makes 2.
+      final session = clusterSessions(
+        _recipe(const {}).copyWith(
+          cookings: const [
+            PlannedCooking(
+              id: 'c',
+              wholeBatch: true,
+              meals: [
+                CoveredMeal(dayOfWeek: 0, mealSlot: 'Dinner', portions: 1.75),
+              ],
+            ),
+          ],
+        ),
+      ).single;
+      expect(session.totalPortions, 2);
+      expect(session.scaleFactor, 1);
+      expect(session.exactScaleFactor, 0.875);
+      expect(wholeBatchNudgeFor(session)?.leftoverPortions, 0.25);
+    });
+
     test('meals not in a cooking never group past one week', () {
       // Days 0..6 only: a dish every day of the week with no fridge life
       // stated keeps a week, so it is one group.

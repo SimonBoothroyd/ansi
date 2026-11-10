@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ansi/core/sync/connector.dart' show insertOnceTables;
+import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart'
+    show loadCookPlan;
 import 'package:ansi/features/cook_plan/data/cooking_store.dart';
 import 'package:ansi/features/cook_plan/data/leftover_repository_impl.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
@@ -516,6 +518,137 @@ void main() {
     // and Ada's Tuesday untick stand; A's +½ (1½ said 2) and B's −1¾ (2¾
     // said 1) both apply: 1¼.
     expect(aFirst, [(mon, 'fridge', 1.25)]);
+  });
+
+  group('what the third sim review found', () {
+    /// Ragù, serves 4, keeps 3 days, freezes for 90.
+    Future<void> ragu() => db.execute(
+      'INSERT INTO recipe (id, household_id, title, servings_base, '
+      'keeps_for_days, freezable, freezer_days, created_at, updated_at) '
+      "VALUES ('ragu', 'h', 'Ragù', 4, 3, 1, 90, '2026-01-01', "
+      "'2026-01-01')",
+    );
+
+    Future<String> plan(
+      String recipe,
+      int day, {
+      DateTime? week,
+      int? portions,
+      String? cooking,
+    }) => planning.addEntry(
+      weekStart: week ?? _week,
+      dayOfWeek: day,
+      mealSlot: 'Dinner',
+      recipeId: recipe,
+      eaterIds: const ['a', 'b'],
+      portions: portions,
+      cooking: cooking,
+    );
+
+    Future<String?> linkOf(String entry) async =>
+        (await db.get('SELECT cooking FROM plan_entry WHERE id = ?', [
+              entry,
+            ]))['cooking']
+            as String?;
+
+    test('a meal added beside a pot not cooked yet joins it: one cook, '
+        'and its first tick links it', () async {
+      await ragu();
+      final nextWeek = DateTime(2026, 8, 31);
+      // Saturday's ragù, picked for next Thursday: a cooking not cooked.
+      final sat = await plan('ragu', 5, portions: 2);
+      final thu = await plan(
+        'ragu',
+        3,
+        week: nextWeek,
+        portions: 2,
+        cooking: sat,
+      );
+      expect(await linkOf(thu), sat);
+      // Then Friday of the same week, planned plain.
+      final fri = await plan('ragu', 4, portions: 2);
+      expect(await linkOf(fri), isNull);
+
+      // Cook: one pot, cooked Friday, covering Fri, Sat and next Thu.
+      final cook = await loadCookPlan(db, '2026-08-24');
+      final sessions = cook.recipes.single.mealSessions;
+      expect(sessions, hasLength(1));
+      expect(sessions.single.cookingId, sat);
+      expect(sessions.single.coveredDays, [4, 5, 10]);
+      expect(sessions.single.totalPortions, 6);
+
+      // Leftovers: the pot cooks Friday, and Friday is no pot of its own.
+      final shelves = await read();
+      expect(shelves.pots, isEmpty);
+      expect(shelves.rows.single.id, sat);
+      expect(shelves.rows.single.since, DateTime(2026, 8, 28));
+      expect(shelves.meals.keys, containsAll([fri, sat, thu]));
+
+      // Friday's first tick links it and fixes what was made: all six.
+      await tick(fri, 'a');
+      expect(await linkOf(fri), sat);
+      expect(await db.getAll('SELECT id FROM cooking'), hasLength(1));
+      expect(
+        (await db.get('SELECT made FROM cooking WHERE id = ?', [sat]))['made'],
+        6,
+      );
+    });
+
+    test(
+      'after the first tick a meal added to the week is its own cook',
+      () async {
+        await ragu();
+        final sat = await plan('ragu', 5, portions: 2);
+        await tick(sat, 'a');
+        final fri = await plan('ragu', 4, portions: 2);
+        final cook = await loadCookPlan(db, '2026-08-24');
+        expect(cook.recipes.single.mealSessions, hasLength(2));
+        await tick(fri, 'a');
+        expect(await linkOf(fri), isNot(sat));
+      },
+    );
+
+    test('removing a meal someone ate keeps its leftovers, and Undo keeps '
+        'them too', () async {
+      // Monday's curry for two, both ate; Tuesday's cooked fresh instead.
+      final mon = await plan('curry', 0, portions: 2);
+      final tue = await plan('curry', 1, portions: 2);
+      await tick(mon, 'a');
+      await tick(mon, 'b');
+      await planning.cookFreshInstead(tue);
+      Future<double> left() async => (await shelves()).single.inBox;
+      expect(await left(), 2);
+
+      await planning.removeEntry(mon);
+      expect(await left(), 2, reason: 'what was eaten was eaten');
+      expect((await shelves()).single.since, DateTime(2026, 8, 24));
+
+      await planning.restoreEntry(mon);
+      expect(await left(), 2);
+    });
+
+    test('a whole batch is made, bought and left over: serves 4, planned '
+        'for 2, both ate, 2 left', () async {
+      await ragu();
+      final wed = await plan('ragu', 2, portions: 2);
+      await repo.setWholeBatch(wed, whole: true);
+      final cook = await loadCookPlan(db, '2026-08-24');
+      final session = cook.recipes.single.mealSessions.single;
+      expect((session.wholeBatch, session.totalPortions), (true, 4.0));
+      expect(session.scaleFactor, 1);
+
+      await tick(wed, 'a');
+      await tick(wed, 'b');
+      final row = (await shelves(today: DateTime(2026, 8, 27))).single;
+      expect(row.inBox, 2);
+
+      // Back to the exact amount: one change row, soft-deleted.
+      await repo.setWholeBatch(wed, whole: false);
+      expect(await shelves(today: DateTime(2026, 8, 27)), isEmpty);
+      final flags = await db.getAll('SELECT deleted_at FROM cooking_change');
+      expect(flags, hasLength(1));
+      expect(flags.single['deleted_at'], isNotNull);
+    });
   });
 }
 

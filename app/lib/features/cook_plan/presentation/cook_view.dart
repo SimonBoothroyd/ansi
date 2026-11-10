@@ -201,7 +201,14 @@ class _RecipeCard extends ConsumerWidget {
             .isNotEmpty;
     // The title link carries the viewed week (`?week=`) so the recipe page can
     // offer "Edit for this week".
-    final weekKey = isoDateOf(ref.watch(viewedWeekStartProvider));
+    final weekStart = ref.watch(viewedWeekStartProvider);
+    final weekKey = isoDateOf(weekStart);
+    // The cook day the ticks say, so a skipped first meal moves it; a batch
+    // not cooked yet keeps only until the dish's next cook.
+    final today = ref.watch(todayProvider);
+    final timelines = timelinesOf([
+      for (final s in meals) sessionByTicks(s, weekStart, today),
+    ]);
     return _Card(
       title: recipe.title,
       subtitle: recipeSummaryLine(recipe, editedThisWeek: edited),
@@ -210,7 +217,7 @@ class _RecipeCard extends ConsumerWidget {
       children: [
         for (final (i, session) in meals.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
-          _SessionTile(session: session),
+          _SessionTile(session: session, timeline: timelines[i]),
         ],
       ],
     );
@@ -244,7 +251,11 @@ class _ComponentCard extends ConsumerWidget {
       children: [
         for (final (i, session) in sessions.indexed) ...[
           if (i > 0) const SizedBox(height: 8),
-          _SessionTile(session: session, denomination: denomination),
+          _SessionTile(
+            session: session,
+            denomination: denomination,
+            timeline: CookTimelineSpec.of(session),
+          ),
         ],
       ],
     );
@@ -441,12 +452,20 @@ class _Card extends StatelessWidget {
 }
 
 /// One cook session as a paper tile: cook day, scale, covers and the compact
-/// week strip. A fractional factor trades the scale for the exact-or-whole
-/// switch, which is display only; nothing is persisted.
+/// week strip. A fractional factor not cooked yet trades the scale for the
+/// exact-or-whole switch, which the cooking keeps: the whole batch is
+/// bought, and its spare is left over.
 class _SessionTile extends ConsumerWidget {
-  const _SessionTile({required this.session, this.denomination});
+  const _SessionTile({
+    required this.session,
+    required this.timeline,
+    this.denomination,
+  });
 
   final CookSession session;
+
+  /// The strip's geometry ([timelinesOf]).
+  final CookTimelineSpec timeline;
 
   /// The target's first stated yield, for a component session's arithmetic.
   /// Null for a meal session or a recipe that states no yield.
@@ -454,19 +473,19 @@ class _SessionTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final key = cookSessionKey(session);
     final shape = ref.watch(weekShapeProvider);
     // One set of words for both forms: the tile and the wide sheet's row read
     // the same speech, so neither decides on its own what a session says.
     final speech = SessionSpeech.of(
       session,
       shape,
-      showWholeBatch: ref.watch(wholeBatchDisplayProvider(key)),
       denomination: denomination,
       weekStart: ref.watch(viewedWeekStartProvider),
       today: ref.watch(todayProvider),
     );
-    final choice = speech.wholeBatch;
+    // What was made is fixed once it is cooked: the switch is for a batch
+    // still to cook.
+    final choice = speech.cooked ? null : speech.wholeBatch;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
@@ -525,21 +544,13 @@ class _SessionTile extends ConsumerWidget {
               exact: choice.exact,
               whole: choice.whole,
               wholeShown: speech.wholeBatchShown,
-              onChanged: (whole) => ref
-                  .read(wholeBatchDisplayProvider(key).notifier)
-                  .show(whole: whole),
+              onChanged: (whole) =>
+                  chooseWholeBatch(context, ref, session, whole: whole),
             ),
           ],
           const SizedBox(height: 10),
           WeekStrip(
-            // The cook day the ticks say, so a skipped first meal moves it.
-            days: CookTimelineSpec.of(
-              sessionByTicks(
-                session,
-                ref.watch(viewedWeekStartProvider),
-                ref.watch(todayProvider),
-              ),
-            ).stripDays(),
+            days: timeline.stripDays(),
             shape: shape,
             size: WeekStripSize.compact,
           ),

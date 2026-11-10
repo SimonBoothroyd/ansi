@@ -71,6 +71,13 @@ class FakeLeftoverRepository implements LeftoverRepository {
   @override
   Future<void> undoLeftovers(LeftoverUndo undo) async => undone.add(undo);
 
+  /// Every `(pot, whole)` handed to [setWholeBatch].
+  final wholeBatches = <(String, bool)>[];
+
+  @override
+  Future<void> setWholeBatch(String pot, {required bool whole}) async =>
+      wholeBatches.add((pot, whole));
+
   @override
   Future<String> addLeftover({
     required LeftoverPlace place,

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:ansi/core/theme/ansi_theme.dart';
 import 'package:ansi/core/units/recipe_measure.dart';
 import 'package:ansi/core/units/units.dart';
 import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
+import 'package:ansi/features/cook_plan/domain/cook_plan_repository.dart';
 import 'package:ansi/features/cook_plan/domain/leftovers.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_format.dart';
 import 'package:ansi/features/cook_plan/presentation/cook_sheet.dart';
@@ -93,9 +96,44 @@ PlannedRecipe _recipe(
         dayOfWeek: e.key,
         mealSlot: 'Dinner',
         portions: e.value.toDouble(),
+        entryId: '${id ?? title}-${e.key}',
       ),
   ],
 );
+
+/// A kitchen whose cook plan follows the whole-batch switch, as the real one
+/// does once the write lands: the first choice births a cooking under the
+/// group's first meal.
+class _Kitchen extends FakeLeftoverRepository implements CookPlanRepository {
+  _Kitchen(this.recipe);
+
+  PlannedRecipe recipe;
+  final _plans = StreamController<CookPlan>.broadcast();
+
+  CookPlan get _plan => buildCookPlan([recipe]);
+
+  @override
+  Stream<CookPlan> watchCookPlan(DateTime weekStart) async* {
+    yield _plan;
+    yield* _plans.stream;
+  }
+
+  @override
+  Future<void> setWholeBatch(String pot, {required bool whole}) async {
+    await super.setWholeBatch(pot, whole: whole);
+    recipe = recipe.copyWith(
+      meals: const [],
+      cookings: [
+        PlannedCooking(
+          id: pot,
+          wholeBatch: whole,
+          meals: [...recipe.meals, for (final c in recipe.cookings) ...c.meals],
+        ),
+      ],
+    );
+    _plans.add(_plan);
+  }
+}
 
 void main() {
   testWidgets('the week switcher is the whole title, and its menu speaks in '
@@ -148,13 +186,11 @@ void main() {
   testWidgets('a fractional demand reads as a fraction on the session row and '
       'on the whole-batch switch', (tester) async {
     // A 1 and a ¾ eater of a serves-2 recipe: ×0.88 → cook ×1, ¼ over.
+    final kitchen = _Kitchen(_recipe('Curry', {0: 1.75}, keeps: 3));
     await tester.pumpWidget(
       _host([
-        cookPlanRepositoryProvider.overrideWithValue(
-          FakeCookPlanRepository.of([
-            _recipe('Curry', {0: 1.75}, keeps: 3),
-          ]),
-        ),
+        cookPlanRepositoryProvider.overrideWithValue(kitchen),
+        leftoverRepositoryProvider.overrideWithValue(kitchen),
       ]),
     );
     await tester.pump();
@@ -165,12 +201,17 @@ void main() {
     expect(find.text('×⅞'), findsNothing);
     expect(find.textContaining('1.75'), findsNothing);
 
-    // Whole batch: the covers line says what is spare. Display only.
+    // Whole batch: kept on the cooking (born under the first meal), and the
+    // covers line says what is spare.
     await tester.tap(find.text('×1 whole batch'));
     await tester.pump();
+    await tester.pump();
+    expect(kitchen.wholeBatches, [('Curry-0', true)]);
     expect(find.text('covers Mon dinner · ¼ portion spare'), findsOneWidget);
     await tester.tap(find.text('×⅞ exact'));
     await tester.pump();
+    await tester.pump();
+    expect(kitchen.wholeBatches.last, ('Curry-0', false));
     expect(find.text('covers Mon dinner · 1¾ portions'), findsOneWidget);
   });
 
@@ -643,13 +684,11 @@ void main() {
         'whole-batch switch the track follows', (tester) async {
       deskWidth(tester);
       late GoRouter router;
+      final kitchen = _Kitchen(_recipe('Curry', {0: 1.75}, id: 'r1', keeps: 3));
       await tester.pumpWidget(
         _routedHost([
-          cookPlanRepositoryProvider.overrideWithValue(
-            FakeCookPlanRepository.of([
-              _recipe('Curry', {0: 1.75}, id: 'r1', keeps: 3),
-            ]),
-          ),
+          cookPlanRepositoryProvider.overrideWithValue(kitchen),
+          leftoverRepositoryProvider.overrideWithValue(kitchen),
         ], (r) => router = r),
       );
       await tester.pumpAndSettle();
@@ -659,9 +698,12 @@ void main() {
       expect(find.text('×⅞ exact'), findsOneWidget);
       expect(marks(tester, 'r1', 0).cookScale, '×⅞');
 
-      // The switch is the same display toggle, and the tick follows it.
+      // The switch is the same choice, kept on the cooking, and the tick
+      // follows it.
       await tester.tap(find.text('×1 whole batch'));
       await tester.pump();
+      await tester.pump();
+      expect(kitchen.wholeBatches, [('r1-0', true)]);
       expect(find.text('covers Mon dinner · ¼ portion spare'), findsOneWidget);
       expect(marks(tester, 'r1', 0).cookScale, '×1');
 

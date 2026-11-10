@@ -28,8 +28,8 @@ String formatCookCount(int sessions) => switch (sessions) {
 };
 
 /// The two sides of the exact-or-whole-batch switch for a fractional session:
-/// `×0.44 exact` and `×1 whole batch`. Display only; the shopping list keeps
-/// scaling by the exact factor.
+/// `×0.44 exact` and `×1 whole batch`. The side chosen is the cooking's
+/// ([CookSession.wholeBatch]): the shop buys it and the spare is left over.
 ({String exact, String whole}) wholeBatchChoice(
   WholeBatchNudge nudge, {
   required double rawFactor,
@@ -38,12 +38,14 @@ String formatCookCount(int sessions) => switch (sessions) {
   whole: '×${nudge.factor} whole batch',
 );
 
-/// The recipe card's summary line: total portions across the week plus shelf
-/// life ("4 portions across the week · keeps 4 d"). A recipe the week varies
+/// The recipe card's summary line: the portions the week's own meals plan,
+/// plus shelf life ("4 portions across the week · keeps 4 d"). A pot's
+/// later-week meals and what a cooking made beyond the plan are its
+/// sessions' to say, never counted here twice. A recipe the week varies
 /// appends one clause and nothing else.
 String recipeSummaryLine(RecipeCookPlan recipe, {bool editedThisWeek = false}) {
   final parts = <String>[
-    '${formatPortions(recipe.totalPortions)} across the week',
+    '${formatPortions(recipe.portionsThisWeek)} across the week',
   ];
   final keeps = recipe.keepsForDays;
   if (keeps != null) parts.add('keeps $keeps d');
@@ -364,6 +366,22 @@ class CookTimelineSpec {
   /// The covered days past the fridge window, reached from the freezer.
   final List<int> frozenDays;
 
+  /// This geometry with its keep window ending the day before [nextCook],
+  /// the dish's next cook: a batch not cooked yet keeps nothing for the days
+  /// another pot is cooked to cover, and is not gone then either.
+  CookTimelineSpec endingBefore(int nextCook) {
+    final last = (nextCook - 1).toDouble();
+    if (nextCook <= cookDay || freshTo <= last) return this;
+    return CookTimelineSpec(
+      cookDay: cookDay,
+      coveredDays: coveredDays,
+      freshTo: last,
+      frozenTo: frozenTo < last ? frozenTo : last,
+      hasGone: false,
+      frozenDays: frozenDays,
+    );
+  }
+
   /// The seven days of the week strip: the cook day cooked, the window's days
   /// keeping, each frozen meal's day frozen, the hatch after a window that
   /// closes first, and a dot on every covered day. [thisMeal] is the day the
@@ -390,13 +408,31 @@ class CookTimelineSpec {
   }
 }
 
+/// The geometry of each of one dish's meal [sessions], in their order. A
+/// batch not cooked yet keeps only until the dish's next cook
+/// ([CookTimelineSpec.endingBefore]): `Cook Fri` does not tint Saturday
+/// when Saturday is another pot's cook day. A cooked batch's window is what
+/// its leftovers really keep, so it stands.
+List<CookTimelineSpec> timelinesOf(List<CookSession> sessions) => [
+  for (final s in sessions)
+    switch ([
+      for (final o in sessions)
+        if (!identical(o, s) && o.cookDay > s.cookDay) o.cookDay,
+    ]) {
+      final later when later.isNotEmpty && !wasCooked(s) => CookTimelineSpec.of(
+        s,
+      ).endingBefore(later.reduce(math.min)),
+      _ => CookTimelineSpec.of(s),
+    },
+];
+
 /// The week strip for every meal batch of one dish, merged into one row.
 List<WeekStripDay> stripDaysOfAll(
   Iterable<CookSession> sessions, {
   int? thisMeal,
 }) => mergeStripDays([
-  for (final s in sessions)
-    CookTimelineSpec.of(s).stripDays(thisMeal: thisMeal),
+  for (final spec in timelinesOf(sessions.toList()))
+    spec.stripDays(thisMeal: thisMeal),
 ]);
 
 /// Everything one cook session says, gathered once so the phone's tile and the
@@ -414,15 +450,15 @@ class SessionSpeech {
     this.wholeBatch,
   });
 
-  /// The speech for [session] in the week's [shape]. [showWholeBatch] is the
-  /// display toggle's state (never persisted); [denomination] is the target's
-  /// stated yield for a component session, null dropping the clause. With
-  /// the week's [weekStart] and [today], a meal batch is named by its ticks
-  /// ([cookDayOf]): `Cooked Fri` once anybody ticked it, else its next meal.
+  /// The speech for [session] in the week's [shape], on the side of the
+  /// switch its cook chose ([CookSession.wholeBatch]); [denomination] is the
+  /// target's stated yield for a component session, null dropping the
+  /// clause. With the week's [weekStart] and [today], a meal batch is named
+  /// by its ticks ([cookDayOf]): `Cooked Fri` once anybody ticked it, else
+  /// its next meal.
   factory SessionSpeech.of(
     CookSession session,
     WeekShape shape, {
-    bool showWholeBatch = false,
     YieldDenomination? denomination,
     DateTime? weekStart,
     DateTime? today,
@@ -430,7 +466,7 @@ class SessionSpeech {
     // A component session is never nudged to a whole batch: batches ARE its
     // denomination (the domain returns null for it).
     final nudge = wholeBatchNudgeFor(session);
-    final whole = nudge != null && showWholeBatch;
+    final whole = nudge != null && session.wholeBatch;
     final component = session.isComponent;
     final cooked = !component && wasCooked(session);
     final byTicks = weekStart == null || today == null || component
@@ -441,7 +477,7 @@ class SessionSpeech {
     final day = cookDay > 6
         ? 'next ${shape.labelShort(cookDay - 7)}'
         : shape.labelShort(cookDay);
-    final rawScale = formatScale(session.scaleFactor);
+    final rawScale = formatScale(session.exactScaleFactor);
     return SessionSpeech(
       when: component
           // A component batch has to be ready BY its parents' cook day, not on
@@ -457,12 +493,12 @@ class SessionSpeech {
           ? componentScaleLabel(session)
           : whole
           ? '×${nudge.factor}'
-          : formatScale(session.scaleFactor),
+          : rawScale,
       trackScale: component
           ? formatScale(session.batchesToCook ?? 0)
           : whole
           ? '×${nudge.factor}'
-          : formatScale(session.scaleFactor),
+          : rawScale,
       covers: component
           ? componentCoversLine(session, shape, denomination: denomination)
           : coversLine(
@@ -484,7 +520,7 @@ class SessionSpeech {
       wholeBatchShown: whole,
       wholeBatch: nudge == null
           ? null
-          : wholeBatchChoice(nudge, rawFactor: session.scaleFactor),
+          : wholeBatchChoice(nudge, rawFactor: session.exactScaleFactor),
     );
   }
 
@@ -561,9 +597,10 @@ List<CookTrackDay> cookTrackDays(List<(CookSession, String)> sessions) {
   final keeps = List.filled(7, false);
   final scales = List<String?>.filled(7, null);
   final dots = List.filled(7, CookTrackDot.none);
-  for (final (session, scale) in sessions) {
+  final specs = timelinesOf([for (final (s, _) in sessions) s]);
+  for (final (i, (session, scale)) in sessions.indexed) {
     if (session.cookDay < 0 || session.cookDay > 6) continue;
-    final spec = CookTimelineSpec.of(session);
+    final spec = specs[i];
     scales[session.cookDay] = scale;
     final windowEnd = spec.freshTo.floor().clamp(0, 6);
     for (var day = session.cookDay; day <= windowEnd; day++) {

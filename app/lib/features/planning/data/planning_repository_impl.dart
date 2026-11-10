@@ -16,7 +16,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../cook_plan/data/cooking_store.dart'
-    show cookingForPick, ensureCookingFor;
+    show cookingForPick, ensureCookingFor, joinUncookedCooking;
 import '../../ingredients/domain/default_amount.dart';
 import '../domain/plan_change.dart';
 import '../domain/planning.dart';
@@ -533,6 +533,9 @@ class SqlitePlanningRepository implements PlanningRepository {
       }
       // Eating the meal is not having something else.
       await _dropInstead(tx, entryId, memberId, now);
+      // Before the tick lands the pot is still not cooked: a meal of its
+      // week grouped with it joins it now, and is made with it.
+      await joinUncookedCooking(tx, entryId);
       final at = eatenAt.toUtc().toIso8601String();
       final live = await tx.getOptional(
         'SELECT id FROM meal_eaten '

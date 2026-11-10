@@ -8,7 +8,10 @@
 /// week alone.
 ///
 /// What it **made** is fixed at its first tick; before that it is the live
-/// sum of its linked meals' portions ([madeOf]). Whether it was **cooked**,
+/// sum of its linked meals' portions ([madeOf]), rounded up to whole batches
+/// when the cook chose the whole batch. While it is not cooked, a meal of
+/// the recipe added to its week that the grouping puts with it joins it
+/// ([joinersOf]). Whether it was **cooked**,
 /// and on which day, is read from the ticks every time ([cookDayOfCooking]),
 /// so an untick needs no write. Food said by hand (added on the Leftovers
 /// page, or carried over from the old fridge rows) is dated by its `since`.
@@ -34,6 +37,7 @@ class Cooking {
     this.place,
     this.since,
     this.goneAt,
+    this.wholeBatchOf,
   }) : assert(
          (recipeId == null) != (label == null),
          'a recipe or words, never both (the server refuses it)',
@@ -60,20 +64,30 @@ class Cooking {
   /// back.
   final DateTime? goneAt;
 
+  /// What one batch of its recipe serves, set while the cook chose the whole
+  /// batch: [madeOf] rounds up to whole batches of it, so the spare is made,
+  /// bought and left over. Null for the exact scale.
+  final double? wholeBatchOf;
+
   /// Food said by hand, dated by [since] rather than by ticks.
   bool get saidByHand => since != null;
 
   @override
   String toString() =>
       'Cooking($id, ${recipeId ?? label}, made $made'
+      '${wholeBatchOf == null ? '' : ', whole batch'}'
       '${since == null ? '' : ', ${place?.name} since $since'}'
       '${goneAt == null ? '' : ', gone'})';
 }
 
-/// One live meal linked to a cooking, as a reader hands it in: the week it is
+/// One meal linked to a cooking, as a reader hands it in: the week it is
 /// planned in, its day, its planned [portions] and the shares its live ticks
 /// say were eaten. A tick counts even if its member was taken off the meal
 /// since: they ate a portion.
+///
+/// A meal [removed] from the plan after somebody ticked it is still read:
+/// what was eaten was eaten, so its ticks still cook the pot, date it and
+/// take from it. It plans nothing more.
 @immutable
 class CookingMeal {
   const CookingMeal({
@@ -82,6 +96,7 @@ class CookingMeal {
     required this.day,
     required this.portions,
     this.eaten = 0,
+    this.removed = false,
   });
 
   final String entryId;
@@ -99,6 +114,10 @@ class CookingMeal {
   /// What its ticks say was eaten, uncapped.
   final double eaten;
 
+  /// Taken off the plan after it was ticked: it takes its ticked shares and
+  /// is spoken for no more.
+  final bool removed;
+
   /// Whether anybody ticked it.
   bool get ticked => eaten > 1e-9;
 
@@ -106,13 +125,17 @@ class CookingMeal {
   /// ticked shares, never more than its portions; today's or a later meal
   /// its planned portions in full, spoken for.
   double takeOn(DateTime today) {
-    if (!_dateOnly(day).isBefore(_dateOnly(today))) return portions;
+    if (!removed && !_dateOnly(day).isBefore(_dateOnly(today))) {
+      return portions;
+    }
     if (eaten <= 0) return 0;
     return eaten > portions ? portions : eaten;
   }
 
   @override
-  String toString() => 'CookingMeal($entryId, $day, $portions, ate $eaten)';
+  String toString() =>
+      'CookingMeal($entryId, $day, $portions, ate $eaten'
+      '${removed ? ', removed' : ''})';
 }
 
 /// A recipe's name and shelf life, as a cooking's dates read them.
@@ -127,9 +150,21 @@ typedef CookingShelfLife = ({
 typedef CookingChanges = ({double fridge, double freezer});
 
 /// What [cooking] made: [Cooking.made] once fixed, else the live sum of its
-/// [meals]' portions.
-double madeOf(Cooking cooking, List<CookingMeal> meals) =>
-    cooking.made ?? meals.fold<double>(0, (s, m) => s + m.portions);
+/// planned [meals]' portions; rounded up to whole batches while the cook
+/// chose the whole batch ([Cooking.wholeBatchOf]).
+double madeOf(Cooking cooking, List<CookingMeal> meals) {
+  final made =
+      cooking.made ??
+      meals.fold<double>(0, (s, m) => m.removed ? s : s + m.portions);
+  return roundUpToBatches(made, cooking.wholeBatchOf);
+}
+
+/// [portions] rounded up to whole batches of [batch]: what a whole-batch
+/// cook makes. [portions] itself when there is no batch to round to.
+double roundUpToBatches(double portions, double? batch) {
+  if (batch == null || batch <= 0 || portions <= 0) return portions;
+  return (portions / batch - 1e-9).ceil() * batch;
+}
 
 /// The day [cooking] was cooked: its `since` for food said by hand, else the
 /// earliest day of its [meals] anybody ticked, in whatever order the ticks
@@ -154,7 +189,7 @@ DateTime? nextCookDayOf(List<CookingMeal> meals, DateTime today) {
   DateTime? next;
   for (final m in meals) {
     final d = _dateOnly(m.day);
-    if (d.isBefore(day)) continue;
+    if (m.removed || d.isBefore(day)) continue;
     if (next == null || d.isBefore(next)) next = d;
   }
   return next;
@@ -165,8 +200,12 @@ DateTime? nextCookDayOf(List<CookingMeal> meals, DateTime today) {
 /// for food said by hand, which is bought already, and for a cooking with no
 /// live meal.
 DateTime? boughtIn(Cooking cooking, List<CookingMeal> meals) {
-  if (cooking.saidByHand || meals.isEmpty) return null;
-  final first = meals.reduce((a, b) {
+  final planned = [
+    for (final m in meals)
+      if (!m.removed) m,
+  ];
+  if (cooking.saidByHand || planned.isEmpty) return null;
+  final first = planned.reduce((a, b) {
     final d = _dateOnly(a.day).compareTo(_dateOnly(b.day));
     if (d != 0) return d < 0 ? a : b;
     return a.entryId.compareTo(b.entryId) <= 0 ? a : b;
@@ -231,6 +270,72 @@ String birthIdFor(
     if (cookingIds.contains(id)) return id;
   }
   return group.first;
+}
+
+/// A cooking not cooked yet, as the join rule reads it: its id and the days
+/// (0..6) of its meals in the week it is bought in.
+typedef UncookedCooking = ({String id, List<int> days});
+
+/// Which of a week's [unlinked] meals of a recipe join a cooking of it that
+/// is not cooked yet ([uncooked]: cookings bought that week, nobody has
+/// ticked), by entry id.
+///
+/// A cooking's meals and the unlinked ones are grouped together by shelf
+/// life exactly as the cook plan groups a week ([clusterSessions]); an
+/// unlinked meal that lands in a group with a cooking's meals joins that
+/// cooking (the earliest, when a group holds two). So Ragù planned Saturday
+/// and picked for next Thursday, then added for Friday, is one pot cooked
+/// Friday, not two cooks a day apart. A reader counts a joiner in the pot;
+/// the next write to the cooking links it.
+Map<String, String> joinersOf({
+  required List<UnlinkedMeal> unlinked,
+  required List<UncookedCooking> uncooked,
+  int? keepsForDays,
+  bool freezable = false,
+  int? freezerDays,
+}) {
+  if (unlinked.isEmpty || uncooked.isEmpty) return const {};
+  const meal = 'meal:';
+  const pot = 'pot:';
+  final sessions = clusterSessions(
+    PlannedRecipe(
+      recipeId: '',
+      title: '',
+      servingsBase: 1,
+      keepsForDays: keepsForDays,
+      freezable: freezable,
+      freezerDays: freezerDays,
+      meals: [
+        for (final c in uncooked)
+          for (final d in c.days)
+            CoveredMeal(
+              dayOfWeek: d,
+              mealSlot: '',
+              portions: 1,
+              entryId: '$pot${c.id}',
+            ),
+        for (final m in unlinked)
+          CoveredMeal(
+            dayOfWeek: m.dayOfWeek,
+            mealSlot: '',
+            portions: 1,
+            entryId: '$meal${m.entryId}',
+          ),
+      ],
+    ),
+  );
+  final joins = <String, String>{};
+  for (final s in sessions) {
+    final ids = [for (final m in s.covers) m.entryId!];
+    final host = ids.where((id) => id.startsWith(pot)).firstOrNull;
+    if (host == null) continue;
+    for (final id in ids) {
+      if (id.startsWith(meal)) {
+        joins[id.substring(meal.length)] = host.substring(pot.length);
+      }
+    }
+  }
+  return joins;
 }
 
 DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);

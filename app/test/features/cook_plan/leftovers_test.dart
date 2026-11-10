@@ -589,6 +589,70 @@ void main() {
     });
   });
 
+  group('the assumed freeze moves only what is there', () {
+    // Cooked Fri 30 Oct, 3 made, both ate 2 that night; Tuesday needs 3 and
+    // is past the fridge date (Mon 2 Nov): a freezer meal.
+    CookingInput helper({CookingChanges changes = (fridge: 0, freezer: 0)}) =>
+        _cooking(
+          [_m('fri', _oct(30), eaten: 2), _m('tue', _nov(3), portions: 3)],
+          made: 3,
+          changes: changes,
+        );
+
+    test('before the fridge date: the fridge row holds the 1 and warns', () {
+      final read = _read(helper(), _nov(2));
+      expect(_fridge(read)!.inBox, 1);
+      expect(_fridge(read)!.meals.last.warning, LeftoverWarning.notEnoughLeft);
+      expect(_freezer(read), isNull);
+    });
+
+    test('after it: the freezer holds the 1 there was, never 3', () {
+      final read = _read(helper(), _nov(3));
+      expect(_fridge(read), isNull);
+      final freezer = _freezer(read)!;
+      expect((freezer.inBox, freezer.portions), (1.0, 0.0));
+      expect(freezer.meals.single.warning, LeftoverWarning.notEnoughLeft);
+    });
+
+    test('after Freeze the fridge row goes, and the warning is the '
+        'freezer’s', () {
+      final read = _read(helper(changes: (fridge: -1, freezer: 1)), _nov(2));
+      expect(_fridge(read), isNull);
+      final freezer = _freezer(read)!;
+      expect(freezer.inBox, 1);
+      expect(freezer.meals.single.warning, LeftoverWarning.notEnoughLeft);
+    });
+  });
+
+  test('a meal removed after both ate it still counts: 2 left', () {
+    final read = _read(
+      _cooking([
+        CookingMeal(
+          entryId: 'mon',
+          weekStart: _week,
+          day: _oct(26),
+          portions: 2,
+          eaten: 2,
+          removed: true,
+        ),
+      ], made: 4),
+      _oct(28),
+    );
+    expect(_fridge(read)!.inBox, 2);
+    expect(_fridge(read)!.since, _oct(26));
+    expect(read.meals, isEmpty, reason: 'a removed meal has no tag');
+  });
+
+  test('a whole batch leaves its spare: serves 4, planned for 2, both ate', () {
+    final input = (
+      cooking: const Cooking(id: 'c', recipeId: 'hh', made: 2, wholeBatchOf: 4),
+      life: _helperLife,
+      meals: [_m('wed', _oct(28), eaten: 2)],
+      changes: (fridge: 0.0, freezer: 0.0),
+    );
+    expect(_fridge(_read(input, _oct(29)))!.inBox, 2);
+  });
+
   group('readCooking', () {
     test('a fridge meal takes the freezer’s spare once the fridge has '
         'not got it, as after a Freeze', () {

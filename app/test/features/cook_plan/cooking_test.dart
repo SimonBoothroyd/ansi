@@ -28,6 +28,81 @@ void main() {
       expect(madeOf(live, meals), 3.5);
       expect(madeOf(const Cooking(id: 'c', recipeId: 'r', made: 6), meals), 6);
     });
+
+    test('a whole batch rounds up to whole batches, live or fixed', () {
+      // Serves 4, planned for 2: the whole batch makes 4.
+      const whole = Cooking(id: 'c', recipeId: 'r', wholeBatchOf: 4);
+      expect(madeOf(whole, [_m('a', _oct(28))]), 4);
+      expect(
+        madeOf(
+          const Cooking(id: 'c', recipeId: 'r', made: 5, wholeBatchOf: 4),
+          const [],
+        ),
+        8,
+      );
+      // Already whole: nothing spare.
+      expect(madeOf(whole, [_m('a', _oct(28), portions: 4)]), 4);
+      expect(roundUpToBatches(2, null), 2);
+    });
+
+    test('a meal removed after it was ticked plans nothing, and takes '
+        'what was eaten', () {
+      final removed = CookingMeal(
+        entryId: 'r',
+        weekStart: _week,
+        day: _nov(1),
+        portions: 2,
+        eaten: 2,
+        removed: true,
+      );
+      const live = Cooking(id: 'c', recipeId: 'r');
+      expect(madeOf(live, [removed, _m('a', _nov(2))]), 2);
+      // Ticked for today and then removed: it takes what was eaten only.
+      expect(removed.takeOn(_nov(1)), 2);
+      expect(nextCookDayOf([removed], _oct(30)), isNull);
+      expect(cookDayOfCooking(live, [removed]), _nov(1));
+      expect(boughtIn(live, [removed]), isNull);
+    });
+  });
+
+  group('joinersOf', () {
+    test('a week’s meal grouped with a pot not cooked yet joins it', () {
+      // Ragù Saturday (6), keeps 3; Friday (5) added; Monday (1) is too far
+      // ahead of it for a dish that does not freeze.
+      final joins = joinersOf(
+        unlinked: const [
+          (entryId: 'mon', dayOfWeek: 1),
+          (entryId: 'fri', dayOfWeek: 5),
+        ],
+        uncooked: const [
+          (id: 'sat', days: [6]),
+        ],
+        keepsForDays: 3,
+      );
+      expect(joins, {'fri': 'sat'});
+    });
+
+    test('a dish that freezes reaches the whole week', () {
+      final joins = joinersOf(
+        unlinked: const [(entryId: 'mon', dayOfWeek: 1)],
+        uncooked: const [
+          (id: 'sat', days: [6]),
+        ],
+        keepsForDays: 3,
+        freezable: true,
+      );
+      expect(joins, {'mon': 'sat'});
+    });
+
+    test('nothing joins without a pot not cooked yet', () {
+      expect(
+        joinersOf(
+          unlinked: const [(entryId: 'fri', dayOfWeek: 5)],
+          uncooked: const [],
+        ),
+        isEmpty,
+      );
+    });
   });
 
   group('cookDayOfCooking', () {

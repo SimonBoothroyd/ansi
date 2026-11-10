@@ -116,9 +116,8 @@ void main() {
 
     test('the whole side says the portions spare', () {
       final speech = SessionSpeech.of(
-        session,
+        session.copyWith(wholeBatch: true),
         WeekShape.monday,
-        showWholeBatch: true,
       );
       expect(speech.wholeBatchShown, isTrue);
       expect(speech.covers, 'covers Mon dinner · 2¼ portions spare');
@@ -162,6 +161,30 @@ void main() {
         recipeSummaryLine(recipe),
         '4 portions across the week · keeps 4 d · freezable',
       );
+    });
+
+    test('counts what the week plans, not what a pot made or a later week '
+        'eats', () {
+      // Cooked Sunday for Sun and Wed (made 4), Wed then cooked fresh: the
+      // pot still says 4, but the week plans Sun 2 and Wed 2. And a pot
+      // cooked Saturday for next Thursday too.
+      final recipe = RecipeCookPlan(
+        recipeId: 'r',
+        title: 'Curry',
+        servingsBase: 2,
+        sessions: [
+          _session(
+            cookDay: 0,
+            covers: [_meal(0, 'Dinner', 2)],
+          ).copyWith(made: 4, cookingId: 'c'),
+          _session(cookDay: 3, covers: [_meal(3, 'Dinner', 2)]),
+          _session(
+            cookDay: 6,
+            covers: [_meal(6, 'Dinner', 2), _meal(10, 'Dinner', 2)],
+          ),
+        ],
+      );
+      expect(recipeSummaryLine(recipe), '6 portions across the week');
     });
   });
 
@@ -225,6 +248,59 @@ void main() {
     List<WeekStripFill> fills(List<WeekStripDay> days) => [
       for (final d in days) d.fill,
     ];
+
+    test('a batch not cooked yet keeps only until the dish’s next cook; a '
+        'cooked one keeps what it keeps', () {
+      // A Sunday week: Cook Fri (5) keeps 3, beside a pot cooked Sat (6).
+      final fri = _session(
+        cookDay: 5,
+        keeps: 3,
+        covers: [_meal(5, 'Breakfast', 2)],
+      );
+      final sat = _session(
+        cookDay: 6,
+        keeps: 3,
+        covers: [_meal(6, 'Dinner', 2)],
+      );
+      final specs = timelinesOf([fri, sat]);
+      expect(fills(specs.first.stripDays()), [
+        none,
+        none,
+        none,
+        none,
+        none,
+        cooked,
+        none,
+      ]);
+      // Cooked Monday, ticked: its leftovers really keep past Wednesday's
+      // fresh cook.
+      final mon = _session(
+        cookDay: 0,
+        keeps: 3,
+        covers: [
+          const CoveredMeal(
+            dayOfWeek: 0,
+            mealSlot: 'Dinner',
+            portions: 2,
+            eatenPortions: 2,
+          ),
+        ],
+      );
+      final wed = _session(
+        cookDay: 2,
+        keeps: 3,
+        covers: [_meal(2, 'Dinner', 2)],
+      );
+      expect(fills(timelinesOf([mon, wed]).first.stripDays()), [
+        cooked,
+        keeps,
+        keeps,
+        keeps,
+        gone,
+        gone,
+        gone,
+      ]);
+    });
     List<int> where(List<WeekStripDay> days, bool Function(WeekStripDay) f) => [
       for (final (i, d) in days.indexed)
         if (f(d)) i,

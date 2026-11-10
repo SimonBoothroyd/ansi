@@ -40,6 +40,12 @@ abstract interface class LeftoverRepository {
   /// cookings' `gone_at` as it was before.
   Future<void> undoLeftovers(LeftoverUndo undo);
 
+  /// Says the pot [pot] is cooked as a whole batch ([whole]) or at the exact
+  /// scale: the spare portions of a whole batch are made, bought and left
+  /// over. [pot] is a cooking's id, or a meal of a group not in one yet,
+  /// which is born into one here.
+  Future<void> setWholeBatch(String pot, {required bool whole});
+
   /// Adds food the app never saw: a recipe or the household's own [label],
   /// never both, on [place] since [since]. Returns the new cooking's id.
   Future<String> addLeftover({
