@@ -196,15 +196,29 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       weekStart.day + dayOfWeek,
     );
     final today = ref.watch(todayProvider);
-    final pot = picked == null
-        ? null
-        : ref
-              .watch(leftoversGoodOnProvider(mealDay))
-              .where((l) => l.recipeId == picked.id)
-              .firstOrNull;
+    // Every pot of the dish the meal's day can eat from: a meal takes from
+    // its own first, then from the others ([readDishes]).
+    final dishId = switch (target) {
+      RecipeMeal(:final recipe) || LeftoverMeal(:final recipe) => recipe.id,
+      _ => null,
+    };
+    final offers = dishId == null
+        ? const <Leftover>[]
+        : [
+            for (final l in ref.watch(leftoversGoodOnProvider(mealDay)))
+              if (l.recipeId == dishId) l,
+          ];
+    final pot = picked == null ? null : offers.firstOrNull;
+    // More than one pot could serve it: the choice names the one it links to.
+    final severalPots = {for (final l in offers) l.id}.length > 1;
+    final dishFree = offers
+        .where((l) => l.cooked)
+        .fold<double>(0, (s, l) => s + l.portions);
     final fromPot = fromLeftovers.value ?? false ? pot : null;
-    // Eaten from a pot, it is not cooked for: no batch strip.
-    final recipe = fromPot == null ? picked : null;
+    // No outcome before a pick: eaten from a pot it is not cooked for, and
+    // until Cook fresh is picked nothing says how it would be cooked.
+    final cooksFresh = pot == null || fromLeftovers.value == false;
+    final recipe = cooksFresh ? picked : null;
     // A pot of the week not cooked yet still takes a meal it groups with, so
     // its meals count beside the ones in no pot.
     final uncooked = recipe == null
@@ -246,10 +260,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final leftover = target is LeftoverMeal
         ? (target as LeftoverMeal).leftover
         : fromPot;
+    // The household's whole dish, as the meal will take it: its own pot
+    // first, then the others good on its day.
     final after = leftover == null || !leftover.cooked
         ? null
         : leftoverAfterLine(
-            left: leftover.portions,
+            left: dishFree > leftover.portions ? dishFree : leftover.portions,
             demand:
                 portionsOverride.value?.toDouble() ??
                 eatersDemand(eaters.value, {
@@ -343,9 +359,12 @@ class _ConfirmMealSheet extends HookConsumerWidget {
             children: [
               _Choice(
                 label: 'From leftovers',
-                detail: pot.cooked
-                    ? leftCount(pot.portions)
-                    : potWhen(pot, today, shape),
+                detail: [
+                  if (pot.cooked) leftCount(pot.portions),
+                  // Which pot, when more than one could serve.
+                  if (!pot.cooked || severalPots)
+                    potCookedLine(pot, today, shape),
+                ].join(' · '),
                 selected: fromLeftovers.value ?? false,
                 frozen: pot.place == LeftoverPlace.freezer,
                 onTap: () => fromLeftovers.value = true,

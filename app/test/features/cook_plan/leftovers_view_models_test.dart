@@ -102,6 +102,24 @@ void main() {
       expect(offers.map((o) => (o.id, o.place)), [('c', LeftoverPlace.fridge)]);
     });
 
+    test('a day behind us is judged on that day: a pot good then is '
+        'offered', () async {
+      // Curry cooked Sun 8, 2 left till Thu 12; today is Mon 9.
+      final curry = Leftover(
+        id: 'curry',
+        place: LeftoverPlace.fridge,
+        recipeId: 'curry',
+        title: 'Chickpea Curry',
+        since: _nov(8),
+        goodUntil: _nov(12),
+        box: 2,
+      );
+      // Sunday, yesterday: offered.
+      expect((await _offersOn(_nov(8), rows: [curry])).single.id, 'curry');
+      // Saturday, before it was cooked: not.
+      expect(await _offersOn(_nov(7), rows: [curry]), isEmpty);
+    });
+
     test('a cooked row with nothing free is not offered', () async {
       final spoken = Leftover(
         id: 'k',

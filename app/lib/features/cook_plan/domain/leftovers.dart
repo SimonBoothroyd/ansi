@@ -333,8 +333,8 @@ class Leftover {
 }
 
 /// [left] as the planning picker offers it for a meal on [day], or null when
-/// it is not offered: words, nothing free to plan, past its date on [today],
-/// or not good on [day].
+/// it is not offered: words, nothing free to plan, past its date on [today]
+/// (or, for a day behind us, on [day]), or not good on [day].
 ///
 /// Freshness is judged on [day], not [today]. A fridge row good on [day] is
 /// offered from the fridge. One past its fridge date by then, of a dish that
@@ -345,9 +345,12 @@ class Leftover {
 /// a meal picked from it adds its portions to what it makes. It is offered
 /// from its cook day on, for as long as it would keep.
 Leftover? leftoverOfferOn(Leftover left, DateTime day, DateTime today) {
+  // A day behind us is judged on that day: what was good then was eaten
+  // then, whatever its date says now.
+  final judgedOn = _dateOnly(day).isBefore(_dateOnly(today)) ? day : today;
   if (left.recipeId == null ||
       (left.cooked && left.portions <= 1e-9) ||
-      left.pastItsDate(today)) {
+      left.pastItsDate(judgedOn)) {
     return null;
   }
   return switch (left.shelfOn(day)) {

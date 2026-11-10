@@ -837,6 +837,7 @@ void main() {
     Future<_FakePlanningRepo> openConfirm(
       WidgetTester tester, {
       required Leftover pot,
+      List<Leftover> more = const [],
     }) async {
       filterForuiSemanticsAssertions();
       final planning = _FakePlanningRepo(week: _plannedWeek());
@@ -847,11 +848,14 @@ void main() {
         extra: [
           clockProvider.overrideWithValue(() => monday),
           leftoverRepositoryProvider.overrideWithValue(
-            FakeLeftoverRepository([pot]),
+            FakeLeftoverRepository([pot, ...more]),
           ),
         ],
       );
       await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      // The recipe's own row, below the Leftovers block.
+      await tester.ensureVisible(find.text('Weeknight Chicken Curry').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Weeknight Chicken Curry').last);
       await tester.pumpAndSettle();
@@ -903,6 +907,48 @@ void main() {
       await tester.pumpAndSettle();
       await add(tester);
       expect(planning.recipeEntries.single.cooking, isNull);
+    });
+
+    testWidgets('no outcome shows before a pick: Cook fresh draws its batch '
+        'strip, From leftovers what it leaves', (tester) async {
+      await openConfirm(tester, pot: frozen(portions: 3));
+      expect(find.byType(MealBatchStrip), findsNothing);
+      expect(find.textContaining('after this'), findsNothing);
+      await tester.tap(find.text('Cook fresh'));
+      await tester.pumpAndSettle();
+      expect(find.byType(MealBatchStrip), findsOneWidget);
+      await tester.tap(find.text('From leftovers'));
+      await tester.pumpAndSettle();
+      expect(find.byType(MealBatchStrip), findsNothing);
+      expect(find.textContaining('still left after this'), findsOneWidget);
+    });
+
+    testWidgets('two pots: the choice names the one it links to by its '
+        'cooked day, and the meal may take the dish as a whole', (
+      tester,
+    ) async {
+      final fridge = Leftover(
+        id: 'c1',
+        place: LeftoverPlace.fridge,
+        recipeId: 'r1',
+        title: 'Weeknight Chicken Curry',
+        since: mondayDate,
+        goodUntil: day(4),
+        box: 1,
+      );
+      final planning = await openConfirm(
+        tester,
+        pot: fridge,
+        more: [frozen(portions: 1)],
+      );
+      expect(find.text('1 left · cooked today'), findsOneWidget);
+
+      await tester.tap(find.text('From leftovers'));
+      await tester.pumpAndSettle();
+      // One in the fridge and one in the freezer: two portions are there.
+      expect(find.textContaining('only'), findsNothing);
+      await add(tester);
+      expect(planning.recipeEntries.single.cooking, 'c1');
     });
 
     testWidgets('From leftovers cannot take more than is left', (tester) async {

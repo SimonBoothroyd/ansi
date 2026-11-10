@@ -44,7 +44,8 @@ bool anyLeftoverPastItsDate(Ref ref) {
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
-/// Empty for a day behind us.
+/// A day behind us is judged the same way, on that day: a pot good on it is
+/// offered, so a meal added late can still be eaten from the fridge.
 ///
 /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
 /// meals nobody ticked, and planned meals of an earlier week that no cooking
@@ -53,7 +54,6 @@ bool anyLeftoverPastItsDate(Ref ref) {
 @riverpod
 List<Leftover> leftoversGoodOn(Ref ref, DateTime day) {
   final today = ref.watch(todayProvider);
-  if (DateTime(day.year, day.month, day.day).isBefore(today)) return const [];
   final shelves = ref.watch(leftoverShelvesProvider).asData?.value;
   final week = ref.watch(weekShapeProvider).keyOf(day);
   final uncooked = <String>{};

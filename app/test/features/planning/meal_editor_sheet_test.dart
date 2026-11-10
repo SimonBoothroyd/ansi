@@ -224,7 +224,7 @@ void main() {
         ),
       ],
     );
-    expect(find.text('cooked Fri · freeze by Mon'), findsOneWidget);
+    expect(find.text('cooked Fri · freeze by next Mon'), findsOneWidget);
   });
 
   /// Opens Thursday's meal, eaten from [pot], on Monday morning.
@@ -294,4 +294,84 @@ void main() {
     await tester.pumpAndSettle();
     expect(planner.eatenFromLeftoverAgain, [('e6', 'lo')]);
   });
+
+  testWidgets('the open sheet follows Cook fresh instead and its Undo, '
+      'live', (tester) async {
+    final planner = _LivePlanner(_entry(3, cooking: 'sat'));
+    filterForuiSemanticsAssertions();
+    await tester.pumpWidget(
+      routedHost(
+        initial: '/',
+        routes: {
+          '/': (context, _) => Builder(
+            builder: (context) => GestureDetector(
+              onTap: () => showMealEditorSheet(context, entry: planner.entry),
+              child: const Text('open'),
+            ),
+          ),
+        },
+        overrides: [
+          clockProvider.overrideWithValue(() => _on(0, 9)),
+          weekShapeProvider.overrideWithValue(WeekShape.monday),
+          planningRepositoryProvider.overrideWithValue(planner),
+          cookPlanRepositoryProvider.overrideWithValue(_LivePlan()),
+          recipeRepositoryProvider.overrideWithValue(FakeRecipeRepository()),
+          leftoverRepositoryProvider.overrideWithValue(
+            FakeLeftoverRepository([ragu(since: _on(-2))]),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.text('cooked last Sat'), findsOneWidget);
+
+    await tester.tap(find.text('Cook fresh instead'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cook fresh instead'), findsNothing);
+    expect(find.text('cooked last Sat'), findsNothing);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(planner.entry.cooking, 'sat');
+    expect(find.text('cooked last Sat'), findsOneWidget);
+    expect(find.text('Cook fresh instead'), findsOneWidget);
+  });
+}
+
+/// A planner whose week moves with Cook fresh instead and its Undo, as the
+/// real one's watch does.
+class _LivePlanner extends FakePlanningRepository {
+  _LivePlanner(this.entry)
+    : super(const [
+        Member(id: 'm1', displayName: 'Ada'),
+        Member(id: 'm2', displayName: 'Jun'),
+      ]);
+
+  PlanEntry entry;
+  final _weeks = StreamController<WeekPlan?>.broadcast();
+
+  WeekPlan get _week => WeekPlan(id: 'w', weekStart: _monday, entries: [entry]);
+
+  @override
+  Stream<WeekPlan?> watchWeek(DateTime weekStart) async* {
+    yield _week;
+    yield* _weeks.stream;
+  }
+
+  @override
+  Future<void> cookFreshInstead(String entryId) async {
+    entry = entry.copyWith(cooking: null);
+    _weeks.add(_week);
+  }
+
+  @override
+  Future<void> eatFromLeftoverAgain(
+    String entryId, {
+    required String cooking,
+  }) async {
+    entry = entry.copyWith(cooking: cooking);
+    _weeks.add(_week);
+  }
 }
