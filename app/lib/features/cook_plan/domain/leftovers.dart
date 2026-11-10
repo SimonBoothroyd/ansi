@@ -19,7 +19,7 @@
 /// sheet draw for a batch.
 library;
 
-import 'dart:math' show min;
+import 'dart:math' show max, min;
 
 import 'package:meta/meta.dart';
 
@@ -139,6 +139,9 @@ class LeftoverMeal {
     this.place,
     this.freezeBy,
     this.warning,
+    this.short = 0,
+    this.elsewhere = 0,
+    this.lent = false,
   });
 
   /// The planned meal.
@@ -159,11 +162,31 @@ class LeftoverMeal {
 
   final LeftoverWarning? warning;
 
+  /// What none of the household's cookings of the dish could give it: its
+  /// own cooking first, then the others' ([readDishes]).
+  final double short;
+
+  /// What other cookings of the same dish give it, after its own cooking
+  /// gave what it had ([readDishes]).
+  final double elsewhere;
+
+  /// Whether this is a share the row gives a meal of another cooking of the
+  /// same dish ([readDishes]): its [portions] are that share alone. Never a
+  /// meal's own judgement, so never the Week's tag.
+  final bool lent;
+
+  /// The portions the row that lists this meal gives it: a share lent, or
+  /// what its own cooking gives once the others gave theirs.
+  double get fromThisRow => lent ? portions : portions - elsewhere;
+
   @override
   String toString() =>
       'LeftoverMeal($entryId, $day, $portions, ${place?.name}'
       '${freezeBy == null ? '' : ', freeze by $freezeBy'}'
-      '${warning == null ? '' : ', ${warning!.name}'})';
+      '${warning == null ? '' : ', ${warning!.name}'}'
+      '${short > 1e-9 ? ', short $short' : ''}'
+      '${elsewhere > 1e-9 ? ', $elsewhere elsewhere' : ''}'
+      '${lent ? ', lent' : ''})';
 }
 
 /// One shelf of one cooking: the fridge part or the freezer part, as the
@@ -445,10 +468,10 @@ typedef CookingRead = ({
   double freezer,
 });
 
-/// The household's leftovers on [today], from every cooking read
-/// ([readCooking]): rows soonest to go off first, and every linked meal
-/// judged. [unborn] are the planned meals no cooking holds yet, read as pots
-/// ([plannedPots]).
+/// The household's leftovers on [today], from every cooking read with the
+/// others of its dish ([readDishes]): rows soonest to go off first, and every
+/// linked meal judged. [unborn] are the planned meals no cooking holds yet,
+/// read as pots ([plannedPots]).
 LeftoverShelves readCookings(
   List<CookingInput> cookings,
   DateTime today, {
@@ -457,33 +480,130 @@ LeftoverShelves readCookings(
   final day = _dateOnly(today);
   final rows = <Leftover>[];
   final meals = <String, LeftoverMeal>{};
-  for (final input in cookings) {
-    final read = readCooking(input, day);
+  for (final read in readDishes(cookings, day).values) {
     rows.addAll(read.rows);
     for (final m in read.meals) {
       if (m.entryId case final id?) meals[id] = m;
     }
   }
-  rows.sort((a, b) {
-    final place = a.place.index.compareTo(b.place.index);
-    if (place != 0) return place;
-    final past = (a.pastItsDate(day) ? 1 : 0) - (b.pastItsDate(day) ? 1 : 0);
-    if (past != 0) return past;
-    final until = switch ((a.goodUntil, b.goodUntil)) {
-      (null, null) => 0,
-      (null, _) => 1,
-      (_, null) => -1,
-      (final x?, final y?) => x.compareTo(y),
-    };
-    if (until != 0) return until;
-    final since = a.since.compareTo(b.since);
-    return since != 0 ? since : a.title.compareTo(b.title);
-  });
+  rows.sort((a, b) => _soonestToGoOff(a, b, day));
   return LeftoverShelves(
     rows: List.unmodifiable(rows),
     meals: meals,
     pots: List.unmodifiable(plannedPots(unborn)),
   );
+}
+
+/// Fridge first, then freezer; within each, soonest to go off first and past
+/// its date last.
+int _soonestToGoOff(Leftover a, Leftover b, DateTime day) {
+  final place = a.place.index.compareTo(b.place.index);
+  if (place != 0) return place;
+  final past = (a.pastItsDate(day) ? 1 : 0) - (b.pastItsDate(day) ? 1 : 0);
+  if (past != 0) return past;
+  final until = switch ((a.goodUntil, b.goodUntil)) {
+    (null, null) => 0,
+    (null, _) => 1,
+    (_, null) => -1,
+    (final x?, final y?) => x.compareTo(y),
+  };
+  if (until != 0) return until;
+  final since = a.since.compareTo(b.since);
+  return since != 0 ? since : a.title.compareTo(b.title);
+}
+
+/// A share one cooking gives a meal of another cooking of the same dish:
+/// `portions` from its `place` shelf, for the meal `entryId` on `day`.
+typedef DishShare = ({
+  String entryId,
+  DateTime day,
+  double portions,
+  LeftoverPlace place,
+});
+
+/// Every cooking of [cookings] read on [today] with the others of its dish,
+/// by cooking id: **a dish counts as a whole.**
+///
+/// A meal takes from its own cooking first ([readCooking]). What that cannot
+/// give comes from the household's other cookings of the same recipe, cooked
+/// ones only, soonest to go off first (fridge before freezer), each only from
+/// a shelf in date on the meal's day, and only what that shelf has free
+/// once its own meals are served. Meals draw in day order. The giving row
+/// lists the share ([LeftoverMeal.lent], `2 for Tue`), and the meal warns
+/// only for what no cooking of the dish has ([LeftoverMeal.short]).
+Map<String, CookingRead> readDishes(
+  List<CookingInput> cookings,
+  DateTime today,
+) {
+  final day = _dateOnly(today);
+  final reads = {
+    for (final input in cookings) input.cooking.id: readCooking(input, day),
+  };
+  final byDish = <String, List<CookingInput>>{};
+  for (final input in cookings) {
+    if (input.cooking.recipeId case final recipe?) {
+      (byDish[recipe] ??= []).add(input);
+    }
+  }
+  for (final dish in byDish.values) {
+    if (dish.length < 2) continue;
+    final short =
+        [
+          for (final input in dish)
+            for (final m in reads[input.cooking.id]!.meals)
+              if (m.short > 1e-9) (cooking: input.cooking.id, meal: m),
+        ]..sort((a, b) {
+          final d = a.meal.day.compareTo(b.meal.day);
+          return d != 0 ? d : a.meal.entryId!.compareTo(b.meal.entryId!);
+        });
+    if (short.isEmpty) continue;
+    final givers = [
+      for (final input in dish)
+        for (final row in reads[input.cooking.id]!.rows)
+          if (row.cooked) row,
+    ]..sort((a, b) => _soonestToGoOff(a, b, day));
+    final free = [for (final row in givers) row.portions];
+    final lends = <String, List<DishShare>>{};
+    final given = <String, ({double portions, LeftoverPlace place})>{};
+    for (final (:cooking, :meal) in short) {
+      var wanted = meal.short;
+      for (var i = 0; i < givers.length && wanted > 1e-9; i++) {
+        final row = givers[i];
+        if (row.id == cooking ||
+            free[i] <= 1e-9 ||
+            row.shelfOn(meal.day) != row.place) {
+          continue;
+        }
+        final share = min(wanted, free[i]);
+        free[i] -= share;
+        wanted -= share;
+        (lends[row.id] ??= []).add((
+          entryId: meal.entryId!,
+          day: meal.day,
+          portions: share,
+          place: row.place,
+        ));
+        final before = given[meal.entryId!];
+        given[meal.entryId!] = (
+          portions: (before?.portions ?? 0) + share,
+          place: before?.place ?? row.place,
+        );
+      }
+    }
+    if (lends.isEmpty) continue;
+    for (final input in dish) {
+      final id = input.cooking.id;
+      final mine = reads[id]!.meals.any((m) => given.containsKey(m.entryId));
+      if (!mine && !lends.containsKey(id)) continue;
+      reads[id] = readCooking(
+        input,
+        day,
+        elsewhere: given,
+        lends: lends[id] ?? const [],
+      );
+    }
+  }
+  return reads;
 }
 
 /// What one cooking holds on [today], and how each of its meals stands.
@@ -504,7 +624,15 @@ LeftoverShelves readCookings(
 ///   it was still in date that day; with nothing left, the cooking shows
 ///   nothing and the meals still to come from it warn. One never
 ///   cooked shows nothing, and every meal from it warns.
-CookingRead readCooking(CookingInput input, DateTime today) {
+/// - Read with the rest of its dish ([readDishes]): [elsewhere] is what
+///   other cookings give its meals, by entry id, which it then need not;
+///   [lends] are the shares it gives theirs, taken after its own meals.
+CookingRead readCooking(
+  CookingInput input,
+  DateTime today, {
+  Map<String, ({double portions, LeftoverPlace place})> elsewhere = const {},
+  List<DishShare> lends = const [],
+}) {
   final day = _dateOnly(today);
   final cooking = input.cooking;
   final life = input.life;
@@ -524,12 +652,32 @@ CookingRead readCooking(CookingInput input, DateTime today) {
     });
   final cookDay = cookDayOfCooking(cooking, meals) ?? nextCookDayOf(meals, day);
 
-  LeftoverMeal warned(CookingMeal m) => LeftoverMeal(
-    entryId: m.entryId,
-    day: _dateOnly(m.day),
-    portions: m.takeOn(day),
-    warning: LeftoverWarning.notEnoughLeft,
-  );
+  double givenElsewhere(CookingMeal m) {
+    final given = elsewhere[m.entryId]?.portions ?? 0;
+    final take = m.takeOn(day);
+    return given > take ? take : given;
+  }
+
+  // Nothing of its own to give: what other cookings of the dish give is all
+  // it gets, and it warns only for the rest. A meal eaten before the cook day
+  // (food said by hand) is not [dishWide]: no other cooking makes that up.
+  LeftoverMeal warned(CookingMeal m, {bool dishWide = true}) {
+    final take = m.takeOn(day);
+    final given = dishWide ? givenElsewhere(m) : 0.0;
+    final short = take - given;
+    return LeftoverMeal(
+      entryId: m.entryId,
+      day: _dateOnly(m.day),
+      portions: take,
+      place: given > 1e-9 ? elsewhere[m.entryId]!.place : null,
+      warning: short > 1e-9 || take <= 1e-9
+          ? LeftoverWarning.notEnoughLeft
+          : null,
+      short: dishWide && !m.removed && short > 1e-9 ? short : 0,
+      elsewhere: given,
+    );
+  }
+
   if (cookDay == null) {
     // Never cooked: nothing is left, and nothing can be eaten from it.
     return (
@@ -605,22 +753,27 @@ CookingRead readCooking(CookingInput input, DateTime today) {
     if (mealDay.isBefore(cookDay)) {
       // Eaten before it was cooked: a meal of food said by hand planned
       // before its date. A meal skipped before the cook day takes nothing.
-      if (take > 1e-9) judged.add((meal: warned(m), onFridgeRow: inFridge));
+      if (take > 1e-9) {
+        judged.add((meal: warned(m, dishWide: false), onFridgeRow: inFridge));
+      }
       continue;
     }
     final inFridgeDate = fridgeUntil == null || !mealDay.isAfter(fridgeUntil);
     final inFreezerDate =
         freezerUntil == null || !mealDay.isAfter(freezerUntil);
+    // What other cookings of the dish give it: this one need not.
+    final given = givenElsewhere(m);
+    final ownTake = take - given;
 
     if (inFridge && !inFridgeDate && freezable && inFreezerDate) {
       // A freezer meal: its portions go in the freezer by the fridge date,
       // as far as the freezer has not got them spare already, and as far as
       // the fridge has them: only what is there is frozen. The rest is short.
-      final wanted = m.removed ? take : m.portions;
+      final wanted = max<double>(0, (m.removed ? take : m.portions) - given);
       final covered = min(wanted, freezer > 0 ? freezer : 0.0);
       final needed = wanted - covered;
       final moved = min(needed, fridge > 0 ? fridge : 0.0);
-      final short = ahead && needed > moved + 1e-9;
+      final short = max<double>(0, ownTake - covered - moved);
       // Until the fridge date the portions still sit in the fridge, and the
       // meal (and any shortfall) is the fridge row's to say; after it, the
       // freezer's.
@@ -632,8 +785,8 @@ CookingRead readCooking(CookingInput input, DateTime today) {
         spokenFreezer += covered;
       } else {
         fridge -= moved;
-        freezer += moved - take;
-        if (ahead) spokenFreezer += take;
+        freezer += moved - ownTake;
+        if (ahead) spokenFreezer += ownTake;
       }
       judged.add((
         meal: LeftoverMeal(
@@ -642,7 +795,9 @@ CookingRead readCooking(CookingInput input, DateTime today) {
           portions: take,
           place: LeftoverPlace.freezer,
           freezeBy: pending ? fridgeUntil : null,
-          warning: short ? LeftoverWarning.notEnoughLeft : null,
+          warning: ahead && short > 1e-9 ? LeftoverWarning.notEnoughLeft : null,
+          short: m.removed ? 0 : short,
+          elsewhere: given,
         ),
         onFridgeRow: pending,
       ));
@@ -654,9 +809,9 @@ CookingRead readCooking(CookingInput input, DateTime today) {
     final pastDate = inFridge ? !inFridgeDate : !inFreezerDate;
     final own = inFridge ? fridge : freezer;
     final other = inFridge ? freezer : fridge;
-    var fromOwn = min(take, own > 0 ? own : 0.0);
-    final fromOther = min(take - fromOwn, other > 0 ? other : 0.0);
-    final short = take - fromOwn - fromOther;
+    var fromOwn = min(ownTake, own > 0 ? own : 0.0);
+    final fromOther = min(ownTake - fromOwn, other > 0 ? other : 0.0);
+    final short = ownTake - fromOwn - fromOther;
     fromOwn += short;
     final fromFridge = inFridge ? fromOwn : fromOther;
     final fromFreezer = inFridge ? fromOther : fromOwn;
@@ -666,22 +821,51 @@ CookingRead readCooking(CookingInput input, DateTime today) {
       spokenFridge += fromFridge;
       spokenFreezer += fromFreezer;
     }
-    final place = fromFreezer > fromFridge + 1e-9
-        ? LeftoverPlace.freezer
-        : LeftoverPlace.fridge;
+    final onFridgeRow = fromFreezer <= fromFridge + 1e-9;
     judged.add((
       meal: LeftoverMeal(
         entryId: m.entryId,
         day: mealDay,
         portions: take,
-        place: place,
+        // Given whole by another cooking: eaten from that one's shelf.
+        place: ownTake <= 1e-9 && given > 1e-9
+            ? elsewhere[m.entryId]!.place
+            : onFridgeRow
+            ? LeftoverPlace.fridge
+            : LeftoverPlace.freezer,
         warning: ahead && short > 1e-9
             ? LeftoverWarning.notEnoughLeft
             : pastDate && (inFridge ? fromFridge : fromFreezer) > 1e-9
             ? LeftoverWarning.pastItsDate
             : null,
+        short: m.removed || short <= 1e-9 ? 0 : short,
+        elsewhere: given,
       ),
-      onFridgeRow: place == LeftoverPlace.fridge,
+      onFridgeRow: onFridgeRow,
+    ));
+  }
+
+  // The shares this cooking gives meals of other cookings of its dish, out
+  // of what is free once its own meals are served.
+  for (final share in [...lends]..sort((a, b) => a.day.compareTo(b.day))) {
+    final ahead = !share.day.isBefore(day);
+    final fridgeShelf = share.place == LeftoverPlace.fridge;
+    if (fridgeShelf) {
+      fridge -= share.portions;
+      if (ahead) spokenFridge += share.portions;
+    } else {
+      freezer -= share.portions;
+      if (ahead) spokenFreezer += share.portions;
+    }
+    judged.add((
+      meal: LeftoverMeal(
+        entryId: share.entryId,
+        day: _dateOnly(share.day),
+        portions: share.portions,
+        place: share.place,
+        lent: true,
+      ),
+      onFridgeRow: fridgeShelf,
     ));
   }
 
@@ -738,7 +922,7 @@ CookingRead readCooking(CookingInput input, DateTime today) {
     rows: rows,
     meals: [
       for (final j in judged)
-        if (!removed.contains(j.meal.entryId)) j.meal,
+        if (!j.meal.lent && !removed.contains(j.meal.entryId)) j.meal,
     ],
     fridge: fridgeBox,
     freezer: freezerBox,

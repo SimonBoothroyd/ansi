@@ -486,14 +486,26 @@ Cooking cookingOf(Row r, {double? wholeBatchOf}) => Cooking(
   wholeBatchOf: wholeBatchOf,
 );
 
-/// What the cooking [id] holds on [today], read inside [tx].
+/// What the cooking [id] holds on [today], read inside [tx] with every other
+/// cooking of its dish ([readDishes]): a share it gives another cooking's
+/// meal is out of its box, as the page drew it.
 Future<CookingRead?> readCookingIn(
   SqliteReadContext tx,
   String id,
   DateTime today,
 ) async {
-  final inputs = await loadCookingInputs(tx, ids: {id});
-  return inputs.isEmpty ? null : readCooking(inputs.single, today);
+  final dish = {
+    id,
+    for (final r in await tx.getAll(
+      'SELECT o.id FROM cooking c JOIN cooking o '
+      'ON o.recipe_id = c.recipe_id AND o.deleted_at IS NULL '
+      'WHERE c.id = ?',
+      [id],
+    ))
+      r['id'] as String,
+  };
+  final inputs = await loadCookingInputs(tx, ids: dish);
+  return readDishes(inputs, today)[id];
 }
 
 /// Writes one change row to the cooking [cookingId]: [fridge] and [freezer]

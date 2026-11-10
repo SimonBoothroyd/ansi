@@ -877,6 +877,127 @@ void main() {
       expect(_fridge(_read(ticked, _nov(1)))!.cooked, isTrue);
     });
   });
+
+  group('a dish counts as a whole', () {
+    // Sunday's Hamburger Helper: 3 made, both ate 2, 1 left till Wed 4 Nov.
+    CookingInput sunday(CookingMeal planned) => _cooking(
+      [_m('sun', _nov(1), week: _nov(1), eaten: 2), planned],
+      id: 'sunday',
+      made: 3,
+    );
+    // Last week's: 4 made Mon 26 Oct, both ate 2, 2 frozen (till 25 Nov).
+    final lastWeek = _cooking(
+      [_m('mon', _oct(26), eaten: 2)],
+      id: 'last',
+      made: 4,
+      changes: (fridge: -2, freezer: 2),
+    );
+    // Saturday's: 4 made 31 Oct, both ate 2, 2 left till Tue 3 Nov.
+    final saturday = _cooking(
+      [_m('sat', _oct(31), eaten: 2)],
+      id: 'saturday',
+      made: 4,
+    );
+    Leftover row(LeftoverShelves s, String id, LeftoverPlace place) =>
+        s.rows.singleWhere((r) => r.id == id && r.place == place);
+
+    test('Tue for 3 from Sunday’s 1 takes 2 from the freezer, and nobody '
+        'warns', () {
+      final shelves = readCookings([
+        sunday(_m('tue', _nov(3), week: _nov(1), portions: 3)),
+        lastWeek,
+      ], _nov(2));
+      final tue = shelves.meals['tue']!;
+      expect((tue.warning, tue.short, tue.elsewhere), (null, 0.0, 2.0));
+      final fridge = row(shelves, 'sunday', LeftoverPlace.fridge);
+      expect((fridge.inBox, fridge.portions), (1.0, 0.0));
+      final freezer = row(shelves, 'last', LeftoverPlace.freezer);
+      expect(
+        (freezer.inBox, freezer.planned, freezer.portions),
+        (2.0, 2.0, 0.0),
+      );
+      final lent = freezer.meals.single;
+      expect((lent.entryId, lent.portions, lent.lent), ('tue', 2.0, true));
+    });
+
+    test('next Tue, past the fridge date: Sunday’s 1 is frozen for it, the '
+        'freezer gives the 2, and nobody warns', () {
+      final shelves = readCookings([
+        sunday(_m('next-tue', _nov(10), week: _nov(8), portions: 3)),
+        lastWeek,
+      ], _nov(2));
+      expect(shelves.meals['next-tue']!.warning, isNull);
+      final fridge = row(shelves, 'sunday', LeftoverPlace.fridge);
+      expect(fridge.freezeBy, _nov(4));
+      expect(fridge.meals.last.freezeBy, _nov(4));
+      expect(fridge.meals.last.fromThisRow, 1);
+      expect(
+        row(shelves, 'last', LeftoverPlace.freezer).meals.single.portions,
+        2,
+      );
+    });
+
+    test('the household short as a whole still warns, for what nobody '
+        'has', () {
+      final shelves = readCookings([
+        sunday(_m('tue', _nov(3), week: _nov(1), portions: 4)),
+        lastWeek,
+      ], _nov(2));
+      final tue = shelves.meals['tue']!;
+      expect(tue.warning, LeftoverWarning.notEnoughLeft);
+      expect((tue.short, tue.elsewhere), (1.0, 2.0));
+    });
+
+    test('the fridge gives before the freezer, and only a shelf in date on '
+        'the meal’s day', () {
+      final tue = readCookings([
+        sunday(_m('tue', _nov(3), week: _nov(1), portions: 3)),
+        lastWeek,
+        saturday,
+      ], _nov(2));
+      expect(row(tue, 'saturday', LeftoverPlace.fridge).planned, 2);
+      expect(row(tue, 'last', LeftoverPlace.freezer).planned, 0);
+      // Wednesday is past Saturday's fridge date: the freezer gives.
+      final wed = readCookings([
+        sunday(_m('wed', _nov(4), week: _nov(1), portions: 3)),
+        lastWeek,
+        saturday,
+      ], _nov(2));
+      expect(row(wed, 'saturday', LeftoverPlace.fridge).planned, 0);
+      expect(row(wed, 'last', LeftoverPlace.freezer).planned, 2);
+      expect(wed.meals['wed']!.warning, isNull);
+    });
+
+    test('a cooking’s own meals are served before it gives', () {
+      final shelves = readCookings([
+        sunday(_m('tue', _nov(3), week: _nov(1), portions: 3)),
+        _cooking(
+          [_m('mon', _oct(26), eaten: 2), _m('thu', _nov(5), week: _nov(1))],
+          id: 'last',
+          made: 4,
+          changes: (fridge: -2, freezer: 2),
+        ),
+      ], _nov(2));
+      expect(shelves.meals['tue']!.warning, LeftoverWarning.notEnoughLeft);
+      expect(shelves.meals['thu']!.warning, isNull);
+    });
+
+    test('once eaten, the share leaves the other box for good', () {
+      final ate = _m('tue', _nov(3), week: _nov(1), portions: 3, eaten: 3);
+      final shelves = readCookings([sunday(ate), lastWeek], _nov(4));
+      expect(shelves.rows.where((r) => r.id == 'last'), isEmpty);
+      final reads = readDishes([sunday(ate), lastWeek], _nov(4));
+      expect((reads['last']!.freezer, reads['sunday']!.fridge), (0.0, 0.0));
+    });
+
+    test('a pot not cooked yet gives nothing: its food is not there', () {
+      final shelves = readCookings([
+        sunday(_m('tue', _nov(3), week: _nov(1), portions: 3)),
+        _cooking([_m('mon', _nov(2), week: _nov(1))], id: 'uncooked', made: 4),
+      ], _nov(2));
+      expect(shelves.meals['tue']!.warning, LeftoverWarning.notEnoughLeft);
+    });
+  });
 }
 
 const CookingShelfLife _helperLife = (
