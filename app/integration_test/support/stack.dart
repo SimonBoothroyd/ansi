@@ -50,6 +50,7 @@ class SmokeStack {
     required this.db,
     required Directory dir,
     required this.email,
+    required this.partnerEmail,
     required this.householdId,
   }) : _dir = dir;
 
@@ -97,6 +98,7 @@ class SmokeStack {
       db: db,
       dir: dir,
       email: household.email,
+      partnerEmail: household.partnerEmail,
       householdId: household.id,
     );
   }
@@ -110,6 +112,10 @@ class SmokeStack {
   /// The provisioned user the app signs in as ("Ada").
   final String email;
 
+  /// The household's second member ("Jun"), provisioned beside Ada. The app
+  /// never signs in as him; [tickAsPartner] writes for him over HTTP.
+  final String partnerEmail;
+
   /// The household `ensure_onboarded` put Ada in — what a repository built
   /// over [db] stamps on the rows it writes.
   final String householdId;
@@ -118,6 +124,33 @@ class SmokeStack {
   /// by [openLibraryWithOffFixture]'s mock transport so a test can prove the
   /// typed digits reached it.
   Uri? offRequestUrl;
+
+  /// Says Jun ate the planned meal [entryId] at [eatenAt] (default now),
+  /// written AS JUN over HTTP — the server lets a member tick only for
+  /// themselves (0055), so the app, signed in as Ada, cannot. The meal must
+  /// already be on the server ([waitForSyncRoundTrip] after planning it); the
+  /// tick then syncs down to [db] like any partner's write. Returns Jun's
+  /// member id.
+  ///
+  /// It writes the `meal_eaten` row alone, as an old build's tick would: the
+  /// cooking's birth is the app's (Ada's tick, or a pick), so a scenario that
+  /// needs one ticks for Ada first.
+  Future<String> tickAsPartner(String entryId, {DateTime? eatenAt}) async {
+    final session = await _signIn(partnerEmail);
+    final members = await _get(
+      '/rest/v1/household_member?select=id'
+      '&auth_user_id=eq.${session.userId}&deleted_at=is.null',
+      bearer: session.token,
+    );
+    final memberId = ((members as List).single as Map)['id'] as String;
+    await _post('/rest/v1/meal_eaten', {
+      'household_id': householdId,
+      'plan_entry_id': entryId,
+      'member_id': memberId,
+      'eaten_at': (eatenAt ?? DateTime.now()).toUtc().toIso8601String(),
+    }, bearer: session.token);
+    return memberId;
+  }
 
   Future<void> dispose() async {
     await db.close();
@@ -232,10 +265,10 @@ class SmokeStack {
 // scripts/smoke_auth.sh). In-app sign-up is not used: see the library doc.
 // -----------------------------------------------------------------------------
 
-typedef _Household = ({String email, String id});
+typedef _Household = ({String email, String partnerEmail, String id});
 
-/// Creates a fresh two-person household ("Ada" + "Jun") and returns Ada's
-/// email with the household's id. `ensure_onboarded` joins ANY household with
+/// Creates a fresh two-person household ("Ada" + "Jun") and returns both
+/// emails with the household's id. `ensure_onboarded` joins ANY household with
 /// room before creating one, so stray one-member households left by earlier
 /// runs are filled with plug users until a sign-up lands in a genuinely fresh
 /// (and therefore clean) household; the partner then deterministically joins
@@ -263,10 +296,8 @@ Future<_Household> _provisionHousehold() async {
       );
       continue;
     }
-    final partnerToken = await _signUp(
-      'smoke$stamp.jun@ansi.app',
-      fullName: 'Jun',
-    );
+    final partnerEmail = 'smoke$stamp.jun@ansi.app';
+    final partnerToken = await _signUp(partnerEmail, fullName: 'Jun');
     final partnerHousehold = await _ensureOnboarded(partnerToken);
     if (partnerHousehold != household) {
       throw StateError(
@@ -274,7 +305,7 @@ Future<_Household> _provisionHousehold() async {
         'another client raced the provisioning?',
       );
     }
-    return (email: email, id: household);
+    return (email: email, partnerEmail: partnerEmail, id: household);
   }
   throw StateError(
     'no fresh household after 24 sign-ups — too many strays, or another '
@@ -295,6 +326,21 @@ Future<String> _signUp(String email, {required String fullName}) async {
     );
   }
   return token;
+}
+
+/// A password sign-in: a fresh token (the one sign-up handed out may have
+/// aged), and the user it is for.
+Future<({String token, String userId})> _signIn(String email) async {
+  final body =
+      await _post('/auth/v1/token?grant_type=password', {
+            'email': email,
+            'password': smokePassword,
+          })
+          as Map;
+  return (
+    token: body['access_token'] as String,
+    userId: (body['user'] as Map)['id'] as String,
+  );
 }
 
 Future<String> _ensureOnboarded(String token) async =>
