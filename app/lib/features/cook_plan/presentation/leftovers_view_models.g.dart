@@ -298,7 +298,7 @@ final class LeftoversGoodOnProvider
   }
 }
 
-String _$leftoversGoodOnHash() => r'abcf30e35fddb22e03e4f620747f9b1d178fb37a';
+String _$leftoversGoodOnHash() => r'0a94bb65cd241e7dcb302960cab41b1e8a00aae3';
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
