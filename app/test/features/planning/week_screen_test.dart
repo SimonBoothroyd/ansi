@@ -1115,10 +1115,18 @@ void main() {
           ],
         ),
       ]);
+      // Pinned to Monday morning: an unticked batch cooks on its first meal
+      // not yet behind today, so on a later weekday Monday is no cook day.
+      final monday = WeekShape.monday.weekStartOf(DateTime.now());
       await _pumpWeek(
         tester,
         planning: _FakePlanningRepo(week: _batchedWeek()),
         cook: plan,
+        extra: [
+          clockProvider.overrideWithValue(
+            () => DateTime(monday.year, monday.month, monday.day, 9),
+          ),
+        ],
       );
 
       expect(find.textContaining('batch of 4'), findsOneWidget);
