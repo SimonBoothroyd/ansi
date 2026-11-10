@@ -273,7 +273,11 @@ void main() {
       },
     );
 
-    Future<void> pump(WidgetTester tester, CookPlan plan) async {
+    Future<void> pump(
+      WidgetTester tester,
+      CookPlan plan, {
+      LeftoverWarning? warning,
+    }) async {
       await tester.pumpWidget(
         _host([
           cookPlanRepositoryProvider.overrideWithValue(
@@ -286,6 +290,7 @@ void main() {
                 day: DateTime.now(),
                 portions: 2,
                 place: LeftoverPlace.freezer,
+                warning: warning,
               ),
             }),
           ),
@@ -304,6 +309,14 @@ void main() {
     testWidgets('cooks it when nobody ate Saturday’s', (tester) async {
       await pump(tester, plan(ticked: false));
       expect(find.text('Beef Ragù · Thu · cook it'), findsOneWidget);
+    });
+
+    testWidgets('says the shortfall the Week’s tag says', (tester) async {
+      await pump(tester, plan(), warning: LeftoverWarning.notEnoughLeft);
+      expect(
+        find.text('Beef Ragù · Thu · from the freezer · not enough left'),
+        findsOneWidget,
+      );
     });
   });
 

@@ -22,6 +22,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
+import '../../planning/domain/planning.dart' show mealSlotRank;
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/domain/effective_lines.dart';
 import '../../recipes/domain/line_override.dart';
@@ -316,6 +317,18 @@ abstract class RecipeCookPlan with _$RecipeCookPlan {
   /// The earliest cook day — the plan's sort key.
   int get firstCookDay =>
       sessions.isEmpty ? 0 : sessions.map((s) => s.cookDay).reduce(min);
+
+  /// The earliest slot it is eaten in on [firstCookDay] ([mealSlotRank]):
+  /// within one day, lunch reads before dinner.
+  int get firstCookSlot {
+    final day = firstCookDay;
+    final ranks = [
+      for (final s in sessions)
+        for (final m in s.covers)
+          if (m.dayOfWeek == day) mealSlotRank(m.mealSlot),
+    ];
+    return ranks.isEmpty ? 0 : ranks.reduce(min);
+  }
 
   /// Split into more than one batch because a later meal outran the fridge
   /// window (and the freezer couldn't rescue it).
@@ -837,7 +850,11 @@ CookPlan buildCookPlan(
 
   plans.sort((a, b) {
     final c = a.firstCookDay.compareTo(b.firstCookDay);
-    return c != 0 ? c : a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    if (c != 0) return c;
+    final slot = a.firstCookSlot.compareTo(b.firstCookSlot);
+    return slot != 0
+        ? slot
+        : a.title.toLowerCase().compareTo(b.title.toLowerCase());
   });
   return CookPlan(
     recipes: plans,

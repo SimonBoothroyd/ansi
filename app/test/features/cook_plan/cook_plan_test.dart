@@ -220,6 +220,24 @@ void main() {
       expect(plan.recipes.map((r) => r.title), ['Apple', 'Curry', 'Zuppa']);
     });
 
+    test('within a day, lunch before dinner, whatever the titles', () {
+      PlannedRecipe at(String id, String title, String slot) => PlannedRecipe(
+        recipeId: id,
+        title: title,
+        servingsBase: 2,
+        keepsForDays: 4,
+        meals: [CoveredMeal(dayOfWeek: 0, mealSlot: slot, portions: 2)],
+      );
+      final plan = buildCookPlan([
+        at('cc', 'Chickpea Curry', 'Dinner'),
+        at('hh', 'Hamburger Helper', 'Lunch'),
+      ]);
+      expect(plan.recipes.map((r) => r.title), [
+        'Hamburger Helper',
+        'Chickpea Curry',
+      ]);
+    });
+
     test('surfaces split and freezer rollups per recipe', () {
       final plan = buildCookPlan([
         _recipe({0: 2, 5: 2}, id: 'split', title: 'Split', keeps: 3),

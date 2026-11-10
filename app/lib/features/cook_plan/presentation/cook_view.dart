@@ -162,8 +162,22 @@ class _EarlierMealLines extends ConsumerWidget {
           for (final meal in meals)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                earlierMealLine(meal, shape),
+              child: Text.rich(
+                TextSpan(
+                  text: earlierMealLine(meal, shape),
+                  children: [
+                    // The shortfall the Week's tag says, judged dish-wide.
+                    if (earlierMealWarning(meal) case final warning?)
+                      TextSpan(
+                        text: ' · $warning',
+                        style: ansiMono(
+                          size: 11.5,
+                          color: AnsiColors.cautionInk,
+                          weight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
                 style: ansiMono(
                   size: 11.5,
                   color: switch (meal.source) {

@@ -9,12 +9,14 @@ import '../../../core/units/portions.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/format.dart';
 import '../../../shared/week_strip_days.dart';
+import '../../planning/domain/planning.dart' show mealSlotRank;
 import '../../planning/presentation/week_variant_format.dart';
 import '../../recipes/domain/component_math.dart';
 import '../../recipes/presentation/component_format.dart';
 import '../../recipes/presentation/recipe_editor_landing.dart';
 import '../domain/cook_plan.dart';
 import '../domain/leftovers.dart';
+import 'leftover_format.dart' show leftoverWarningWords;
 
 /// The batch multiplier, e.g. `×1`, `×1.5`, `×0.75`.
 String formatScale(double factor) => '×${formatAmount(factor)}';
@@ -114,8 +116,15 @@ enum EarlierSource {
 }
 
 /// One meal of this week eaten from a cooking an earlier week bought: Cook
-/// lists it as one line ([earlierMealLine]), never as a card.
-typedef EarlierMeal = ({String title, int day, EarlierSource source});
+/// lists it as one line ([earlierMealLine]), never as a card. Its `warning`
+/// is the Week tag's, judged with every pot of its dish.
+typedef EarlierMeal = ({
+  String title,
+  int day,
+  String slot,
+  EarlierSource source,
+  LeftoverWarning? warning,
+});
 
 /// This week's meals of cookings bought in an earlier week
 /// ([CookPlan.eatenFromEarlier]), in day order, each with where it eats from
@@ -139,6 +148,8 @@ List<EarlierMeal> earlierMealsOf(
     meals.add((
       title: host.recipeTitle,
       day: day,
+      slot: meal.mealSlot,
+      warning: cooksIt ? null : judged[id]?.warning,
       source: cooksIt
           ? EarlierSource.cookIt
           : place == LeftoverPlace.freezer ||
@@ -149,11 +160,15 @@ List<EarlierMeal> earlierMealsOf(
   }
   return meals..sort((a, b) {
     final d = a.day.compareTo(b.day);
-    return d != 0 ? d : a.title.compareTo(b.title);
+    if (d != 0) return d;
+    final slot = mealSlotRank(a.slot).compareTo(mealSlotRank(b.slot));
+    return slot != 0 ? slot : a.title.compareTo(b.title);
   });
 }
 
 /// `Beef Ragù · Thu · from the freezer`, `· from the fridge`, `· cook it`.
+/// A meal the household's pots cannot cover says so after it, in amber
+/// ([earlierMealWarning]).
 String earlierMealLine(EarlierMeal meal, WeekShape shape) {
   final from = switch (meal.source) {
     EarlierSource.fridge => 'from the fridge',
@@ -162,6 +177,13 @@ String earlierMealLine(EarlierMeal meal, WeekShape shape) {
   };
   return '${meal.title} · ${shape.labelShort(meal.day)} · $from';
 }
+
+/// `not enough left`, `past its date`: what follows [earlierMealLine], as
+/// the Week's tag says it. Null when the meal is covered.
+String? earlierMealWarning(EarlierMeal meal) => switch (meal.warning) {
+  final warning? => leftoverWarningWords(warning),
+  null => null,
+};
 
 // --- Component sessions and gaps ---------------------------------------------
 
