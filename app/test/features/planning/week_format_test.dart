@@ -39,6 +39,36 @@ void main() {
       expect(markerOn(planFor([0]), 0), isNull);
     });
 
+    test('a single-meal cook that was cooked says so, as a batch does', () {
+      // Curry Sunday, both ate; Wednesday cooked fresh, so the cooking made
+      // 4 and has one meal left.
+      final plan = buildCookPlan([
+        const PlannedRecipe(
+          recipeId: 'r1',
+          title: 'Curry',
+          servingsBase: 2,
+          keepsForDays: 4,
+          cookings: [
+            PlannedCooking(
+              id: 'c',
+              made: 4,
+              meals: [
+                CoveredMeal(
+                  dayOfWeek: 0,
+                  mealSlot: 'Dinner',
+                  portions: 2,
+                  eatenPortions: 2,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ]);
+      final marker = markerOn(plan, 0)!;
+      expect((marker.kind, marker.cooked), (CookMarkerKind.cooks, true));
+      expect(cookMarkerLabel(marker, WeekShape.monday), 'cooked Mon');
+    });
+
     test('the cook day names the batch it is cooking', () {
       final marker = markerOn(planFor([0, 2]), 0)!;
       expect(marker.kind, CookMarkerKind.cooks);

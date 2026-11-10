@@ -298,6 +298,26 @@ void main() {
     expect(find.text('for Fri'), findsNothing);
   });
 
+  testWidgets('a fridge row with nothing in it offers no Freeze', (
+    tester,
+  ) async {
+    // Spoken for by a meal still to come, its food all frozen already.
+    final empty = Leftover(
+      id: 'b1',
+      place: LeftoverPlace.fridge,
+      recipeId: 'hh',
+      title: 'Hamburger Helper',
+      since: DateTime(2026, 11, 9),
+      goodUntil: DateTime(2026, 11, 15),
+      freezable: true,
+      planned: 1,
+      box: 0,
+    );
+    await _pump(tester, rows: [empty]);
+    expect(find.text('0 left'), findsOneWidget);
+    expect(find.text('Freeze'), findsNothing);
+  });
+
   testWidgets('no row past its date, no Remove gone off', (tester) async {
     await _pump(tester, rows: [_helper, _chili]);
     expect(find.text('Remove gone off'), findsNothing);

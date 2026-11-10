@@ -132,8 +132,10 @@ typedef CookMarker = ({
 
 /// Reads the cook marker for the meal on [dayOfWeek] / [mealSlot] off the cook
 /// plan; no batching logic lives here. Null when nothing in the plan covers the
-/// meal, when the session cooks for one meal only, or when the meal falls
-/// before the day its batch was cooked.
+/// meal, when the session cooks for one meal only and nobody has ticked it
+/// yet, or when the meal falls before the day its batch was cooked. A
+/// one-meal cook that was cooked says so (`cooked Sun`), as a
+/// batch of several does: what it made is in the fridge.
 ///
 /// The cook day is the batch's as the ticks have it ([cookDayOf]) on [today],
 /// in the week beginning [weekStart]; without them it is the planned one. A
@@ -168,8 +170,8 @@ CookMarker? cookMarkerFor(
             (m.dayOfWeek == dayOfWeek && m.mealSlot == mealSlot),
       );
       if (!covers) continue;
-      // One meal, one cook: there is no batch to talk about.
-      if (session.covers.length < 2) return null;
+      // One meal, one cook, not cooked yet: there is no batch to talk about.
+      if (session.covers.length < 2 && !wasCooked(session)) return null;
       return _markerOf(
         session,
         day: dayOfWeek,

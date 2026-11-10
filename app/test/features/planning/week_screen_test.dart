@@ -1052,6 +1052,46 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('a meal beside a pot not cooked yet shows the batch it '
+        'joins', (tester) async {
+      filterForuiSemanticsAssertions();
+      // Thursday's curry is in a cooking nobody has ticked.
+      final week = _plannedWeek();
+      final linked = week.copyWith(
+        entries: [for (final e in week.entries) e.copyWith(cooking: 'c')],
+      );
+      await _pumpWeek(
+        tester,
+        planning: _FakePlanningRepo(week: linked),
+        recipes: _recipesRepo(null),
+        cook: FakeCookPlanRepository.of([
+          const PlannedRecipe(
+            recipeId: 'r1',
+            title: 'Weeknight Chicken Curry',
+            servingsBase: 2,
+            cookings: [
+              PlannedCooking(
+                id: 'c',
+                meals: [
+                  CoveredMeal(
+                    dayOfWeek: 3,
+                    mealSlot: 'Dinner',
+                    portions: 1,
+                    entryId: 'e1',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ]),
+      );
+      await tester.tap(find.text('add a meal').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Weeknight Chicken Curry').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(MealBatchStrip), findsOneWidget);
+    });
+
     testWidgets("the slot is the one question, and it opens on the day's "
         'next unfilled default', (tester) async {
       // Thursday holds only a dinner, so the next meal nobody has planned is

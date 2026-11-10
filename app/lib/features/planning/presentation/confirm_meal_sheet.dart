@@ -25,6 +25,7 @@ import '../../../shared/write.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/domain/leftovers.dart';
+import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../cook_plan/presentation/leftover_format.dart';
 import '../../cook_plan/presentation/leftovers_view_models.dart';
 import '../../ingredients/domain/allowed_units.dart';
@@ -204,6 +205,18 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     final fromPot = fromLeftovers.value ?? false ? pot : null;
     // Eaten from a pot, it is not cooked for: no batch strip.
     final recipe = fromPot == null ? picked : null;
+    // A pot of the week not cooked yet still takes a meal it groups with, so
+    // its meals count beside the ones in no pot.
+    final uncooked = recipe == null
+        ? const <String>{}
+        : {
+            for (final r
+                in ref.watch(currentCookPlanProvider).asData?.value.recipes ??
+                    const <RecipeCookPlan>[])
+              if (r.recipeId == recipe.id)
+                for (final s in r.mealSessions)
+                  if (s.cookingId case final id? when !wasCooked(s)) id,
+          };
     final plannedDays = recipe == null
         ? null
         : ref
@@ -211,7 +224,11 @@ class _ConfirmMealSheet extends HookConsumerWidget {
               .asData
               ?.value
               ?.entries
-              .where((e) => e.recipeId == recipe.id && e.cooking == null)
+              .where(
+                (e) =>
+                    e.recipeId == recipe.id &&
+                    (e.cooking == null || uncooked.contains(e.cooking)),
+              )
               .map((e) => e.dayOfWeek)
               .toList();
     final hint = recipe == null

@@ -67,11 +67,17 @@ const _bare = RecipeSummary(
 
 /// The rows print recency, so the planner remembers when `r1` was last eaten.
 class _FakePlanningRepo extends FakePlanningRepository {
-  _FakePlanningRepo()
+  _FakePlanningRepo([this.week])
     : super(const [
         Member(id: 'm1', displayName: 'Ada'),
         Member(id: 'm2', displayName: 'Jun'),
       ]);
+
+  /// The week on screen, whatever week is asked for.
+  final WeekPlan? week;
+
+  @override
+  Stream<WeekPlan?> watchWeek(DateTime weekStart) => Stream.value(week);
 
   @override
   Stream<Map<String, DateTime>> watchLastPlanned() =>
@@ -127,6 +133,7 @@ Widget _host({
   List<Leftover> pots = const [],
   DateTime? now,
   UseUpFacts spare = (spare: const [], recipes: const []),
+  WeekPlan? week,
 }) => ProviderScope(
   overrides: [
     useUpRepositoryProvider.overrideWithValue(_FakeUseUp(spare)),
@@ -139,7 +146,7 @@ Widget _host({
     recipeRepositoryProvider.overrideWithValue(
       FakeRecipeRepository(summaries: recipes),
     ),
-    planningRepositoryProvider.overrideWithValue(_FakePlanningRepo()),
+    planningRepositoryProvider.overrideWithValue(_FakePlanningRepo(week)),
     bookRepositoryProvider.overrideWithValue(const _FakeBookRepo()),
     ingredientRepositoryProvider.overrideWithValue(const _FakeVocab()),
   ],
@@ -179,6 +186,32 @@ Future<void> _open(
 }
 
 void main() {
+  testWidgets('Already this week names every day the dish is planned', (
+    tester,
+  ) async {
+    PlanEntry curry(String id, int day) => PlanEntry(
+      id: id,
+      dayOfWeek: day,
+      mealSlot: 'Dinner',
+      recipeId: 'r1',
+      recipeTitle: 'Weeknight Chicken Curry',
+      eaterIds: const ['m1'],
+    );
+    await tester.pumpWidget(
+      _host(
+        week: WeekPlan(
+          id: 'w',
+          weekStart: DateTime(2026, 8, 24),
+          entries: [curry('sat', 5), curry('fri', 4), curry('sat2', 5)],
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.text('Already this week'), findsOneWidget);
+    expect(find.text('Fri + Sat'), findsOneWidget);
+  });
+
   testWidgets('rows are information-honest: recency, macros, incomplete', (
     tester,
   ) async {

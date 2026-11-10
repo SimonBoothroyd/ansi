@@ -160,18 +160,22 @@ class _RecipePickerSheet extends HookConsumerWidget {
 
     final guessing = tier == SearchTier.typo;
 
-    // Distinct recipes already planned this week, with the earliest day.
-    final alreadyThisWeek = <String, ({String title, int day})>{};
+    // Distinct recipes already planned this week, with every day each is
+    // planned on, in day order.
+    final alreadyThisWeek = <String, ({String title, List<int> days})>{};
     for (final e in week?.entries ?? const <PlanEntry>[]) {
       // Recipe quick picks only; other kinds are skipped by kind, not by a null
       // title.
       if (e.kind != PlanEntryKind.recipe) continue;
       if (e.recipeTitle == null) continue;
-      final recipeId = e.recipeId!;
-      final existing = alreadyThisWeek[recipeId];
-      if (existing == null || e.dayOfWeek < existing.day) {
-        alreadyThisWeek[recipeId] = (title: e.recipeTitle!, day: e.dayOfWeek);
-      }
+      final days = (alreadyThisWeek[e.recipeId!] ??= (
+        title: e.recipeTitle!,
+        days: <int>[],
+      )).days;
+      if (!days.contains(e.dayOfWeek)) days.add(e.dayOfWeek);
+    }
+    for (final dish in alreadyThisWeek.values) {
+      dish.days.sort();
     }
 
     // What the fridge and the freezer hold that this day can still eat.
@@ -480,7 +484,7 @@ class _EatingFooter extends StatelessWidget {
 class _AlreadyThisWeek extends ConsumerWidget {
   const _AlreadyThisWeek({required this.items, required this.onPick});
 
-  final Map<String, ({String title, int day})> items;
+  final Map<String, ({String title, List<int> days})> items;
   final void Function(String id, String title) onPick;
 
   @override
@@ -534,7 +538,10 @@ class _AlreadyThisWeek extends ConsumerWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          ref.watch(weekShapeProvider).labelShort(e.value.day),
+                          // Every day it is planned: `Fri + Sat`.
+                          e.value.days
+                              .map(ref.watch(weekShapeProvider).labelShort)
+                              .join(' + '),
                           style: ansiMono(size: 9, color: AnsiColors.muted),
                         ),
                       ],

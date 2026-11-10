@@ -321,7 +321,9 @@ class _LeftoverRow extends ConsumerWidget {
       ),
     );
 
-    final Widget? move = frozen || !freezable
+    // Nothing in the box is nothing to freeze: a row at 0 whose food all
+    // went in the freezer offers no Freeze.
+    final Widget? move = frozen || !freezable || left.inBox <= 1e-9
         ? null
         : _ShelfButton(
             label: past ? 'Froze it' : 'Freeze',
