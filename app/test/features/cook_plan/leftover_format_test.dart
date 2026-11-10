@@ -45,19 +45,25 @@ void main() {
         _today,
         shape,
       ),
-      '1¾ left · till Mon',
+      '1¾ left · till next Mon',
     );
     expect(leftoverTill(_today, _today, shape), 'till today');
-    // A weekday within the coming six days, else its date.
-    expect(leftoverTill(DateTime(2026, 11, 17), _today, shape), 'till Tue');
-    expect(leftoverTill(DateTime(2026, 11, 18), _today, shape), 'till 18 Nov');
+    // The one day rule: this week's weekday, `next` the week after, then a date.
+    expect(
+      leftoverTill(DateTime(2026, 11, 17), _today, shape),
+      'till next Tue',
+    );
+    expect(
+      leftoverTill(DateTime(2026, 11, 18), _today, shape),
+      'till next Wed',
+    );
     expect(leftoverTill(DateTime(2027, 1, 26), _today, shape), 'till 26 Jan');
   });
 
   test('the freezer says its month past the coming six days', () {
     String till(DateTime until) =>
         leftoverTill(until, _today, shape, frozen: true);
-    expect(till(DateTime(2026, 11, 17)), 'till Tue');
+    expect(till(DateTime(2026, 11, 17)), 'till next Tue');
     expect(till(DateTime(2026, 11, 21)), 'till Nov');
     expect(till(DateTime(2027, 1, 26)), 'till Jan');
   });
@@ -93,7 +99,7 @@ void main() {
     expect(leftoverLine(pot, _today, shape), 'cooks Sat');
     expect(
       leftoverLine(pot.frozenForLater(), _today, shape),
-      'cooks Sat · freeze by Tue',
+      'cooks Sat · freeze by next Tue',
     );
     expect(potCookedLine(pot, _today, shape), 'cooks Sat');
   });
@@ -110,7 +116,7 @@ void main() {
       '4 days',
     );
     expect(leftoverAge(DateTime(2026, 11, 10), _today), '1 day');
-    expect(leftoverAge(_today, _today), 'today');
+    expect(leftoverAge(_today, _today), 'added today');
   });
 
   test('a row behind its date says so, in either place', () {
@@ -141,7 +147,7 @@ void main() {
       ],
     );
     expect(leftoverFor(row, _today, shape), 'for Fri');
-    expect(leftoverFreezeFor(row, _today, shape), 'freeze by Sun for Tue');
+    expect(leftoverFreezeFor(row, _today, shape), 'freeze by Sun for next Tue');
     expect(leftoverFor(_row(), _today, shape), isNull);
     expect(leftoverFreezeFor(_row(), _today, shape), isNull);
   });
@@ -175,6 +181,86 @@ void main() {
     expect(leftoverShortFor(later, _today, shape), 'Fri needs 2');
     expect(leftoverFor(later, _today, shape), isNull);
     expect(leftoverShortFor(_row(), _today, shape), isNull);
+  });
+
+  test('one day rule: this week by weekday, next and last week by name, '
+      'then a date, in every line', () {
+    expect(leftoverDay(_today, _today, shape), 'today');
+    expect(leftoverDay(DateTime(2026, 11, 9), _today, shape), 'Mon');
+    expect(leftoverDay(DateTime(2026, 11, 15), _today, shape), 'Sun');
+    expect(leftoverDay(DateTime(2026, 11, 17), _today, shape), 'next Tue');
+    expect(leftoverDay(DateTime(2026, 11, 7), _today, shape), 'last Sat');
+    expect(leftoverDay(DateTime(2026, 11, 24), _today, shape), '24 Nov');
+    // The line the review read: one rule, both halves.
+    final row = _row(
+      until: DateTime(2026, 11, 13),
+      freezeBy: DateTime(2026, 11, 13),
+      meals: [
+        LeftoverMeal(
+          entryId: 'next-tue',
+          day: DateTime(2026, 11, 17),
+          portions: 3,
+          place: LeftoverPlace.freezer,
+          freezeBy: DateTime(2026, 11, 13),
+          warning: LeftoverWarning.notEnoughLeft,
+          short: 2,
+        ),
+      ],
+    );
+    expect(leftoverShortFor(row, _today, shape), 'next Tue needs 3');
+    // Short, yet what the fridge holds is still frozen for it.
+    expect(leftoverFreezeFor(row, _today, shape), 'freeze by Fri for next Tue');
+  });
+
+  test('a share for another pot’s meal says its count', () {
+    final giver = _row(
+      place: LeftoverPlace.freezer,
+      meals: [
+        _meal(13),
+        LeftoverMeal(
+          entryId: 'next-tue',
+          day: DateTime(2026, 11, 17),
+          portions: 2,
+          place: LeftoverPlace.freezer,
+          lent: true,
+        ),
+      ],
+    );
+    expect(leftoverFor(giver, _today, shape), 'for Fri · 2 for next Tue');
+    final helped = _row(
+      meals: [
+        LeftoverMeal(
+          entryId: 'fri',
+          day: DateTime(2026, 11, 13),
+          portions: 3,
+          place: LeftoverPlace.fridge,
+          elsewhere: 2,
+        ),
+      ],
+    );
+    expect(leftoverFor(helped, _today, shape), '1 for Fri');
+  });
+
+  test('two pots of one dish say their cooked day', () {
+    final mine = _row(since: DateTime(2026, 11, 8));
+    final other = Leftover(
+      id: 'left-2',
+      place: LeftoverPlace.freezer,
+      title: 'Chili',
+      since: DateTime(2026, 11, 2),
+      goodUntil: null,
+      box: 2,
+    );
+    expect(cookedToTellApart(mine, [mine], _today, shape), isNull);
+    expect(
+      cookedToTellApart(mine, [mine, other], _today, shape),
+      'cooked last Sun',
+    );
+    expect(
+      leftoverName(other, [mine, other], _today, shape),
+      'Chili, cooked last Mon',
+    );
+    expect(leftoverName(mine, [mine], _today, shape), 'Chili');
   });
 
   test('the meal that cooks for next week says so', () {
@@ -239,7 +325,7 @@ void main() {
         'freeze 2 by Sat for next Mon',
       );
       expect(freezeShareFor(share, week, shape), 'freeze by Sat for next Mon');
-      // As ruled: Saturday cooks for next Thursday, to freeze by Tuesday.
+      // Saturday cooks for next Thursday, to freeze by next Tuesday.
       final far = (
         portions: 2.0,
         freezeBy: DateTime(2026, 11, 17),
@@ -247,7 +333,7 @@ void main() {
       );
       expect(
         freezeShareLine(far, DateTime(2026, 11, 8), WeekShape.sunday),
-        'freeze 2 by Tue for next Thu',
+        'freeze 2 by next Tue for next Thu',
       );
     },
   );

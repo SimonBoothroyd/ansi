@@ -161,9 +161,9 @@ void main() {
     expect(find.text('Hamburger Helper'), findsOneWidget);
     expect(find.text('5 left'), findsOneWidget);
     expect(find.text('till Sun'), findsOneWidget);
-    expect(find.text('freeze by Sun for Tue'), findsOneWidget);
+    expect(find.text('freeze by Sun for next Tue'), findsOneWidget);
     expect(find.text('1¾ left'), findsOneWidget);
-    expect(find.text('till Mon'), findsOneWidget);
+    expect(find.text('till next Mon'), findsOneWidget);
     expect(find.text('past its date'), findsWidgets);
     expect(find.text('till Jan'), findsOneWidget);
     expect(find.text('for Fri'), findsOneWidget);
@@ -189,6 +189,44 @@ void main() {
     await tester.tap(find.text('Freeze'));
     await tester.pumpAndSettle();
     expect(repo.freezes, [_helper]);
+  });
+
+  testWidgets('Freeze closes the stepper, so its Undo brings the row back '
+      'closed', (tester) async {
+    await _pump(tester);
+    await tester.tap(find.text('5 left'));
+    await tester.pumpAndSettle();
+    expect(find.text('5 left'), findsNothing);
+    await tester.tap(find.text('Freeze'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.text('5 left'), findsOneWidget);
+  });
+
+  testWidgets('two pots of one dish say their cooked day, and so does the '
+      'toast that removes one', (tester) async {
+    final old = Leftover(
+      id: 'c-old',
+      place: LeftoverPlace.fridge,
+      recipeId: 'cc',
+      title: 'Chickpea Curry',
+      since: DateTime(2026, 11, 1),
+      goodUntil: DateTime(2026, 11, 5),
+      box: 1,
+    );
+    await _pump(tester, rows: [_curry, old]);
+    expect(find.text('Chickpea Curry  cooked Tue'), findsOneWidget);
+    expect(find.text('Chickpea Curry  cooked 1 Nov'), findsOneWidget);
+    final link = find.text('Remove gone off');
+    await tester.scrollUntilVisible(
+      link,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(find.text('Removed Chickpea Curry, cooked 1 Nov.'), findsOneWidget);
   });
 
   testWidgets('a part portion steps to the whole on either side', (

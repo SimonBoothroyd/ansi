@@ -52,9 +52,27 @@ String leftoverTill(
 
 /// `for Sun`, `for Sat + Sun`: the days of the meals still to come that are
 /// served from [left] where it is, but for those [leftoverShortFor] says.
-/// Null when there are none.
-String? leftoverFor(Leftover left, DateTime today, WeekShape shape) =>
-    _days('for', _aheadDays(left, today, frozen: false), today, shape);
+/// A meal this row serves only part of (a share it gives another cooking of
+/// the dish, or a meal another cooking helps out) says its count: `for Sun ·
+/// 2 for next Tue`. Null when there are none.
+String? leftoverFor(Leftover left, DateTime today, WeekShape shape) {
+  final whole = <DateTime>{};
+  final part = <DateTime, double>{};
+  for (final m in _ahead(left, today, frozen: false)) {
+    final day = DateTime(m.day.year, m.day.month, m.day.day);
+    if (m.lent || m.elsewhere > 1e-9) {
+      part[day] = (part[day] ?? 0) + m.fromThisRow;
+    } else {
+      whole.add(day);
+    }
+  }
+  final words = [
+    ?_days('for', whole.toList()..sort(), today, shape),
+    for (final day in part.keys.toList()..sort())
+      '${formatFraction(part[day]!)} for ${leftoverDay(day, today, shape)}',
+  ];
+  return words.isEmpty ? null : words.join(' · ');
+}
 
 /// `Wed needs 2`: each meal still to come from [left] that wants more than
 /// is there, said in amber. Null when there are none.
@@ -77,7 +95,10 @@ String? leftoverFreezeFor(Leftover left, DateTime today, WeekShape shape) {
   if (left.place != LeftoverPlace.fridge || by == null) return null;
   return _days(
     'freeze by ${leftoverDay(by, today, shape)} for',
-    _aheadDays(left, today, frozen: true),
+    {
+      for (final m in _ahead(left, today, frozen: true))
+        DateTime(m.day.year, m.day.month, m.day.day),
+    }.toList()..sort(),
     today,
     shape,
   );
@@ -86,7 +107,7 @@ String? leftoverFreezeFor(Leftover left, DateTime today, WeekShape shape) {
 /// `freeze by Tue for next Thu`: what a batch of the week beginning
 /// [weekStart] puts in the freezer for its later meals, and by when.
 String freezeShareFor(FreezeShare share, DateTime weekStart, WeekShape shape) =>
-    'freeze by ${shape.labelShort(shape.offsetOf(share.freezeBy))} for '
+    'freeze by ${weekdayFrom(weekStart, share.freezeBy, shape)} for '
     '${_mealDays(share.forDays, weekStart, shape)}';
 
 /// `freeze 2 by Tue for next Thu`: what a batch of the week beginning
@@ -98,7 +119,7 @@ String freezeShareLine(
   WeekShape shape,
 ) =>
     'freeze ${formatFraction(share.portions)} by '
-    '${shape.labelShort(shape.offsetOf(share.freezeBy))} for '
+    '${weekdayFrom(weekStart, share.freezeBy, shape)} for '
     '${_mealDays(share.forDays, weekStart, shape)}';
 
 /// `cook it all · freeze 2 for next Thu`: what the meal that cooks a cooking
@@ -145,15 +166,21 @@ String _mealDays(List<DateTime> days, DateTime weekStart, WeekShape shape) =>
         .map((d) => weekdayFrom(weekStart, d, shape))
         .join(' + ');
 
-/// [day] by its weekday, counted from the week beginning [weekStart]: `Thu`
-/// within it, `next Thu` in the week after, its date otherwise.
+/// [day] said from the week beginning [weekStart]: the one rule every day a
+/// leftover, a cook line or the picker prints follows. `Thu` within that
+/// week (before today or after), `next Thu` in the week after, `last Thu` in
+/// the week before, its date (`17 Nov`) beyond.
 String weekdayFrom(DateTime weekStart, DateTime day, WeekShape shape) {
-  final days = _daysBetween(weekStart, day);
-  if (days >= 0 && days < 7) return shape.labelShort(shape.offsetOf(day));
-  if (days >= 7 && days < 14) {
-    return 'next ${shape.labelShort(shape.offsetOf(day))}';
-  }
-  return formatDayMonth(day);
+  final weekday = shape.labelShort(shape.offsetOf(day));
+  return switch (_daysBetween(
+    shape.weekStartOf(weekStart),
+    shape.weekStartOf(day),
+  )) {
+    0 => weekday,
+    7 => 'next $weekday',
+    -7 => 'last $weekday',
+    _ => formatDayMonth(day),
+  };
 }
 
 /// `2 left · till Mon`, `2 left · freeze by Mon`: what can still be planned
@@ -172,30 +199,45 @@ String leftoverLine(Leftover left, DateTime today, WeekShape shape) {
 }
 
 /// `cooked today`, `cooked Fri` earlier this week, `cooked last Sat` in the
-/// week before, `cooked 21 Oct` before that. Weeks are today's, by [shape].
-String cookedOn(DateTime since, DateTime today, WeekShape shape) {
-  if (_daysBetween(since, today) <= 0) return 'cooked today';
-  final day = shape.labelShort(shape.offsetOf(since));
-  return switch (_daysBetween(
-        shape.weekStartOf(since),
-        shape.weekStartOf(today),
-      ) ~/
-      7) {
-    0 => 'cooked $day',
-    1 => 'cooked last $day',
-    _ => 'cooked ${formatDayMonth(since)}',
-  };
-}
+/// week before, `cooked 21 Oct` before that ([leftoverDay]).
+String cookedOn(DateTime since, DateTime today, WeekShape shape) =>
+    _daysBetween(since, today) <= 0
+    ? 'cooked today'
+    : 'cooked ${leftoverDay(since, today, shape)}';
+
+/// `cooked Sun`, when [left] shares its name with a row of another cooking
+/// among [rows]: what tells two pots of one dish apart. Null otherwise.
+String? cookedToTellApart(
+  Leftover left,
+  List<Leftover> rows,
+  DateTime today,
+  WeekShape shape,
+) => rows.any((r) => r.id != left.id && r.title == left.title)
+    ? cookedOn(left.since, today, shape)
+    : null;
+
+/// `Chickpea Curry`, or `Chickpea Curry, cooked last Sat` when another row
+/// among [rows] shares its name ([cookedToTellApart]): a toast's subject.
+String leftoverName(
+  Leftover left,
+  List<Leftover> rows,
+  DateTime today,
+  WeekShape shape,
+) => switch (cookedToTellApart(left, rows, today, shape)) {
+  final cooked? => '${left.title}, $cooked',
+  null => left.title,
+};
 
 /// Where a meal's pot stands: `cooked last Sat` once cooked ([cookedOn]),
 /// `cooks Sat` before ([potWhen]).
 String potCookedLine(Leftover pot, DateTime today, WeekShape shape) =>
     pot.cooked ? cookedOn(pot.since, today, shape) : potWhen(pot, today, shape);
 
-/// `today`, `1 day`, `4 days`, `1 wk`, `6 wk`: how long since [since].
+/// `added today`, `1 day`, `4 days`, `1 wk`, `6 wk`: how long since
+/// [since]. Never a bare `today`, which would read as a deadline.
 String leftoverAge(DateTime since, DateTime today) {
   final days = _daysBetween(since, today);
-  if (days <= 0) return 'today';
+  if (days <= 0) return 'added today';
   if (days < 7) return days == 1 ? '1 day' : '$days days';
   return '${days ~/ 7} wk';
 }
@@ -207,20 +249,21 @@ String leftoverWarningWords(LeftoverWarning warning) => switch (warning) {
   LeftoverWarning.pastItsDate => 'past its date',
 };
 
-/// The days of [left]'s meals still to come: those eaten from the freezer
-/// while it is still in the fridge ([frozen]), or the rest.
-List<DateTime> _aheadDays(
+/// [left]'s meals still to come that it gives something: those eaten from
+/// the freezer while it is still in the fridge ([frozen]), or the rest. A
+/// short meal is [leftoverShortFor]'s to say, but what is frozen for it is
+/// still frozen, so it keeps its freeze-by line.
+Iterable<LeftoverMeal> _ahead(
   Leftover left,
   DateTime today, {
   required bool frozen,
-}) => {
-  for (final m in left.meals)
-    if (_daysBetween(today, m.day) >= 0 &&
-        m.portions > 1e-9 &&
-        m.warning != LeftoverWarning.notEnoughLeft &&
-        (m.freezeBy != null) == frozen)
-      DateTime(m.day.year, m.day.month, m.day.day),
-}.toList()..sort();
+}) => left.meals.where(
+  (m) =>
+      _daysBetween(today, m.day) >= 0 &&
+      m.fromThisRow > 1e-9 &&
+      (frozen || m.warning != LeftoverWarning.notEnoughLeft) &&
+      (m.freezeBy != null) == frozen,
+);
 
 String? _days(
   String lead,
@@ -231,13 +274,13 @@ String? _days(
     ? null
     : '$lead ${days.map((d) => leftoverDay(d, today, shape)).join(' + ')}';
 
-/// `today`, `Mon` within the coming week, `21 Nov` past it.
-String leftoverDay(DateTime day, DateTime today, WeekShape shape) {
-  final days = _daysBetween(today, day);
-  if (days <= 0) return 'today';
-  if (days < 7) return shape.labelShort(shape.offsetOf(day));
-  return formatDayMonth(day);
-}
+/// A day as every leftover line says it, from [today]'s week
+/// ([weekdayFrom]): `today`, `Tue` this week, `next Tue`, `last Sat`, then
+/// `17 Nov`.
+String leftoverDay(DateTime day, DateTime today, WeekShape shape) =>
+    _daysBetween(today, day) == 0
+    ? 'today'
+    : weekdayFrom(shape.weekStartOf(today), day, shape);
 
 /// Whole days from [from] to [to], by the calendar, not by hours: a clock
 /// change does not move a day.

@@ -97,6 +97,7 @@ class _Shelves extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final open = useState<String?>(null);
     final today = ref.watch(todayProvider);
+    final shape = ref.watch(weekShapeProvider);
     final repo = ref.read(leftoverRepositoryProvider);
     // Freezable is a recipe fact; the household's own words may go in.
     final freezable = {
@@ -126,10 +127,13 @@ class _Shelves extends HookConsumerWidget {
         child: _LeftoverRow(
           key: ValueKey(key),
           left: left,
+          rows: rows,
           freezable:
               left.recipeId == null || (freezable[left.recipeId] ?? false),
           open: open.value == key,
           onToggle: () => open.value = open.value == key ? null : key,
+          // A move takes the row away; its Undo brings it back closed.
+          onMove: () => open.value = null,
         ),
       );
     }
@@ -170,9 +174,11 @@ class _Shelves extends HookConsumerWidget {
                 writeWithUndo(
                   context,
                   ref,
-                  done: goneOff.length == 1
-                      ? 'Removed ${goneOff.single.title}.'
-                      : 'Removed ${goneOff.length} gone off.',
+                  done: switch (goneOff) {
+                    [final one] =>
+                      'Removed ${leftoverName(one, rows, today, shape)}.',
+                    _ => 'Removed ${goneOff.length} gone off.',
+                  },
                   write: (container, host) => container.write(
                     host,
                     'remove what has gone off',
@@ -247,16 +253,24 @@ class _Empty extends StatelessWidget {
 class _LeftoverRow extends ConsumerWidget {
   const _LeftoverRow({
     required this.left,
+    required this.rows,
     required this.freezable,
     required this.open,
     required this.onToggle,
+    required this.onMove,
     super.key,
   });
 
   final Leftover left;
+
+  /// Every row on the page: one sharing [left]'s name says its cooked day.
+  final List<Leftover> rows;
   final bool freezable;
   final bool open;
   final VoidCallback onToggle;
+
+  /// Called as the row's move (Freeze, Froze it) starts: the stepper closes.
+  final VoidCallback onMove;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -269,12 +283,14 @@ class _LeftoverRow extends ConsumerWidget {
     final freezeFor = leftoverFreezeFor(left, today, shape);
     final short = leftoverShortFor(left, today, shape);
     final when = leftoverWhen(left, today, shape);
+    final cooked = cookedToTellApart(left, rows, today, shape);
 
     final head = Semantics(
       button: true,
       expanded: open,
       label: [
         left.title,
+        ?cooked,
         when,
         leftCount(left.inBox),
         ?short,
@@ -290,8 +306,18 @@ class _LeftoverRow extends ConsumerWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Expanded(
-                child: Text(
-                  left.title,
+                child: Text.rich(
+                  TextSpan(
+                    text: left.title,
+                    children: [
+                      // Two pots of one dish, told apart by their day.
+                      if (cooked != null)
+                        TextSpan(
+                          text: '  $cooked',
+                          style: ansiMono(size: 10.5, color: AnsiColors.muted),
+                        ),
+                    ],
+                  ),
                   style: ansiSans(
                     size: 13.5,
                     color: past
@@ -331,18 +357,21 @@ class _LeftoverRow extends ConsumerWidget {
             filled: !past,
             // Frozen on the night and not said, or now: dated from its cook
             // day either way.
-            onTap: () => unawaited(
-              writeWithUndo(
-                context,
-                ref,
-                done: 'Froze ${left.title}.',
-                write: (container, host) => container.write(
-                  host,
-                  'move ${left.title} to the freezer',
-                  () => repo.freezeLeftover(left),
+            onTap: () {
+              onMove();
+              unawaited(
+                writeWithUndo(
+                  context,
+                  ref,
+                  done: 'Froze ${leftoverName(left, rows, today, shape)}.',
+                  write: (container, host) => container.write(
+                    host,
+                    'move ${left.title} to the freezer',
+                    () => repo.freezeLeftover(left),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
 
     final line = Row(
