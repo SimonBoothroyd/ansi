@@ -327,7 +327,13 @@ build, and both phones update the same day. Back up cloud before the deploy.
       dropped-write tests do).
 - [x] Docs: product spec, `db-schema.md`, the cook_plan and planning
       READMEs, `ARCHITECTURE.md`, and the board.
-- [ ] `make test-sim` green, then a fresh hands-on sim review.
+- [x] The sim reviews' checks are simulator smokes: `leftovers_ticks`
+      (backfilled ticks, a hand count following ticks, removing a meal both
+      ate, Freeze / Froze it / Remove gone off with Undo), `leftovers_choice`
+      (the choice sheet, a cross-week pick bought once, a double-tapped Add)
+      and `leftovers_batch` (whole batch, a recipe opened at its amount).
+- [ ] `make test-sim` green, the three `leftovers_*` files included, then a
+      fresh hands-on sim review.
 
 ## Decision log
 
@@ -562,6 +568,24 @@ Append-only.
     says `nothing to buy`, with no door.
   - **Not done here:** `make test-sim` and a fresh hands-on review (no
     simulator in this lane), and the release.
+- 2026-11-10 — **The sim reviews' checks became smokes** (one lane, no
+  simulator: written, analyzed and `make ci` green, never run). Three
+  self-provisioning files, nine scenarios. Decided in the lane:
+  - **Jun's ticks are written as Jun over HTTP**
+    (`SmokeStack.tickAsPartner`): the server lets a member tick only for
+    themselves. That write is the `meal_eaten` row alone, so a scenario
+    ticks for Ada first and her tick births the cooking.
+  - **Past meals sit in last week**, wholly behind us on any weekday; meals
+    still to come sit on today, or later this week (today on a Sunday).
+    Every expected date is said by the app's own formatter.
+  - **Ticks go through the meal sheet where they are the subject** (backfill,
+    a count following ticks, the whole batch) and through the planning
+    repository, the sheet's own write, where they are setup.
+  - **The choice sheet's pot is food said by hand** (*Add a leftover*, one
+    portion, today), so its count does not hang on the day.
+  - **No widget keys were added**: rows are found by the Leftovers page's
+    own `cooking:shelf` keys, the public `MealEatenRow`, `EaterAvatarStack`,
+    `LeftoversDoor` and `WeekSwitcher`, and the copy.
 
 ## Notes / open questions
 
@@ -580,7 +604,9 @@ done and moving this file to `completed/`.
 - [x] `ARCHITECTURE.md`'s standing table matches reality for every area touched.
 - [ ] `app/AGENTS.md` "Current focus" and command list still true.
 - [ ] Feature steps: `make test-sim` run on a booted simulator (the UI paths CI
-      can't reach), and the result recorded here.
+      can't reach), and the result recorded here. The `leftovers_ticks`,
+      `leftovers_choice` and `leftovers_batch` smokes exist and have not run
+      on a simulator yet.
 - [x] Tech-debt rows **added** for corners knowingly cut, and **retired** (or
       narrowed) for debt this step paid off.
 - [ ] New migrations or seed changes? Say in the roadmap row whether they have

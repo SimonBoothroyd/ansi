@@ -275,12 +275,13 @@ race the slower emulator exposes (both recipe_editor flakes were a tap that
 did not wait for what it touched — see the next paragraph), otherwise a finding
 about the app.
 
-**It is a gate, not a step.** Nine files, about **27 minutes** on an unloaded
-machine — so run `FILE=<name>` while you are fixing, and the whole suite once
-before landing. Two things that have cost real hours here: piping the run
-through `tail` reports the pipe's exit status and turns a red suite green, and
-a run that is slow or hangs is usually the *host* — check for orphaned
-`flutter_tester` processes and the load average before suspecting the code.
+**It is a gate, not a step.** Twelve files, **over half an hour** on an
+unloaded machine — so run `FILE=<name>` while you are fixing, and the whole
+suite once before landing. Two things that have cost real hours here: piping
+the run through `tail` reports the pipe's exit status and turns a red suite
+green, and a run that is slow or hangs is usually the *host* — check for
+orphaned `flutter_tester` processes and the load average before suspecting the
+code.
 
 **Waits belong on what you are about to touch.** Every file syncs its household
 down live, so a finder can miss simply because its row has not arrived. Use

@@ -3,7 +3,7 @@ name: sim
 # The simulator smoke (app/integration_test) on demand: Actions → sim → Run
 # workflow, optionally naming one file. Never on push — the local
 # `make test-sim` stays the gate before landing (AGENTS.md); this is the same
-# suite on a machine that is not yours, nine files at once.
+# suite on a machine that is not yours, every file at once.
 #
 # Android, not iOS: every file needs the local Supabase + PowerSync stack, which
 # runs in Docker, and GitHub's macOS runners have none. The phones are Pixels,
