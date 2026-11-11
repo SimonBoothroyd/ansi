@@ -213,7 +213,8 @@ String _$anyLeftoverPastItsDateHash() =>
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
-/// Empty for a day behind us.
+/// A day behind us is judged the same way, on that day: a pot good on it is
+/// offered, so a meal added late can still be eaten from the fridge.
 ///
 /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
 /// meals nobody ticked, and planned meals of an earlier week that no cooking
@@ -227,7 +228,8 @@ const leftoversGoodOnProvider = LeftoversGoodOnFamily._();
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
-/// Empty for a day behind us.
+/// A day behind us is judged the same way, on that day: a pot good on it is
+/// offered, so a meal added late can still be eaten from the fridge.
 ///
 /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
 /// meals nobody ticked, and planned meals of an earlier week that no cooking
@@ -241,7 +243,8 @@ final class LeftoversGoodOnProvider
   /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
   /// that will need freezing by then offered under Freezer. Soonest to go off
   /// first within each. Only a recipe's row: a meal is planned from a recipe.
-  /// Empty for a day behind us.
+  /// A day behind us is judged the same way, on that day: a pot good on it is
+  /// offered, so a meal added late can still be eaten from the fridge.
   ///
   /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
   /// meals nobody ticked, and planned meals of an earlier week that no cooking
@@ -298,13 +301,14 @@ final class LeftoversGoodOnProvider
   }
 }
 
-String _$leftoversGoodOnHash() => r'0a94bb65cd241e7dcb302960cab41b1e8a00aae3';
+String _$leftoversGoodOnHash() => r'0c934069ef7b8eecacb3faef8f55b2b583526d9c';
 
 /// The rows a meal on [day] can be planned from, fridge then freezer, each as
 /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
 /// that will need freezing by then offered under Freezer. Soonest to go off
 /// first within each. Only a recipe's row: a meal is planned from a recipe.
-/// Empty for a day behind us.
+/// A day behind us is judged the same way, on that day: a pot good on it is
+/// offered, so a meal added late can still be eaten from the fridge.
 ///
 /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
 /// meals nobody ticked, and planned meals of an earlier week that no cooking
@@ -326,7 +330,8 @@ final class LeftoversGoodOnFamily extends $Family
   /// [leftoverOfferOn] offers it for that day: judged on [day], a fridge row
   /// that will need freezing by then offered under Freezer. Soonest to go off
   /// first within each. Only a recipe's row: a meal is planned from a recipe.
-  /// Empty for a day behind us.
+  /// A day behind us is judged the same way, on that day: a pot good on it is
+  /// offered, so a meal added late can still be eaten from the fridge.
   ///
   /// A pot not cooked yet is offered too (`cooks Sat`), once: a cooking whose
   /// meals nobody ticked, and planned meals of an earlier week that no cooking
