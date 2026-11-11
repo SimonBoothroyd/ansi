@@ -398,11 +398,13 @@ void main() {
       ticked: [4],
     );
     // Past its date and not freezable: Remove gone off. Thursday and Friday
-    // eaten, Saturday skipped.
+    // eaten, Saturday skipped. Two fridge days, so Saturday is in Thursday's
+    // pot: a meal past the fridge date of a dish that cannot freeze is a
+    // cook of its own.
     final soup = await cooked(
       'Gone Soup',
       'Almonds',
-      keeps: 1,
+      keeps: 2,
       freezable: false,
       days: [3, 4, 5],
       ticked: [3, 4],
