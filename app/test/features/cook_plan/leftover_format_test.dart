@@ -48,7 +48,7 @@ void main() {
       '1¾ left · till next Mon',
     );
     expect(leftoverTill(_today, _today, shape), 'till today');
-    // The one day rule: this week's weekday, `next` the week after, then a date.
+    // The one day rule: a weekday this week, `next` the week after, a date.
     expect(
       leftoverTill(DateTime(2026, 11, 17), _today, shape),
       'till next Tue',

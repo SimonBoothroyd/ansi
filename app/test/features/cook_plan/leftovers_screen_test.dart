@@ -211,13 +211,13 @@ void main() {
       place: LeftoverPlace.fridge,
       recipeId: 'cc',
       title: 'Chickpea Curry',
-      since: DateTime(2026, 11, 1),
+      since: DateTime(2026, 10, 31),
       goodUntil: DateTime(2026, 11, 5),
       box: 1,
     );
     await _pump(tester, rows: [_curry, old]);
     expect(find.text('Chickpea Curry  cooked Tue'), findsOneWidget);
-    expect(find.text('Chickpea Curry  cooked 1 Nov'), findsOneWidget);
+    expect(find.text('Chickpea Curry  cooked 31 Oct'), findsOneWidget);
     final link = find.text('Remove gone off');
     await tester.scrollUntilVisible(
       link,
@@ -226,7 +226,7 @@ void main() {
     );
     await tester.tap(link);
     await tester.pumpAndSettle();
-    expect(find.text('Removed Chickpea Curry, cooked 1 Nov.'), findsOneWidget);
+    expect(find.text('Removed Chickpea Curry, cooked 31 Oct.'), findsOneWidget);
   });
 
   testWidgets('a part portion steps to the whole on either side', (
