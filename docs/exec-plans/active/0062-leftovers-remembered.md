@@ -332,8 +332,13 @@ build, and both phones update the same day. Back up cloud before the deploy.
       ate, Freeze / Froze it / Remove gone off with Undo), `leftovers_choice`
       (the choice sheet, a cross-week pick bought once, a double-tapped Add)
       and `leftovers_batch` (whole batch, a recipe opened at its amount).
-- [ ] `make test-sim` green, the three `leftovers_*` files included, then a
-      fresh hands-on sim review.
+- [x] The three `leftovers_*` smokes green on the iPhone 17 simulator
+      (2026-11-11), each twice in a row:
+      - `leftovers_ticks`: 4/4 scenarios (1, 2, 3, 4).
+      - `leftovers_choice`: 3/3 scenarios (5, 8, 6).
+      - `leftovers_batch`: 2/2 scenarios (7, 9).
+- [ ] `make test-sim` green (the whole suite), then a fresh hands-on sim
+      review.
 
 ## Decision log
 
@@ -586,6 +591,22 @@ Append-only.
   - **No widget keys were added**: rows are found by the Leftovers page's
     own `cooking:shelf` keys, the public `MealEatenRow`, `EaterAvatarStack`,
     `LeftoversDoor` and `WeekSwitcher`, and the copy.
+- 2026-11-11 — **The leftovers smokes ran on the simulator**, green twice
+  each. One app bug, three test bugs:
+  - **App: the sync-health watcher queried a closed database.** Its tick
+    and status stream kept calling `getUploadQueueStats` after the
+    database closed (a smoke's teardown; sign-out does the same), which
+    threw `ClosedException` as an uncaught async error. It now checks
+    `db.closed`, catches `ClosedException`, and stops; a unit test closes
+    the database under a live watcher.
+  - **Test: the gone-off soup kept one fridge day**, so its Saturday meal
+    (a dish that cannot freeze, past Thursday's date) clustered as a cook of
+    its own and nothing was left. It keeps two days now.
+  - **Test: one cooking's Shop line is the title alone.** `· cook <day>`
+    names a dish split into more than one session; the cross-week pick is
+    one cooking.
+  - **Test: the whole batch reads `4 left` on its cook day**, as today's
+    meal is spoken for even once ticked; the spare shows as 2 free to plan.
 
 ## Notes / open questions
 
