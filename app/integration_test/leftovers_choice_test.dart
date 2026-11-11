@@ -274,7 +274,7 @@ void main() {
     // Next week's Shop: nothing for it.
     await tapTab(tester, FLucideIcons.shoppingBasket);
     await pumpUntilFound(tester, find.byKey(ShoppingView.rootKey));
-    await pumpUntilFound(tester, find.text('nothing to buy yet'));
+    await pumpUntilFound(tester, find.text('nothing to buy'));
     expect(find.text(ingredient), findsNothing);
 
     // This week's Shop buys it, once, as the cooking on its own day.
