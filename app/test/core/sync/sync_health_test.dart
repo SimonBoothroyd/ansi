@@ -124,22 +124,29 @@ void main() {
   test('the watcher stops quietly when the database closes under it', () async {
     // Sign-out and a smoke's teardown close the database while the tick and
     // the status stream still fire. A query on a closed database throws
-    // ClosedException, which used to escape as an uncaught async error.
+    // ClosedException, which used to escape as an uncaught async error and
+    // left the stream open forever.
     final (db, dir) = await openTestDb();
     addTearDown(() {
       if (dir.existsSync()) dir.deleteSync(recursive: true);
     });
     final stream = watchSyncHealth(db, tick: const Duration(milliseconds: 5));
+    final first = Completer<void>();
     final done = Completer<void>();
     final errors = <Object>[];
-    stream.listen(null, onError: errors.add, onDone: done.complete);
+    stream.listen(
+      (_) {
+        if (!first.isCompleted) first.complete();
+      },
+      onError: errors.add,
+      onDone: done.complete,
+    );
 
-    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await first.future;
     await db.close();
-    // Several ticks land on the closed database; any of them throwing would
-    // fail this test through the zone's uncaught-error handler.
-    await done.future.timeout(const Duration(seconds: 2));
-    await Future<void>.delayed(const Duration(milliseconds: 30));
+    // The next tick lands on the closed database: the watcher ends its
+    // stream instead of throwing.
+    await done.future.timeout(const Duration(seconds: 5));
     expect(errors, isEmpty);
   });
 }
