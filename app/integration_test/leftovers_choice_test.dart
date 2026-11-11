@@ -277,7 +277,8 @@ void main() {
     await pumpUntilFound(tester, find.text('nothing to buy'));
     expect(find.text(ingredient), findsNothing);
 
-    // This week's Shop buys it, once, as the cooking on its own day.
+    // This week's Shop buys it, once: one cooking is one session, so its
+    // line is the title alone (`· cook <day>` names a dish cooked twice).
     await stepWeek(tester, -1);
     await pumpUntilFound(tester, find.text(ingredient));
     final walnuts = await db.get(
@@ -289,9 +290,7 @@ void main() {
     await pumpUntilFound(tester, chevron);
     await tester.tap(chevron);
     await tester.pumpAndSettle();
-    expect(
-      find.textContaining('$title · cook ${kSmokeShape.labelShort(cookDay)}'),
-      findsOneWidget,
-    );
+    expect(find.text(title), findsOneWidget);
+    expect(find.textContaining('$title · cook'), findsNothing);
   });
 }
