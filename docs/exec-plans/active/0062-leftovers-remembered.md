@@ -1,6 +1,6 @@
 # Exec plan: Leftovers, remembered
 
-- **Status:** phases 1–3 built on 2026-11-09 (two lanes); the third sim review's fixes built on 2026-11-10; unreleased; `make test-sim`, a fresh hands-on sim review and the release owed
+- **Status:** phases 1–3 built on 2026-11-09 (two lanes); the third and fourth sim reviews' fixes built on 2026-11-10; unreleased; `make test-sim`, a fresh hands-on sim review and the release owed
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); reworks the model under [plan 0061](./0061-leftovers-by-the-ticks.md), whose screens and rules stay
 - **Created:** 2026-11-09
@@ -84,6 +84,16 @@ Added after the third sim review, 2026-11-10:
   choice (*From leftovers · Cook fresh*).
 - **Made is what was planned and bought.** Choosing Cook's *×1 whole batch*
   makes the whole batch: it is bought, and its spare is left over.
+
+Added after the fourth sim review, 2026-11-10:
+
+- **Count all of a dish.** A meal planned from leftovers takes from its own
+  linked cooking first. Any shortfall then comes from the household's other
+  cookings of the same dish, soonest to go off first (fridge before freezer),
+  and only those good on the meal's day. It warns only when the household as
+  a whole has not got enough. The giving row says the share (`2 for next
+  Tue`), and rows of one dish say their cooked day (`cooked Sun`) so they can
+  be told apart.
 
 ## Design
 
@@ -236,6 +246,17 @@ Added after the third sim review, 2026-11-10:
     goes, with its *Freeze*, and the warning is the freezer row's.
 35. **Whole batch:** curry serves 4, planned for 2, ×1 whole batch, both
     tick: 2 left. The shop buys the whole batch.
+36. **Count all of a dish:** Hamburger Helper fridge 1 (Sunday's) and
+    freezer 2 (last week's); Tuesday for 3 planned from Sunday's. No
+    warning: it takes 1 + 2, and the freezer row reads `2 for Tue`. Next
+    Tuesday instead (past Sunday's fridge date): the fridge row reads `❄
+    freeze by Wed for next Tue` and the freezer row `2 for next Tue`.
+37. **The same with fridge 1 and freezer 1:** Tuesday warns `not enough
+    left`, short by 1; both rows give what they have.
+38. **A pot not cooked yet gives nothing to another cooking's meal**, and
+    a shelf past its date on the meal's day gives nothing either.
+39. **A meal added to a day behind us:** the choice is asked as for any
+    day, judged on that day; a pot good then is offered.
 
 ## Approach
 
@@ -498,6 +519,49 @@ Append-only.
     A meal no session covers opens at its own `demandPortions`.
   - Library, search and back-links send no amount and open at the recipe's
     own servings.
+
+- 2026-11-10 — Sim review 4 (one lane). A fourth hands-on review found nine
+  issues; the owner ruled *Count all of a dish* (Rulings). No migration.
+  Decided in the lane:
+  - **The dish-wide read is two passes** (`readDishes`): each cooking alone,
+    then each meal's shortfall drawn, in day order, from the other cookings
+    of its recipe: cooked ones only, by the page's order (fridge first,
+    soonest to go off), each only from a shelf whose date covers the meal's
+    day as it stands (a fridge row past its date then is not frozen for
+    another pot's meal), and only what that shelf has free once its own
+    meals are served. The two cookings are read again with the shares in.
+    A share given to a meal behind us leaves the giver's box; one ahead is
+    spoken for. Every write reads the cooking with its whole dish
+    (`readCookingIn`), so the stepper measures against the box as drawn.
+  - **The pick may plan the dish as a whole:** *From leftovers* caps at what
+    every pot of the dish good on the day has free, links to the first, and
+    names that pot by its cooked day (`1 left · cooked Sun`) when more than
+    one could serve. Its count is that pot's own.
+  - **One day rule** (`weekdayFrom`, `leftoverDay`): `today`; a day of the
+    reference week by its weekday; `next Tue`; `last Sat`; else `17 Nov`.
+    Leftover lines read from today's week; Cook and the meal sheet's batch
+    lines from the week on screen. So Saturday's card now reads `freeze 2
+    by next Tue for next Thu` (it read `by Tue`). The freezer's `till Jan`
+    past six days stays a month.
+  - **A past day** is judged on that day: the picker's Leftovers and the
+    choice sheet offer a pot good then. A meal that became its own cook by
+    mistake is fixed with no new button: remove it and add it again, and
+    the choice is asked (the meal sheet has *Cook fresh instead*, and no
+    door the other way).
+  - **The whole-batch switch was stale** because `watchCookPlan` did not
+    read `cooking_change`; it joins it now, and so does the shop's watch
+    (which read no cooking at all), each selecting a column.
+  - **Cook fresh instead's Undo** writes and the sheet follows it live (a
+    widget test drives both ways); the review's no-op was not reproduced,
+    so it is taken as the 10 s window running out between scripted taps.
+  - **Small:** Freeze closes the stepper, so Undo brings its row back
+    closed; a typed freezer row's age reads `added today`; the Removed and
+    Froze toasts name the cooked day when two rows share a name; Cook orders
+    one day's cards and lines by slot; next week's Cook line says `not
+    enough left` as the tag does; a week of meals that need nothing bought
+    says `nothing to buy`, with no door.
+  - **Not done here:** `make test-sim` and a fresh hands-on review (no
+    simulator in this lane), and the release.
 
 ## Notes / open questions
 

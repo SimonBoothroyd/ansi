@@ -209,6 +209,13 @@ meal's id, not cooked (`Leftover.cooked`).
   what meals still to come take, `portions` what is free to plan (the
   picker's). A row shows while its box holds anything or a meal still to
   come takes from it.
+- **A dish counts as a whole** (`readDishes`): what a meal's own cooking
+  cannot give comes from the household's other cookings of its recipe,
+  cooked ones only, fridge before freezer, soonest to go off first, each
+  from a shelf in date on the meal's day and only what is free once its own
+  meals are served. The giver lists the share (`LeftoverMeal.lent`, `2 for
+  next Tue`); the meal warns only for what is still short. Every write reads
+  the cooking with its whole dish (`readCookingIn`).
 - **Warnings, never edits:** a meal from today on that the shelves cannot
   cover is `notEnoughLeft` (`Sat needs 3 · 2 left`); one past every date is
   `pastItsDate`; every meal of a cooking never cooked, and every meal still
@@ -218,17 +225,20 @@ meal's id, not cooked (`Leftover.cooked`).
   (7 when unknown), a freezer row until the cook day plus `freezer_days` (no
   limit when null). Food in words keeps a week in the fridge; in the freezer
   it has no date, only an age. Dates read the recipe live. Every screen
-  prints them through `leftover_format.dart`: a weekday within the coming
-  six days, else `15 Nov`; the freezer `till Jan` past six days; `cooked
-  Sat` this week, `cooked last Sat` the week before, then a date; `cooks
-  Sat` for a pot not cooked yet.
+  prints them through `leftover_format.dart`, one rule (`weekdayFrom`):
+  `today`; a day of today's week by its weekday; `next Tue`; `last Sat`;
+  else `17 Nov`; the freezer `till Jan` past six days; `cooks Sat` for a pot
+  not cooked yet; an age `added today`, `2 wk`. Two rows of one dish say
+  `cooked Sun`.
 - **The picker** (`leftoverOfferOn`) judges a row on the day being planned: a
   fridge row in date then, from the fridge; one that would need freezing by
   then, under Freezer as `freeze by Mon`; a freezer row in date then. A row
   past its date today, food in words, and a cooked row with nothing free are
   never offered. A pot not cooked yet is offered from its cook day for as
   long as it would keep, whatever it has free, once (`leftoversGoodOn`); a
-  pot not born yet only to a later week than its own.
+  pot not born yet only to a later week than its own. A day behind us is
+  judged the same way, on that day.
+
 
 ### The writes
 

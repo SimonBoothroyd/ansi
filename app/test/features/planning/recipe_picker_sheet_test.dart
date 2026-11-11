@@ -593,8 +593,8 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       expect(find.text('Beef Ragù'), findsOneWidget);
-      expect(find.text('cooks Mon ·'), findsOneWidget);
-      expect(find.text('freeze by Tue'), findsOneWidget);
+      expect(find.text('cooks next Mon ·'), findsOneWidget);
+      expect(find.text('freeze by next Tue'), findsOneWidget);
       // Nothing to count yet, and not a leftover yet.
       expect(find.textContaining('left'), findsNothing);
       await tester.tap(find.text('Beef Ragù'));
@@ -617,14 +617,14 @@ void main() {
 
       expect(find.text('Leftovers'), findsOneWidget);
       expect(find.text('FRIDGE'), findsOneWidget);
-      expect(find.text('1¾ left · till Wed'), findsOneWidget);
+      expect(find.text('1¾ left · till next Wed'), findsOneWidget);
       // Gone by Wednesday: not offered.
       expect(find.text('Red Lentil Dal'), findsNothing);
       expect(find.text('FREEZER'), findsOneWidget);
       expect(find.text('frozen'), findsNothing);
       expect(find.text('2 left · till Jan'), findsOneWidget);
       // Gone from the fridge by Wednesday, but it freezes: in by Monday.
-      expect(find.text('freeze by Mon'), findsOneWidget);
+      expect(find.text('freeze by next Mon'), findsOneWidget);
       // The freezer's subhead and the freeze-by tag.
       expect(find.byIcon(FLucideIcons.snowflake), findsNWidgets(2));
       // Soonest to go off first.
@@ -639,7 +639,7 @@ void main() {
         lessThan(tester.getTopLeft(find.text('FREEZER')).dy),
       );
 
-      await tester.tap(find.text('1¾ left · till Wed'));
+      await tester.tap(find.text('1¾ left · till next Wed'));
       await tester.pumpAndSettle();
       expect(picked, isA<PickedLeftover>());
       final left = picked! as PickedLeftover;

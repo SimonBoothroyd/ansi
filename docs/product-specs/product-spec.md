@@ -1641,12 +1641,21 @@ said on a particular day.
   centred at 640. Cook's batch line is the other way in, to its own row.
 - **Two shelves, Fridge then ❄ Freezer**, each soonest to go off first and
   past its date last. A row is one shelf of one cooking: the dish (or the
-  household's own words) and its date — `till Sun` within six days, else
-  `till 15 Nov`, and `till Jan` in the freezer; its age (`4 days`) for a row
-  with no date — then an **`N left` chip**, what is in the box, and what
-  is planned from it: `for Sun`, or, for meals it reaches only from the
-  freezer, `❄ freeze by Mon for Wed` until Mon. A meal planned from it that
-  wants more than is there is said in amber instead: `1 left · Wed needs 2`.
+  household's own words) and its date — `till Sun` this week, `till next
+  Sun`, else `till 15 Nov`, and `till Jan` in the freezer; its age (`added
+  today`, `4 days`, `2 wk`) for a row with no date — then an **`N left`
+  chip**, what is in the box, and what is planned from it: `for Sun`, or,
+  for meals it reaches only from the freezer, `❄ freeze by Mon for Wed`
+  until Mon. Two rows of one dish say their cooked day (`cooked Sun`).
+- **A dish counts as a whole.** A meal takes from its own cooking first,
+  then from the household's other cookings of the dish, fridge before
+  freezer, soonest to go off first, only those good on its day; the giving
+  row says its share (`2 for next Tue`). Only what the household as a whole
+  has not got is said in amber: `1 left · Wed needs 2`.
+- **One day rule**, everywhere a leftover, a cook line or the picker names a
+  day: `today`; a day of this week by its weekday; `next Tue`; `last Sat`;
+  else `17 Nov`.
+
 - **A fridge row starts from the ticks** (*What a cooked batch left over*,
   above). Its chip opens a **stepper** in its place: a whole portion a step
   (`1¾` steps to `1` or `2`), down to nothing, which takes the row off the
