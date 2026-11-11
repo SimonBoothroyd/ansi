@@ -10,6 +10,7 @@ import 'dart:async';
 
 import 'package:powersync/powersync.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sqlite_async/sqlite_async.dart' show ClosedException;
 
 import 'database.dart';
 import 'dropped_write.dart';
@@ -141,13 +142,31 @@ Stream<SyncHealth> watchSyncHealth(
   List<DroppedWrite> drops = const [],
   void Function(void Function())? onDispose,
   DateTime Function() clock = DateTime.now,
+  Duration tick = _tick,
 }) {
   final out = StreamController<SyncHealth>.broadcast();
   DateTime? uploadFailingSince;
   var closed = false;
+  late final List<StreamSubscription<void>> subscriptions;
+
+  void dispose() {
+    if (closed) return;
+    closed = true;
+    for (final s in subscriptions) {
+      unawaited(s.cancel());
+    }
+    unawaited(out.close());
+  }
 
   Future<void> emit() async {
     if (closed) return;
+    // The database can close under a live watcher (sign-out, a test's
+    // teardown) while the periodic tick and status stream keep firing. A
+    // closed database has nothing more to report, so the watcher stops.
+    if (db.closed) {
+      dispose();
+      return;
+    }
     final status = db.currentStatus;
     // The clock runs from the start of a run of failures; a cleared error
     // resets it.
@@ -156,7 +175,13 @@ Stream<SyncHealth> watchSyncHealth(
     } else {
       uploadFailingSince = null;
     }
-    final stats = await db.getUploadQueueStats();
+    final UploadQueueStats stats;
+    try {
+      stats = await db.getUploadQueueStats();
+    } on ClosedException {
+      dispose();
+      return;
+    }
     if (closed) return;
     out.add(
       deriveSyncHealth(
@@ -172,23 +197,15 @@ Stream<SyncHealth> watchSyncHealth(
 
   // Three reasons to re-derive. `ps_crud` changes do not come through
   // statusStream, and neither does the passage of time.
-  final subscriptions = <StreamSubscription<void>>[
+  subscriptions = <StreamSubscription<void>>[
     db.statusStream.listen((_) => unawaited(emit())),
     db
         .onChange(const [
           'ps_crud',
         ], throttle: const Duration(milliseconds: 300))
         .listen((_) => unawaited(emit())),
-    Stream<void>.periodic(_tick).listen((_) => unawaited(emit())),
+    Stream<void>.periodic(tick).listen((_) => unawaited(emit())),
   ];
-
-  void dispose() {
-    closed = true;
-    for (final s in subscriptions) {
-      unawaited(s.cancel());
-    }
-    unawaited(out.close());
-  }
 
   out.onCancel = dispose;
   onDispose?.call(dispose);

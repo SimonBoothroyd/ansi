@@ -5,9 +5,13 @@
 /// most of this is about the threshold and the clock it runs on.
 library;
 
+import 'dart:async';
+
 import 'package:ansi/core/sync/dropped_write.dart';
 import 'package:ansi/core/sync/sync_health.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../helpers/test_db.dart';
 
 final _now = DateTime(2026, 9, 2, 14, 30);
 
@@ -116,5 +120,26 @@ void main() {
     // It is persisted, because a divergence that vanishes when you close the
     // app is still silent.
     expect(DroppedWrite.fromJson(_drop().toJson()), _drop());
+  });
+  test('the watcher stops quietly when the database closes under it', () async {
+    // Sign-out and a smoke's teardown close the database while the tick and
+    // the status stream still fire. A query on a closed database throws
+    // ClosedException, which used to escape as an uncaught async error.
+    final (db, dir) = await openTestDb();
+    addTearDown(() {
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+    });
+    final stream = watchSyncHealth(db, tick: const Duration(milliseconds: 5));
+    final done = Completer<void>();
+    final errors = <Object>[];
+    stream.listen(null, onError: errors.add, onDone: done.complete);
+
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    await db.close();
+    // Several ticks land on the closed database; any of them throwing would
+    // fail this test through the zone's uncaught-error handler.
+    await done.future.timeout(const Duration(seconds: 2));
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(errors, isEmpty);
   });
 }
