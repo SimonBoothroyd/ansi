@@ -677,6 +677,10 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-11-14 — leftovers, remembered: migration `0061`
+
+- **deploy-supabase 43607885222** (on `8423ff72`): green — `db push` applied `0061_cooking` (`cooking`, `cooking_change` and `plan_entry.cooking`, [plan 0062](./exec-plans/active/0062-leftovers-remembered.md)); its conversion found no stored `leftover` rows on cloud; the sync streams (now carrying `cooking` and `cooking_change`) deployed; functions and the share Worker redeployed unchanged. No reseed. Backed up first to `~/Backups/ansi-cloud-20261114-0944-pre0061-{schema,data}.sql`. `cloud_verify.sh`: 7 ok · 2 warn (the standing posture) · 0 fail.
+
 ### 2026-11-08 — leftovers, the reader half: migration `0060`
 
 - **deploy-supabase 42428647817** (on `4e577345`): green — `db push` applied `0060_leftover` (the `leftover` table and `plan_entry.from_leftover`, [plan 0060](./exec-plans/active/0060-leftovers-fridge-and-freezer.md)); the sync streams (now carrying `leftover`) deployed; functions and the share Worker unchanged. No reseed. `cloud_verify.sh`: 7 ok · 2 warn (email/password on, confirmations off — the standing posture) · 0 fail.

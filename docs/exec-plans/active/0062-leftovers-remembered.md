@@ -1,6 +1,6 @@
 # Exec plan: Leftovers, remembered
 
-- **Status:** phases 1–3 built on 2026-11-09 (two lanes); the third and fourth sim reviews' fixes built on 2026-11-10; unreleased; `make test-sim`, a fresh hands-on sim review and the release owed
+- **Status:** shipped in `v0.40.0` (2026-11-14) — migration `0061` on cloud, the full sim suite green on CI; the owner's look on a phone owed
 - **Owner:** Simon (rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); reworks the model under [plan 0061](./0061-leftovers-by-the-ticks.md), whose screens and rules stay
 - **Created:** 2026-11-09

@@ -1,6 +1,6 @@
 # Exec plan: Leftovers by the ticks
 
-- **Status:** built — phases 1–4 and the sim-review fixes on 2026-11-08, unreleased; `make test-sim` and the release owed
+- **Status:** shipped in `v0.40.0` (2026-11-14), with its model reworked by [plan 0062](./0062-leftovers-remembered.md); the owner's look on a phone owed
 - **Owner:** Simon (design and rulings), agents in lanes
 - **Roadmap step:** 11 (anti-waste); follows [plan 0060](./0060-leftovers-fridge-and-freezer.md)
 - **Created:** 2026-11-08

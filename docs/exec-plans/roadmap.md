@@ -35,19 +35,11 @@ The detail is in the plan; the landing dates are in the
    the readers in `v0.38.0`, the page, planning from both shelves and Cook
    no longer asking in `v0.39.0`; the owner's look on a phone, then the plan
    moves to `completed/`.
-8. Step 11, continued: [plan 0061](./active/0061-leftovers-by-the-ticks.md),
-   *Leftovers by the ticks*. No tick means you didn't eat it; the cook day
-   is the earliest ticked day; a fridge row is good till cook day + fridge
-   days; the picker judges the meal's day and offers *freeze by*; a dish
-   that freezes is cooked and bought once across the week edge; and the
-   Leftovers page, Cook, the picker and the meal sheet are tidied. Built on
-   main, unreleased; its model is reworked by plan 0062 before release.
-9. Step 11, continued: [plan 0062](./active/0062-leftovers-remembered.md),
-   *Leftovers, remembered*. Each cooking is a saved record with a fixed id;
-   meals link to it, and ticks, corrections and freezes sum to what's left.
-   No multi-week reads, and no automatic cross-week sharing (a pick does
-   it). Migration `0061_cooking`; one release with plan 0061.
-10. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
+8. Step 11, continued: [plan 0061](./active/0061-leftovers-by-the-ticks.md)
+   and [plan 0062](./active/0062-leftovers-remembered.md), *Leftovers by the
+   ticks* and *remembered* — shipped in `v0.40.0`; the owner's look on a
+   phone, then both move to `completed/`.
+9. The Shop's phone check on `v0.35.0`: plan 0055's pass at home (two
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
 
@@ -145,6 +137,7 @@ rows below, in that order.)
 | — | Use it up — the picker leads with last week's cooked leftovers still good for the day (a meal from one is not cooked, bought or costed again) and the recipes that would use the most of last week's spare fresh food, scored by what the amounts they use cost; the Shop offers that spare as at home, in the row's own words; Cook asks *Binned · We ate it* once a leftover is past its use-by. Migration `0059` | `v0.37.0` | [0059](./active/0059-use-it-up.md) |
 | — | Leftovers, the reader half — migration `0060` (`leftover`: a fridge or freezer row, and `plan_entry.from_leftover`, a meal eaten from one), a meal from a row never cooked, bought or costed again, and the one seam that merges cooked batches with stored rows. No screen writes a row yet; both phones need this build before the next. Also the Week lens opening on the member signed in | `v0.38.0` | [0060](./active/0060-leftovers-fridge-and-freezer.md) |
 | — | Leftovers, the writer half — the Leftovers page behind a fridge icon in the Week header (fridge and freezer, a count corrected on the row, Freeze · Froze it · Gone · Clear all, *Add a leftover* in a recipe or your own words; nothing clears itself, a row past its date says so), *Use up* from both shelves, *Frozen · Cook fresh* on the confirm sheet, the Week's `leftover` tag blue from the freezer, and Cook no longer asking | `v0.39.0` | [0060](./active/0060-leftovers-fridge-and-freezer.md) |
+| — | Leftovers by the ticks, remembered — no tick means you didn't eat it, the cook day is the earliest ticked day, each cooking is a saved record that meals link to (ticks, corrections and freezes sum to what's left), From leftovers · Cook fresh whenever a pot exists, a pot picked for next week bought once, a dish counted whole across its pots, Undo on the Leftovers actions, recipes opening at the cooking's amount. Migration `0061` on cloud | `v0.40.0` | [0061](./active/0061-leftovers-by-the-ticks.md), [0062](./active/0062-leftovers-remembered.md) |
 
 ## Stretch
 
