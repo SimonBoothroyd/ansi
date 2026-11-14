@@ -80,18 +80,111 @@ Map<String, dynamic> putPayload(CrudEntry op) => {
 Map<String, dynamic> patchPayload(CrudEntry op) =>
     _decodeJsonbColumns(op.table, op.opData ?? const {});
 
-class AnsiConnector extends PowerSyncBackendConnector {
-  AnsiConnector(this._supabase, {DroppedWriteSink? onDropped})
-    : _onDropped = onDropped ?? const NoopDroppedWriteSink();
+/// The tables the server holds unique on a NATURAL key as well as the id,
+/// and that key's columns, held in lockstep with the migrations by
+/// `test/structure/natural_keys_test.dart`.
+///
+/// Two phones can each make the row for one key offline, under two ids: the
+/// second PUT, an upsert by id, then hits the key (`23505`). It is not
+/// dropped: it is written onto the row that holds the key, keeping that
+/// row's id (last writer wins), and the losing id is re-pointed at the
+/// winner for the rest of the upload ([AnsiConnector]). The phone's own row
+/// under the losing id is on no server bucket, so the next sync, once the
+/// queue is empty, removes it locally and brings the winner down: both
+/// phones converge on one row with no client clean-up.
+///
+/// A key with a null column cannot collide (NULLs are distinct in a unique
+/// index), so an override `add` row (no recipe line) never merges.
+const Map<String, List<String>> naturalKeysByTable = {
+  'week_plan': ['household_id', 'week_start_date'],
+  'week_recipe_line_override': [
+    'week_plan_id',
+    'recipe_id',
+    'recipe_line_item_id',
+  ],
+};
+
+/// Columns that point at a row of a [naturalKeysByTable] table, by the table
+/// they point at: a write that names a losing id is re-pointed at the winner.
+const Map<String, String> naturalKeyParents = {'week_plan_id': 'week_plan'};
+
+/// What the connector asks of the server: PostgREST in the app
+/// ([AnsiConnector.new]), a stand-in with the server's constraints in tests.
+abstract interface class UploadTarget {
+  /// An upsert by id; with [ignoreDuplicates], an insert that leaves a row
+  /// already there alone.
+  Future<void> upsert(
+    String table,
+    Map<String, dynamic> row, {
+    required bool ignoreDuplicates,
+  });
+
+  /// Updates the row [id] of [table] with [values].
+  Future<void> update(String table, String id, Map<String, dynamic> values);
+
+  /// The id of the row of [table] whose columns equal [key], live or not,
+  /// or null when there is none.
+  Future<String?> idWhere(String table, Map<String, Object> key);
+}
+
+class _PostgrestTarget implements UploadTarget {
+  const _PostgrestTarget(this._supabase);
 
   final SupabaseClient _supabase;
+
+  @override
+  Future<void> upsert(
+    String table,
+    Map<String, dynamic> row, {
+    required bool ignoreDuplicates,
+  }) => _supabase.from(table).upsert(row, ignoreDuplicates: ignoreDuplicates);
+
+  @override
+  Future<void> update(String table, String id, Map<String, dynamic> values) =>
+      _supabase.from(table).update(values).eq('id', id);
+
+  @override
+  Future<String?> idWhere(String table, Map<String, Object> key) async {
+    var query = _supabase.from(table).select('id');
+    for (final MapEntry(:key, :value) in key.entries) {
+      query = query.eq(key, value);
+    }
+    final rows = await query.limit(1);
+    return rows.isEmpty ? null : rows.first['id'] as String?;
+  }
+}
+
+class AnsiConnector extends PowerSyncBackendConnector {
+  AnsiConnector(SupabaseClient supabase, {DroppedWriteSink? onDropped})
+    : this.withTarget(
+        _PostgrestTarget(supabase),
+        supabase: supabase,
+        onDropped: onDropped,
+      );
+
+  /// A connector writing to its target; [supabase] only signs it in.
+  @visibleForTesting
+  AnsiConnector.withTarget(
+    this._target, {
+    SupabaseClient? supabase,
+    DroppedWriteSink? onDropped,
+  }) : _supabase = supabase,
+       _onDropped = onDropped ?? const NoopDroppedWriteSink();
+
+  final SupabaseClient? _supabase;
+  final UploadTarget _target;
 
   /// Where a discarded transaction is reported to the user.
   final DroppedWriteSink _onDropped;
 
+  /// Ids that lost a natural key to another phone's row, and that row's id:
+  /// a later write naming the loser goes to the winner. Held for the
+  /// session; a write queued behind a merge almost always uploads in it.
+  final Map<String, String> _merged = {};
+
   @override
   Future<PowerSyncCredentials?> fetchCredentials() async {
-    final session = _supabase.auth.currentSession;
+    final session = _supabase?.auth.currentSession;
     if (session == null) return null; // not signed in — nothing to sync
     return PowerSyncCredentials(
       endpoint: Env.powersyncUrl,
@@ -108,23 +201,7 @@ class AnsiConnector extends PowerSyncBackendConnector {
     try {
       for (final op in transaction.crud) {
         current = op;
-        final table = _supabase.from(op.table);
-        switch (op.op) {
-          case UpdateType.put:
-            await table.upsert(
-              putPayload(op),
-              ignoreDuplicates: insertOnceTables.contains(op.table),
-            );
-          case UpdateType.patch:
-            await table.update(patchPayload(op)).eq('id', op.id);
-          case UpdateType.delete:
-            // Soft-delete: never issue a hard DELETE (no such grant/policy).
-            await table
-                .update({
-                  'deleted_at': DateTime.now().toUtc().toIso8601String(),
-                })
-                .eq('id', op.id);
-        }
+        await _upload(database, op);
       }
       await transaction.complete();
     } on PostgrestException catch (e) {
@@ -151,5 +228,107 @@ class AnsiConnector extends PowerSyncBackendConnector {
         rethrow; // transient — PowerSync retries with backoff
       }
     }
+  }
+
+  /// Uploads one op. A PUT that hits a natural key merges onto the row that
+  /// holds it ([naturalKeysByTable]); one that names a parent the server
+  /// does not have (`23503`) is re-pointed at the parent's winner, once.
+  Future<void> _upload(PowerSyncDatabase database, CrudEntry op) async {
+    final id = _merged[op.id] ?? op.id;
+    switch (op.op) {
+      case UpdateType.put:
+        var row = _repointed({...putPayload(op), 'id': id});
+        for (var attempt = 0; ; attempt++) {
+          try {
+            await _target.upsert(
+              op.table,
+              row,
+              ignoreDuplicates: insertOnceTables.contains(op.table),
+            );
+            return;
+          } on PostgrestException catch (e) {
+            if (e.code == '23505' && await _mergeOntoKey(op.table, row)) {
+              return;
+            }
+            if (attempt == 0 &&
+                e.code == '23503' &&
+                await _resolveParents(database, row)) {
+              row = _repointed(row);
+              continue;
+            }
+            rethrow;
+          }
+        }
+      case UpdateType.patch:
+        await _target.update(op.table, id, _repointed(patchPayload(op)));
+      case UpdateType.delete:
+        // Soft-delete: never issue a hard DELETE (no such grant/policy).
+        await _target.update(op.table, id, {
+          'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        });
+    }
+  }
+
+  /// [row] with every [naturalKeyParents] column that names a losing id
+  /// pointed at its winner.
+  Map<String, dynamic> _repointed(Map<String, dynamic> row) => {
+    for (final MapEntry(:key, :value) in row.entries)
+      key: naturalKeyParents.containsKey(key) && value is String
+          ? _merged[value] ?? value
+          : value,
+  };
+
+  /// Writes [row] onto the row of [table] that holds its natural key, keeping
+  /// that row's id and created_at: the last writer wins. False when [table]
+  /// has no natural key, the key has a null part, or no other row holds it.
+  Future<bool> _mergeOntoKey(String table, Map<String, dynamic> row) async {
+    final columns = naturalKeysByTable[table];
+    if (columns == null) return false;
+    final key = <String, Object>{};
+    for (final column in columns) {
+      final value = row[column];
+      if (value == null) return false;
+      key[column] = value as Object;
+    }
+    final winner = await _target.idWhere(table, key);
+    final loser = row['id'] as String;
+    if (winner == null || winner == loser) return false;
+    debugPrint(
+      'sync: $table $loser lost its key to $winner; written onto $winner',
+    );
+    await _target.update(table, winner, {
+      for (final MapEntry(:key, :value) in row.entries)
+        if (key != 'id' && key != 'created_at') key: value,
+    });
+    _merged[loser] = winner;
+    return true;
+  }
+
+  /// For each [naturalKeyParents] column of [row] the server has no row for,
+  /// finds the parent's winner by the parent's natural key, read from this
+  /// phone's own copy. True when one was found (and [_merged] now has it).
+  Future<bool> _resolveParents(
+    PowerSyncDatabase database,
+    Map<String, dynamic> row,
+  ) async {
+    var found = false;
+    for (final MapEntry(key: column, value: parentTable)
+        in naturalKeyParents.entries) {
+      final parentId = row[column];
+      if (parentId is! String || _merged.containsKey(parentId)) continue;
+      final columns = naturalKeysByTable[parentTable]!;
+      final local = await database.getOptional(
+        'SELECT ${columns.join(', ')} FROM $parentTable WHERE id = ?',
+        [parentId],
+      );
+      if (local == null || columns.any((c) => local[c] == null)) continue;
+      final winner = await _target.idWhere(parentTable, {
+        for (final c in columns) c: local[c] as Object,
+      });
+      if (winner == null || winner == parentId) continue;
+      _merged[parentId] = winner;
+      found = true;
+    }
+    return found;
   }
 }

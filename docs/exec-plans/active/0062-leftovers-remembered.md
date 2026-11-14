@@ -629,7 +629,14 @@ Append-only.
   - **The sync-failure banner sits below the status bar**, so its *Show me*
     can be tapped.
   - **A PUT that hits a natural unique key merges onto the row that holds
-    it.** See the connector's notes and `docs/` sync section for the tables.
+    it** (the partner's dropped `week_recipe_line_override` PUT, `23505`).
+    Last writer wins on the winner's id; the orphan goes at the next sync.
+    The sweep found one more key a phone can hit, `week_plan` by household
+    and date, merged the same way with its meals re-pointed
+    ([errors and sync health](../../design-docs/errors-and-sync-health.md#the-refused-write)).
+  - **A partner's *Something else* shows on this phone** as a swap on their
+    avatar; what they had stays their own. It always synced and read; the
+    Week drew only this phone's.
 
 ## Notes / open questions
 

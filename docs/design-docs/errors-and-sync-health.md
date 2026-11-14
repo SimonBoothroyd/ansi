@@ -133,7 +133,23 @@ database, so the name and the page are a local read
 (`shared/dropped_write_subject.dart`); a row that is gone falls back to a plain
 noun for its kind and opens nothing. The table, the operation and the server's
 code, the same string the console line carries, sit behind *Copy details*, and
-*Done* retires the notice.
+*Done* retires the notice. The local row does not outlive the next sync:
+once the queue is empty, PowerSync keeps only what a bucket holds, so the
+phone reverts to the server's row (or drops a row the server never had),
+and the notice is all that is left of the change.
+
+**A natural key is not a refusal.** Two phones that each make the row for
+one natural key offline give it two ids, and the second PUT (an upsert by
+id) hits the key with `23505`. For the tables in `naturalKeysByTable`
+(`week_plan` by household and date, `week_recipe_line_override` by week,
+recipe and line) the connector writes that PUT onto the row holding the key,
+keeping its id: the last writer wins. The losing id is re-pointed at the
+winner for the rest of the upload, and a child that names a week the server
+has under another id (`23503`) finds it by the week's date. The phone's own
+row under the losing id is in no bucket, so the next sync replaces it with
+the winner. `test/structure/natural_keys_test.dart` reads every unique key
+the migrations declare, so a new one needs a merge or a reason it cannot
+collide.
 
 ### Three readouts, one provider
 
