@@ -2191,11 +2191,33 @@ void main() {
       expect(titleDecoration(tester), TextDecoration.lineThrough);
     });
 
-    testWidgets('a partner\u2019s shows nothing at all', (tester) async {
+    testWidgets('a partner\u2019s shows as a swap on their avatar, never '
+        'what they had', (tester) async {
       await pump(tester, swappedWeek(had: 'm2'));
-      expect(find.byKey(const ValueKey('swapped-m2')), findsNothing);
+      expect(find.byKey(const ValueKey('swapped-m2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('swapped-m1')), findsNothing);
       expect(find.text('Pizza with work'), findsNothing);
       expect(titleDecoration(tester), isNot(TextDecoration.lineThrough));
+    });
+
+    testWidgets('two eaters: one ticked, the other had something else; this '
+        'phone sees both answers', (tester) async {
+      final week = swappedWeek(had: 'm2');
+      final entry = week.entries.single;
+      await pump(
+        tester,
+        week.copyWith(
+          entries: [
+            entry.copyWith(eatenAt: {'m1': DateTime(2026, 8, 27, 19)}),
+          ],
+        ),
+      );
+      expect(find.byKey(const ValueKey('ate-m1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('swapped-m2')), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp(r'ate it\. .* had something else$')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('the sheet says it as one line, the plan crossed out, with '

@@ -118,8 +118,7 @@ class EaterAvatar extends StatelessWidget {
   final bool ate;
 
   /// The member had something else instead: a swap in place of their
-  /// initial. Drawn only for the person on this phone; anyone else shows a
-  /// tick or their initial.
+  /// initial, on every phone, as a tick is.
   final bool swapped;
 
   @override
@@ -282,18 +281,28 @@ class EatersTarget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nobody = entry.eaterIds.isEmpty && portions == null;
-    // What somebody had instead is theirs: only this phone's own shows.
-    final me = ref.watch(currentMemberIdProvider);
-    final swapped = me != null && entry.had.containsKey(me) ? {me} : <String>{};
+    // Each eater's answer shows on every phone, as a tick does: a swap for
+    // somebody who had something else. What they had stays theirs: only this
+    // phone's own is named ([HadInsteadLine]).
+    final swapped = {
+      for (final id in entry.had.keys)
+        if (!entry.eatenBy.contains(id)) id,
+    };
     final ate = [
       for (final m in roster)
         if (entry.eatenBy.contains(m.id)) m.displayName,
     ];
+    final other = [
+      for (final m in roster)
+        if (swapped.contains(m.id)) m.displayName,
+    ];
     return AnsiTap(
       onTap: () => showMealEditorSheet(context, entry: entry),
-      semanticsLabel: ate.isEmpty
-          ? 'Who is eating'
-          : 'Who is eating. ${ate.join(' and ')} ate it',
+      semanticsLabel: [
+        'Who is eating',
+        if (ate.isNotEmpty) '${ate.join(' and ')} ate it',
+        if (other.isNotEmpty) '${other.join(' and ')} had something else',
+      ].join('. '),
       // Vertical padding is the hit area: it brings the 24 pt avatars to ~44.
       padding: const EdgeInsets.fromLTRB(8, 10, 4, 10),
       child: Row(

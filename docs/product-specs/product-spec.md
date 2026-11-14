@@ -1580,10 +1580,11 @@ say what each tap means without one.
   whatever they also match. Once said, the line reads `~~Ragù~~ → Pizza with
   work`, timed when it was said until changed, with a `×` to take it back;
   tapping it picks again. On the week, a swap in place of that person's
-  initial, the title crossed out and `⇄ Pizza with work` under it — **on
-  their own phone only**. The strike says *you* did not eat it; Cook and
-  Shop still say what was cooked and bought. Anyone else sees a tick or
-  nothing, and a plain title.
+  initial **on every phone**, as a tick is; the title crossed out and
+  `⇄ Pizza with work` under it **on their own phone only**. The strike says
+  *you* did not eat it; Cook and Shop still say what was cooked and bought.
+  Anyone else sees the swap on that avatar and a plain title, never what was
+  had.
 - **What was eaten sits above what was planned.** Once anybody ticks a meal,
   the week band (and the wide foot) leads with `EATEN · 2 940 kcal · 3
   meals` under the same lens, the sum of the ticked people's shares; a meal

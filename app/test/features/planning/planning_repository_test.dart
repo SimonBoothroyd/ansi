@@ -1200,6 +1200,38 @@ void main() {
       expect(meal.had.keys, ['m1']);
     });
 
+    test('the other phone\u2019s answer, arriving by sync, reads on the '
+        'watched week beside this phone\u2019s tick', () async {
+      final id = await plannedDinner();
+      await repo.setMealEaten(id, memberId: 'm1', eatenAt: at);
+      final seen = repo.watchWeek(_thisWeek).map((w) => w!.entries.single);
+      final answered = expectLater(
+        seen,
+        emitsThrough(
+          predicate<PlanEntry>(
+            (e) => e.eatenBy.contains('m1') && e.had.keys.contains('m2'),
+          ),
+        ),
+      );
+      // The partner's substitute as sync writes it: a plan_entry row under
+      // the same week, its one eater the partner, pointing at the meal.
+      final parent = await db.get(
+        'SELECT week_plan_id FROM plan_entry WHERE id = ?',
+        [id],
+      );
+      await db.execute(
+        'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
+        'meal_slot, label, eaters, instead_of, sort_order, created_at, '
+        "updated_at) VALUES ('s2', 'h', ?, 2, 'Dinner', 'Toast', "
+        "'[\"m2\"]', ?, 0, '2026-08-26T19:00:00Z', '2026-08-26T19:00:00Z')",
+        [parent['week_plan_id'], id],
+      );
+      await answered;
+      final meal = (await theWeek()).entries.single;
+      expect(meal.had['m2']!.label, 'Toast');
+      expect(meal.eatenBy, {'m1'});
+    });
+
     test('one member\u2019s answer leaves the other\u2019s alone', () async {
       final id = await plannedDinner();
       await repo.setInstead(id, memberId: 'm1', meal: const InsteadOut('A'));
