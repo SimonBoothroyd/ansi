@@ -60,10 +60,9 @@ class _BarShell extends StatelessWidget {
     footer: AnsiBottomNav(shell: shell),
     child: Column(
       children: [
-        // The sync banner, once, above every branch. It draws nothing while
-        // sync is healthy.
-        const AnsiSyncBanner(),
-        Expanded(child: shell),
+        // The sync banner, once, above every branch, in the top safe area.
+        // It draws nothing while sync is healthy.
+        Expanded(child: AnsiSyncBannerOver(child: shell)),
         ?dock,
       ],
     ),
@@ -78,15 +77,8 @@ class _PaneShell extends StatelessWidget {
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context) => FScaffold(
-    childPad: false,
-    child: Column(
-      children: [
-        const AnsiSyncBanner(),
-        Expanded(child: shell),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) =>
+      FScaffold(childPad: false, child: AnsiSyncBannerOver(child: shell));
 }
 
 /// Fades between the branch children in place: opacity only, so every

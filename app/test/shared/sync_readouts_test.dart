@@ -224,6 +224,77 @@ void main() {
       expect(find.text('2 changes didn’t sync.'), findsOneWidget);
       expect(find.text('They’re only on this phone.'), findsOneWidget);
     });
+
+    testWidgets('the banner sits below the status bar, and the page under it '
+        'leaves no second gap', (tester) async {
+      const statusBar = 47.0;
+      _statusBar(tester, statusBar);
+      final opened = <String>[];
+      Widget app(SyncHealth health) => ProviderScope(
+        overrides: [
+          // ignore: scoped_providers_should_specify_dependencies, root scope
+          syncHealthProvider.overrideWith((ref) => Stream.value(health)),
+        ],
+        child: MaterialApp(
+          home: FTheme(
+            data: ansiThemeData(),
+            child: AnsiSyncBannerOver(
+              child: Builder(
+                builder: (context) {
+                  opened.add('${MediaQuery.paddingOf(context).top}');
+                  return const SafeArea(child: Text('page'));
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(app(SyncRefused([_drop()])));
+      await tester.pump();
+      // Its words and Show me start below the status bar, and Show me takes
+      // a tap there.
+      expect(
+        tester.getTopLeft(find.text('1 change didn’t sync.')).dy,
+        greaterThanOrEqualTo(statusBar),
+      );
+      expect(
+        tester.getTopLeft(find.text('Show me')).dy,
+        greaterThanOrEqualTo(statusBar),
+      );
+      await tester.tap(find.text('Show me'));
+      await tester.pumpAndSettle();
+      expect(find.text('Didn’t sync'), findsOneWidget);
+      // The page under the banner is laid out without the status bar.
+      expect(opened.last, '0.0');
+    });
+
+    testWidgets('healthy, the page keeps the status bar', (tester) async {
+      _statusBar(tester, 47);
+      String? top;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            // ignore: scoped_providers_should_specify_dependencies, root scope
+            syncHealthProvider.overrideWith(
+              (ref) => Stream.value(const SyncSettled(null)),
+            ),
+          ],
+          child: MaterialApp(
+            home: AnsiSyncBannerOver(
+              child: Builder(
+                builder: (context) {
+                  top = '${MediaQuery.paddingOf(context).top}';
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(top, '47.0');
+    });
   });
 
   group('"Didn’t sync"', () {
@@ -425,4 +496,15 @@ void main() {
       expect(tester.getTopLeft(find.text('Tomatoes')), firstRow);
     });
   });
+}
+
+/// A phone's status bar of [top] logical pixels over the test view.
+void _statusBar(WidgetTester tester, double top) {
+  tester.view.padding = FakeViewPadding(
+    top: top * tester.view.devicePixelRatio,
+  );
+  tester.view.viewPadding = FakeViewPadding(
+    top: top * tester.view.devicePixelRatio,
+  );
+  addTearDown(tester.view.reset);
 }

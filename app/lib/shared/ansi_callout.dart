@@ -102,9 +102,17 @@ class AnsiCallout extends StatelessWidget {
     );
 
     if (_full) {
+      // The band hangs at the top of the app: its tint runs under the status
+      // bar, and its words and action start below it, where they can be
+      // tapped.
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          10 + MediaQuery.paddingOf(context).top,
+          20,
+          10,
+        ),
         decoration: BoxDecoration(
           color: tone.fill,
           border: Border(bottom: BorderSide(color: tone.line)),

@@ -26,6 +26,40 @@ import 'guarded_navigation.dart';
 import 'sync_words.dart';
 import 'write.dart';
 
+/// The banner over [child], as the shell hangs it. While it shows, the
+/// banner takes the top safe area (its tint runs under the status bar, its
+/// words and *Show me* sit below it) and [child] is laid out without it, so
+/// its own bar does not leave a second gap. The tree keeps one shape either
+/// way, so the routed child keeps its state when the banner comes and goes.
+class AnsiSyncBannerOver extends ConsumerWidget {
+  const AnsiSyncBannerOver({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final shows = syncBannerShows(ref.watch(syncHealthProvider).asData?.value);
+    return Column(
+      children: [
+        const AnsiSyncBanner(),
+        Expanded(
+          child: MediaQuery.removePadding(
+            context: context,
+            removeTop: shows,
+            child: child,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Whether [health] draws a banner: the two healthy states do not.
+bool syncBannerShows(SyncHealth? health) => switch (health) {
+  null || SyncSettled() || SyncWaiting() => false,
+  _ => true,
+};
+
 class AnsiSyncBanner extends ConsumerWidget {
   const AnsiSyncBanner({super.key});
 
