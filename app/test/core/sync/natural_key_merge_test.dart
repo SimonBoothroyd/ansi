@@ -94,7 +94,7 @@ class _Server implements UploadTarget {
       for (final c in key) c: row[c] as Object,
     });
     if (holder != null && holder != id) {
-      throw PostgrestException(
+      throw const PostgrestException(
         message: 'duplicate key value violates unique constraint',
         code: '23505',
       );
@@ -197,17 +197,23 @@ Future<void> _override(
 
 Future<void> _meal(PowerSyncDatabase db, String id, String week) => db.execute(
   'INSERT INTO plan_entry (id, household_id, week_plan_id, day_of_week, '
-  "meal_slot, recipe_id, eaters, sort_order, created_at, updated_at) VALUES "
+  'meal_slot, recipe_id, eaters, sort_order, created_at, updated_at) VALUES '
   "(?, 'h', ?, 5, 'Breakfast', 'r1', '[]', 0, ?, ?)",
   [id, week, _now, _now],
 );
 
 void main() {
-  late PowerSyncDatabase serverDb, phoneA, phoneB;
-  late Directory dirS, dirA, dirB;
+  late PowerSyncDatabase serverDb;
+  late PowerSyncDatabase phoneA;
+  late PowerSyncDatabase phoneB;
+  late Directory dirS;
+  late Directory dirA;
+  late Directory dirB;
   late _Server server;
-  late _RecordingSink droppedA, droppedB;
-  late AnsiConnector connectorA, connectorB;
+  late _RecordingSink droppedA;
+  late _RecordingSink droppedB;
+  late AnsiConnector connectorA;
+  late AnsiConnector connectorB;
 
   setUp(() async {
     (serverDb, dirS) = await openTestDb();
