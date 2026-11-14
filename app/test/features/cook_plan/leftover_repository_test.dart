@@ -161,6 +161,46 @@ void main() {
       );
     });
 
+    test('today’s meal: each tick eats its share, and once everyone ticked '
+        'nothing is spoken for', () async {
+      final mon = await curry(0);
+      final wed = await curry(2);
+      await tick(mon, 'a');
+      await tick(mon, 'b');
+      // Made 3½; Monday’s 1¾ eaten, Wednesday’s (today) spoken for.
+      var row = (await shelves()).single;
+      expect((row.inBox, row.planned), (1.75, 1.75));
+
+      // Ada ticks tonight: her 1 is eaten, Jun’s ¾ still spoken for.
+      await tick(wed, 'a');
+      row = (await shelves()).single;
+      expect((row.inBox, row.planned), (0.75, 0.75));
+
+      // Jun too: simply eaten, and the row goes.
+      await tick(wed, 'b');
+      expect(await shelves(), isEmpty);
+      final meal = (await read()).meals[wed]!;
+      expect((meal.eaten, meal.warning), (true, null));
+
+      // Unticked again: his ¾ is back, spoken for.
+      await tick(wed, 'b', ate: false);
+      row = (await shelves()).single;
+      expect((row.inBox, row.planned), (0.75, 0.75));
+    });
+
+    test('on the cook day, a meal everyone ticked leaves only what is '
+        'still to come', () async {
+      final wed = await curry(2);
+      final fri = await curry(4);
+      await tick(wed, 'a');
+      await tick(wed, 'b');
+      // Made 3½; tonight’s 1¾ eaten, Friday’s 1¾ spoken for.
+      final row = (await shelves()).single;
+      expect(row.since, _wednesday);
+      expect((row.inBox, row.planned, row.portions), (1.75, 1.75, 0));
+      expect((await read()).meals[fri]!.eaten, isFalse);
+    });
+
     test('a tick counts for a member taken off the meal since', () async {
       final mon = await curry(0);
       await tick(mon, 'b');

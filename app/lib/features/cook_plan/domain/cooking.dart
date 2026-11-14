@@ -96,6 +96,7 @@ class CookingMeal {
     required this.day,
     required this.portions,
     this.eaten = 0,
+    this.unticked,
     this.removed = false,
   });
 
@@ -114,6 +115,11 @@ class CookingMeal {
   /// What its ticks say was eaten, uncapped.
   final double eaten;
 
+  /// The portions of its eaters who have not ticked it yet: what of a meal
+  /// today is still spoken for. Null reads as all of [portions] (none of the
+  /// eaters it plans for ticked).
+  final double? unticked;
+
   /// Taken off the plan after it was ticked: it takes its ticked shares and
   /// is spoken for no more.
   final bool removed;
@@ -121,20 +127,50 @@ class CookingMeal {
   /// Whether anybody ticked it.
   bool get ticked => eaten > 1e-9;
 
-  /// What it takes from its cooking on [today]: a meal behind today its
-  /// ticked shares, never more than its portions; today's or a later meal
-  /// its planned portions in full, spoken for.
-  double takeOn(DateTime today) {
-    if (!removed && !_dateOnly(day).isBefore(_dateOnly(today))) {
-      return portions;
-    }
-    if (eaten <= 0) return 0;
-    return eaten > portions ? portions : eaten;
+  double get _eatenCapped =>
+      eaten <= 0 ? 0 : (eaten > portions ? portions : eaten);
+
+  double get _stillToEat {
+    final left = unticked ?? portions;
+    return left <= 0 ? 0 : (left > portions ? portions : left);
   }
+
+  /// What it takes from its cooking on [today]:
+  /// - behind today, or removed after a tick, its ticked shares, never more
+  ///   than its portions;
+  /// - today, its ticked shares plus the portions of the eaters who have not
+  ///   ticked yet, never more than its portions: once everyone ticked, it is
+  ///   simply eaten;
+  /// - later, its planned portions in full, spoken for.
+  double takeOn(DateTime today) {
+    final d = _dateOnly(day);
+    final t = _dateOnly(today);
+    if (removed || d.isBefore(t)) return _eatenCapped;
+    if (d.isAfter(t)) return portions;
+    final take = _eatenCapped + _stillToEat;
+    return take > portions ? portions : take;
+  }
+
+  /// What of [takeOn] is still spoken for on [today]: all of it for a later
+  /// meal; for today's, the portions of the eaters who have not ticked yet;
+  /// nothing behind today, or once removed.
+  double spokenOn(DateTime today) {
+    final d = _dateOnly(day);
+    final t = _dateOnly(today);
+    if (removed || d.isBefore(t)) return 0;
+    if (d.isAfter(t)) return portions;
+    final take = takeOn(today);
+    return _stillToEat > take ? take : _stillToEat;
+  }
+
+  /// Whether some of it is still to be eaten on [today]: a later meal, or
+  /// today's while somebody it plans for has not ticked.
+  bool aheadOn(DateTime today) => spokenOn(today) > 1e-9;
 
   @override
   String toString() =>
       'CookingMeal($entryId, $day, $portions, ate $eaten'
+      '${unticked == null ? '' : ', $unticked to tick'}'
       '${removed ? ', removed' : ''})';
 }
 

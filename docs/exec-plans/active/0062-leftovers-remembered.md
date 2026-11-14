@@ -150,7 +150,10 @@ Added after the fourth sim review, 2026-11-10:
   - A hand-added cooking uses `since`.
 - **What a meal takes:**
   - a day behind today takes its ticked shares, capped at its portions;
-  - today or later takes its planned portions in full ("spoken for");
+  - today takes its ticked shares plus the portions of the eaters who have
+    not ticked yet, capped at its portions. Only those unticked portions
+    stay spoken for; once everyone has ticked, the meal is simply eaten;
+  - a later day takes its planned portions in full ("spoken for");
   - a meal removed after it was ticked takes its ticked shares, whatever
     its day, and is spoken for no more.
 - **Where it takes from:**
@@ -245,7 +248,7 @@ Added after the fourth sim review, 2026-11-10:
     reads 1, never 3, and Tue warns. After *Freeze*, the fridge row at 0
     goes, with its *Freeze*, and the warning is the freezer row's.
 35. **Whole batch:** curry serves 4, planned for 2, ×1 whole batch, both
-    tick: 2 left. The shop buys the whole batch.
+    tick: 2 left, on the cook day too. The shop buys the whole batch.
 36. **Count all of a dish:** Hamburger Helper fridge 1 (Sunday's) and
     freezer 2 (last week's); Tuesday for 3 planned from Sunday's. No
     warning: it takes 1 + 2, and the freezer row reads `2 for Tue`. Next
@@ -257,6 +260,11 @@ Added after the fourth sim review, 2026-11-10:
     a shelf past its date on the meal's day gives nothing either.
 39. **A meal added to a day behind us:** the choice is asked as for any
     day, judged on that day; a pot good then is offered.
+40. **Today's leftover meal for 2, both tick:** 2 − 2 = 0 left and the row
+    goes; one tick reads `1 left · for today` (the other's portion, still
+    spoken for); an untick brings that portion back, spoken for. A share
+    another pot of the dish gives today's meal leaves the giver the same
+    way.
 
 ## Approach
 
@@ -367,8 +375,8 @@ Append-only.
   - **The assumed freeze is shown on its day.** Until the fridge date passes,
     a freezer meal's portions read in the fridge (`freeze by Mon for Wed`),
     as plan 0061 drew it; the counts are the same either way.
-  - **Today's meal is spoken for**, as the rule says, even once ticked: on
-    the cook day `N left` still holds that night's portions.
+  - **Today's meal is spoken for** until its eaters tick (superseded
+    2026-11-14: a ticked share is eaten, see that entry).
   - **Warnings:** `not enough left` only on meals from today on, plus every
     meal of a cooking never cooked. A cooking's own meals and picks warn
     alike (edge 14), so the old `own` flag is gone.
@@ -605,8 +613,23 @@ Append-only.
   - **Test: one cooking's Shop line is the title alone.** `· cook <day>`
     names a dish split into more than one session; the cross-week pick is
     one cooking.
-  - **Test: the whole batch reads `4 left` on its cook day**, as today's
-    meal is spoken for even once ticked; the spare shows as 2 free to plan.
+  - **Test: the whole batch on its cook day** (now `2 left`, all free to
+    plan, since the 2026-11-14 entry).
+- 2026-11-14 — **The owner's phones on v0.40.0** (one lane, no migration):
+  - **Today's meal is eaten as its eaters tick.** Saturday's Tofu Scramble,
+    a leftover meal for 2 both had ticked, still read `2 left · for today`,
+    because today's meal took its planned portions in full, spoken for,
+    ticked or not. The rule now: today takes its ticked shares plus the
+    portions of the eaters still to tick, and only those stay spoken for;
+    everyone ticked, it is simply eaten (edge 40). The cook day reads the
+    same, so the whole-batch smoke expects `2 left`. A reader passes each
+    meal's unticked portions (`CookingMeal.unticked`), and a meal with
+    nothing still to come is `LeftoverMeal.eaten`, so no line says `for
+    today` of it.
+  - **The sync-failure banner sits below the status bar**, so its *Show me*
+    can be tapped.
+  - **A PUT that hits a natural unique key merges onto the row that holds
+    it.** See the connector's notes and `docs/` sync section for the tables.
 
 ## Notes / open questions
 

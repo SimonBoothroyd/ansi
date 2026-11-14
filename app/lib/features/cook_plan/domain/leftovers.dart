@@ -142,6 +142,7 @@ class LeftoverMeal {
     this.short = 0,
     this.elsewhere = 0,
     this.lent = false,
+    this.eaten = false,
   });
 
   /// The planned meal.
@@ -149,9 +150,15 @@ class LeftoverMeal {
 
   final DateTime day;
 
-  /// What it takes from the cooking: its planned portions from today on, its
-  /// ticked shares behind us.
+  /// What it takes from the cooking ([CookingMeal.takeOn]): its planned
+  /// portions after today, its ticked shares behind us, and today its ticked
+  /// shares plus the portions of the eaters still to tick.
   final double portions;
+
+  /// Whether nothing of it is still to come: behind today, removed, or
+  /// today's with everyone it plans for ticked. An eaten meal is spoken for
+  /// no more, and no line says it is still to come.
+  final bool eaten;
 
   /// The shelf it is eaten from on [day]; null when nothing is good that day.
   final LeftoverPlace? place;
@@ -186,7 +193,8 @@ class LeftoverMeal {
       '${warning == null ? '' : ', ${warning!.name}'}'
       '${short > 1e-9 ? ', short $short' : ''}'
       '${elsewhere > 1e-9 ? ', $elsewhere elsewhere' : ''}'
-      '${lent ? ', lent' : ''})';
+      '${lent ? ', lent' : ''}'
+      '${eaten ? ', eaten' : ''})';
 }
 
 /// One shelf of one cooking: the fridge part or the freezer part, as the
@@ -517,11 +525,15 @@ int _soonestToGoOff(Leftover a, Leftover b, DateTime day) {
 
 /// A share one cooking gives a meal of another cooking of the same dish:
 /// `portions` from its `place` shelf, for the meal `entryId` on `day`.
+/// `toCome` is the part of it still spoken for (0 to 1): all of it for a
+/// later meal, none behind us, and for today's meal the share of it whose
+/// eaters have not ticked yet.
 typedef DishShare = ({
   String entryId,
   DateTime day,
   double portions,
   LeftoverPlace place,
+  double toCome,
 });
 
 /// Every cooking of [cookings] read on [today] with the others of its dish,
@@ -541,6 +553,11 @@ Map<String, CookingRead> readDishes(
   final day = _dateOnly(today);
   final reads = {
     for (final input in cookings) input.cooking.id: readCooking(input, day),
+  };
+  // What part of each meal is still spoken for, by entry id.
+  final toCome = {
+    for (final input in cookings)
+      for (final m in input.meals) m.entryId: _toComeOf(m, day),
   };
   final byDish = <String, List<CookingInput>>{};
   for (final input in cookings) {
@@ -585,6 +602,7 @@ Map<String, CookingRead> readDishes(
           day: meal.day,
           portions: share,
           place: row.place,
+          toCome: toCome[meal.entryId!] ?? 0,
         ));
         final before = given[meal.entryId!];
         given[meal.entryId!] = (
@@ -613,8 +631,10 @@ Map<String, CookingRead> readDishes(
 ///
 /// - **Made** goes on its shelf (the fridge, or where food said by hand
 ///   went), and every change row adds to (or takes from) the shelf it names.
-/// - **Each meal takes**, in day order: behind today, its ticked shares;
-///   from today on, its planned portions in full (spoken for). A meal on or
+/// - **Each meal takes**, in day order ([CookingMeal.takeOn]): behind today,
+///   its ticked shares; today, its ticked shares plus the portions of the
+///   eaters who have not ticked yet, which alone stay spoken for; later, its
+///   planned portions in full (spoken for). A meal on or
 ///   before the fridge date takes from the fridge, and from the freezer's
 ///   spare when the fridge has not got it; a **freezer meal** first moves its
 ///   portions from the fridge to the freezer (what the freezer has spare
@@ -678,6 +698,7 @@ CookingRead readCooking(
           : null,
       short: dishWide && !m.removed && short > 1e-9 ? short : 0,
       elsewhere: given,
+      eaten: !m.aheadOn(day),
     );
   }
 
@@ -722,7 +743,7 @@ CookingRead readCooking(
         rows: const [],
         meals: [
           for (final m in meals)
-            if (!m.removed && !_dateOnly(m.day).isBefore(day)) warned(m),
+            if (m.aheadOn(day)) warned(m),
         ],
         fridge: 0,
         freezer: 0,
@@ -752,7 +773,10 @@ CookingRead readCooking(
     final take = m.takeOn(day);
     // A meal removed after it was ticked: eaten, so it takes, and plans
     // nothing more; no tag is left to judge.
-    final ahead = !m.removed && !mealDay.isBefore(day);
+    // Today's meal is ahead only while somebody it plans for has not ticked,
+    // and then only their portions are spoken for.
+    final ahead = m.aheadOn(day);
+    final toCome = _toComeOf(m, day);
     if (mealDay.isBefore(cookDay)) {
       // Eaten before it was cooked: a meal of food said by hand planned
       // before its date. A meal skipped before the cook day takes nothing.
@@ -789,7 +813,7 @@ CookingRead readCooking(
       } else {
         fridge -= moved;
         freezer += moved - ownTake;
-        if (ahead) spokenFreezer += ownTake;
+        spokenFreezer += ownTake * toCome;
       }
       judged.add((
         meal: LeftoverMeal(
@@ -801,6 +825,7 @@ CookingRead readCooking(
           warning: ahead && short > 1e-9 ? LeftoverWarning.notEnoughLeft : null,
           short: m.removed ? 0 : short,
           elsewhere: given,
+          eaten: !ahead,
         ),
         onFridgeRow: pending,
       ));
@@ -820,10 +845,8 @@ CookingRead readCooking(
     final fromFreezer = inFridge ? fromOther : fromOwn;
     fridge -= fromFridge;
     freezer -= fromFreezer;
-    if (ahead) {
-      spokenFridge += fromFridge;
-      spokenFreezer += fromFreezer;
-    }
+    spokenFridge += fromFridge * toCome;
+    spokenFreezer += fromFreezer * toCome;
     final onFridgeRow = fromFreezer <= fromFridge + 1e-9;
     judged.add((
       meal: LeftoverMeal(
@@ -843,6 +866,7 @@ CookingRead readCooking(
             : null,
         short: m.removed || short <= 1e-9 ? 0 : short,
         elsewhere: given,
+        eaten: !ahead,
       ),
       onFridgeRow: onFridgeRow,
     ));
@@ -851,14 +875,13 @@ CookingRead readCooking(
   // The shares this cooking gives meals of other cookings of its dish, out
   // of what is free once its own meals are served.
   for (final share in [...lends]..sort((a, b) => a.day.compareTo(b.day))) {
-    final ahead = !share.day.isBefore(day);
     final fridgeShelf = share.place == LeftoverPlace.fridge;
     if (fridgeShelf) {
       fridge -= share.portions;
-      if (ahead) spokenFridge += share.portions;
+      spokenFridge += share.portions * share.toCome;
     } else {
       freezer -= share.portions;
-      if (ahead) spokenFreezer += share.portions;
+      spokenFreezer += share.portions * share.toCome;
     }
     judged.add((
       meal: LeftoverMeal(
@@ -867,6 +890,7 @@ CookingRead readCooking(
         portions: share.portions,
         place: share.place,
         lent: true,
+        eaten: share.toCome <= 1e-9,
       ),
       onFridgeRow: fridgeShelf,
     ));
@@ -930,6 +954,14 @@ CookingRead readCooking(
     fridge: fridgeBox,
     freezer: freezerBox,
   );
+}
+
+/// The part of what [m] takes on [today] that is still spoken for, 0 to 1.
+double _toComeOf(CookingMeal m, DateTime today) {
+  final take = m.takeOn(today);
+  if (take <= 1e-9) return 0;
+  final part = m.spokenOn(today) / take;
+  return part > 1 ? 1 : part;
 }
 
 DateTime? _plus(DateTime day, int? days) =>

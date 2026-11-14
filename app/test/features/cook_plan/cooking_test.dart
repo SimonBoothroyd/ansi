@@ -11,6 +11,7 @@ CookingMeal _m(
   DateTime day, {
   double portions = 2,
   double eaten = 0,
+  double? unticked,
   DateTime? week,
 }) => CookingMeal(
   entryId: id,
@@ -18,6 +19,7 @@ CookingMeal _m(
   day: day,
   portions: portions,
   eaten: eaten,
+  unticked: unticked,
 );
 
 void main() {
@@ -145,9 +147,42 @@ void main() {
       expect(_m('a', _oct(28)).takeOn(_oct(29)), 0);
     });
 
-    test('today’s or a later meal takes its planned portions', () {
-      expect(_m('a', _oct(29)).takeOn(_oct(29)), 2);
-      expect(_m('a', _oct(30), eaten: 1).takeOn(_oct(29)), 2);
+    test('a later meal takes its planned portions, all spoken for', () {
+      final later = _m('a', _oct(30), eaten: 1, unticked: 1);
+      expect(later.takeOn(_oct(29)), 2);
+      expect(later.spokenOn(_oct(29)), 2);
+      expect(later.aheadOn(_oct(29)), isTrue);
+    });
+
+    test('today’s meal takes its ticked shares plus the eaters still to '
+        'tick, and only theirs stay spoken for', () {
+      // Nobody ticked: all of it, spoken for.
+      final none = _m('a', _oct(29), unticked: 2);
+      expect((none.takeOn(_oct(29)), none.spokenOn(_oct(29))), (2, 2));
+      // One of two ticked: still 2 taken, 1 of them spoken for.
+      final one = _m('a', _oct(29), eaten: 1, unticked: 1);
+      expect((one.takeOn(_oct(29)), one.spokenOn(_oct(29))), (2, 1));
+      expect(one.aheadOn(_oct(29)), isTrue);
+      // Everyone ticked: simply eaten, spoken for no more.
+      final all = _m('a', _oct(29), eaten: 2, unticked: 0);
+      expect((all.takeOn(_oct(29)), all.spokenOn(_oct(29))), (2, 0));
+      expect(all.aheadOn(_oct(29)), isFalse);
+      // A member off the meal ticked too: capped at its portions.
+      final extra = _m('a', _oct(29), eaten: 3, unticked: 1);
+      expect((extra.takeOn(_oct(29)), extra.spokenOn(_oct(29))), (2, 1));
+    });
+
+    test('a meal behind today or removed is spoken for no more', () {
+      expect(_m('a', _oct(28), eaten: 1).spokenOn(_oct(29)), 0);
+      final removed = CookingMeal(
+        entryId: 'r',
+        weekStart: _week,
+        day: _oct(30),
+        portions: 2,
+        eaten: 1,
+        removed: true,
+      );
+      expect((removed.takeOn(_oct(29)), removed.spokenOn(_oct(29))), (1, 0));
     });
   });
 

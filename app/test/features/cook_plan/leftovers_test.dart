@@ -653,6 +653,72 @@ void main() {
     expect(_fridge(_read(input, _oct(29)))!.inBox, 2);
   });
 
+  group('today’s meal', () {
+    // Cooked Wednesday for two meals of 2; Thursday 29th is today.
+    CookingRead thursday({required double eaten, required double unticked}) =>
+        _read(
+          _cooking([
+            _m('wed', _oct(28), eaten: 2),
+            _m('thu', _oct(29), eaten: eaten, unticked: unticked),
+          ], made: 4),
+          _oct(29),
+        );
+
+    test('nobody ticked: its portions are spoken for', () {
+      final row = _fridge(thursday(eaten: 0, unticked: 2))!;
+      expect((row.box, row.planned, row.portions), (2, 2, 0));
+    });
+
+    test('one of two ticked: their share is eaten, the other’s still '
+        'spoken for', () {
+      final row = _fridge(thursday(eaten: 1, unticked: 1))!;
+      expect((row.box, row.planned, row.portions), (1, 1, 0));
+    });
+
+    test('everyone ticked: simply eaten, so nothing is left and the row '
+        'goes', () {
+      final read = thursday(eaten: 2, unticked: 0);
+      expect(read.rows, isEmpty);
+      expect(read.fridge, 0);
+      expect(read.meals.last.eaten, isTrue);
+      expect(read.meals.last.warning, isNull);
+    });
+
+    test('on the cook day: a whole batch of 4 for one meal of 2 that both '
+        'ticked leaves 2, all free', () {
+      final read = readCooking((
+        cooking: const Cooking(id: 'c', recipeId: 'hh', wholeBatchOf: 4),
+        life: _helperLife,
+        meals: [_m('thu', _oct(29), eaten: 2, unticked: 0)],
+        changes: (fridge: 0, freezer: 0),
+      ), _oct(29));
+      final row = _fridge(read)!;
+      expect(
+        (row.since, row.box, row.planned, row.portions),
+        (_oct(29), 2, 0, 2),
+      );
+      expect(row.meals.single.eaten, isTrue);
+    });
+
+    test('a share another pot gives it leaves the giver once everyone '
+        'ticked', () {
+      // Pot one: cooked Wednesday, 2 left. Pot two: cooked Wednesday too,
+      // nothing left for Thursday's meal, which draws from pot one.
+      final shelves = readCookings([
+        _cooking([_m('a', _oct(28), eaten: 2)], id: 'one', made: 4),
+        _cooking(
+          [
+            _m('b', _oct(28), eaten: 2),
+            _m('thu', _oct(29), eaten: 2, unticked: 0),
+          ],
+          id: 'two',
+          made: 2,
+        ),
+      ], _oct(29));
+      expect(shelves.rows, isEmpty);
+    });
+  });
+
   group('readCooking', () {
     test('a fridge meal takes the freezer’s spare once the fridge has '
         'not got it, as after a Freeze', () {
@@ -1022,6 +1088,7 @@ CookingMeal _m(
   DateTime day, {
   double portions = 2,
   double eaten = 0,
+  double? unticked,
   DateTime? week,
 }) => CookingMeal(
   entryId: id,
@@ -1029,6 +1096,7 @@ CookingMeal _m(
   day: day,
   portions: portions,
   eaten: eaten,
+  unticked: unticked,
 );
 
 /// Hamburger Helper's cooking with [meals].

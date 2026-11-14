@@ -152,6 +152,22 @@ void main() {
     expect(leftoverFreezeFor(_row(), _today, shape), isNull);
   });
 
+  test('today’s meal everyone ticked is eaten, not for today', () {
+    final row = _row(
+      meals: [
+        LeftoverMeal(
+          entryId: 'wed',
+          day: _today,
+          portions: 2,
+          place: LeftoverPlace.fridge,
+          eaten: true,
+        ),
+        _meal(13),
+      ],
+    );
+    expect(leftoverFor(row, _today, shape), 'for Fri');
+  });
+
   test('a meal that wants more than is there is said, not listed', () {
     final row = _row(
       meals: [

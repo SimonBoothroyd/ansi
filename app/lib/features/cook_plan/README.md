@@ -190,7 +190,10 @@ meal's id, not cooked (`Leftover.cooked`).
 
 - **What a meal takes:** a meal behind today, its ticked shares, capped at
   its portions (a tick counts even if its member was since taken off the
-  meal); today's or a later meal, its planned portions in full (spoken for).
+  meal); today's meal, its ticked shares plus the portions of the eaters
+  still to tick (`CookingMeal.unticked`), and only those stay spoken for, so
+  once everyone ticked it is simply eaten (`LeftoverMeal.eaten`); a later
+  meal, its planned portions in full (spoken for).
 - **Where it takes from:** on or before the fridge date (cook day plus
   fridge life), the fridge, and the freezer's spare when the fridge has not
   got it (as after a Freeze). After it, of a dish that freezes and within its

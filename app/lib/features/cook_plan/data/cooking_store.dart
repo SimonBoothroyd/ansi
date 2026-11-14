@@ -29,18 +29,21 @@ double demandOfRow(Row r, Map<String, Member> members) =>
 List<String> _eatersOf(Row r) =>
     (jsonDecode(r['eaters'] as String? ?? '[]') as List).cast<String>();
 
+/// A meal row as much of a [PlanEntry] as a share needs.
+PlanEntry _entryOf(Row r) => PlanEntry(
+  id: r['id'] as String,
+  dayOfWeek: r['day_of_week'] as int,
+  mealSlot: '',
+  eaterIds: _eatersOf(r),
+  portions: r['portions'] as int?,
+);
+
 /// What the members who ticked a meal ate of it: each eater their share, and
 /// one taken off the meal since they ticked their usual portion. Duplicate
 /// ticks of one member count once.
 double eatenOf(Row r, Set<String> tickedBy, Map<String, Member> members) {
   if (tickedBy.isEmpty) return 0;
-  final entry = PlanEntry(
-    id: r['id'] as String,
-    dayOfWeek: r['day_of_week'] as int,
-    mealSlot: '',
-    eaterIds: _eatersOf(r),
-    portions: r['portions'] as int?,
-  );
+  final entry = _entryOf(r);
   var eaten = 0.0;
   for (final m in tickedBy) {
     eaten += entry.eaterIds.contains(m)
@@ -48,6 +51,20 @@ double eatenOf(Row r, Set<String> tickedBy, Map<String, Member> members) {
         : members[m]?.portionFactor ?? 1;
   }
   return eaten;
+}
+
+/// The portions of a meal's eaters who have not ticked it yet: its demand
+/// less the shares of the eaters who did ([CookingMeal.unticked]). A member
+/// taken off the meal who ticked frees nobody's portion.
+double untickedOf(Row r, Set<String> tickedBy, Map<String, Member> members) {
+  final demand = demandOfRow(r, members);
+  if (tickedBy.isEmpty) return demand;
+  final entry = _entryOf(r);
+  var left = demand;
+  for (final m in tickedBy) {
+    left -= memberServings(entry, m, members);
+  }
+  return left > 1e-9 ? left : 0;
 }
 
 /// Who ticked each of the meals the query [fromWhere] selects (`pe` its
@@ -141,6 +158,7 @@ Future<List<CookingInput>> loadCookingInputs(
         day: dateOfDay(weekStart, r['day_of_week'] as int),
         portions: demandOfRow(r, members),
         eaten: eatenOf(r, ticks[r['id']] ?? const {}, members),
+        unticked: untickedOf(r, ticks[r['id']] ?? const {}, members),
         removed: r['deleted_at'] != null,
       ),
     );

@@ -259,6 +259,7 @@ Iterable<LeftoverMeal> _ahead(
   required bool frozen,
 }) => left.meals.where(
   (m) =>
+      !m.eaten &&
       _daysBetween(today, m.day) >= 0 &&
       m.fromThisRow > 1e-9 &&
       (frozen || m.warning != LeftoverWarning.notEnoughLeft) &&

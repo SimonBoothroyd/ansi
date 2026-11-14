@@ -2,8 +2,8 @@
 ///
 /// 7. **Whole batch.** A serves-4 recipe planned for two, with Cook's
 ///    `×1 whole batch` chosen: both eat it, and the spare the whole batch
-///    made is 2, not 0. On the cook day the row still holds that night's
-///    portions (today's meal is spoken for, even once ticked): `4 left`.
+///    made is 2, not 0. Once both ticked, tonight's meal is simply eaten:
+///    the row reads `2 left`, all of it free to plan.
 /// 9. **A recipe opens at its cooking's amount.** A serves-2 dish planned
 ///    twice today for both of them is one pot of 4: its title on the Week and
 ///    on Cook opens the recipe at `4 servings`, not the recipe's own 2.
@@ -88,13 +88,13 @@ void main() {
     await stack.tickAsPartner(meal);
     await waitForPartnerTick(tester, db, meal, m.jun);
 
-    // Made 4 (the whole batch). Tonight's 2 are still spoken for on the cook
-    // day, so the row reads 4; the spare free to plan is 2, not 0.
+    // Made 4 (the whole batch). Both ticked tonight's 2, so they are eaten,
+    // not spoken for: the row reads 2, and all 2 are free to plan, not 0.
     await openLeftovers(tester);
-    await expectLeftover(tester, cooking, '4 left');
+    await expectLeftover(tester, cooking, '2 left');
     final row = await readLeftover(stack, cooking);
     expect(row, isNotNull);
-    expect(row!.box, 4);
+    expect(row!.box, 2);
     expect(row.portions, 2);
   });
 
