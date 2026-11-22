@@ -671,7 +671,7 @@ class _PlanNotes extends ConsumerWidget {
           // An unresolved component contributes nothing, so its parent recipe
           // says so and points at the Cook tab.
           for (final note in list.unresolvedComponents)
-            _UnresolvedEcho(note: note),
+            UnresolvedEcho(note: note),
           // A line or planned meal whose vocab row was retired. Amber: it is
           // fixable.
           for (final note in list.retiredIngredients)
@@ -702,40 +702,20 @@ class _EverythingInBasketLine extends StatelessWidget {
 
 /// A parent recipe's "N components unresolved — see Cook" echo, in the
 /// group-header voice.
-class _UnresolvedEcho extends StatelessWidget {
-  const _UnresolvedEcho({required this.note});
+class UnresolvedEcho extends StatelessWidget {
+  const UnresolvedEcho({required this.note, super.key});
 
   final UnresolvedComponentNote note;
 
   @override
   Widget build(BuildContext context) {
     final count = note.count;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-      child: Row(
-        children: [
-          Flexible(
-            child: Text(
-              note.recipeTitle.toUpperCase(),
-              overflow: TextOverflow.ellipsis,
-              style: ansiMono(
-                size: 10,
-                color: AnsiColors.muted,
-                letterSpacing: 1.4,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(FLucideIcons.flag, size: 11, color: AnsiColors.cautionInk),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              '$count ${plural(count, 'component')} unresolved · see Cook',
-              overflow: TextOverflow.ellipsis,
-              style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
-            ),
-          ),
-        ],
+    return _EchoRow(
+      heading: note.recipeTitle,
+      flagged: true,
+      sentence: Text(
+        '$count ${plural(count, 'component')} unresolved · see Cook',
+        style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
       ),
     );
   }
@@ -764,32 +744,12 @@ class RetiredIngredientEcho extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-      child: Row(
-        children: [
-          Flexible(
-            child: Text(
-              note.heading.toUpperCase(),
-              overflow: TextOverflow.ellipsis,
-              style: ansiMono(
-                size: 10,
-                color: AnsiColors.muted,
-                letterSpacing: 1.4,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(FLucideIcons.flag, size: 11, color: AnsiColors.cautionInk),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              text(note),
-              overflow: TextOverflow.ellipsis,
-              style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
-            ),
-          ),
-        ],
+    return _EchoRow(
+      heading: note.heading,
+      flagged: true,
+      sentence: Text(
+        text(note),
+        style: ansiMono(size: 10.5, color: AnsiColors.cautionInk),
       ),
     );
   }
@@ -868,52 +828,91 @@ class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Flexible(
-            child: Text(
-              note.recipeTitle.toUpperCase(),
-              overflow: TextOverflow.ellipsis,
-              style: ansiMono(
-                size: 10,
-                color: AnsiColors.muted,
-                letterSpacing: 1.4,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text.rich(
+    return _EchoRow(
+      heading: note.recipeTitle,
+      sentence: Text.rich(
+        TextSpan(
+          text: OptionalLinesEcho.lead(note),
+          children: [
+            for (var i = 0; i < note.names.length; i++) ...[
+              if (i > 0) const TextSpan(text: ', '),
               TextSpan(
-                text: OptionalLinesEcho.lead(note),
-                children: [
-                  for (var i = 0; i < note.names.length; i++) ...[
-                    if (i > 0) const TextSpan(text: ', '),
-                    TextSpan(
-                      text: note.names[i],
-                      style: isDoor
-                          ? ansiMono(
-                              size: 10.5,
-                              color: AnsiColors.herbDeep,
-                            ).copyWith(fontWeight: FontWeight.w500)
-                          : null,
-                      recognizer: isDoor ? _taps[i] : null,
-                    ),
-                  ],
-                ],
+                text: note.names[i],
+                style: isDoor
+                    ? ansiMono(
+                        size: 10.5,
+                        color: AnsiColors.herbDeep,
+                      ).copyWith(fontWeight: FontWeight.w500)
+                    : null,
+                recognizer: isDoor ? _taps[i] : null,
               ),
-              overflow: TextOverflow.ellipsis,
-              style: muted,
-            ),
-          ),
-        ],
+            ],
+          ],
+        ),
+        style: muted,
       ),
     );
   }
+}
+
+/// The layout of every echo row: the heading, then the sentence beside it
+/// where it fits and under it where it does not. The sentence wraps and is
+/// never cut, because its end is the part to act on: the names that are
+/// doors, or where to go.
+class _EchoRow extends StatelessWidget {
+  const _EchoRow({
+    required this.heading,
+    required this.sentence,
+    this.flagged = false,
+  });
+
+  final String heading;
+  final Widget sentence;
+
+  /// A defect somebody can fix: the sentence leads with the flag.
+  final bool flagged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          heading.toUpperCase(),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          style: ansiMono(
+            size: 10,
+            color: AnsiColors.muted,
+            letterSpacing: 1.4,
+          ),
+        ),
+        if (flagged)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Level with the first line of a sentence that wraps.
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(
+                  FLucideIcons.flag,
+                  size: 11,
+                  color: AnsiColors.cautionInk,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Flexible(child: sentence),
+            ],
+          )
+        else
+          sentence,
+      ],
+    ),
+  );
 }
 
 /// One shopping line: check box, name, total and its sub-line. Only the box

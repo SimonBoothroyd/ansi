@@ -86,7 +86,8 @@ hands them with the overlay to `buildShoppingList` (pure).
   recipe's `optional` flag or this week's leave-out — are listed under their
   recipe. Each optional name is a door: a tap writes this week's include
   override (`WeekVariantRepository.setLineIncluded`). A line the week left out
-  is undone where it was made.
+  is undone where it was made. The echo rows share one layout (`_EchoRow`):
+  the sentence wraps and is never cut, since its end is the part to act on.
 - **A row acts from its box and its chevron, and nowhere else.** On a phone
   a row is one line, or two with its sub-line. Only the check box ticks, on
   a 44 × 44 target centred on it (`shopTickTargetKey`). Only the chevron

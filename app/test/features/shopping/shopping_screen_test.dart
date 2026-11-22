@@ -1526,8 +1526,6 @@ void main() {
   });
 
   group('the echo row is a door', () {
-    /// The names are kept short on purpose: the test font is fixed-width, and
-    /// a longer sentence ellipsizes before the name a tap is aimed at.
     ShoppingList listWith(
       LineDropReason reason, {
       List<String> names = const ['lime'],
