@@ -57,16 +57,7 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-- **Five field bugs.** A receipt keeps a weight whose rate is printed with its
-  unit, its sum closes on the subtotal or the total less tax, and a pack of
-  one states its size; the Shop's notes wrap; a leftover reads the choices of
-  the week that cooked it. Owes `deploy-supabase` (`import-receipt`) before
-  the tag. No migration.
-- **Optional ingredients, chosen in the recipe**
-  ([plan 0063](./active/0063-optional-items.md)): each quotes the step that
-  uses it, the method greys what was not picked, the Shop never says
-  optional, and a copy of last week carries the ticks. Ticks made together
-  all stand. No migration.
+Nothing.
 
 ## Shipped
 
@@ -154,6 +145,9 @@ rows below, in that order.)
 | — | Leftovers, the reader half — migration `0060` (`leftover`: a fridge or freezer row, and `plan_entry.from_leftover`, a meal eaten from one), a meal from a row never cooked, bought or costed again, and the one seam that merges cooked batches with stored rows. No screen writes a row yet; both phones need this build before the next. Also the Week lens opening on the member signed in | `v0.38.0` | [0060](./active/0060-leftovers-fridge-and-freezer.md) |
 | — | Leftovers, the writer half — the Leftovers page behind a fridge icon in the Week header (fridge and freezer, a count corrected on the row, Freeze · Froze it · Gone · Clear all, *Add a leftover* in a recipe or your own words; nothing clears itself, a row past its date says so), *Use up* from both shelves, *Frozen · Cook fresh* on the confirm sheet, the Week's `leftover` tag blue from the freezer, and Cook no longer asking | `v0.39.0` | [0060](./active/0060-leftovers-fridge-and-freezer.md) |
 | — | Leftovers by the ticks, remembered — no tick means you didn't eat it, the cook day is the earliest ticked day, each cooking is a saved record that meals link to (ticks, corrections and freezes sum to what's left), From leftovers · Cook fresh whenever a pot exists, a pot picked for next week bought once, a dish counted whole across its pots, Undo on the Leftovers actions, recipes opening at the cooking's amount. Migration `0061` on cloud | `v0.40.0` | [0061](./active/0061-leftovers-by-the-ticks.md), [0062](./active/0062-leftovers-remembered.md) |
+| — | Five field bugs — a receipt keeps a weight whose rate is printed with its unit, its sum closes on the subtotal or the total less tax, and a pack of one states its size; the Shop's notes wrap; a leftover reads the choices of the week that cooked it. No migrations | `v0.41.0` | — |
+| — | Optional ingredients, chosen in the recipe — each quotes the step that uses it, the method greys what was not picked, the Shop never says optional, and a copy of last week carries the ticks. No migrations | `v0.41.0` | [0063](./active/0063-optional-items.md) |
+| — | Scaled amounts a measuring set holds — off its own servings a spoon rounds to eighths of a teaspoon, halves of a tablespoon, quarters and thirds of a cup, stepping down a spoon when too coarse, and a crumb is a pinch; the scaler says servings only, steps a part portion to the whole either side, and takes a typed amount. No migrations | `v0.41.0` | — |
 
 ## Stretch
 
