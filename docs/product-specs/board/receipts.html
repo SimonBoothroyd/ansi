@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi &middot; the board</a></p>
     <h1 class="view-title">Receipts</h1>
-    <p class="view-status">built &middot; matches code 2026-10-28 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> &middot; <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
+    <p class="view-status">built &middot; matches code 2026-10-28 &middot; the join: matches code 2026-11-22 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> &middot; <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
     <p class="view-blurb">A photographed receipt reads through the recipe import&rsquo;s own pipeline, is confirmed line by line, and is kept whole &mdash; so what a week cost reads off the receipts themselves, and every matched line with a pack is a price. A scan starts from this ledger, whose door is the receipt action in <a href="./cook-shop.html">the Shop&rsquo;s header</a>, drawn from the first day. The figure it produces is <a href="./week.html">the band&rsquo;s second line</a>. <b>Nothing is written until Save.</b></p>
 </header>
 
@@ -38,7 +38,7 @@
     </div>
 
     <div class="frame">
-        <p class="frame-name"><b>The review &middot; what the receipt says about itself</b> &middot; store, date and its own totals, read off the paper, with the lines&rsquo; sum held against the printed subtotal</p>
+        <p class="frame-name"><b>The review &middot; what the receipt says about itself</b> &middot; store, date and its own totals, read off the paper, with the lines&rsquo; sum held against the printed subtotal and the total less tax</p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Review receipt</span><span class="hdrcount">3 to review</span></div>
             <div class="srcnotes" style="margin-top:2px">
@@ -58,10 +58,10 @@
             <div class="lcard attn">
                 <div class="l3"><span class="l3-amt" style="color:var(--aging)">⚠</span><span class="l3-body"><span class="l3-id">The lines add up to $79.81</span><span class="l3-note">$3.49 off. Check for a missing or doubled line.</span></span></div>
             </div>
-            <p class="conv-note" style="margin-top:2px">the two states of one card: the sum the lines make, against the subtotal the paper printed. A card that does not close is a flag the header counts, never a refusal — the receipt saves either way, and Save says so underneath.</p>
+            <p class="conv-note" style="margin-top:2px">the two states of one card: the sum the lines make, against the subtotal and the total less tax the paper printed, closing on either. A card that does not close is a flag the header counts, never a refusal — the receipt saves either way, and Save says so underneath.</p>
             <div class="tsec" style="margin-top:6px"><span class="tl">Lines</span><span class="tc">24</span><span class="rule"></span></div>
         </div></div>
-        <p class="conv-note" style="margin:10px 4px 0"><b>The store is a chip, and the paper’s words are under it.</b> The chips are the household’s own store names, with the printed header on the <i>from receipt</i> line; a store never seen before is the <b>＋</b>, named once. <b>The date is a door</b> — the date the paper printed, so a Tuesday scan of Sunday’s shop files under Sunday’s week; a tap opens a calendar and a 24-hour clock under one <i>Use it</i>, a day moved alone keeps the clock, a moment later than now holds <i>Use it</i>, and an undated strip opens on the scan day and says <i>no date, using scan date</i>. With no printed subtotal the lines are held against the total less tax, and the join card names that figure.</p>
+        <p class="conv-note" style="margin:10px 4px 0"><b>The store is a chip, and the paper’s words are under it.</b> The chips are the household’s own store names, with the printed header on the <i>from receipt</i> line; a store never seen before is the <b>＋</b>, named once. <b>The date is a door</b> — the date the paper printed, so a Tuesday scan of Sunday’s shop files under Sunday’s week; a tap opens a calendar and a 24-hour clock under one <i>Use it</i>, a day moved alone keeps the clock, a moment later than now holds <i>Use it</i>, and an undated strip opens on the scan day and says <i>no date, using scan date</i>. A bag, a fee or a tip sits under the subtotal and savings can come off it, so the total less tax closes the join as well as the subtotal does; where that is the nearer figure, or the only one, the card names it.</p>
     </div>
 
     <div class="frame">

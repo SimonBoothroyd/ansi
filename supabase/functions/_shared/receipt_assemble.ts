@@ -23,6 +23,7 @@ import {
   canonicalWeightUnit,
   parseCents,
   parseDiscountCents,
+  parseRateCents,
   parseReceiptDate,
 } from "./receipt_parse.ts";
 import { MAX_RECEIPT_NOTES } from "./adapters/receipt_schema.ts";
@@ -142,21 +143,25 @@ class PhotoCursor {
   }
 }
 
-/** The printed weight and rate, canonicalised, or null with a note saying why. */
+/**
+ * The printed weight and rate, canonicalised, or null with a note where the
+ * unit is not a weight. An unreadable rate is 0 and keeps the weight: the
+ * weight is the pack, and nothing is derived from the rate.
+ */
 function weightOf(
   line: ExtractedLine,
   notes: string[],
 ): ReceiptWeight | null {
   if (!line.weight) return null;
   const unit = canonicalWeightUnit(line.weight.unit_printed);
-  const rate_cents = parseCents(line.weight.rate_printed);
-  if (unit === null || rate_cents === null) {
+  if (unit === null) {
     notes.push(
-      `We could not read the weight or the rate on "${line.printed_text}" — ` +
+      `We could not read the weight on "${line.printed_text}" — ` +
         `its price stands as printed.`,
     );
     return null;
   }
+  const rate_cents = parseRateCents(line.weight.rate_printed) ?? 0;
   return { amount: line.weight.amount, unit, rate_cents };
 }
 

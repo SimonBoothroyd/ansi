@@ -23,7 +23,10 @@ export interface ReceiptWeight {
   amount: number;
   /** The units.dart canonical unit id: `lb`, `kg`, `oz`, `g`. */
   unit: string;
-  /** The printed per-unit rate, in integer cents ("1.99/lb" ⇒ 199). */
+  /**
+   * The printed per-unit rate, in integer cents ("1.99/lb" ⇒ 199); 0 where it
+   * could not be read. Nothing is derived from it.
+   */
   rate_cents: number;
 }
 

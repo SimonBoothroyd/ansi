@@ -94,12 +94,10 @@ function coerceWeight(v: unknown): ExtractedWeight | null {
   const amount = numOrNull(w.amount);
   const unit = strOrNull(w.unit_printed, RECEIPT_CAPS.unit_printed);
   const rate = strOrNull(w.rate_printed, RECEIPT_CAPS.amount_printed);
-  // All three or none: a weight with no rate, or a rate with no weight, makes
-  // the line an ordinary one.
-  if (amount === null || amount <= 0 || unit === null || rate === null) {
-    return null;
-  }
-  return { amount, unit_printed: unit, rate_printed: rate };
+  // The amount and its unit are the weight. The rate is only shown beside
+  // them, so a missing one does not make the line a counted one.
+  if (amount === null || amount <= 0 || unit === null) return null;
+  return { amount, unit_printed: unit, rate_printed: rate ?? "" };
 }
 
 function coerceLine(v: unknown): ExtractedLine | null {

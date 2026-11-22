@@ -4,7 +4,7 @@
 ///
 /// Read off the paper, never guessed: a name that states no weight or volume,
 /// or one that sells several of the thing at once (`Pack of 6`, `4 ct`), says
-/// nothing here and the review asks.
+/// nothing here and the review asks. A pack of one is not several.
 library;
 
 import '../../../core/units/unit_words.dart';
@@ -33,9 +33,11 @@ PrintedSize? sizeInPrintedName(String? name) {
   return null;
 }
 
-/// `fl. oz`, `fluid ounces` and `floz` all say `fl oz`.
+/// `fl. oz`, `fluid ounces`, `floz` and a label's `FZ` all say `fl oz`.
 String _unitWord(String word) =>
-    RegExp(r'^(fl\.?\s*oz|fluid\s+ounces?)$').hasMatch(word) ? 'fl oz' : word;
+    RegExp(r'^(fl\.?\s*oz|fluid\s+ounces?|fz)$').hasMatch(word)
+    ? 'fl oz'
+    : word;
 
 /// A figure and the word after it: `64 fl oz`, `5oz`, `15.5 ounce`, `1-lb`.
 final _figure = RegExp(
@@ -49,7 +51,10 @@ final _claim = RegExp(
   r'carbohydrates?|sodium|salt|calories)\b',
 );
 
-/// `Pack of 6`, `6 pack`, `6-pk`, `4 ct`, `12 count`, `6 x 330 ml`.
+/// `Pack of 6`, `6 pack`, `6-pk`, `4 ct`, `12 count`, `6 x 330 ml`, and never
+/// a one in any of those places.
 final _multipack = RegExp(
-  r'pack\s+of\s+\d|\b\d+\s*-?\s*(pack|pk|ct|count)\b|\b\d+\s*x\s*\d',
+  r'pack\s+of\s+(?!1\b)\d|'
+  r'\b(?!1\b|1(?:pack|pk|ct|count|x))\d+'
+  r'(?:\s*-?\s*(?:pack|pk|ct|count)\b|\s*x\s*\d)',
 );

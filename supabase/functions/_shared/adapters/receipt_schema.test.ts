@@ -131,7 +131,7 @@ Deno.test("coercion — a number where a string was asked for is read, not dropp
 
 Deno.test("coercion — a half-built weight is no weight; the line survives", () => {
   const bad = [
-    { amount: 1.32, unit_printed: "lb", rate_printed: null },
+    { amount: 1.32, unit_printed: null, rate_printed: "1.99" },
     { amount: null, unit_printed: "lb", rate_printed: "1.99" },
     { amount: 0, unit_printed: "lb", rate_printed: "1.99" },
     "1.32 lb",
@@ -143,6 +143,21 @@ Deno.test("coercion — a half-built weight is no weight; the line survives", ()
     assertEquals(r.lines[0].weight, null, JSON.stringify(weight));
     assertEquals(r.lines.length, 1);
   }
+});
+
+Deno.test("coercion — a weight with no rate is still a weight", () => {
+  const r = coerceReceiptExtraction({
+    lines: [{
+      printed_text: "A 1.00",
+      amount_printed: "1.00",
+      weight: { amount: 1.32, unit_printed: "lb", rate_printed: null },
+    }],
+  });
+  assertEquals(r.lines[0].weight, {
+    amount: 1.32,
+    unit_printed: "lb",
+    rate_printed: "",
+  });
 });
 
 Deno.test("coercion — a line with neither words nor a figure is not a line", () => {

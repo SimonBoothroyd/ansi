@@ -26,6 +26,11 @@ void main() {
       ('Basmati Rice 1kg', 1.0, kg),
       ('Ground Coffee, 1-lb', 1.0, lb),
       ('Oat Drink 32 fl. oz', 32.0, flOz),
+      ('Soy Beverage, 32 FZ', 32.0, flOz),
+      // One of one is not several.
+      ('Oat Milk, 32 Fl oz, Long Shelf Life, 1 pack)', 32.0, flOz),
+      ('Olive Oil, 500 ml (Pack of 1)', 500.0, ml),
+      ('Tahini, 16 oz, 1 ct', 16.0, oz),
     ]) {
       test(name, () {
         final size = sizeInPrintedName(name);
@@ -56,6 +61,8 @@ void main() {
       'Sparkling Water, 12 fl oz (Pack of 8)',
       'Yogurt 4 ct, 5.3 oz',
       'Cola 6 x 330 ml',
+      'Cola 10 pack, 330 ml',
+      'Oat Bars 1.2 oz (Pack of 12)',
     ]) {
       test('$name', () => expect(sizeInPrintedName(name), isNull));
     }

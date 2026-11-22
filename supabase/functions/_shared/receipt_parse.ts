@@ -82,6 +82,22 @@ export function parseCents(printed: string | null | undefined): number | null {
   return negative ? -cents : cents;
 }
 
+/**
+ * A printed per-unit rate in cents, or `null` when it cannot be read: money,
+ * with or without what surrounds it on paper (`@ 1.99/lb`, `($3.29/lb)`).
+ * Brackets here only set the rate apart; they are never a minus.
+ */
+export function parseRateCents(
+  printed: string | null | undefined,
+): number | null {
+  if (!printed) return null;
+  const money = printed.trim()
+    .replace(/^\((.*)\)$/, "$1")
+    .replace(/^@/, "")
+    .replace(/\s*\/\s*[a-z#]+\.?$/i, "");
+  return parseCents(money);
+}
+
 /** {@link parseCents} with the sign dropped, for a deduction. */
 export function parseDiscountCents(
   printed: string | null | undefined,

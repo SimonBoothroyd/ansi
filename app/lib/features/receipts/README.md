@@ -28,7 +28,8 @@ an ordinary one.
   abandoned scan leaves the ledger as it was. Save writes the receipt and every
   kept line in one transaction.
 - **The join is a flag, never a refusal.** The kept lines' sum is held against
-  the printed subtotal — or, where the strip prints none, the total less tax.
+  the printed subtotal and the total less tax, and closes on either; the gap
+  named is to the nearer one.
   A sum that does not close is counted in the header, and Save still opens.
 - **No alias is learned; the household's own answers carry over**
   ([§12.4.1](../../../../docs/product-specs/import-and-matching.md#1241-what-the-household-itself-remembers)).

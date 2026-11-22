@@ -161,6 +161,46 @@ Deno.test("weight — the printed weight and rate, the unit as a units.dart id",
   assertEquals(p.lines[0].cents, 263);
 });
 
+Deno.test("weight — a rate printed with its unit keeps the weight", () => {
+  for (const rate of ["$3.29/lb", "($3.29/lb)", "3.29 / lb", "@ 3.29/lb."]) {
+    const p = assemble(extraction([
+      line({
+        printed_text: "SWEET POTATO 4 1.20 lb ($3.29/lb) $3.95",
+        amount_printed: "$3.95",
+        count: 4,
+        weight: { amount: 1.2, unit_printed: "lb", rate_printed: rate },
+      }),
+    ]));
+    assertEquals(
+      p.lines[0].weight,
+      { amount: 1.2, unit: "lb", rate_cents: 329 },
+      rate,
+    );
+    // Four potatoes, one weight: counting them too would divide twice.
+    assertEquals(p.lines[0].count, 1, rate);
+    assertEquals(p.notes, [], rate);
+  }
+});
+
+Deno.test("weight — an unreadable rate never takes the weight with it", () => {
+  for (const rate of ["", "[illegible]"]) {
+    const p = assemble(extraction([
+      line({
+        printed_text: "SWEET POTATO 1.20 lb $3.95",
+        amount_printed: "$3.95",
+        count: 4,
+        weight: { amount: 1.2, unit_printed: "lb", rate_printed: rate },
+      }),
+    ]));
+    assertEquals(p.lines[0].weight, {
+      amount: 1.2,
+      unit: "lb",
+      rate_cents: 0,
+    });
+    assertEquals(p.lines[0].count, 1);
+  }
+});
+
 Deno.test("weight — everything else carries none", () => {
   const p = assemble(extraction([
     line({ printed_text: "2 @ 0.99 1.98", amount_printed: "1.98" }),
@@ -170,7 +210,7 @@ Deno.test("weight — everything else carries none", () => {
   assertEquals(p.lines[1].weight, null);
 });
 
-Deno.test("weight — an unreadable unit or rate loses the weight, not the line", () => {
+Deno.test("weight — an unreadable unit loses the weight, not the line", () => {
   const e = extraction([
     line({
       printed_text: "ODD 2.00",

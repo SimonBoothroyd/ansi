@@ -793,6 +793,58 @@ void main() {
       );
     });
 
+    test('fees under the subtotal close on the total less tax', () {
+      // An online order: the bag and the tip are lines, and the subtotal is
+      // the goods alone.
+      final map = receiptReviewMap(
+        drafts(),
+        printedSubtotalCents: 2846 - 460,
+        printedTaxCents: 82,
+        printedTotalCents: 2846 + 82,
+      );
+      expect(map.joinCloses, isTrue);
+      expect(map.apartCents, isNull);
+      expect(joinNote(map), 'the receipt’s total less tax says the same');
+      expect(map.headerCount, map.outstanding);
+    });
+
+    test('savings off the subtotal close on the total less tax', () {
+      final map = receiptReviewMap(
+        drafts(),
+        printedSubtotalCents: 2846 + 310,
+        printedTaxCents: 0,
+        printedTotalCents: 2846,
+      );
+      expect(map.joinCloses, isTrue);
+    });
+
+    test('fees the reader left out still close on the subtotal', () {
+      final map = receiptReviewMap(
+        drafts(),
+        printedSubtotalCents: 2846,
+        printedTaxCents: 0,
+        printedTotalCents: 2846 + 460,
+      );
+      expect(map.joinCloses, isTrue);
+      expect(joinNote(map), 'the receipt says the same');
+    });
+
+    test('where neither closes, it says how far from the nearer figure', () {
+      final map = receiptReviewMap(
+        drafts(),
+        printedSubtotalCents: 2846 - 460,
+        printedTaxCents: 0,
+        printedTotalCents: 2846 + 30,
+      );
+      expect(map.joinCloses, isFalse);
+      expect(map.apartCents, 30);
+      expect(
+        joinNote(map),
+        r'30¢ off from the total less tax ($28.76). Check for a missing or '
+        'doubled line.',
+      );
+    });
+
     test('a paper that printed neither figure is nothing to disagree with', () {
       final map = receiptReviewMap(drafts());
       expect(map.joinCloses, isTrue);

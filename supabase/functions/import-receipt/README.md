@@ -74,9 +74,9 @@ integer cents throughout. The reconcile figure is
 lines_sum_cents = Σ(item.cents − item.discount_cents) + Σ(not_food.cents) + Σ(fee.cents)
 ```
 
-returned beside `printed.subtotal_cents`. The server states both numbers and
-stops: the review draws the join card, and a disagreement is a flag, never a
-refusal.
+returned beside the printed subtotal, tax and total. The server states the
+numbers and stops: the review draws the join card (it closes on the subtotal or
+on the total less tax), and a disagreement is a flag, never a refusal.
 
 ## Running it locally, with no API key
 

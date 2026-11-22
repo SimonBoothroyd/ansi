@@ -3,7 +3,7 @@
 /// The header's count, each card's flag, the join card and the Save label all
 /// read [ReceiptReviewMap], so they cannot disagree. A matched food line with
 /// no pack is kept in the total but is not a price, and holds Save. The join
-/// (lines against the printed subtotal) is a flag, never a gate. Confirming a
+/// (lines against the paper's own sum) is a flag, never a gate. Confirming a
 /// match writes no alias; what carries between shops is the pack ([landPack])
 /// and the server-recalled match ([ReceiptLineDraft.remembered]), both keyed by
 /// the printed name.
@@ -470,8 +470,9 @@ class ReceiptReviewMap {
   /// How many lines are still being kept — everything the drops left.
   final int keptCount;
 
-  /// What the kept lines add up to, **tax excluded** — the figure the printed
-  /// subtotal is held against. Non-food lines are in it: they were paid for.
+  /// What the kept lines add up to, **tax excluded** — the figure the paper's
+  /// own is held against ([expectedLinesCents]). Non-food lines and fees are in
+  /// it: they were paid for.
   final int linesCents;
 
   /// What the folded (non-food) lines come to, and how many there are — the
@@ -492,11 +493,30 @@ class ReceiptReviewMap {
   /// close. Save does not wait for the join.
   int get headerCount => outstanding + (joinCloses ? 0 : 1);
 
-  /// What the paper says the lines should come to: its subtotal, else total
-  /// less tax. Null when it printed neither.
-  int? get expectedLinesCents =>
-      printedSubtotalCents ??
-      (printedTotalCents == null ? null : printedTotalCents! - taxCents);
+  /// The printed total less the tax, or null where no total was printed.
+  int? get _totalLessTax => switch (printedTotalCents) {
+    final total? => total - taxCents,
+    null => null,
+  };
+
+  /// What the paper says the lines should come to: its subtotal or its total
+  /// less tax, whichever the lines are nearer. A subtotal leaves out what the
+  /// lines may carry (a bag, a tip) and may be struck before the savings the
+  /// lines are already net of, so either figure closes the join. A tie reads
+  /// the subtotal. Null when it printed neither.
+  int? get expectedLinesCents {
+    final subtotal = printedSubtotalCents;
+    final fromTotal = _totalLessTax;
+    if (subtotal == null || fromTotal == null) return subtotal ?? fromTotal;
+    final nearer =
+        (fromTotal - linesCents).abs() < (subtotal - linesCents).abs();
+    return nearer ? fromTotal : subtotal;
+  }
+
+  /// Whether [expectedLinesCents] was worked out from the total rather than
+  /// printed as a subtotal.
+  bool get expectedFromTotal =>
+      expectedLinesCents != null && expectedLinesCents != printedSubtotalCents;
 
   /// Whether the lines' sum and the paper agree. True when the paper printed
   /// nothing to disagree with: an unprovable claim is not a flag.
@@ -568,7 +588,7 @@ String joinNote(ReceiptReviewMap map) {
   final expected = map.expectedLinesCents;
   if (expected == null) return 'the receipt printed no subtotal and no total';
   // Said only when the expected figure was derived, not printed on the strip.
-  final derived = map.printedSubtotalCents == null;
+  final derived = map.expectedFromTotal;
   if (map.joinCloses) {
     return derived
         ? 'the receipt’s total less tax says the same'

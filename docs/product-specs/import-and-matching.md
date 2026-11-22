@@ -1029,11 +1029,15 @@ lines_sum_cents = Σ(item.cents − item.discount_cents)
                 + Σ(fee.cents)
 ```
 
-Tax is out, because a subtotal is the figure before it. This is returned beside
-`printed.subtotal_cents`, **and nothing else happens**: the server states both
-numbers and stops. The review draws the join card from them, and a disagreement
-is a flag, never a refusal — a receipt is saved either way, because the total is
-the paper's and the paper stands.
+Tax is out, because both figures it is held against are before it. This is
+returned beside the printed subtotal, tax and total, **and nothing else
+happens**: the server states the numbers and stops. The review draws the join
+card from them. It closes when the lines come to the printed subtotal **or** to
+the total less tax: a subtotal leaves out a bag, a delivery fee or a tip the
+lines carry, and may be struck before savings the lines are already net of.
+Where neither agrees it names the gap to the nearer one, and that is a flag,
+never a refusal — a receipt is saved either way, because the total is the
+paper's and the paper stands.
 
 A missed seam double-counts its overlap and a wrong one loses lines, so either
 way the two numbers part company. That is the backstop the join rests on.
@@ -1050,7 +1054,11 @@ cents, so the reconcile still closes.
 
 A by-weight line carries the printed weight, the printed rate and the unit as a
 `units.dart` canonical id (`lb`, `kg`, `oz`, `g`) — the card prices itself from
-the paper and asks for no pack. Everything else carries no weight.
+the paper and asks for no pack. Everything else carries no weight. **The
+amount and the unit are the weight**: the rate may be printed with its unit
+(`$3.29/lb`, `($3.29/lb)`), and one that cannot be read is 0 and never takes
+the weight with it. A weighed line's count is 1 whatever quantity was printed
+beside it (four potatoes, 1.2 lb).
 
 ### 12.3a The count sub-row
 
@@ -1149,7 +1157,8 @@ receipt, and the match cascade never sees them.
 The **pack** carries over under the same key. A matched line with no printed
 weight opens on the size **its printed name states** (`Soymilk, 64 fl oz`,
 `Brick, 12 Ounce` — `sizeInPrintedName`; a nutrition claim like `12g Protein`
-is not a size, and a multipack like `Pack of 6` states none), else on the pack
+is not a size, and a multipack like `Pack of 6` states none, where a pack of
+one is no multipack; `32 FZ` is fluid ounces), else on the pack
 **these printed words** were last bought in, matched to this same row. Words
 not bought under before **ask**: the row's last pack anywhere was another
 product's (six Persian cucumbers are not one `Organic Cucumber`), so only a

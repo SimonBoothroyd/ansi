@@ -1779,8 +1779,9 @@ and a printed weight or rate where there was one.
   receipt in place — the printed words and printed totals never move, because
   they are what the paper says. Money leads each card; the store is a chip
   word over the paper's header; the date is a door.
-- **The lines' sum is held against the printed subtotal** (or, where none was
-  printed, the total less tax) as a **flag, not a refusal**: a receipt whose
+- **The lines' sum is held against the printed subtotal and the total less
+  tax, and closes on either** — fees and tips sit under a subtotal, and
+  savings can come off it — as a **flag, not a refusal**: a receipt whose
   join lost a line is still a receipt, and its printed total still stands.
 - **A line is a price only when it says what the cents bought.** A matched
   food line with no pack is counted in the receipt and is simply not a price
