@@ -129,7 +129,8 @@ typedef KitchenAmount = ({String amount, Unit unit});
 const _measuringParts = <String, List<double>>{
   'cup': [0, 1 / 2, 1 / 4, 3 / 4, 1 / 3, 2 / 3],
   'tbsp': [0, 1 / 2],
-  'tsp': [0, 1 / 2, 1 / 4, 3 / 4, 1 / 8],
+  // With a ⅛ spoon every eighth is in reach: ⅞ is ½ + ¼ + ⅛.
+  'tsp': [0, 1 / 2, 1 / 4, 3 / 4, 1 / 8, 3 / 8, 5 / 8, 7 / 8],
 };
 
 /// Where a measure may step down to when its own set is too coarse: a cup to
@@ -143,8 +144,10 @@ const _measuringLadders = <String, List<Unit>>{
 /// The parts anything else said by hand rounds to: a piece, a can, an ounce.
 const _handParts = <double>[0, 1 / 2, 1 / 4, 3 / 4, 1 / 3, 2 / 3, 1 / 8];
 
-/// How far a measuring set may miss before the next spoon down is tried.
-const _measuringSlack = 0.15;
+/// How far a measuring set may miss before the next spoon down is tried: a
+/// spoon a tenth, a cup (whose set stops at quarters and thirds) a little
+/// more, so `⅞ cup` is not fourteen tablespoons.
+const _measuringSlack = <String, double>{'cup': 0.15, 'tbsp': 0.1, 'tsp': 0.1};
 
 /// Below this many teaspoons, the smallest spoon would be more than half too
 /// much, so the amount is a [pinch].
@@ -156,7 +159,7 @@ const _pinchBelowTsp = 3 / 32;
 /// written ([formatAmountIn]). A scale and a jug read any number, so a metric
 /// unit keeps its decimal. A teaspoon, tablespoon or cup rounds to what a
 /// measuring set holds (`0.44 tsp` is `½ tsp`), stepping down a spoon when the
-/// set is too coarse (`0.44 cup` is `7 tbsp`), and a crumb of a teaspoon is a
+/// set is too coarse (`0.2 cup` is `3 tbsp`), and a crumb of a teaspoon is a
 /// pinch. Anything else said by hand rounds to quarters, thirds or an eighth
 /// ([kitchenAmount]). Display only: the stored, summed and costed figure keeps
 /// its exact value.
@@ -179,7 +182,7 @@ KitchenAmount kitchenAmountIn(double amount, Unit unit) {
     final near = _nearestPart(value, _measuringParts[rung.id]!);
     if (near == 0) continue;
     final miss = (near - value).abs() / value;
-    if (miss <= _measuringSlack) {
+    if (miss <= _measuringSlack[rung.id]!) {
       return (amount: formatAmount(near), unit: rung);
     }
     if (closest == null || miss < closest.miss - 1e-9) {
@@ -200,13 +203,14 @@ String kitchenAmount(double amount) {
   return formatAmount(near == 0 ? 1 / 8 : near);
 }
 
-/// The whole-plus-part nearest [value], the earlier part winning a tie.
+/// The whole-plus-part nearest [value]; of two equally near, the earlier
+/// part wins, so a tie takes the fewer spoons (`3 15/16` is `4`).
 double _nearestPart(double value, List<double> parts) {
   final whole = value.floorToDouble();
   var best = whole;
   var bestMiss = double.infinity;
-  for (final w in [whole, whole + 1]) {
-    for (final part in parts) {
+  for (final part in parts) {
+    for (final w in [whole, whole + 1]) {
       final candidate = w + part;
       final miss = (candidate - value).abs();
       if (miss < bestMiss - 1e-9) {

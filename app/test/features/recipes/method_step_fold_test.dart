@@ -240,7 +240,7 @@ void main() {
       expect(_chipAmounts(step, lineById: spoons, factor: 1.75 / 4), [
         '½ tsp',
         '½',
-        '½ tbsp',
+        '1¼ tsp',
       ]);
       expect(_chipAmounts(step, lineById: spoons), ['1 tsp', '1', '1 tbsp']);
     });

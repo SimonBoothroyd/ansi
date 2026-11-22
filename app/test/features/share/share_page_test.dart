@@ -82,8 +82,8 @@ void main() {
       expect(body, contains('1¾ servings'));
       expect(body, contains('aria-label="Fewer servings" data-servings="1"'));
       expect(body, contains('data-servings="2">+</button>'));
-      // ⅞ tbsp of soy is a tablespoon, not 0.88.
-      expect(body, contains('<span class="amt">1 tbsp</span>'));
+      // ⅞ tbsp of soy is 2⅝ tsp, not 0.88 tbsp.
+      expect(body, contains('<span class="amt">2⅝ tsp</span>'));
     });
 
     test('one serving offers no fewer', () {

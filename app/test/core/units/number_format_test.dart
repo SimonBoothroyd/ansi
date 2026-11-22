@@ -199,29 +199,34 @@ void main() {
       // The report: 1 tsp for four, scaled to 1¾ servings, is 0.4375 tsp.
       (amount: 0.4375, unit: tsp, prints: '½ tsp'),
       (amount: 1.75 * 0.4375, unit: tsp, prints: '¾ tsp'),
-      // Within the set's reach of two, the lower wins: ⅞ is ¾.
-      (amount: 2 * 0.4375, unit: tsp, prints: '¾ tsp'),
+      // With a ⅛ spoon every eighth is in reach.
+      (amount: 2 * 0.4375, unit: tsp, prints: '⅞ tsp'),
+      (amount: 0.625, unit: tsp, prints: '⅝ tsp'),
       // A fraction the set already holds stays.
       (amount: 0.75, unit: tsp, prints: '¾ tsp'),
       (amount: 1.5, unit: tsp, prints: '1½ tsp'),
       (amount: 0.125, unit: tsp, prints: '⅛ tsp'),
-      // A tie takes the fewer spoons: 2⅝ is 2½, not 2¾.
-      (amount: 2.625, unit: tsp, prints: '2½ tsp'),
+      // A tie takes the fewer spoons: 2 9/16 is 2½, not 2⅝; 3 15/16 is 4.
+      (amount: 2.5625, unit: tsp, prints: '2½ tsp'),
+      (amount: 3.9375, unit: tsp, prints: '4 tsp'),
       // Too little for the smallest spoon is a pinch.
       (amount: 0.125 * 0.4375, unit: tsp, prints: 'pinch'),
       // A tablespoon holds halves; between them it steps down to teaspoons.
       (amount: 0.5, unit: tbsp, prints: '½ tbsp'),
-      (amount: 2 * 0.4375, unit: tbsp, prints: '1 tbsp'),
-      (amount: 0.4375, unit: tbsp, prints: '½ tbsp'),
-      (amount: 0.3, unit: tbsp, prints: '1 tsp'),
+      (amount: 2 * 0.4375, unit: tbsp, prints: '2⅝ tsp'),
+      (amount: 0.4375, unit: tbsp, prints: '1¼ tsp'),
+      (amount: 0.3, unit: tbsp, prints: '⅞ tsp'),
+      (amount: 0.95, unit: tbsp, prints: '1 tbsp'),
       (amount: 1.25, unit: tbsp, prints: '3¾ tsp'),
-      (amount: 3 * 0.4375, unit: tbsp, prints: '1½ tbsp'),
+      (amount: 3 * 0.4375, unit: tbsp, prints: '4 tsp'),
+      (amount: 1.4, unit: tbsp, prints: '1½ tbsp'),
       // A cup holds quarters and thirds; a little cup is tablespoons.
       (amount: 0.75, unit: cup, prints: '¾ cup'),
       (amount: 2 / 3, unit: cup, prints: '⅔ cup'),
       (amount: 0.4375, unit: cup, prints: '½ cup'),
       (amount: 0.125, unit: cup, prints: '2 tbsp'),
-      (amount: 2 * 0.4375, unit: cup, prints: '¾ cup'),
+      (amount: 2 * 0.4375, unit: cup, prints: '1 cup'),
+      (amount: 0.2, unit: cup, prints: '3 tbsp'),
       // A scale and a jug read any number.
       (amount: 0.4375 * 400, unit: g, prints: '175 g'),
       (amount: 4.375, unit: g, prints: '4.38 g'),

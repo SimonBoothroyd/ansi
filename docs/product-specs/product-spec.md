@@ -151,9 +151,11 @@ right.
 - **A scaled amount is said as a cook measures it** (`kitchenAmountIn`,
   `core/units/number_format.dart`). Off its own servings, a recipe's lines,
   method chips and step portions round, for display only, to what a measuring
-  set holds: a teaspoon to `⅛ ¼ ½ ¾`, a tablespoon to halves, a cup to
-  quarters and thirds. When the set misses by more than 15% the amount steps
-  down a spoon (`0.44 cup` is `7 tbsp`, `1¼ tbsp` is `3¾ tsp`), and below
+  set holds: a teaspoon to eighths (a ⅛ spoon reaches every one), a
+  tablespoon to halves, a cup to quarters and thirds. When a spoon misses by
+  more than 10%, or a cup by more than 15%, the amount steps down a spoon
+  (`⅞ tbsp` is `2⅝ tsp`, `0.2 cup` is `3 tbsp`); of two equally near, the
+  fewer spoons win. Below
   about a tenth of a teaspoon it is a `pinch`. A count or anything
   else said by hand rounds to quarters, thirds or an eighth, never to
   nothing (`0.44` onion is `½`). A scale and a jug read any number, so `g`
@@ -501,6 +503,9 @@ its steps.
   `makes` states that unit's family
   ([ADR-0018](../decisions/0018-a-recipe-measure-is-a-named-amount.md)).
 - Scaling = quantity × factor (imprecise units left as-is).
+- **The scaler says servings, not a factor.** It reads `1¾ servings`, and
+  the Method tab's bar `for 1¾ servings`; a multiplier like `0.44×` is the
+  arithmetic, not a number a cook acts on.
 - **The scaler steps to whole servings.** `−` from a part portion drops to
   the whole below it and `+` rises to the whole above (`1¾` reads `1` or
   `2`); from a whole each steps by one, never below one. The servings

@@ -300,13 +300,13 @@ void main() {
     ) async {
       await openMethod(tester);
 
-      expect(find.text('for 4 servings · 1×'), findsOneWidget);
+      expect(find.text('for 4 servings'), findsOneWidget);
 
       // Not on the Ingredients tab: the scaler itself is there, and saying it
       // twice on one screen invites the reading that they are two facts.
       await tester.tap(find.text('Ingredients'));
       await tester.pump();
-      expect(find.text('for 4 servings · 1×'), findsNothing);
+      expect(find.text('for 4 servings'), findsNothing);
     });
 
     testWidgets('the scaler moves it — one servings state, not two', (
@@ -320,7 +320,7 @@ void main() {
       await tester.tap(find.text('Method'));
       await tester.pumpAndSettle();
 
-      expect(find.text('for 5 servings · 1¼×'), findsOneWidget);
+      expect(find.text('for 5 servings'), findsOneWidget);
     });
 
     testWidgets('a step number is a mono digit, not an ink disc', (

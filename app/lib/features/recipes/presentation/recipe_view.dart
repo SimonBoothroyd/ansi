@@ -330,12 +330,7 @@ class _RecipeBody extends HookConsumerWidget {
       offerLineFigures: wide || index == 0,
       inHeader: !wide,
     );
-    final factor = scaleFactorFor(recipe, servings);
-    final scaler = _ScaleControl(
-      servings: servings,
-      factor: factor,
-      onChanged: setServings,
-    );
+    final scaler = _ScaleControl(servings: servings, onChanged: setServings);
     final ingredients = _IngredientsTab(
       recipe: recipe,
       servings: servings,
@@ -496,8 +491,7 @@ class _RecipeBody extends HookConsumerWidget {
                   trailing: index != 1
                       ? null
                       : Text(
-                          'for ${servingsWord(servings)} · '
-                          '${formatQuantity(factor)}×',
+                          'for ${servingsWord(servings)}',
                           style: ansiMono(size: 11, color: AnsiColors.muted),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1444,11 +1438,7 @@ class _IngredientsTab extends ConsumerWidget {
             alignment: Alignment.centerLeft,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: _kScalerWidth),
-              child: _ScaleControl(
-                servings: servings,
-                factor: factor,
-                onChanged: onServings,
-              ),
+              child: _ScaleControl(servings: servings, onChanged: onServings),
             ),
           ),
           const SizedBox(height: 20),
@@ -1716,14 +1706,9 @@ MacroLineNote? _firstNote(LineUses uses, Map<String, MacroLineNote> markers) {
 /// themselves are a door: tapped, they become a field that takes any amount
 /// (`1 3/4`, `2.5`), kept on submit or when the field lets go.
 class _ScaleControl extends HookWidget {
-  const _ScaleControl({
-    required this.servings,
-    required this.factor,
-    required this.onChanged,
-  });
+  const _ScaleControl({required this.servings, required this.onChanged});
 
   final double servings;
-  final double factor;
   final ValueChanged<double> onChanged;
 
   @override
@@ -1748,17 +1733,12 @@ class _ScaleControl extends HookWidget {
     }, [focus]);
 
     final down = wholeBelow(servings);
-    final said = Column(
-      children: [
-        Text(
-          servingsWord(servings),
-          style: ansiSans(size: 17, weight: FontWeight.w700),
-        ),
-        Text(
-          '·${formatQuantity(factor)}×',
-          style: ansiMono(size: 13, color: AnsiColors.muted),
-        ),
-      ],
+    // The servings alone: a factor beside them (`·0.44×`) is the scaling's
+    // arithmetic, not a number a cook acts on.
+    final said = Text(
+      servingsWord(servings),
+      textAlign: TextAlign.center,
+      style: ansiSans(size: 17, weight: FontWeight.w700),
     );
     return DecoratedBox(
       decoration: BoxDecoration(
