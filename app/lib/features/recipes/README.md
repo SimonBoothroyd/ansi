@@ -64,6 +64,13 @@ ignores both.
   the flag on a recipe line.
 - **A line's own figures** (the `⋯` toggle) print under the name and move with
   the scaler; the panel underneath is per serving and does not.
+- **Scaled amounts** print through `amountOfLine(item, scaled: true)`, which
+  rounds spoons to a measuring set (`kitchenAmountIn`); `RecipeIngredientLine`
+  and `OptionalCard` take `scaled: factor != 1`, the method's fold decides
+  from its own factor. As written, a line prints as written.
+- **The scaler** (`_ScaleControl`) steps a part portion to the whole either
+  side (`wholeBelow` / `wholeAbove`, `core/units/portions.dart`) and its
+  number is a field (`servingsFromText`).
 
 ## The method
 

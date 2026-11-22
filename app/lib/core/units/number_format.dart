@@ -116,3 +116,104 @@ double? _unsigned(String text) {
   final whole = typed.group(1) == null ? 0.0 : double.parse(typed.group(1)!);
   return whole + double.parse(typed.group(2)!) / denominator;
 }
+
+// --- A scaled amount, as a cook measures it ---------------------------------
+
+/// A scaled amount said the way a cook measures it: the printed figure, and
+/// the unit to print beside it, which may be a smaller spoon than the line's
+/// own. An empty `amount` is a word that carries no number ([pinch]).
+typedef KitchenAmount = ({String amount, Unit unit});
+
+/// The parts of a spoon or cup a measuring set holds, simplest first, so the
+/// first of two equally near amounts wins and a tie takes the fewer spoons.
+const _measuringParts = <String, List<double>>{
+  'cup': [0, 1 / 2, 1 / 4, 3 / 4, 1 / 3, 2 / 3],
+  'tbsp': [0, 1 / 2],
+  'tsp': [0, 1 / 2, 1 / 4, 3 / 4, 1 / 8],
+};
+
+/// Where a measure may step down to when its own set is too coarse: a cup to
+/// tablespoons, a tablespoon to teaspoons. Never up.
+const _measuringLadders = <String, List<Unit>>{
+  'cup': [cup, tbsp, tsp],
+  'tbsp': [tbsp, tsp],
+  'tsp': [tsp],
+};
+
+/// The parts anything else said by hand rounds to: a piece, a can, an ounce.
+const _handParts = <double>[0, 1 / 2, 1 / 4, 3 / 4, 1 / 3, 2 / 3, 1 / 8];
+
+/// How far a measuring set may miss before the next spoon down is tried.
+const _measuringSlack = 0.15;
+
+/// Below this many teaspoons, the smallest spoon would be more than half too
+/// much, so the amount is a [pinch].
+const _pinchBelowTsp = 3 / 32;
+
+/// [amount] of [unit] after scaling, as a cook measures it.
+///
+/// Only a scaled figure goes through here: a recipe as written prints as
+/// written ([formatAmountIn]). A scale and a jug read any number, so a metric
+/// unit keeps its decimal. A teaspoon, tablespoon or cup rounds to what a
+/// measuring set holds (`0.44 tsp` is `½ tsp`), stepping down a spoon when the
+/// set is too coarse (`0.44 cup` is `7 tbsp`), and a crumb of a teaspoon is a
+/// pinch. Anything else said by hand rounds to quarters, thirds or an eighth
+/// ([kitchenAmount]). Display only: the stored, summed and costed figure keeps
+/// its exact value.
+KitchenAmount kitchenAmountIn(double amount, Unit unit) {
+  final ratio = unit.ratioToBase;
+  final ladder = _measuringLadders[unit.id];
+  if (!amount.isFinite || amount <= 0 || unit.isMetric) {
+    return (amount: formatAmountIn(amount, unit), unit: unit);
+  }
+  if (ladder == null || ratio == null) {
+    return (amount: kitchenAmount(amount), unit: unit);
+  }
+  final base = amount * ratio;
+  if (base < _pinchBelowTsp * tsp.ratioToBase!) {
+    return (amount: '', unit: pinch);
+  }
+  ({double near, Unit unit, double miss})? closest;
+  for (final rung in ladder) {
+    final value = base / rung.ratioToBase!;
+    final near = _nearestPart(value, _measuringParts[rung.id]!);
+    if (near == 0) continue;
+    final miss = (near - value).abs() / value;
+    if (miss <= _measuringSlack) {
+      return (amount: formatAmount(near), unit: rung);
+    }
+    if (closest == null || miss < closest.miss - 1e-9) {
+      closest = (near: near, unit: rung, miss: miss);
+    }
+  }
+  if (closest == null) {
+    return (amount: formatAmountIn(amount, unit), unit: unit);
+  }
+  return (amount: formatAmount(closest.near), unit: closest.unit);
+}
+
+/// A scaled count or hand-said amount with no measuring set (`0.44` onion is
+/// `½`): the nearest quarter, third or eighth, never nothing.
+String kitchenAmount(double amount) {
+  if (!amount.isFinite || amount <= 0) return formatAmount(amount);
+  final near = _nearestPart(amount, _handParts);
+  return formatAmount(near == 0 ? 1 / 8 : near);
+}
+
+/// The whole-plus-part nearest [value], the earlier part winning a tie.
+double _nearestPart(double value, List<double> parts) {
+  final whole = value.floorToDouble();
+  var best = whole;
+  var bestMiss = double.infinity;
+  for (final w in [whole, whole + 1]) {
+    for (final part in parts) {
+      final candidate = w + part;
+      final miss = (candidate - value).abs();
+      if (miss < bestMiss - 1e-9) {
+        best = candidate;
+        bestMiss = miss;
+      }
+    }
+  }
+  return best;
+}

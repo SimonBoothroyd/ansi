@@ -128,7 +128,10 @@ String recipeLinesResult(
       for (final r in missed ? rows : hits)
         {
           'name': nameOf(r.line),
-          'amount': amountOfLine(scaleLineItem(r.line, factor)),
+          'amount': amountOfLine(
+            scaleLineItem(r.line, factor),
+            scaled: factor != 1,
+          ),
           'group': ?r.group,
           if (r.line.note?.trim().isNotEmpty ?? false)
             'note': r.line.note!.trim(),

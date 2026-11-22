@@ -2,6 +2,24 @@ import 'package:ansi/core/units/portions.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('wholeBelow / wholeAbove — a part steps to a whole first', () {
+    const cases = <({double from, double down, double up})>[
+      (from: 1.75, down: 1, up: 2),
+      (from: 0.75, down: 0, up: 1),
+      (from: 2.5, down: 2, up: 3),
+      (from: 2, down: 1, up: 3),
+      (from: 1, down: 0, up: 2),
+      // Float noise on a whole is the whole.
+      (from: 0.1 + 0.2 + 0.7, down: 0, up: 2),
+    ];
+    for (final c in cases) {
+      test('${c.from}: − ${c.down}, + ${c.up}', () {
+        expect(wholeBelow(c.from), c.down);
+        expect(wholeAbove(c.from), c.up);
+      });
+    }
+  });
+
   group('formatFraction', () {
     test('a whole number prints plain, never with a .0', () {
       expect(formatFraction(1), '1');

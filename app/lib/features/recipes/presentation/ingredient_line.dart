@@ -37,10 +37,15 @@ class RecipeIngredientLine extends StatelessWidget {
     this.macroLineNote,
     this.onFixMacro,
     this.struck = false,
+    this.scaled = false,
     super.key,
   });
 
   final LineUses uses;
+
+  /// Whether [uses] are scaled off the recipe's own servings, so each amount
+  /// prints as a cook measures it ([amountOfLine]).
+  final bool scaled;
 
   /// Whether this week leaves the row out: amount and name struck and muted.
   final bool struck;
@@ -83,7 +88,7 @@ class RecipeIngredientLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final amount = uses.uses
-        .map(amountOfLineItem)
+        .map((u) => amountOfLineItem(u, scaled: scaled))
         .where((a) => a.isNotEmpty)
         .join(' + ');
     final notes = uses.notes.join(' + ');
@@ -433,4 +438,5 @@ class RemovedIngredientTag extends StatelessWidget {
 }
 
 /// One use's amount string ([amountOfLine]).
-String amountOfLineItem(LineItem item) => amountOfLine(item);
+String amountOfLineItem(LineItem item, {bool scaled = false}) =>
+    amountOfLine(item, scaled: scaled);

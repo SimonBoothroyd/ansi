@@ -188,4 +188,92 @@ void main() {
       );
     }
   });
+
+  group('kitchenAmountIn — a scaled amount as a measuring set holds it', () {
+    String said(double amount, Unit unit) {
+      final k = kitchenAmountIn(amount, unit);
+      return k.amount.isEmpty ? k.unit.label : '${k.amount} ${k.unit.label}';
+    }
+
+    final cases = <({double amount, Unit unit, String prints})>[
+      // The report: 1 tsp for four, scaled to 1¾ servings, is 0.4375 tsp.
+      (amount: 0.4375, unit: tsp, prints: '½ tsp'),
+      (amount: 1.75 * 0.4375, unit: tsp, prints: '¾ tsp'),
+      // Within the set's reach of two, the lower wins: ⅞ is ¾.
+      (amount: 2 * 0.4375, unit: tsp, prints: '¾ tsp'),
+      // A fraction the set already holds stays.
+      (amount: 0.75, unit: tsp, prints: '¾ tsp'),
+      (amount: 1.5, unit: tsp, prints: '1½ tsp'),
+      (amount: 0.125, unit: tsp, prints: '⅛ tsp'),
+      // A tie takes the fewer spoons: 2⅝ is 2½, not 2¾.
+      (amount: 2.625, unit: tsp, prints: '2½ tsp'),
+      // Too little for the smallest spoon is a pinch.
+      (amount: 0.125 * 0.4375, unit: tsp, prints: 'pinch'),
+      // A tablespoon holds halves; between them it steps down to teaspoons.
+      (amount: 0.5, unit: tbsp, prints: '½ tbsp'),
+      (amount: 2 * 0.4375, unit: tbsp, prints: '1 tbsp'),
+      (amount: 0.4375, unit: tbsp, prints: '½ tbsp'),
+      (amount: 0.3, unit: tbsp, prints: '1 tsp'),
+      (amount: 1.25, unit: tbsp, prints: '3¾ tsp'),
+      (amount: 3 * 0.4375, unit: tbsp, prints: '1½ tbsp'),
+      // A cup holds quarters and thirds; a little cup is tablespoons.
+      (amount: 0.75, unit: cup, prints: '¾ cup'),
+      (amount: 2 / 3, unit: cup, prints: '⅔ cup'),
+      (amount: 0.4375, unit: cup, prints: '½ cup'),
+      (amount: 0.125, unit: cup, prints: '2 tbsp'),
+      (amount: 2 * 0.4375, unit: cup, prints: '¾ cup'),
+      // A scale and a jug read any number.
+      (amount: 0.4375 * 400, unit: g, prints: '175 g'),
+      (amount: 4.375, unit: g, prints: '4.38 g'),
+      (amount: 0.4375 * 250, unit: ml, prints: '109.38 ml'),
+      // Anything else said by hand: quarters, thirds, an eighth.
+      (amount: 0.4375, unit: pieces, prints: '½ piece'),
+      (amount: 1.3125, unit: pieces, prints: '1⅓ piece'),
+      (amount: 0.03, unit: pieces, prints: '⅛ piece'),
+      (amount: 5.25, unit: oz, prints: '5¼ oz'),
+      (amount: 0.4375, unit: lb, prints: '½ lb'),
+    ];
+    for (final c in cases) {
+      test('${c.amount} ${c.unit.id} prints ${c.prints}', () {
+        expect(said(c.amount, c.unit), c.prints);
+      });
+    }
+
+    test('it never prints a decimal outside a metric unit, nor nothing', () {
+      for (final unit in kAllUnits) {
+        if (unit.isMetric) continue;
+        if (unit.family == UnitFamily.imprecise) continue;
+        for (var i = 1; i <= 400; i++) {
+          final k = kitchenAmountIn(i * 0.0371, unit);
+          expect(k.amount, isNot(contains('.')), reason: '${i * 0.0371} $unit');
+          if (k.unit != pinch) expect(k.amount, isNotEmpty);
+        }
+      }
+    });
+
+    test('a spoon never misses by more than its set allows, above a '
+        'teaspoon', () {
+      for (final unit in [tsp, tbsp, cup]) {
+        for (var i = 1; i <= 400; i++) {
+          final amount = i * 0.0371;
+          final ml = amount * unit.ratioToBase!;
+          if (ml < tsp.ratioToBase!) continue;
+          final k = kitchenAmountIn(amount, unit);
+          final back = parseAmount(k.amount)! * k.unit.ratioToBase!;
+          expect(
+            (back - ml).abs() / ml,
+            lessThanOrEqualTo(0.15 + 1e-9),
+            reason: '$amount ${unit.id} said ${k.amount} ${k.unit.id}',
+          );
+        }
+      }
+    });
+
+    test('kitchenAmount: a bare count rounds the same way', () {
+      expect(kitchenAmount(0.4375), '½');
+      expect(kitchenAmount(1.75), '1¾');
+      expect(kitchenAmount(2.9), '3');
+      expect(kitchenAmount(0.01), '⅛');
+    });
+  });
 }

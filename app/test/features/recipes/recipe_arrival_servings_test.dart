@@ -12,8 +12,10 @@ import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_recipe_band.dart';
 import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
+import 'package:ansi/features/recipes/domain/scaling.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view_models.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
@@ -42,6 +44,13 @@ const _recipe = Recipe(
           ingredientName: 'Pork sausage',
           unit: g,
           quantity: 400,
+        ),
+        LineItem(
+          id: 'l2',
+          ingredientId: 'i-salt',
+          ingredientName: 'Salt',
+          unit: tsp,
+          quantity: 1,
         ),
       ],
     ),
@@ -182,5 +191,96 @@ void main() {
     await _pumpAt(tester, '/recipes/r1?week=$_weekKey&servings=6');
     expect(find.byType(PlannedThisWeekBand), findsOneWidget);
     expect(find.text('6 servings'), findsOneWidget);
+  });
+
+  group('the scaler, from a part portion', () {
+    // One portion and a three-quarter one: 1¾ of a recipe for four.
+    const arrival = '/recipes/r1?servings=1.75';
+
+    testWidgets('a spoon prints what a measuring set holds, a scale any '
+        'number', (tester) async {
+      await _pumpAt(tester, arrival);
+      expect(find.text('1¾ servings'), findsOneWidget);
+      expect(find.text('½ tsp'), findsOneWidget);
+      expect(find.textContaining('0.44 tsp'), findsNothing);
+      expect(find.text('175 g'), findsOneWidget);
+    });
+
+    testWidgets('as written, it prints as written', (tester) async {
+      await _pumpAt(tester, '/recipes/r1');
+      expect(find.text('1 tsp'), findsOneWidget);
+    });
+
+    testWidgets('− drops the part first', (tester) async {
+      await _pumpAt(tester, arrival);
+      await tester.tap(find.byIcon(FLucideIcons.minus));
+      await tester.pumpAndSettle();
+      expect(find.text('1 serving'), findsOneWidget);
+      expect(_held(tester), 1);
+    });
+
+    testWidgets('+ rounds up to the next whole', (tester) async {
+      await _pumpAt(tester, arrival);
+      await tester.tap(find.byIcon(FLucideIcons.plus));
+      await tester.pumpAndSettle();
+      expect(find.text('2 servings'), findsOneWidget);
+      expect(_held(tester), 2);
+    });
+
+    testWidgets('the servings take a typed amount', (tester) async {
+      await _pumpAt(tester, arrival);
+      await tester.tap(find.byKey(const ValueKey('scale-servings')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('scale-servings-field')),
+        '3',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.text('3 servings'), findsOneWidget);
+      expect(_held(tester), 3);
+    });
+
+    testWidgets('a fraction typed the ASCII way is read', (tester) async {
+      await _pumpAt(tester, '/recipes/r1');
+      await tester.tap(find.byKey(const ValueKey('scale-servings')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('scale-servings-field')),
+        '2 1/2',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(find.text('2½ servings'), findsOneWidget);
+    });
+
+    testWidgets('nothing a serving leaves it as it was', (tester) async {
+      await _pumpAt(tester, arrival);
+      for (final junk in ['', 'lots', '0', '-2']) {
+        await tester.tap(find.byKey(const ValueKey('scale-servings')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('scale-servings-field')),
+          junk,
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        expect(find.text('1¾ servings'), findsOneWidget, reason: junk);
+      }
+      expect(_held(tester), 1.75);
+    });
+  });
+
+  group('servingsFromText', () {
+    test('reads what a person types, kept to quarters', () {
+      expect(servingsFromText('3'), 3);
+      expect(servingsFromText('1 3/4'), 1.75);
+      expect(servingsFromText('1¾'), 1.75);
+      expect(servingsFromText('2.5'), 2.5);
+      expect(servingsFromText('1.3'), 1.25);
+      for (final junk in ['', 'two', '0', '-1', '0.1', '1001']) {
+        expect(servingsFromText(junk), isNull, reason: junk);
+      }
+    });
   });
 }

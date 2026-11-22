@@ -76,6 +76,16 @@ void main() {
       expect(body, contains('<span class="amt">100 g</span>'));
     });
 
+    test('from a part portion the stepper offers the wholes either side, and '
+        'a spoon says what a measuring set holds', () {
+      final body = renderShareBody(_tree(), 1.75);
+      expect(body, contains('1¾ servings'));
+      expect(body, contains('aria-label="Fewer servings" data-servings="1"'));
+      expect(body, contains('data-servings="2">+</button>'));
+      // ⅞ tbsp of soy is a tablespoon, not 0.88.
+      expect(body, contains('<span class="amt">1 tbsp</span>'));
+    });
+
     test('one serving offers no fewer', () {
       final body = renderShareBody(_tree(), 1);
       expect(body, contains('aria-label="Fewer servings" disabled'));

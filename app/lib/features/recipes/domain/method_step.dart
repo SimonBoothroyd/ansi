@@ -17,9 +17,11 @@ library;
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../../core/units/number_format.dart';
+import '../../../core/units/unit_words.dart';
 import '../../../core/units/units.dart';
 import 'line_display.dart';
 import 'recipe.dart';
+import 'scaling.dart';
 
 part 'method_step.freezed.dart';
 part 'method_step.g.dart';
@@ -243,7 +245,7 @@ String? _chipAmount(
 
 /// The line's scaled amount as a chip shows it: a count as a bare number, an
 /// imprecise unit as its word, otherwise "num unit". A numberless line shows
-/// its unit label.
+/// its unit label. Scaled, it reads as a cook measures it ([amountOfLine]).
 String? _formatLineAmount(LineItem line, double factor) {
   final measure = line.measure;
   final word = recipeMeasureOfLine(line);
@@ -253,36 +255,37 @@ String? _formatLineAmount(LineItem line, double factor) {
     if (unit?.family == UnitFamily.imprecise) return unit?.label;
     return measure?.label ?? word?.label;
   }
-  // A line in one of the target recipe's words scales as a count of that word.
-  if (word != null) {
-    return measuredAmountText(qty * factor, word.label);
-  }
-  if (unit == null) return formatAmount(qty * factor);
-  final scaled = scale(Quantity(qty, unit), factor);
-  if (measure != null) return '${formatAmount(scaled.amount)} ${measure.label}';
-  switch (unit.family) {
-    case UnitFamily.count:
-      return formatAmount(scaled.amount);
-    case UnitFamily.imprecise:
-      return unit.label;
-    case UnitFamily.mass:
-    case UnitFamily.volume:
-    // `batch` reads like any other unit here; batch↔yield math belongs to the
-    // cook plan.
-    case UnitFamily.batch:
-      return '${formatAmountIn(scaled.amount, unit)} ${unit.label}';
-  }
+  // `batch` reads like any other unit here; batch↔yield math belongs to the
+  // cook plan.
+  return amountOfLine(scaleLineItem(line, factor), scaled: factor != 1);
 }
 
+/// A step's own portion ("2 tbsp of the oil"), scaled. As written it prints
+/// as written; scaled, a catalog unit rounds to its measuring set (and may
+/// step down a spoon), anything else to quarters, thirds and eighths.
 String? _formatPortion(StepPortion portion, double factor) {
-  final unit = portion.unit;
-  final suffix = unit == null || unit.isEmpty ? '' : ' $unit';
-  if (portion.qty != null) {
-    return '${formatAmount(portion.qty! * factor)}$suffix';
+  final word = portion.unit;
+  final suffix = word == null || word.isEmpty ? '' : ' $word';
+  final unit = word == null ? null : unitFromLabel(word);
+  String end(double amount) {
+    if (factor == 1) return formatAmount(amount);
+    if (unit != null && unit.isMetric) return formatNumber(amount);
+    return kitchenAmount(amount);
+  }
+
+  if (portion.qty case final qty?) {
+    final amount = qty * factor;
+    if (factor == 1 || unit == null || unit.ratioToBase == null) {
+      return '${end(amount)}$suffix';
+    }
+    final k = kitchenAmountIn(amount, unit);
+    // Still the step's own spoon: keep the step's own spelling of it.
+    if (k.unit == unit) return '${k.amount}$suffix';
+    return k.amount.isEmpty ? k.unit.label : '${k.amount} ${k.unit.label}';
   }
   if (portion.qtyLow != null && portion.qtyHigh != null) {
-    final low = formatAmount(portion.qtyLow! * factor);
-    final high = formatAmount(portion.qtyHigh! * factor);
+    final low = end(portion.qtyLow! * factor);
+    final high = end(portion.qtyHigh! * factor);
     return '$low–$high$suffix';
   }
   // A relative word ("half", "for garnish") renders as written.

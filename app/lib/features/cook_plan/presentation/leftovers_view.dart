@@ -503,9 +503,8 @@ class _PortionStepper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final n = left.inBox;
-    final whole = (n - n.roundToDouble()).abs() < 1e-6;
-    final down = whole ? n.roundToDouble() - 1 : n.floorToDouble();
-    final up = whole ? n.roundToDouble() + 1 : n.ceilToDouble();
+    final down = wholeBelow(n);
+    final up = wholeAbove(n);
     void set(double to) => unawaited(
       ref.write(
         context,
@@ -791,10 +790,10 @@ class _AddLeftoverSheet extends HookConsumerWidget {
               style: ansiMono(size: 15, weight: FontWeight.w500),
             ),
           ),
-          onDecrement: portions.value > 1
-              ? () => portions.value = portions.value - 1
+          onDecrement: wholeBelow(portions.value) >= 1
+              ? () => portions.value = wholeBelow(portions.value)
               : null,
-          onIncrement: () => portions.value = portions.value + 1,
+          onIncrement: () => portions.value = wholeAbove(portions.value),
         ),
         const SizedBox(height: 18),
         const AnsiMicroLabel('When'),

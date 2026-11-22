@@ -23,6 +23,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/macros.dart';
+import '../../../core/units/portions.dart';
 import '../../../shared/ansi_back.dart';
 import '../../../shared/ansi_error_state.dart';
 import '../../../shared/ansi_layout.dart';
@@ -495,7 +496,7 @@ class _RecipeBody extends HookConsumerWidget {
                   trailing: index != 1
                       ? null
                       : Text(
-                          'for ${formatQuantity(servings)} servings · '
+                          'for ${servingsWord(servings)} · '
                           '${formatQuantity(factor)}×',
                           style: ansiMono(size: 11, color: AnsiColors.muted),
                           maxLines: 1,
@@ -1540,6 +1541,7 @@ class _IngredientsTab extends ConsumerWidget {
     return OptionalCard(
       key: optionalCardKey(uses.uses.first.id),
       uses: uses,
+      scaled: factor != 1,
       steps: stepUsesOf(recipe.methodSteps ?? const [], {
         for (final u in uses.uses) u.id,
       }, lineById: lineById),
@@ -1623,6 +1625,7 @@ class _IngredientsTab extends ConsumerWidget {
     final saidInPlace = note?.reason == MacroLineReason.removedIngredient;
     return RecipeIngredientLine(
       uses: uses,
+      scaled: factor != 1,
       struck: row.excluded,
       // A component's chip opens its target's page and an ingredient's name
       // opens its own. A struck line has neither.
@@ -1708,7 +1711,11 @@ MacroLineNote? _firstNote(LineUses uses, Map<String, MacroLineNote> markers) {
   return null;
 }
 
-class _ScaleControl extends StatelessWidget {
+/// `Scale to  −  1¾ servings  +`. A part steps to the whole either side of it
+/// (`1¾` reads `1` or `2`), a whole by one, never below one. The servings
+/// themselves are a door: tapped, they become a field that takes any amount
+/// (`1 3/4`, `2.5`), kept on submit or when the field lets go.
+class _ScaleControl extends HookWidget {
   const _ScaleControl({
     required this.servings,
     required this.factor,
@@ -1721,6 +1728,38 @@ class _ScaleControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final typing = useState(false);
+    final focus = useFocusNode();
+    final controller = useTextEditingController();
+    void keep() {
+      if (!typing.value) return;
+      typing.value = false;
+      final typed = servingsFromText(controller.text);
+      if (typed != null && typed != servings) onChanged(typed);
+    }
+
+    useEffect(() {
+      void left() {
+        if (!focus.hasFocus) keep();
+      }
+
+      focus.addListener(left);
+      return () => focus.removeListener(left);
+    }, [focus]);
+
+    final down = wholeBelow(servings);
+    final said = Column(
+      children: [
+        Text(
+          servingsWord(servings),
+          style: ansiSans(size: 17, weight: FontWeight.w700),
+        ),
+        Text(
+          '·${formatQuantity(factor)}×',
+          style: ansiMono(size: 13, color: AnsiColors.muted),
+        ),
+      ],
+    );
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AnsiColors.paper,
@@ -1737,22 +1776,48 @@ class _ScaleControl extends StatelessWidget {
               style: ansiSans(size: 13, color: AnsiColors.muted),
             ),
           ),
-          onDecrement: servings > 1 ? () => onChanged(servings - 1) : null,
-          onIncrement: () => onChanged(servings + 1),
+          onDecrement: down >= 1 ? () => onChanged(down) : null,
+          onIncrement: () => onChanged(wholeAbove(servings)),
           value: Expanded(
             flex: 3,
-            child: Column(
-              children: [
-                Text(
-                  '${formatQuantity(servings)} servings',
-                  style: ansiSans(size: 17, weight: FontWeight.w700),
-                ),
-                Text(
-                  '·${formatQuantity(factor)}×',
-                  style: ansiMono(size: 13, color: AnsiColors.muted),
-                ),
-              ],
-            ),
+            child: typing.value
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: FTextField(
+                      key: const ValueKey('scale-servings-field'),
+                      autofocus: true,
+                      focusNode: focus,
+                      // A text keyboard: iOS's numeric pads have no `/`, so
+                      // `1 3/4` could not be typed.
+                      keyboardType: TextInputType.text,
+                      textAlign: TextAlign.center,
+                      control: FTextFieldControl.managed(
+                        controller: controller,
+                      ),
+                      onSubmit: (_) => keep(),
+                    ),
+                  )
+                : Semantics(
+                    button: true,
+                    label:
+                        '${formatQuantity(servings)} servings, type an '
+                        'amount',
+                    child: ExcludeSemantics(
+                      child: GestureDetector(
+                        key: const ValueKey('scale-servings'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          controller.text = formatQuantity(servings);
+                          controller.selection = TextSelection(
+                            baseOffset: 0,
+                            extentOffset: controller.text.length,
+                          );
+                          typing.value = true;
+                        },
+                        child: said,
+                      ),
+                    ),
+                  ),
           ),
         ),
       ),

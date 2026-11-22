@@ -19,6 +19,7 @@ library;
 import 'dart:convert';
 
 import '../../../core/units/number_format.dart';
+import '../../../core/units/portions.dart';
 import '../../ingredients/presentation/macros_format.dart';
 import '../../recipes/domain/line_display.dart';
 import '../../recipes/domain/method_step.dart';
@@ -86,7 +87,12 @@ String renderShareBody(ShareTree tree, double servings) {
     ..write(_facts(root))
     ..write(_scaler(servings))
     ..write(
-      _ingredients(scaleGroups(root, servings), tree, heading: 'Ingredients'),
+      _ingredients(
+        scaleGroups(root, servings),
+        tree,
+        heading: 'Ingredients',
+        scaled: factor != 1,
+      ),
     )
     ..write(_macros(root.macros))
     ..write(_method(root, factor))
@@ -105,8 +111,9 @@ String renderShareBody(ShareTree tree, double servings) {
 
 /// One line's amount as the page prints it: the recipe's own word with the
 /// amount it stands for (`2 blob (30 g)`), otherwise the app's own amount.
-String shareAmountOf(LineItem line) {
-  final amount = amountOfLine(line);
+/// A [scaled] line prints as a cook measures it, as the app's page does.
+String shareAmountOf(LineItem line, {bool scaled = false}) {
+  final amount = amountOfLine(line, scaled: scaled);
   final word = recipeMeasureOfLine(line);
   final count = line.quantity;
   if (word == null || count == null) return amount;
@@ -198,15 +205,18 @@ String _facts(Recipe recipe) {
   return '<p class="facts">${_h(facts.join(' · '))}</p>';
 }
 
+/// `−  1¾ servings  +`: a part steps to the whole either side of it, a whole
+/// by one, never below one.
 String _scaler(double servings) {
-  final fewer = servings > 1 ? servings - 1 : null;
+  final down = wholeBelow(servings);
+  final fewer = down >= 1 ? down : null;
   return '<div class="scaler">'
       '<button type="button" aria-label="Fewer servings"'
       '${fewer == null ? ' disabled' : ' data-servings="${_num(fewer)}"'}>'
       '−</button>'
       '<output aria-live="polite">${_h(_servingsText(servings))}</output>'
       '<button type="button" aria-label="More servings" '
-      'data-servings="${_num(servings + 1)}">+</button>'
+      'data-servings="${_num(wholeAbove(servings))}">+</button>'
       '</div>';
 }
 
@@ -214,6 +224,7 @@ String _ingredients(
   List<IngredientGroup> groups,
   ShareTree tree, {
   required String heading,
+  bool scaled = false,
 }) {
   final out = StringBuffer('<section class="ingredients"><h2>$heading</h2>');
   for (final group in groups) {
@@ -222,7 +233,7 @@ String _ingredients(
     if (name.isNotEmpty) out.write('<h3>${_h(name)}</h3>');
     out.write('<ul>');
     for (final line in group.items) {
-      final amount = shareAmountOf(line);
+      final amount = shareAmountOf(line, scaled: scaled);
       final subId = line.subRecipeId;
       final named = subId != null && tree.shows(subId)
           ? '<a href="#${_h(_anchor(subId))}">${_h(line.ingredientName)}</a>'

@@ -33,5 +33,20 @@ String formatPortions(double count) {
   return '${formatFraction(count)} $noun';
 }
 
+/// The step down from [n] on a `−` button: a part drops to the whole below it
+/// (`1¾` → `1`), a whole drops by one (`2` → `1`). The caller keeps its own
+/// floor.
+double wholeBelow(double n) {
+  final nearest = n.roundToDouble();
+  return (n - nearest).abs() < _tolerance ? nearest - 1 : n.floorToDouble();
+}
+
+/// The step up from [n] on a `+` button: a part rises to the whole above it
+/// (`1¾` → `2`, `¾` → `1`), a whole rises by one.
+double wholeAbove(double n) {
+  final nearest = n.roundToDouble();
+  return (n - nearest).abs() < _tolerance ? nearest + 1 : n.ceilToDouble();
+}
+
 const _tolerance = 1e-6;
 const _quarters = [(0.25, '¼'), (0.5, '½'), (0.75, '¾')];

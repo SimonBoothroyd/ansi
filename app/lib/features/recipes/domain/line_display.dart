@@ -132,32 +132,51 @@ List<LineUses> groupLineUses(List<LineItem> items) {
 /// mass/volume unit "2 tin" / "400 g", an imprecise unit its label, a
 /// numberless line the unit alone. The week's variant and the shopping list
 /// quote it too.
-String amountOfLine(LineItem item) {
+///
+/// A [scaled] line prints as a cook measures it ([kitchenAmountIn]): `½ tsp`,
+/// never `0.44 tsp`. As written, it prints as written.
+String amountOfLine(LineItem item, {bool scaled = false}) {
   final measure = item.measure;
   if (measure != null) {
-    return measuredAmountText(item.quantity, measure.label);
+    return measuredAmountText(item.quantity, measure.label, scaled: scaled);
   }
   final word = recipeMeasureOfLine(item);
-  if (word != null) return measuredAmountText(item.quantity, word.label);
+  if (word != null) {
+    return measuredAmountText(item.quantity, word.label, scaled: scaled);
+  }
   final unit = item.unit;
+  final q = item.quantity;
   // A component line whose word has gone keeps its number and prints no
   // denomination.
   if (unit == null) {
-    final q = item.quantity;
-    return q == null ? '' : formatAmount(q);
+    if (q == null) return '';
+    return scaled ? kitchenAmount(q) : formatAmount(q);
   }
-  final qty = item.quantity == null ? '' : formatAmountIn(item.quantity!, unit);
+  final said = q == null
+      ? (amount: '', unit: unit)
+      : scaled
+      ? kitchenAmountIn(q, unit)
+      : (amount: formatAmountIn(q, unit), unit: unit);
   if (unit.family == UnitFamily.count) {
-    return qty.isEmpty ? unit.label : qty;
+    return said.amount.isEmpty ? unit.label : said.amount;
   }
-  if (qty.isEmpty) return unit.label;
-  return '$qty ${unit.label}';
+  if (said.amount.isEmpty) return said.unit.label;
+  return '${said.amount} ${said.unit.label}';
 }
 
 /// An amount in a named word: `2 clove`, `3 blob`, or the bare word without a
-/// number. Always singular: the app does not know the word's grammar.
-String measuredAmountText(double? quantity, String label) {
-  final counted = quantity == null ? '' : formatAmount(quantity);
+/// number. Always singular: the app does not know the word's grammar. A
+/// [scaled] count rounds as a cook says it ([kitchenAmount]).
+String measuredAmountText(
+  double? quantity,
+  String label, {
+  bool scaled = false,
+}) {
+  final counted = quantity == null
+      ? ''
+      : scaled
+      ? kitchenAmount(quantity)
+      : formatAmount(quantity);
   return counted.isEmpty ? label : '$counted $label';
 }
 

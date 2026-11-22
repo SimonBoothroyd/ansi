@@ -3,6 +3,7 @@
 /// untouched, as `core/units`' [scale] guarantees.
 library;
 
+import '../../../core/units/number_format.dart';
 import '../../../core/units/units.dart';
 import 'recipe.dart';
 
@@ -37,3 +38,17 @@ List<IngredientGroup> scaleGroups(Recipe recipe, double targetServings) {
       ),
   ];
 }
+
+/// The servings a person typed into the scaler (`3`, `1 3/4`, `1¾`, `2.5`),
+/// kept to quarters, or null when it is no servings at all: blank, words,
+/// nothing or less than a quarter, or past a thousand.
+double? servingsFromText(String text) {
+  final n = parseAmount(text);
+  if (n == null || !n.isFinite || n > 1000) return null;
+  final quarters = (n * 4).roundToDouble() / 4;
+  return quarters <= 0 ? null : quarters;
+}
+
+/// `1 serving`, `1¾ servings`: how the scaler says its number.
+String servingsWord(double servings) =>
+    '${formatAmount(servings)} ${servings == 1 ? 'serving' : 'servings'}';

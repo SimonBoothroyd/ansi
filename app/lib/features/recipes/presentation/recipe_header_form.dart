@@ -17,6 +17,7 @@ import '../../../core/text/name_clean.dart';
 import '../../../core/theme/ansi_theme.dart';
 import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/number_format.dart';
+import '../../../core/units/portions.dart';
 import '../../../core/units/recipe_measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/words.dart';
@@ -547,9 +548,11 @@ class _ServesStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A part steps to the whole either side of it, a whole by one.
+    final down = wholeBelow(servings);
     return AnsiStepperRow(
-      onDecrement: servings > 1 ? () => onChanged(servings - 1) : null,
-      onIncrement: () => onChanged(servings + 1),
+      onDecrement: down >= 1 ? () => onChanged(down) : null,
+      onIncrement: () => onChanged(wholeAbove(servings)),
       value: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Text(

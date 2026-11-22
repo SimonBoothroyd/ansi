@@ -78,11 +78,15 @@ class OptionalCard extends StatelessWidget {
     this.macroLine,
     this.detail,
     this.onFix,
+    this.scaled = false,
     super.key,
   });
 
   /// At the amounts shown.
   final LineUses uses;
+
+  /// Whether [uses] are scaled, so each prints as a cook measures it.
+  final bool scaled;
   final List<StepUse> steps;
   final bool included;
 
@@ -108,7 +112,9 @@ class OptionalCard extends StatelessWidget {
     final notes = uses.notes.join(' + ');
     final amount = [
       for (final use in uses.uses)
-        if (amountOfLineItem(use) case final a when a.isNotEmpty) a,
+        if (amountOfLineItem(use, scaled: scaled) case final a
+            when a.isNotEmpty)
+          a,
     ].join(' + ');
     final small = ansiMono(size: 10.5, color: AnsiColors.muted);
 

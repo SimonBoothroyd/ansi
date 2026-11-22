@@ -217,6 +217,33 @@ void main() {
         '2 cup',
       ]);
     });
+
+    test('scaled, a spoon reads what a measuring set holds; as written, '
+        'as written', () {
+      final spoons = {
+        ...lines,
+        'cumin': _li('cumin', qty: 1, unit: tsp),
+        'onion': _li('onion', qty: 1, unit: pieces),
+      };
+      const step = MethodStep(
+        tokens: [
+          MethodRef(refs: ['cumin'], label: 'cumin'),
+          MethodRef(refs: ['onion'], label: 'onion'),
+          MethodRef(
+            refs: ['stock'],
+            label: 'stock',
+            portion: StepPortion(qty: 1, unit: 'tbsp'),
+          ),
+        ],
+      );
+      // 1¾ servings of a recipe for four.
+      expect(_chipAmounts(step, lineById: spoons, factor: 1.75 / 4), [
+        '½ tsp',
+        '½',
+        '½ tbsp',
+      ]);
+      expect(_chipAmounts(step, lineById: spoons), ['1 tsp', '1', '1 tbsp']);
+    });
   });
 
   group('timer formatting', () {
