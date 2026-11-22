@@ -17,8 +17,11 @@ hidden"*.
 
 - [x] *Add to plan* has one line into the recipe and no ticks. Done returns to
       it. The picks are written with Add, and a closed sheet writes none.
-- [x] On a recipe page a week owns, each optional ingredient is a card that
-      quotes the steps that use it.
+- [x] On a recipe page a week owns, each optional ingredient is an ordinary
+      row in its own group that quotes the steps that use it, its `optional`
+      pill the switch. (First built as a pooled OPTIONAL section of cards; the
+      owner, on the web, found it stood out and moved the amount, so it was
+      redrawn in place and approved.)
 - [x] The method greys what was not picked, with no amount.
 - [x] The Shop never says optional: a picked one is an ordinary line, an
       unpicked one is absent.
@@ -35,7 +38,8 @@ hidden"*.
    `stepUsesOf` (pure) quotes its steps off the method's chips.
 2. `OptionalInRecipeDoor` opens the page with `?choose=<day>`. `OptionalPicks`
    holds the answers until Add.
-3. `OptionalSection` is the page's. `copyOptionalTicksIn` runs inside the
+3. The row's `OptionalPick` is the page's switch, `OptionalReveal` its
+   scroll. `copyOptionalTicksIn` runs inside the
    copy's transaction.
 
 No migration.

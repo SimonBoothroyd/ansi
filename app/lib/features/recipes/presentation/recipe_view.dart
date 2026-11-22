@@ -4,10 +4,11 @@
 /// Tabs on a phone (plus "Used in · N" while other recipes list this one as a
 /// component); two columns with no tabs at [AnsiLayout.expanded], built from
 /// the same widgets. Opened from a week that cooks it (`?week=`), the
-/// ingredients show that week's effective lines, the optional ones are
-/// [OptionalSection]'s ticks, each quoting the step that uses it, and the
-/// method greys what was not picked. Opened from *Add to plan* (`?choose=`),
-/// the ticks are that sheet's, written with Add. Opened from a cooking
+/// ingredients show that week's effective lines, an optional one an ordinary
+/// row in its own group with its `optional` pill as the switch
+/// ([OptionalPick]) and the step that uses it quoted, and the method greys
+/// what was not picked. Opened from *Add to plan* (`?choose=`), the picks are
+/// that sheet's, written with Add. Opened from a cooking
 /// (`?servings=`, from Cook or a Week meal), the servings start at that
 /// cooking's amount.
 library;
@@ -66,7 +67,7 @@ import '../domain/recipe_repository.dart';
 import '../domain/scaling.dart';
 import 'component_format.dart';
 import 'ingredient_line.dart';
-import 'optional_section.dart';
+import 'optional_reveal.dart';
 import 'recipe_chip.dart';
 import 'recipe_cost_panel.dart';
 import 'recipe_macro_panel.dart';
@@ -1409,22 +1410,79 @@ class _IngredientsTab extends ConsumerWidget {
       markers: markers,
       factor: factor,
     );
-    // Where a week owns the page the optional lines are the section's.
+    // Where a week owns the page an optional line is asked about in place: an
+    // ordinary row in its own group and order, its pill the switch.
     final asked = choices;
-    final optional = asked ?? const <OptionalChoice>[];
+    final choiceOf = <String, OptionalChoice>{
+      for (final choice in asked ?? const <OptionalChoice>[])
+        for (final use in choice.uses.uses) use.id: choice,
+    };
+    // Opened to choose, the optional rows bring themselves on screen: the
+    // last into view, then the first kept from leaving the top.
+    String? firstAsked;
+    String? lastAsked;
+    if (choosing) {
+      for (final group in recipe.groups) {
+        for (final own in groupLineUses([
+          for (final item in group.items)
+            if (item.optional) item,
+        ])) {
+          if (!choiceOf.containsKey(own.uses.first.id)) continue;
+          firstAsked ??= own.uses.first.id;
+          lastAsked = own.uses.first.id;
+        }
+      }
+    }
+    List<Widget> rowsOf(List<LineItem> items) {
+      final at = {for (final (i, item) in items.indexed) item.id: i};
+      final placed = <(int, Widget)>[
+        for (final row in _weekRows(
+          [
+            for (final item in items)
+              if (asked == null || !item.optional) item,
+          ],
+          entries,
+          factor,
+        ))
+          (at[row.uses.uses.first.id] ?? items.length, line(row)),
+      ];
+      if (asked != null) {
+        for (final own in groupLineUses([
+          for (final item in items)
+            if (item.optional) item,
+        ])) {
+          final choice = choiceOf[own.uses.first.id];
+          if (choice == null) continue;
+          Widget row = KeyedSubtree(
+            key: optionalRowKey(own.uses.first.id),
+            child: _optionalRow(
+              context,
+              ref,
+              choice: choice,
+              own: own,
+              summary: summary,
+              markers: markers,
+              factor: factor,
+            ),
+          );
+          final id = own.uses.first.id;
+          if (id == firstAsked || id == lastAsked) {
+            row = OptionalReveal(
+              start: id == firstAsked,
+              end: id == lastAsked,
+              child: row,
+            );
+          }
+          placed.add((at[own.uses.first.id]!, row));
+        }
+      }
+      placed.sort((a, b) => a.$1.compareTo(b.$1));
+      return [for (final (_, row) in placed) row];
+    }
+
     final inList = [
       for (final group in recipe.groups)
-        (
-          name: group.name,
-          rows: _weekRows(
-            [
-              for (final item in group.items)
-                if (asked == null || !item.optional) item,
-            ],
-            entries,
-            factor,
-          ),
-        ),
+        (name: group.name, rows: rowsOf(group.items)),
     ];
 
     return Column(
@@ -1460,20 +1518,12 @@ class _IngredientsTab extends ConsumerWidget {
             ),
             const _Hairline(),
           ],
-          for (final row in group.rows) line(row),
+          ...group.rows,
         ],
         // An override carries no group, so an added line has none to land in:
         // it sits after the last one, exactly where week mode puts it.
         for (final uses in groupLineUses(added))
           line((uses: uses, excluded: false)),
-        if (optional.isNotEmpty)
-          OptionalSection(
-            reveal: choosing,
-            cards: [
-              for (final choice in optional)
-                _card(context, ref, choice, summary, markers, factor),
-            ],
-          ),
         // Below the list and clear of the scaler: the per-serving figure is not
         // driven by the stepper.
         const SizedBox(height: 22),
@@ -1505,20 +1555,27 @@ class _IngredientsTab extends ConsumerWidget {
     );
   }
 
-  /// One optional ingredient's card: its amount as shown, the steps that use
-  /// it, and while included its figures.
-  OptionalCard _card(
+  /// One optional row as the week answers it: [own] is this group's use of
+  /// [choice], at the week's amounts where it states them. In, it reads and
+  /// counts like any line; out, it greys and has no figures. Its pill answers
+  /// for every line of the ingredient, in every group.
+  Widget _optionalRow(
     BuildContext context,
-    WidgetRef ref,
-    OptionalChoice choice,
-    RecipeMacroSummary summary,
-    Map<String, MacroLineNote> markers,
-    double factor,
-  ) {
+    WidgetRef ref, {
+    required OptionalChoice choice,
+    required LineUses own,
+    required RecipeMacroSummary summary,
+    required Map<String, MacroLineNote> markers,
+    required double factor,
+  }) {
+    final ids = {for (final u in own.uses) u.id};
     final uses = LineUses(
-      ingredientId: choice.uses.ingredientId,
-      subRecipeId: choice.uses.subRecipeId,
-      uses: [for (final u in choice.uses.uses) scaleLineItem(u, factor)],
+      ingredientId: own.ingredientId,
+      subRecipeId: own.subRecipeId,
+      uses: [
+        for (final u in choice.uses.uses)
+          if (ids.contains(u.id)) scaleLineItem(u, factor),
+      ],
     );
     final included = choice.includedWith(picks);
     // Out, it is in no total, so it has no figures and waits on nothing.
@@ -1527,24 +1584,29 @@ class _IngredientsTab extends ConsumerWidget {
     final macros = counted
         ? _macroLine(uses, summary, factor, marked: note != null)
         : const (figures: null, note: null);
-    final lineById = _lineById(recipe);
-    return OptionalCard(
-      key: optionalCardKey(uses.uses.first.id),
+    final saidInPlace = note?.reason == MacroLineReason.removedIngredient;
+    return RecipeIngredientLine(
       uses: uses,
       scaled: factor != 1,
-      steps: stepUsesOf(recipe.methodSteps ?? const [], {
-        for (final u in uses.uses) u.id,
-      }, lineById: lineById),
-      included: included,
-      onToggle: choice.lineIds.isEmpty
+      picked: included,
+      onPick: choice.lineIds.isEmpty
           ? null
           : () => _pick(context, ref, choice.lineIds, included: !included),
+      quotes: stepUsesOf(
+        recipe.methodSteps ?? const [],
+        ids,
+        lineById: _lineById(recipe),
+      ),
       onOpenSubRecipe: (id) => _openSubRecipe(context, id),
+      onOpenIngredient: (id) => context.pushOnce(ingredientDetailRoute(id)),
+      macroMarker: note == null || saidInPlace
+          ? null
+          : incompleteLineNote(note.reason),
       macroLine: macros.figures,
-      detail: note != null
-          ? incompleteLineNote(note.reason)
-          : macros.note ?? (counted ? _costLine(uses, factor) : null),
-      onFix: note == null ? null : () => _fix(context, note),
+      macroLineNote: macros.note ?? (counted ? _costLine(uses, factor) : null),
+      onFixMacro: note == null || saidInPlace
+          ? null
+          : () => _fix(context, note),
     );
   }
 

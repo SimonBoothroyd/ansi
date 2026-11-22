@@ -15,7 +15,8 @@ import 'package:ansi/features/recipes/data/recipe_providers.dart';
 import 'package:ansi/features/recipes/domain/line_override.dart';
 import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
-import 'package:ansi/features/recipes/presentation/optional_section.dart';
+import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
+import 'package:ansi/features/recipes/presentation/optional_reveal.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/method_step_text.dart';
 import 'package:flutter/widgets.dart';
@@ -148,7 +149,13 @@ Future<void> _choose(WidgetTester tester) async {
 }
 
 Future<void> _pick(WidgetTester tester, String lineId) async {
-  await tester.tap(find.byKey(optionalCardKey(lineId)));
+  final pill = find.descendant(
+    of: find.byKey(optionalRowKey(lineId)),
+    matching: find.byType(OptionalPick),
+  );
+  await tester.ensureVisible(pill);
+  await tester.pumpAndSettle();
+  await tester.tap(pill);
   await tester.pumpAndSettle();
 }
 
@@ -159,7 +166,7 @@ void main() {
     await _open(tester);
     expect(find.text('2 optional ingredients'), findsOneWidget);
     expect(find.text('Choose in recipe'), findsOneWidget);
-    expect(find.byType(OptionalCard), findsNothing);
+    expect(find.byType(OptionalPick), findsNothing);
   });
 
   testWidgets('each is read in the step that uses it', (tester) async {
@@ -259,11 +266,58 @@ void main() {
   ) async {
     await _open(tester, recipe: _curry(others: 24));
     await _choose(tester);
-    final last = tester.getRect(find.byKey(optionalCardKey('coriander')));
+    final last = tester.getRect(find.byKey(optionalRowKey('coriander')));
     expect(
       last.bottom,
       lessThanOrEqualTo(tester.getRect(find.text('Done')).top),
     );
     expect(last.top, greaterThanOrEqualTo(0));
+  });
+
+  testWidgets('an optional line stays in its own group, between the lines '
+      'the recipe put either side of it', (tester) async {
+    LineItem line(String id, {bool optional = false}) => LineItem(
+      id: id,
+      ingredientId: 'i-$id',
+      ingredientName: id,
+      quantity: 1,
+      unit: pieces,
+      optional: optional,
+    );
+    await _open(
+      tester,
+      recipe: Recipe(
+        id: 'r',
+        title: 'Curry',
+        servingsBase: 4,
+        steps: const ['Cook it all.'],
+        groups: [
+          IngredientGroup(
+            id: 'g1',
+            name: 'for the curry',
+            items: [
+              line('Onion'),
+              line('Chilli', optional: true),
+              line('Stock'),
+            ],
+          ),
+          IngredientGroup(
+            id: 'g2',
+            name: 'to serve',
+            items: [line('Rice'), line('Lime', optional: true)],
+          ),
+        ],
+      ),
+    );
+    await _choose(tester);
+    double top(Finder f) => tester.getTopLeft(f).dy;
+    final chilli = top(find.byKey(optionalRowKey('Chilli')));
+    expect(chilli, greaterThan(top(find.text('Onion'))));
+    expect(chilli, lessThan(top(find.text('Stock'))));
+    final lime = top(find.byKey(optionalRowKey('Lime')));
+    expect(lime, greaterThan(top(find.text('to serve'))));
+    expect(lime, greaterThan(top(find.text('Rice'))));
+    expect(find.byType(OptionalPick), findsNWidgets(2));
+    expect(find.text('OPTIONAL'), findsNothing);
   });
 }

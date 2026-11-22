@@ -59,14 +59,16 @@ ignores both.
 
 - **A note is printed by one function** (`noteSpans`), held by
   `test/structure/one_note_grammar_test.dart`.
-- **`OptionalTag`** is the tag on a row and, handed an `onToggle`, week mode's
-  switch; `OptionalFlagToggle` is the card's control and the one door that sets
+- **`OptionalTag`** is the tag after a row's name where nothing asks (the
+  Library); where a week asks, the row's `OptionalPick` pill at its end is the
+  switch (`RecipeIngredientLine.picked` / `onPick`), and a row left out greys.
+  `OptionalFlagToggle` is the line card's control and the one door that sets
   the flag on a recipe line.
 - **A line's own figures** (the `⋯` toggle) print under the name and move with
   the scaler; the panel underneath is per serving and does not.
 - **Scaled amounts** print through `amountOfLine(item, scaled: true)`, which
   rounds spoons to a measuring set (`kitchenAmountIn`); `RecipeIngredientLine`
-  and `OptionalCard` take `scaled: factor != 1`, the method's fold decides
+  takes `scaled: factor != 1`, the method's fold decides
   from its own factor. As written, a line prints as written.
 - **The scaler** (`_ScaleControl`) steps a part portion to the whole either
   side (`wholeBelow` / `wholeAbove`, `core/units/portions.dart`) and its
@@ -129,8 +131,10 @@ lines, chosen by a `Macros | Cost` chip pair held for the session
 
 **The page holds the week it was opened from.** A `?week=` link the week still
 plans (`weekRecipePlacement`) draws that week's effective lines read-only, and
-the optional lines become `OptionalSection`: a card an ingredient, quoting
-the steps that use it (`method_uses.dart`), and a tap writes the week's `include` row
+each optional line stays an ordinary row in its own group and order, quoting
+the steps that use it (`method_uses.dart`, `StepQuote`), with its `optional`
+pill as the switch; opened to choose, `OptionalReveal` scrolls the optional
+rows on screen. A tap writes the week's `include` row
 through `WeekVariantRepository.setLineIncluded`, and the panel reads the week's
 own re-summation (`watchVariantRecipeMacros`).
 

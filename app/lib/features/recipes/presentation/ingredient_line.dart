@@ -19,6 +19,7 @@ import '../../../core/units/units.dart';
 import '../../../shared/ansi_tap.dart';
 import '../../ingredients/presentation/macro_line_text.dart';
 import '../domain/line_display.dart';
+import '../domain/method_uses.dart';
 import '../domain/recipe.dart';
 import 'recipe_chip.dart';
 
@@ -38,10 +39,27 @@ class RecipeIngredientLine extends StatelessWidget {
     this.onFixMacro,
     this.struck = false,
     this.scaled = false,
+    this.picked,
+    this.onPick,
+    this.quotes = const [],
     super.key,
   });
 
   final LineUses uses;
+
+  /// Where a week asks about an optional row: whether it is in. Non-null puts
+  /// the `optional` pill at the row's end as its switch ([OptionalPick]); out,
+  /// the row greys. Null where nothing asks (the Library), and the tag after
+  /// the name is then the recipe's own fact.
+  final bool? picked;
+
+  /// Flips [picked]. Null leaves the pill inert: the week states an amount,
+  /// which is changed in the week's editor.
+  final VoidCallback? onPick;
+
+  /// The steps that use this row, quoted under the name: how an optional
+  /// ingredient is used, at a glance.
+  final List<StepUse> quotes;
 
   /// Whether [uses] are scaled off the recipe's own servings, so each amount
   /// prints as a cook measures it ([amountOfLine]).
@@ -105,6 +123,11 @@ class RecipeIngredientLine extends StatelessWidget {
       ),
     );
 
+    // An optional row the week leaves out greys; its pill stays full strength,
+    // because the pill is what puts it back.
+    Widget dim(Widget child) =>
+        picked == false ? Opacity(opacity: 0.45, child: child) : child;
+
     return Column(
       children: [
         Padding(
@@ -114,45 +137,55 @@ class RecipeIngredientLine extends StatelessWidget {
             children: [
               SizedBox(
                 width: kLineAmountWidth,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (onEditAmount == null)
-                      amountText
-                    else
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onEditAmount,
-                        child: amountText,
-                      ),
-                    if (macroMarker != null)
-                      _MacroMarker(label: macroMarker!, onTap: onFixMacro),
-                  ],
+                child: dim(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (onEditAmount == null)
+                        amountText
+                      else
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: onEditAmount,
+                          child: amountText,
+                        ),
+                      if (macroMarker != null)
+                        _MacroMarker(label: macroMarker!, onTap: onFixMacro),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _Identity(
-                      uses: uses,
-                      notes: notes,
-                      onOpen: onOpenSubRecipe,
-                      onOpenIngredient: onOpenIngredient,
-                      struck: struck,
-                    ),
-                    if (macroLine != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 3),
-                        child: MacroLineText(macroLine!, style: _lineStyle),
-                      )
-                    else if (macroLineNote != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 3),
-                        child: Text(macroLineNote!, style: _lineStyle),
+                child: dim(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Identity(
+                        uses: uses,
+                        notes: notes,
+                        onOpen: onOpenSubRecipe,
+                        onOpenIngredient: onOpenIngredient,
+                        struck: struck,
+                        tagged: picked == null,
                       ),
-                  ],
+                      for (final quote in quotes)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: StepQuote(quote),
+                        ),
+                      if (macroLine != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: MacroLineText(macroLine!, style: _lineStyle),
+                        )
+                      else if (macroLineNote != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(macroLineNote!, style: _lineStyle),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               if (onEditAmount != null) ...[
@@ -162,6 +195,14 @@ class RecipeIngredientLine extends StatelessWidget {
                   semanticsLabel: 'Edit the amount',
                   color: AnsiColors.herb,
                   child: const Icon(FLucideIcons.pencil, size: 14),
+                ),
+              ],
+              if (picked case final picked?) ...[
+                const SizedBox(width: 10),
+                OptionalPick(
+                  picked: picked,
+                  onTap: onPick,
+                  name: uses.uses.first.subRecipe?.title ?? uses.ingredientName,
                 ),
               ],
             ],
@@ -232,6 +273,7 @@ class _Identity extends StatefulWidget {
     this.onOpen,
     this.onOpenIngredient,
     this.struck = false,
+    this.tagged = true,
   });
 
   final LineUses uses;
@@ -239,6 +281,10 @@ class _Identity extends StatefulWidget {
   final ValueChanged<String>? onOpen;
   final ValueChanged<String>? onOpenIngredient;
   final bool struck;
+
+  /// Whether an optional use is tagged after the name. False where the row's
+  /// pill already says it.
+  final bool tagged;
 
   @override
   State<_Identity> createState() => _IdentityState();
@@ -264,7 +310,7 @@ class _IdentityState extends State<_Identity> {
       color: AnsiColors.muted,
     ).copyWith(fontStyle: FontStyle.italic);
     // A folded multi-use row is tagged if any use is optional.
-    final optional = uses.uses.any((u) => u.optional);
+    final optional = widget.tagged && uses.uses.any((u) => u.optional);
     // Every use of a folded row shares one identity.
     final removed = uses.uses.any((u) => u.ingredientDeleted);
 
@@ -363,7 +409,7 @@ List<InlineSpan> optionalSpans({required bool optional}) => optional
 
 /// The `optional` tag, in the sub-recipe chip's shape: the recipe's claim that
 /// a line may be skipped, and only that. Where a week owns the page the choice
-/// is `OptionalSection`'s. Public so the page test can find it by type.
+/// is the row's [OptionalPick]. Public so the page test can find it by type.
 class OptionalTag extends StatelessWidget {
   const OptionalTag({super.key});
 
@@ -432,6 +478,103 @@ class RemovedIngredientTag extends StatelessWidget {
           'ingredient removed · pick again',
           style: ansiMono(size: 10, color: AnsiColors.muted),
         ),
+      ),
+    );
+  }
+}
+
+/// `＋ optional` / `✓ optional`: the switch at the end of an optional row
+/// where a week asks about it. The word says what the row is, the mark what
+/// the week says: outlined with a plus while left out, the herb ground with a
+/// check once in. Not a box, which on this page would read as done.
+class OptionalPick extends StatelessWidget {
+  const OptionalPick({
+    required this.picked,
+    required this.onTap,
+    required this.name,
+    super.key,
+  });
+
+  final bool picked;
+
+  /// Null leaves it inert: the week states an amount for the row.
+  final VoidCallback? onTap;
+
+  /// The row's ingredient or sub-recipe, for the screen reader.
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = picked ? AnsiColors.herbDeep : AnsiColors.muted;
+    final pill = DecoratedBox(
+      decoration: BoxDecoration(
+        color: picked ? AnsiColors.herbSoft : null,
+        border: Border.all(
+          color: picked ? AnsiColors.herbSoft : AnsiColors.line,
+        ),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              picked ? FLucideIcons.check : FLucideIcons.plus,
+              size: 11,
+              color: ink,
+            ),
+            const SizedBox(width: 4),
+            Text('optional', style: ansiMono(size: 10, color: ink)),
+          ],
+        ),
+      ),
+    );
+    return Semantics(
+      button: true,
+      checked: picked,
+      label: '$name, optional',
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          // The target reaches past the pill on every side, so a thumb does
+          // not have to find a 20-point word.
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 0, 8),
+            child: pill,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// `step 2 “…and scatter with coriander.”`: a step that uses the row, in its
+/// own words, the ingredient in ink.
+class StepQuote extends StatelessWidget {
+  const StepQuote(this.use, {super.key});
+
+  final StepUse use;
+
+  @override
+  Widget build(BuildContext context) {
+    final words = ansiSans(size: 13, color: AnsiColors.muted);
+    return Text.rich(
+      TextSpan(
+        style: words,
+        children: [
+          TextSpan(
+            text: 'step ${use.step} ',
+            style: ansiMono(size: 11, color: AnsiColors.herbDeep),
+          ),
+          TextSpan(text: '“${use.before}'),
+          TextSpan(
+            text: use.word,
+            style: ansiSans(size: 13, weight: FontWeight.w600),
+          ),
+          TextSpan(text: '${use.after}”'),
+        ],
       ),
     );
   }

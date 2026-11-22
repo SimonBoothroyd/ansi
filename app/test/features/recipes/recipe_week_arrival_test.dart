@@ -27,7 +27,6 @@ import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
-import 'package:ansi/features/recipes/presentation/optional_section.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/method_step_text.dart';
 import 'package:ansi/shared/week_strip.dart';
@@ -392,27 +391,28 @@ void main() {
   });
 
   group('the page holds the week', () {
-    testWidgets('its optional lines are cards of their own, out of the list '
-        'and with no tag to find', (tester) async {
+    testWidgets('its optional lines stay ordinary rows in their own group, '
+        'the pill their switch and no tag after the name', (tester) async {
       await _pumpPage(tester, week: _weekKey);
 
-      expect(find.byType(OptionalCard), findsOneWidget);
+      expect(find.byType(OptionalPick), findsOneWidget);
       expect(find.byType(OptionalTag), findsNothing);
-      expect(
-        find.byWidgetPredicate(
-          (w) =>
-              w is RecipeIngredientLine &&
-              w.uses.ingredientName == 'Pickled Red Onions',
-        ),
-        findsNothing,
+      final row = find.byWidgetPredicate(
+        (w) =>
+            w is RecipeIngredientLine &&
+            w.uses.ingredientName == 'Pickled Red Onions',
       );
+      expect(row, findsOneWidget);
+      expect(tester.widget<RecipeIngredientLine>(row).picked, isFalse);
+      // The pill is inside the row, not a section of its own.
       expect(
-        tester.widget<OptionalCard>(find.byType(OptionalCard)).included,
-        isFalse,
+        find.descendant(of: row, matching: find.byType(OptionalPick)),
+        findsOneWidget,
       );
+      expect(find.text('OPTIONAL'), findsNothing);
     });
 
-    testWidgets('a card the week ticked in reads included', (tester) async {
+    testWidgets('a line the week ticked in reads included', (tester) async {
       await _pumpPage(
         tester,
         week: _weekKey,
@@ -424,7 +424,7 @@ void main() {
       );
 
       expect(
-        tester.widget<OptionalCard>(find.byType(OptionalCard)).included,
+        tester.widget<OptionalPick>(find.byType(OptionalPick)).picked,
         isTrue,
       );
     });
@@ -445,14 +445,14 @@ void main() {
       expect(find.text('edited for this week'), findsNothing);
     });
 
-    testWidgets('tapping the card ticks that line in for that week', (
+    testWidgets('tapping the pill ticks that line in for that week', (
       tester,
     ) async {
       final variants = FakeWeekVariantRepository();
       await _pumpPage(tester, week: _weekKey, variants: variants);
 
-      await tester.ensureVisible(find.byType(OptionalCard));
-      await tester.tap(find.byType(OptionalCard));
+      await tester.ensureVisible(find.byType(OptionalPick));
+      await tester.tap(find.byType(OptionalPick));
       await tester.pumpAndSettle();
 
       expect(variants.ticked, [
@@ -470,8 +470,8 @@ void main() {
       );
       await _pumpPage(tester, week: _weekKey, variants: variants);
 
-      await tester.ensureVisible(find.byType(OptionalCard));
-      await tester.tap(find.byType(OptionalCard));
+      await tester.ensureVisible(find.byType(OptionalPick));
+      await tester.tap(find.byType(OptionalPick));
       await tester.pumpAndSettle();
 
       expect(variants.ticked, [
@@ -527,7 +527,8 @@ void main() {
       expect(find.text('500 g'), findsOneWidget);
       expect(find.text('400 g'), findsNothing);
 
-      await tester.tap(find.byIcon(FLucideIcons.plus));
+      // The scaler's plus, not an optional pill's.
+      await tester.tap(find.widgetWithIcon(FButton, FLucideIcons.plus));
       await tester.pumpAndSettle();
       expect(find.text('625 g'), findsOneWidget);
     });
@@ -583,10 +584,8 @@ void main() {
       expect(find.text('520'), findsNothing);
       expect(find.text('INCLUDED'), findsOneWidget);
       expect(find.text('Pickled Red Onions · for this week'), findsOneWidget);
-      // Nothing optional is left out, so no row says there is.
-      // The section's label alone: nothing optional is left out of the total,
-      // so no row under it says there is.
-      expect(find.text('OPTIONAL'), findsOneWidget);
+      // Nothing optional is left out of the total, so the panel names none.
+      expect(find.text('OPTIONAL'), findsNothing);
     });
 
     testWidgets('and names what is still out, which its own notes cannot', (
@@ -607,8 +606,8 @@ void main() {
         ),
       );
 
-      // The section's label, and the panel's row.
-      expect(find.text('OPTIONAL'), findsNWidgets(2));
+      // The panel's row: what the total leaves out.
+      expect(find.text('OPTIONAL'), findsOneWidget);
       expect(find.text('Pickled Red Onions'), findsWidgets);
       expect(find.text('INCLUDED'), findsNothing);
     });
@@ -671,7 +670,7 @@ void main() {
       await _pumpPage(tester);
 
       expect(find.text('optional'), findsOneWidget);
-      expect(find.byType(OptionalCard), findsNothing);
+      expect(find.byType(OptionalPick), findsNothing);
       expect(
         find.descendant(
           of: find.byType(OptionalTag),

@@ -556,10 +556,14 @@ its steps.
     or the editor, and the only place the flag itself changes. The week says
     *this time, yes* — the cook's claim, the `include` row. On the recipe
     page **a week owns** (opened from a week that cooks it, as a dish or as
-    another's sub-recipe, or from *Add to plan*) the optional lines leave the
-    list for an OPTIONAL section: a card per ingredient, however many lines
-    it is on, quoting each step that uses it (`stepUsesOf`, off the method's
-    chips; its note alone where no step links it), and the card is the tick.
+    another's sub-recipe, or from *Add to plan*) each optional line stays an
+    ordinary row in its own group and order, amount on the left, quoting each
+    step that uses it under the name (`stepUsesOf`, off the method's chips;
+    its note alone where no step links it). The word **optional** at the
+    row's end is the switch: outlined with ＋ while left out, on the herb
+    ground with ✓ once in, and a row left out greys. Not a checkbox, which on
+    this page reads as done. One pick answers for every line of that
+    ingredient.
     The method greys what was not picked, with no amount. From the Library
     the tag is a tag: with no week there is no decision, and nothing is
     written. A household that always wants the lime
