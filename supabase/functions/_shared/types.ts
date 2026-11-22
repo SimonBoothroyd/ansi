@@ -95,8 +95,20 @@ export interface TimerToken {
   high_seconds: number;
 }
 
+/**
+ * A step's own amount of something no line holds ("one empty can" of water):
+ * it scales with the servings and is never bought or counted.
+ */
+export interface AmountToken {
+  t: "amount";
+  text: string; // the words as printed: "one empty can", "4 tablespoons"
+  qty: number;
+  qty_high: number | null; // a printed range's high end
+  unit: string | null; // the counting word as printed: "can", "cups"
+}
+
 /** A step is an ordered token stream (§4.6). */
-export type StepToken = TextToken | RefToken | TimerToken;
+export type StepToken = TextToken | RefToken | TimerToken | AmountToken;
 
 export interface Step {
   tokens: StepToken[];

@@ -302,6 +302,10 @@ MethodToken _$MethodTokenFromJson(
           return MethodTimer.fromJson(
             json
           );
+                case 'amount':
+          return MethodAmount.fromJson(
+            json
+          );
         
           default:
             throw CheckedFromJsonException(
@@ -360,13 +364,14 @@ extension MethodTokenPatterns on MethodToken {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( MethodText value)?  text,TResult Function( MethodRef value)?  ref,TResult Function( MethodTimer value)?  timer,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( MethodText value)?  text,TResult Function( MethodRef value)?  ref,TResult Function( MethodTimer value)?  timer,TResult Function( MethodAmount value)?  amount,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case MethodText() when text != null:
 return text(_that);case MethodRef() when ref != null:
 return ref(_that);case MethodTimer() when timer != null:
-return timer(_that);case _:
+return timer(_that);case MethodAmount() when amount != null:
+return amount(_that);case _:
   return orElse();
 
 }
@@ -384,13 +389,14 @@ return timer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( MethodText value)  text,required TResult Function( MethodRef value)  ref,required TResult Function( MethodTimer value)  timer,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( MethodText value)  text,required TResult Function( MethodRef value)  ref,required TResult Function( MethodTimer value)  timer,required TResult Function( MethodAmount value)  amount,}){
 final _that = this;
 switch (_that) {
 case MethodText():
 return text(_that);case MethodRef():
 return ref(_that);case MethodTimer():
-return timer(_that);}
+return timer(_that);case MethodAmount():
+return amount(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -404,13 +410,14 @@ return timer(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( MethodText value)?  text,TResult? Function( MethodRef value)?  ref,TResult? Function( MethodTimer value)?  timer,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( MethodText value)?  text,TResult? Function( MethodRef value)?  ref,TResult? Function( MethodTimer value)?  timer,TResult? Function( MethodAmount value)?  amount,}){
 final _that = this;
 switch (_that) {
 case MethodText() when text != null:
 return text(_that);case MethodRef() when ref != null:
 return ref(_that);case MethodTimer() when timer != null:
-return timer(_that);case _:
+return timer(_that);case MethodAmount() when amount != null:
+return amount(_that);case _:
   return null;
 
 }
@@ -427,12 +434,13 @@ return timer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String s)?  text,TResult Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)?  ref,TResult Function( int lowSeconds,  int highSeconds)?  timer,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String s)?  text,TResult Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)?  ref,TResult Function( int lowSeconds,  int highSeconds)?  timer,TResult Function( String text,  double qty,  double? qtyHigh,  String? unit)?  amount,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MethodText() when text != null:
 return text(_that.s);case MethodRef() when ref != null:
 return ref(_that.refs,_that.label,_that.amountRule,_that.portion);case MethodTimer() when timer != null:
-return timer(_that.lowSeconds,_that.highSeconds);case _:
+return timer(_that.lowSeconds,_that.highSeconds);case MethodAmount() when amount != null:
+return amount(_that.text,_that.qty,_that.qtyHigh,_that.unit);case _:
   return orElse();
 
 }
@@ -450,12 +458,13 @@ return timer(_that.lowSeconds,_that.highSeconds);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String s)  text,required TResult Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)  ref,required TResult Function( int lowSeconds,  int highSeconds)  timer,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String s)  text,required TResult Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)  ref,required TResult Function( int lowSeconds,  int highSeconds)  timer,required TResult Function( String text,  double qty,  double? qtyHigh,  String? unit)  amount,}) {final _that = this;
 switch (_that) {
 case MethodText():
 return text(_that.s);case MethodRef():
 return ref(_that.refs,_that.label,_that.amountRule,_that.portion);case MethodTimer():
-return timer(_that.lowSeconds,_that.highSeconds);}
+return timer(_that.lowSeconds,_that.highSeconds);case MethodAmount():
+return amount(_that.text,_that.qty,_that.qtyHigh,_that.unit);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -469,12 +478,13 @@ return timer(_that.lowSeconds,_that.highSeconds);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String s)?  text,TResult? Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)?  ref,TResult? Function( int lowSeconds,  int highSeconds)?  timer,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String s)?  text,TResult? Function( List<String> refs,  String label, @JsonKey(name: 'mention')  ChipAmountRule amountRule,  StepPortion? portion)?  ref,TResult? Function( int lowSeconds,  int highSeconds)?  timer,TResult? Function( String text,  double qty,  double? qtyHigh,  String? unit)?  amount,}) {final _that = this;
 switch (_that) {
 case MethodText() when text != null:
 return text(_that.s);case MethodRef() when ref != null:
 return ref(_that.refs,_that.label,_that.amountRule,_that.portion);case MethodTimer() when timer != null:
-return timer(_that.lowSeconds,_that.highSeconds);case _:
+return timer(_that.lowSeconds,_that.highSeconds);case MethodAmount() when amount != null:
+return amount(_that.text,_that.qty,_that.qtyHigh,_that.unit);case _:
   return null;
 
 }
@@ -722,6 +732,85 @@ class _$MethodTimerCopyWithImpl<$Res>
 lowSeconds: null == lowSeconds ? _self.lowSeconds : lowSeconds // ignore: cast_nullable_to_non_nullable
 as int,highSeconds: null == highSeconds ? _self.highSeconds : highSeconds // ignore: cast_nullable_to_non_nullable
 as int,
+  ));
+}
+
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class MethodAmount implements MethodToken {
+  const MethodAmount({required this.text, required this.qty, this.qtyHigh, this.unit, final  String? $type}): $type = $type ?? 'amount';
+  factory MethodAmount.fromJson(Map<String, dynamic> json) => _$MethodAmountFromJson(json);
+
+ final  String text;
+ final  double qty;
+ final  double? qtyHigh;
+ final  String? unit;
+
+@JsonKey(name: 't')
+final String $type;
+
+
+/// Create a copy of MethodToken
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MethodAmountCopyWith<MethodAmount> get copyWith => _$MethodAmountCopyWithImpl<MethodAmount>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$MethodAmountToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MethodAmount&&(identical(other.text, text) || other.text == text)&&(identical(other.qty, qty) || other.qty == qty)&&(identical(other.qtyHigh, qtyHigh) || other.qtyHigh == qtyHigh)&&(identical(other.unit, unit) || other.unit == unit));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,text,qty,qtyHigh,unit);
+
+@override
+String toString() {
+  return 'MethodToken.amount(text: $text, qty: $qty, qtyHigh: $qtyHigh, unit: $unit)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $MethodAmountCopyWith<$Res> implements $MethodTokenCopyWith<$Res> {
+  factory $MethodAmountCopyWith(MethodAmount value, $Res Function(MethodAmount) _then) = _$MethodAmountCopyWithImpl;
+@useResult
+$Res call({
+ String text, double qty, double? qtyHigh, String? unit
+});
+
+
+
+
+}
+/// @nodoc
+class _$MethodAmountCopyWithImpl<$Res>
+    implements $MethodAmountCopyWith<$Res> {
+  _$MethodAmountCopyWithImpl(this._self, this._then);
+
+  final MethodAmount _self;
+  final $Res Function(MethodAmount) _then;
+
+/// Create a copy of MethodToken
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? text = null,Object? qty = null,Object? qtyHigh = freezed,Object? unit = freezed,}) {
+  return _then(MethodAmount(
+text: null == text ? _self.text : text // ignore: cast_nullable_to_non_nullable
+as String,qty: null == qty ? _self.qty : qty // ignore: cast_nullable_to_non_nullable
+as double,qtyHigh: freezed == qtyHigh ? _self.qtyHigh : qtyHigh // ignore: cast_nullable_to_non_nullable
+as double?,unit: freezed == unit ? _self.unit : unit // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

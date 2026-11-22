@@ -290,4 +290,64 @@ void main() {
       expect(formatTimerRange(2100, 2100), formatDuration(2100));
     });
   });
+
+  group("a step's own amount", () {
+    List<String> amounts(MethodStep step, double factor) => foldMethod(
+      step,
+      lineById: const {},
+      factor: factor,
+    ).whereType<MethodAmountSpan>().map((a) => a.text).toList();
+
+    const water = MethodStep(
+      tokens: [
+        MethodText(s: 'Fill '),
+        MethodAmount(text: 'one empty can', qty: 1, unit: 'can'),
+        MethodText(s: ' with water and add '),
+        MethodAmount(text: '4 tablespoons', qty: 4, unit: 'tablespoons'),
+        MethodText(s: ' of the pasta water, then '),
+        MethodAmount(text: '2–3 cups', qty: 2, qtyHigh: 3, unit: 'cups'),
+        MethodText(s: ' of stock.'),
+      ],
+    );
+
+    test('as written it reads as written', () {
+      expect(amounts(water, 1), ['one empty can', '4 tablespoons', '2–3 cups']);
+    });
+
+    test(
+      'scaled, it says the figure as a cook measures it, in its own word',
+      () {
+        // 3½ servings of a recipe for 4: a can is said by hand, so ⅞ of one is
+        // the whole can; cups keep their thirds.
+        expect(amounts(water, 3.5 / 4), [
+          '1 can',
+          '3½ tablespoons',
+          '1¾–2⅔ cups',
+        ]);
+        // A spoon too coarse steps down, as a line's amount does.
+        expect(amounts(water, 0.25), ['¼ can', '1 tablespoons', '½–¾ cups']);
+      },
+    );
+
+    test('it is stored with its words, and a token this build does not know '
+        'reads as its words rather than failing the recipe', () {
+      final json = const MethodToken.amount(
+        text: '2–3 cups',
+        qty: 2,
+        qtyHigh: 3,
+        unit: 'cups',
+      ).toJson();
+      expect(json['t'], 'amount');
+      expect(json['qty_high'], 3);
+      expect(MethodToken.fromJson(json), isA<MethodAmount>());
+      expect(
+        MethodToken.fromJson(const {'t': 'temperature', 'text': '200 °C'}),
+        const MethodToken.text(s: '200 °C'),
+      );
+      expect(
+        MethodToken.fromJson(const {'t': 'sketch'}),
+        const MethodToken.text(s: ''),
+      );
+    });
+  });
 }

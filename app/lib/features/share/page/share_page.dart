@@ -296,6 +296,8 @@ String _method(Recipe recipe, double factor) {
           MethodTextSpan(:final text) => _h(text),
           MethodChipSpan() =>
             '<span class="chip">${_h(_chipText(span))}</span>',
+          MethodAmountSpan(:final text) =>
+            '<span class="amt">${_h(text)}</span>',
           MethodTimerSpan(:final text, :final lowSeconds, :final highSeconds) =>
             '<button type="button" class="timer" data-seconds='
                 '"${midpointSeconds(lowSeconds, highSeconds)}">'
@@ -339,6 +341,7 @@ List<String> _stepTexts(Recipe recipe) {
             MethodTextSpan(:final text) => text,
             MethodChipSpan() => _chipText(span),
             MethodTimerSpan(:final text) => text,
+            MethodAmountSpan(:final text) => text,
           },
       ].join().trim(),
   ];
@@ -406,6 +409,7 @@ a{color:var(--herb)}
 ol{padding-left:22px}
 ol li{border:0;padding:6px 0}
 .chip{background:var(--wash);border-radius:8px;padding:1px 6px;white-space:nowrap}
+.step-amt{font:13px "IBM Plex Mono",ui-monospace,monospace;background:var(--wash);border-radius:6px;padding:1px 5px;white-space:nowrap}
 .timer{font:inherit;color:var(--herb);background:var(--wash);border:1px solid var(--line);border-radius:8px;padding:0 6px;cursor:pointer}
 .timer.running{color:var(--paper);background:var(--herb)}
 .timer.due{color:#fff;background:#b3261e}

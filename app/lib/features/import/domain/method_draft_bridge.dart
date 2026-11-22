@@ -59,6 +59,10 @@ Step _step(MethodDraftStep draft, Set<int> keptIndexes) {
         tokens.add(
           StepToken.timer(lowSeconds: lowSeconds, highSeconds: highSeconds),
         );
+      case MethodAmount(:final text, :final qty, :final qtyHigh, :final unit):
+        tokens.add(
+          StepToken.amount(text: text, qty: qty, qtyHigh: qtyHigh, unit: unit),
+        );
       case MethodRef(
         :final refs,
         :final label,

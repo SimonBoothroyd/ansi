@@ -86,7 +86,7 @@ const gPortion: GSchema = {
 const gToken: GSchema = {
   type: "OBJECT",
   properties: {
-    t: { type: "STRING", enum: ["text", "ref", "timer"] },
+    t: { type: "STRING", enum: ["text", "ref", "timer", "amount"] },
     s: { type: "STRING", nullable: true },
     refs: { type: "ARRAY", nullable: true, items: { type: "STRING" } },
     label: { type: "STRING", nullable: true },
@@ -98,6 +98,10 @@ const gToken: GSchema = {
     portion: gPortion,
     low_seconds: { type: "NUMBER", nullable: true },
     high_seconds: { type: "NUMBER", nullable: true },
+    text: { type: "STRING", nullable: true },
+    qty: { type: "NUMBER", nullable: true },
+    qty_high: { type: "NUMBER", nullable: true },
+    unit: { type: "STRING", nullable: true },
   },
   required: ["t"],
 };

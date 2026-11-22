@@ -235,6 +235,44 @@ Deno.test("coerceExtractionResult — an unknown token kind is dropped", () => {
   });
 });
 
+Deno.test("coerceExtractionResult — a step's own amount keeps its words and scales its figure", () => {
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    steps: [{
+      tokens: [
+        { t: "text", s: "Fill " },
+        { t: "amount", text: "one empty can", qty: 1, unit: "can" },
+        { t: "text", s: " with water, then " },
+        { t: "amount", text: "2 to 3 cups", qty: 2, qty_high: 3, unit: "cups" },
+        // No figure to scale: it stays prose.
+        { t: "amount", text: "some water", qty: null, unit: null },
+        // A high end that is no range is dropped, not inverted.
+        {
+          t: "amount",
+          text: "4 tablespoons",
+          qty: 4,
+          qty_high: 4,
+          unit: "tablespoons",
+        },
+      ],
+    }],
+  });
+  assertEquals(r.steps[0].tokens, [
+    { t: "text", s: "Fill " },
+    { t: "amount", text: "one empty can", qty: 1, qty_high: null, unit: "can" },
+    { t: "text", s: " with water, then " },
+    { t: "amount", text: "2 to 3 cups", qty: 2, qty_high: 3, unit: "cups" },
+    { t: "text", s: "some water" },
+    {
+      t: "amount",
+      text: "4 tablespoons",
+      qty: 4,
+      qty_high: null,
+      unit: "tablespoons",
+    },
+  ]);
+});
+
 Deno.test("coerceExtractionResult — null refs filtered; a string is a key (unknown ⇒ -1)", () => {
   // Strings are line keys: an unknown one resolves to -1 so the out-of-range
   // machinery reports and demotes it, same as a bad index.

@@ -792,6 +792,37 @@ class RecipeEditor extends _$RecipeEditor
   /// Re-times a timer. Its text becomes [formatTimerRange]'s output again, so
   /// the round-trip still never re-parses the string it printed.
   @override
+  void amountRange(
+    String stepId, {
+    required int start,
+    required int end,
+    required double qty,
+    String? unit,
+  }) => _mapStep(
+    stepId,
+    (d) => markAmount(d, start: start, end: end, qty: qty, unit: unit),
+  );
+
+  @override
+  void insertAmount(
+    String stepId, {
+    required int offset,
+    required double qty,
+    String? unit,
+  }) => _mapStep(
+    stepId,
+    (d) => insertAmountAt(d, offset: offset, qty: qty, unit: unit),
+  );
+
+  @override
+  void setAmountSpan(
+    String stepId,
+    int index, {
+    required double qty,
+    String? unit,
+  }) => _mapStep(stepId, (d) => reAmount(d, index, qty: qty, unit: unit));
+
+  @override
   void setTimerSpan(String stepId, int index, int low, int high) => _mapStep(
     stepId,
     (d) => index < d.spans.length
@@ -824,6 +855,7 @@ class RecipeEditor extends _$RecipeEditor
       for (final span in step.spans) {
         if (span is RefSpan) chips++;
         if (span is TimerSpan) timers++;
+        if (span is AmountSpan) chips++;
       }
     }
     return (chips: chips, timers: timers);

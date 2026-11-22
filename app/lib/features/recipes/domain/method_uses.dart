@@ -108,6 +108,7 @@ int _wordCount(String text) => RegExp('[A-Za-zÀ-ÿ]+').allMatches(text).length;
 String _textOf(MethodSpan span) => switch (span) {
   MethodTextSpan(:final text) => text,
   MethodTimerSpan(:final text) => text,
+  MethodAmountSpan(:final text) => text,
   MethodChipSpan(:final label, :final constituents) =>
     label.isNotEmpty ? label : constituents.join(', '),
 };

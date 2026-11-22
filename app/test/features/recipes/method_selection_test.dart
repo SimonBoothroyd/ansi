@@ -66,7 +66,53 @@ void main() {
     await selectAndShowToolbar(tester, 1, 15, 19);
 
     expect(find.text('To ingredient'), findsOneWidget);
+    expect(find.text('To amount'), findsOneWidget);
     expect(find.text('To timer'), findsOneWidget);
+  });
+
+  testWidgets('To amount reads ONLY the selection and keeps its words', (
+    tester,
+  ) async {
+    final repo = await openEditor(tester);
+    final field = tester.widget<EditableText>(methodFields().at(1));
+    field.controller.value = const TextEditingValue(
+      text: 'Fill one empty can with water.',
+      selection: TextSelection.collapsed(offset: 30),
+    );
+    await tester.pumpAndSettle();
+
+    await selectAndShowToolbar(tester, 1, 5, 18); // "one empty can"
+    await tester.tap(find.text('To amount'));
+    await tester.pumpAndSettle();
+
+    // Seeded from the selection alone: the number and the word it counts.
+    expect(find.text('from “one empty can”'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('amount-qty')),
+        matching: find.text('1'),
+      ),
+      findsWidgets,
+    );
+    expect(
+      find.text(
+        'Doubled, it reads 2 can. Never on the Shop or in the '
+        'totals.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    // No text changed: as written reads as written.
+    expect(methodFieldText(tester, 1), 'Fill one empty can with water.');
+    await tapSave(tester);
+    final amount = repo.saved.single.methodSteps![1].tokens
+        .whereType<MethodAmount>()
+        .single;
+    expect(amount.text, 'one empty can');
+    expect(amount.qty, 1);
+    expect(amount.unit, 'can');
   });
 
   testWidgets('To ingredient chips the selection without changing the text', (

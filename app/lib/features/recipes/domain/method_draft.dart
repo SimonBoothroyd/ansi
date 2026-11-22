@@ -14,6 +14,7 @@ library;
 import 'package:meta/meta.dart';
 
 import '../../../core/search/search_query.dart' show searchTokens;
+import '../../../core/units/number_format.dart';
 import '../../ingredients/domain/normalize.dart' show matchTextForms;
 import 'method_step.dart';
 import 'recipe.dart';
@@ -122,6 +123,47 @@ final class TimerSpan extends DraftSpan {
   String toString() => 'TimerSpan($start,$end,$lowSeconds,$highSeconds)';
 }
 
+/// A step's own amount ([MethodAmount]): the words in the range are its text
+/// as written, and the figure that scales rides here.
+@immutable
+final class AmountSpan extends DraftSpan {
+  const AmountSpan({
+    required super.start,
+    required super.end,
+    required this.qty,
+    this.qtyHigh,
+    this.unit,
+  });
+
+  final double qty;
+  final double? qtyHigh;
+  final String? unit;
+
+  @override
+  AmountSpan moved(int start, int end) => AmountSpan(
+    start: start,
+    end: end,
+    qty: qty,
+    qtyHigh: qtyHigh,
+    unit: unit,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is AmountSpan &&
+      other.start == start &&
+      other.end == end &&
+      other.qty == qty &&
+      other.qtyHigh == qtyHigh &&
+      other.unit == unit;
+
+  @override
+  int get hashCode => Object.hash(start, end, qty, qtyHigh, unit);
+
+  @override
+  String toString() => 'AmountSpan($start,$end,$qty,$qtyHigh,$unit)';
+}
+
 bool _sameRefs(List<String> a, List<String> b) {
   if (a.length != b.length) return false;
   for (var i = 0; i < a.length; i++) {
@@ -198,6 +240,20 @@ MethodDraftStep toDraft(
           ),
         );
         offset += word.length;
+      case MethodAmount(:final text, :final qty, :final qtyHigh, :final unit):
+        // An amount with no words of its own has nothing to mark.
+        if (text.isEmpty) continue;
+        buffer.write(text);
+        spans.add(
+          AmountSpan(
+            start: offset,
+            end: offset + text.length,
+            qty: qty,
+            qtyHigh: qtyHigh,
+            unit: unit,
+          ),
+        );
+        offset += text.length;
       case MethodRef(
         :final refs,
         :final label,
@@ -258,6 +314,15 @@ MethodStep toTokens(MethodDraftStep draft) {
       case TimerSpan(:final lowSeconds, :final highSeconds):
         tokens.add(
           MethodToken.timer(lowSeconds: lowSeconds, highSeconds: highSeconds),
+        );
+      case AmountSpan(:final qty, :final qtyHigh, :final unit):
+        tokens.add(
+          MethodToken.amount(
+            text: draft.text.substring(span.start, span.end),
+            qty: qty,
+            qtyHigh: qtyHigh,
+            unit: unit,
+          ),
         );
     }
     cursor = span.end;
@@ -405,6 +470,72 @@ MethodDraftStep respan(
           existing,
     ],
   );
+}
+
+/// The words an amount is written in where none were selected: `1 can`,
+/// `½ cup`, or the bare figure.
+String amountWords(double qty, String? unit) {
+  final word = unit?.trim() ?? '';
+  return word.isEmpty ? formatAmount(qty) : '${formatAmount(qty)} $word';
+}
+
+/// Marks `[start, end)` as a step's own amount, **keeping its words**: the
+/// selection reads as written at the recipe's own servings.
+MethodDraftStep markAmount(
+  MethodDraftStep draft, {
+  required int start,
+  required int end,
+  required double qty,
+  String? unit,
+}) => annotate(
+  draft,
+  AmountSpan(start: start, end: end, qty: qty, unit: _word(unit)),
+);
+
+/// The no-selection door for an amount: [amountWords] spliced in at [offset]
+/// and marked.
+MethodDraftStep insertAmountAt(
+  MethodDraftStep draft, {
+  required int offset,
+  required double qty,
+  String? unit,
+}) => insertSpan(
+  draft,
+  offset: offset,
+  word: amountWords(qty, unit),
+  span: AmountSpan(start: 0, end: 0, qty: qty, unit: _word(unit)),
+);
+
+/// Re-states the amount at [index]. Unchanged, its words stay as written;
+/// changed, they become [amountWords], so as written never disagrees with the
+/// figure that scales.
+MethodDraftStep reAmount(
+  MethodDraftStep draft,
+  int index, {
+  required double qty,
+  String? unit,
+}) {
+  final old = draft.spans.elementAtOrNull(index);
+  if (old is! AmountSpan) return draft;
+  final word = _word(unit);
+  final same = old.qty == qty && old.unit == word;
+  return respan(
+    draft,
+    index,
+    span: AmountSpan(
+      start: 0,
+      end: 0,
+      qty: qty,
+      qtyHigh: same ? old.qtyHigh : null,
+      unit: word,
+    ),
+    word: same ? spanWord(draft, index) : amountWords(qty, word),
+  );
+}
+
+String? _word(String? unit) {
+  final word = unit?.trim() ?? '';
+  return word.isEmpty ? null : word;
 }
 
 /// The word the span at [index] currently reads as.

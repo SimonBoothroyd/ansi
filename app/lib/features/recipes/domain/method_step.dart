@@ -78,8 +78,35 @@ sealed class MethodToken with _$MethodToken {
     required int highSeconds,
   }) = MethodTimer;
 
+  /// A step's own amount of something that is no line: "one empty can" of
+  /// water, "4 tablespoons" of the pasta water. It scales with the servings
+  /// and is never bought, costed or counted. [text] is the words as written,
+  /// printed as they are at the recipe's own servings; [qty] (to [qtyHigh] for
+  /// a range) of [unit] is what scales. [unit] is the step's word, a catalog
+  /// unit or any other (`can`, `handful`).
+  const factory MethodToken.amount({
+    required String text,
+    required double qty,
+    double? qtyHigh,
+    String? unit,
+  }) = MethodAmount;
+
+  /// A stored token. A kind this build does not know reads as its words, so
+  /// a step a newer build wrote never stops an older one from opening the
+  /// recipe.
   factory MethodToken.fromJson(Map<String, Object?> json) =>
-      _$MethodTokenFromJson(json);
+      switch (json['t']) {
+        'text' || 'ref' || 'timer' || 'amount' => _$MethodTokenFromJson(json),
+        _ => MethodToken.text(s: _wordsOf(json)),
+      };
+}
+
+/// The words an unknown token carries, by the keys the known kinds use.
+String _wordsOf(Map<String, Object?> json) {
+  for (final key in const ['text', 's', 'label']) {
+    if (json[key] case final String words) return words;
+  }
+  return '';
 }
 
 @freezed
@@ -128,6 +155,13 @@ class MethodChipSpan extends MethodSpan {
   final List<String> lineIds;
 }
 
+/// A step's own amount ([MethodAmount]), already formatted: as written at the
+/// recipe's own servings, the scaled figure and word otherwise.
+class MethodAmountSpan extends MethodSpan {
+  const MethodAmountSpan(this.text);
+  final String text;
+}
+
 /// A timer chip, its span already formatted ("6–8 min"), with the seconds it
 /// was folded from so a tap can start it.
 class MethodTimerSpan extends MethodSpan {
@@ -160,6 +194,10 @@ List<MethodSpan> foldMethod(
             lowSeconds: lowSeconds,
             highSeconds: highSeconds,
           ),
+        );
+      case MethodAmount(:final text, :final qty, :final qtyHigh, :final unit):
+        spans.add(
+          MethodAmountSpan(stepAmountText(text, qty, qtyHigh, unit, factor)),
         );
       case MethodRef(
         :final refs,
@@ -290,6 +328,39 @@ String? _formatPortion(StepPortion portion, double factor) {
   }
   // A relative word ("half", "for garnish") renders as written.
   return portion.qualifier;
+}
+
+/// A step's own amount as the page prints it: [text] as written at [factor]
+/// 1, otherwise the scaled figure in its word, rounded as a cook measures it
+/// (`⅞ can`, `2 tbsp`, `5–6 cup`), exactly as a line's amount is.
+String stepAmountText(
+  String text,
+  double qty,
+  double? qtyHigh,
+  String? word,
+  double factor,
+) {
+  if (factor == 1) return text;
+  final said = word?.trim() ?? '';
+  final unit = said.isEmpty ? null : unitFromLabel(said) ?? unitFromWord(said);
+  String one(double amount) {
+    if (unit == null || unit.family == UnitFamily.imprecise) {
+      final n = kitchenAmount(amount);
+      return said.isEmpty ? n : '$n $said';
+    }
+    final k = kitchenAmountIn(amount, unit);
+    if (k.amount.isEmpty) return k.unit.label;
+    // Still the step's own word: keep the step's own spelling of it.
+    return '${k.amount} ${k.unit == unit ? said : k.unit.label}';
+  }
+
+  if (qtyHigh == null) return one(qty * factor);
+  final low = qty * factor;
+  final high = qtyHigh * factor;
+  final ends = unit != null && unit.isMetric
+      ? (formatNumber(low), formatNumber(high))
+      : (kitchenAmount(low), kitchenAmount(high));
+  return said.isEmpty ? '${ends.$1}–${ends.$2}' : '${ends.$1}–${ends.$2} $said';
 }
 
 /// A timer span: "6 min", "6–8 min", "2 h 30 min"; a sub-minute time keeps its
