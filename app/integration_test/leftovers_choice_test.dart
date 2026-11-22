@@ -244,8 +244,16 @@ void main() {
     await openPickerOn(tester, 'Thursday');
     final potDay = dateIn(thisWeek, cookDay);
     final cooks = 'cooks ${leftoverDay(potDay, smokeToday(), kSmokeShape)}';
-    final offer = find.textContaining(cooks);
+    // By the dish as well as the day: on a Sunday the pot is cooked today,
+    // and so is every other dish this file planned today.
+    final offer = find.byWidgetPredicate((w) {
+      if (w is! Semantics) return false;
+      final label = w.properties.label ?? '';
+      return label.startsWith('$title, ') && label.contains(cooks);
+    });
     await pumpUntilFound(tester, offer);
+    await tester.ensureVisible(offer.first);
+    await tester.pumpAndSettle();
     await tester.tap(offer.first);
     await pumpUntilFound(tester, find.text('Add to plan'));
     await tester.ensureVisible(_add('Thursday'));
