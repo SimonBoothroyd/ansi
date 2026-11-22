@@ -68,6 +68,23 @@ Map<String, dynamic> _$MethodTimerToJson(MethodTimer instance) =>
       't': instance.$type,
     };
 
+MethodAmount _$MethodAmountFromJson(Map<String, dynamic> json) => MethodAmount(
+  text: json['text'] as String,
+  qty: (json['qty'] as num).toDouble(),
+  qtyHigh: (json['qty_high'] as num?)?.toDouble(),
+  unit: json['unit'] as String?,
+  $type: json['t'] as String?,
+);
+
+Map<String, dynamic> _$MethodAmountToJson(MethodAmount instance) =>
+    <String, dynamic>{
+      'text': instance.text,
+      'qty': instance.qty,
+      'qty_high': instance.qtyHigh,
+      'unit': instance.unit,
+      't': instance.$type,
+    };
+
 _MethodStep _$MethodStepFromJson(Map<String, dynamic> json) => _MethodStep(
   tokens:
       (json['tokens'] as List<dynamic>?)

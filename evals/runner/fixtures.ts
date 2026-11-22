@@ -178,6 +178,8 @@ function timeToText(t: TimeField): string | null {
 
 function tokenToText(tok: StepToken): string {
   switch (tok.t) {
+    case "amount":
+      return tok.text;
     case "text":
       return tok.s;
     case "ref":

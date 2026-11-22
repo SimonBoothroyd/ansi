@@ -170,6 +170,7 @@ List<String> methodStepTexts(Recipe recipe, {double factor = 1}) {
                   if (label.isNotEmpty) label else constituents.join(', '),
                 ].join(' '),
               MethodTimerSpan(:final text) => text,
+              MethodAmountSpan(:final text) => text,
             },
           )
           .join()

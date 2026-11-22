@@ -205,8 +205,26 @@ sealed class StepToken with _$StepToken {
     required int highSeconds,
   }) = TimerToken;
 
-  factory StepToken.fromJson(Map<String, Object?> json) =>
-      _$StepTokenFromJson(json);
+  /// A step's own amount of something no line holds (`one empty can` of
+  /// water); see `MethodToken.amount`.
+  const factory StepToken.amount({
+    required String text,
+    required double qty,
+    double? qtyHigh,
+    String? unit,
+  }) = AmountToken;
+
+  /// A kind this build does not know reads as its words, so a newer server
+  /// never stops an older app from reviewing an import.
+  factory StepToken.fromJson(Map<String, Object?> json) => switch (json['t']) {
+    'text' || 'ref' || 'timer' || 'amount' => _$StepTokenFromJson(json),
+    _ => StepToken.text(
+      s: switch (json['text'] ?? json['s'] ?? json['label']) {
+        final String words => words,
+        _ => '',
+      },
+    ),
+  };
 }
 
 @freezed

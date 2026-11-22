@@ -144,6 +144,23 @@ Map<String, dynamic> _$TimerTokenToJson(TimerToken instance) =>
       't': instance.$type,
     };
 
+AmountToken _$AmountTokenFromJson(Map<String, dynamic> json) => AmountToken(
+  text: json['text'] as String,
+  qty: (json['qty'] as num).toDouble(),
+  qtyHigh: (json['qty_high'] as num?)?.toDouble(),
+  unit: json['unit'] as String?,
+  $type: json['t'] as String?,
+);
+
+Map<String, dynamic> _$AmountTokenToJson(AmountToken instance) =>
+    <String, dynamic>{
+      'text': instance.text,
+      'qty': instance.qty,
+      'qty_high': instance.qtyHigh,
+      'unit': instance.unit,
+      't': instance.$type,
+    };
+
 _Step _$StepFromJson(Map<String, dynamic> json) => _Step(
   tokens:
       (json['tokens'] as List<dynamic>?)

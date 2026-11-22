@@ -638,8 +638,8 @@ its steps.
 #### The method (step 8 tokens · the 0022 editor)
 
 **One shape.** A step is an ordered list of tokens — plain text, `ref` chips
-pointing at line items by id, and `timer`s ([import spec §4.6](./import-and-matching.md)
-is the frozen contract). Since 0022 the editor **writes that shape for every
+pointing at line items by id, `timer`s, and a step's own `amount`s
+([import spec §4.6](./import-and-matching.md) is the frozen contract). Since 0022 the editor **writes that shape for every
 recipe**, a chip-less step being one text token; the plain `steps: List<String>`
 is write-never, read-legacy. The recipe page, the import review screen, the
 editor's preview and cook mode therefore all read one method model through one
@@ -649,6 +649,17 @@ renderer (`method_step_text.dart`) and one fold (`foldMethod`).
 timer at the middle of its range (`20–25 min` runs `22:30`) and shows the count
 in place; elsewhere it is inert. Nothing about a running timer is stored in the
 recipe or synced — see [`features/timers`](../../app/lib/features/timers/README.md).
+
+**A step's own amount scales.** Something a step measures that is no line
+(*fill one empty can with water*, *4 tablespoons of the pasta water*) is an
+`amount` token: its words as written, a figure (or a range), and the word it
+counts. At the recipe's own servings it prints its words as written; scaled,
+it prints the scaled figure in its word, rounded as a cook measures it exactly
+as a line's amount is (`⅞ cup`, `1 can`), in the small mono pill an
+ingredient chip's amount wears, with no name beside it. It is never bought,
+costed or counted: no line, no Shop row, no macro. A token kind a build does
+not know reads as its words, so a step a newer build wrote never stops an
+older one opening the recipe.
 
 **The editor's document is text plus ranges.** A ref's `label` already *is* the
 word standing at that position, so a token stream flattens to exactly the
@@ -660,8 +671,12 @@ demotes it**: the word stays, the link goes.
 
 **A chip is made by selecting text and saying what it is.** Highlight a run,
 and the selection toolbar offers *To ingredient* (the line picker, over this
-recipe's own lines) and *To timer* (a stepper, seeded by parsing only the
-selected substring). The selected words become the chip's word verbatim.
+recipe's own lines), *To amount* (a number and its word, seeded by reading
+only the selected substring: `one empty can` is 1 `can`; the words stay as
+written) and *To timer* (a stepper, seeded by parsing only the selected
+substring). With no selection the step's *＋ ingredient*, *＋ amount* and
+*timer* buttons insert one at the caret, and a tap on an amount reopens its
+sheet; changing its figure rewrites its words to match. The selected words become the chip's word verbatim.
 **Nothing scans prose on its own** — auto-chipping typed text would be
 ADR-0004's render-time matching in a different hat.
 

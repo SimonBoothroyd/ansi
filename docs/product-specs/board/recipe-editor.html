@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi · the board</a></p>
     <h1 class="view-title">Recipe editor</h1>
-    <p class="view-status">built · matches code 2026-09-20 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · MEASURES under MAKES <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: differs 2026-09-20: the two foot doors stack in the 420 column, the caret&rsquo;s chip wears the ring&rsquo;s herb rule without its hairline, and the wide frame does not reach the MEASURES band drawn under the four cells <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · copy pass: matches code 2026-10-28 (MAKES on one row, measures as equations, the method’s dialogs) · week mode: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
+    <p class="view-status">built · matches code 2026-09-20 · step amounts: matches code 2026-11-22 · <code>features/recipes</code> · <code>presentation/line_card.dart</code> · <a href="../../exec-plans/completed/0022-polish-pass.md">plan 0022</a> · <a href="../../exec-plans/completed/0025-field-test-round-three.md">plan 0025</a> · <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> · <a href="../../exec-plans/completed/0035-line-ergonomics.md">plan 0035</a> · <a href="../../exec-plans/completed/0043-week-variant.md">plan 0043</a> · <a href="../../exec-plans/completed/0044-recipe-page-and-optional.md">plan 0044</a> · MEASURES under MAKES <a href="../../decisions/0018-a-recipe-measure-is-a-named-amount.md">ADR-0018</a> · wide: differs 2026-09-20: the two foot doors stack in the 420 column, the caret&rsquo;s chip wears the ring&rsquo;s herb rule without its hairline, and the wide frame does not reach the MEASURES band drawn under the four cells <a href="../../exec-plans/completed/0047-wide-screens.md">plan 0047</a> · copy pass: matches code 2026-10-28 (MAKES on one row, measures as equations, the method’s dialogs) · week mode: matches code 2026-10-28 · <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a></p>
     <p class="view-blurb">One header form under two hosts, and a method written as step cards with live ingredient chips — select the words, say what they are. Opened with <code>?week=</code> it edits the same list for one planned week and saves a diff against the recipe instead of the recipe.</p>
 </header>
 
@@ -314,7 +314,7 @@
         </div>
 
     <div class="frame">
-        <p class="frame-name"><b>Selecting the words</b> · one card per step; the platform selection toolbar gains <i>To ingredient</i> and <i>To timer</i></p>
+        <p class="frame-name"><b>Selecting the words</b> · one card per step; the platform selection toolbar gains <i>To ingredient</i>, <i>To amount</i> and <i>To timer</i></p>
         <div class="phone"><div class="notch"></div><div class="screen">
             <div class="abar"><span class="back">‹</span><span class="ttl">Edit recipe</span><span class="dots">Save</span></div>
             <div class="tsec" style="margin-top:6px"><span class="tl">Method</span><span class="tc">5</span><span class="rule"></span><span class="ci" style="color:var(--muted);font-size:12px">⋯</span></div>
@@ -325,8 +325,8 @@
             <div class="mstep on">
                 <div class="mstep-h"><span class="n">Step 4</span><span class="ic">▲</span><span class="ic">▼</span><span class="ic">🗑</span></div>
                 <div class="mstep-in">Split the <span class="echip">buns</span> in half crosswise and place them cut side up on a baking sheet. Brush the tops with the melted <span class="echip">garlic butter</span>, then scatter the <span class="sel">everything spice</span> liberally over each one.</div>
-                <div class="seltb"><span>Cut</span><span>Copy</span><span class="k">To ingredient</span><span class="k">To timer</span><span>▸</span></div>
-                <div class="mstep-tools"><span class="mtool k">＋ ingredient</span><span class="mtool">⏱ timer</span></div>
+                <div class="seltb"><span>Cut</span><span>Copy</span><span class="k">To ingredient</span><span class="k">To amount</span><span class="k">To timer</span><span>▸</span></div>
+                <div class="mstep-tools"><span class="mtool k">＋ ingredient</span><span class="mtool">＋ amount</span><span class="mtool">⏱ timer</span></div>
                 <div class="mstep-pv"><span class="pvl">Reads as</span>Split the <span class="mchip">buns<span class="mqn">8</span></span> in half crosswise… Brush the tops with the melted <span class="mchip">garlic butter<span class="mqn">2 tbsp</span></span>, then scatter the everything spice liberally over each one.</div>
             </div>
             <div class="addstep">＋ Add a step</div>
@@ -407,6 +407,29 @@
             <div class="dngr" style="margin-top:8px">Remove timer · keeps the words</div>
             <p class="conv-note" style="text-align:center">nothing was guessed — the sheet opens seeded from the run of text you selected, or from the timer you tapped. Minutes and seconds are <b>two notches</b>, seconds in 15 s steps, so a ragged <i>6 min 30 s</i> is reachable and nothing is rounded away</p>
             <p class="conv-note" style="text-align:center">with no end set, <b>To</b> shows one button — <b>＋ Add an end</b> — and the ✕ puts it back. The primary reads <b>Insert</b> until there is a timer to remove; then it reads <b>Save</b>. <b>Goes in as</b> is the real sentence around the duration, in plain words</p>
+        </div></div>
+    </div>
+
+    <div class="frame">
+        <p class="frame-name"><b>Select an amount</b> · a step's own amount of something no line holds &mdash; the can of water &mdash; read from the words you selected</p>
+        <div class="phone"><div class="notch"></div><div class="screen sheet">
+            <div class="grab"></div>
+            <p class="c-h">Amount</p>
+            <p style="margin:2px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">from &ldquo;one empty can&rdquo;</p>
+            <div class="qtyrow" style="margin:14px 20px 4px;display:flex;gap:10px">
+                <div style="width:96px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface)">1</div>
+                <div style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--surface)">can</div>
+            </div>
+            <div style="display:flex;gap:6px;margin:10px 20px 0;font-family:'IBM Plex Mono',monospace;font-size:12px">
+                <span style="padding:5px 9px;border-radius:8px;background:var(--herb);color:var(--surface)">can</span>
+                <span style="padding:5px 9px;border-radius:8px;border:1px solid var(--line)">cup</span>
+                <span style="padding:5px 9px;border-radius:8px;border:1px solid var(--line)">tbsp</span>
+                <span style="padding:5px 9px;border-radius:8px;border:1px solid var(--line)">tsp</span>
+                <span style="padding:5px 9px;border-radius:8px;border:1px solid var(--line)">ml</span>
+            </div>
+            <p style="margin:14px 20px 0;font-size:13px;color:var(--muted)">Doubled, it reads 2 can. Never on the Shop or in the totals.</p>
+            <div class="savebtn">Done</div>
+            <p class="conv-note" style="text-align:center">the words stay <b>as written</b> &mdash; <i>one empty can</i> reads <i>one empty can</i> at the recipe&rsquo;s own servings, and <b>⅞ cup</b>, <b>1 can</b> once scaled, rounded as a line&rsquo;s amount is. It is a <b>mark, not a line</b>: never bought, costed or counted. Tapped again it opens with <b>Save</b> and <b>Remove amount · keeps the words</b>, and a changed figure rewrites the words to match. Nothing was guessed from prose the person did not select</p>
         </div></div>
     </div>
 
@@ -538,7 +561,7 @@
                                 <div class="mstep on">
                                     <div class="mstep-h"><span class="n">Step 4</span><span class="ic">&#9650;</span><span class="ic">&#9660;</span><span class="ic">&#128465;</span></div>
                                     <div class="mstep-in">Split the <span class="echip">buns</span> in half crosswise and place them cut side up on a baking sheet. Brush the tops with the melted <span class="echip">garlic butter</span>, then scatter the <span class="echip we-at">everything spice</span><span class="care" style="display:inline-block;width:1.5px;height:14px;background:var(--herb);vertical-align:-2px;margin-left:1px"></span> liberally over each one.</div>
-                                    <div class="mstep-tools"><span class="mtool k">&#65291; ingredient</span><span class="mtool">&#9201; timer</span></div>
+                                    <div class="mstep-tools"><span class="mtool k">&#65291; ingredient</span><span class="mtool">&#65291; amount</span><span class="mtool">&#9201; timer</span></div>
                                     <div class="mstep-pv"><span class="pvl">Reads as</span>Split the <span class="mchip">buns<span class="mqn">8</span></span> in half crosswise&hellip; Brush the tops with the melted <span class="mchip">garlic butter<span class="mqn">2 tbsp</span></span>, then scatter the <span class="mchip">everything spice<span class="mqn">1 tbsp</span></span> liberally over each one.</div>
                                 </div>
                                 <div class="mstep">

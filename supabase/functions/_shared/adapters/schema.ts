@@ -91,7 +91,7 @@ const tokenSchema = {
   additionalProperties: false,
   required: ["t"],
   properties: {
-    t: { type: "string", enum: ["text", "ref", "timer"] },
+    t: { type: "string", enum: ["text", "ref", "timer", "amount"] },
     // text
     s: { type: "string" },
     // ref: entries are line keys. Coercion still accepts the legacy integer
@@ -103,6 +103,11 @@ const tokenSchema = {
     // timer
     low_seconds: { type: "number" },
     high_seconds: { type: "number" },
+    // amount
+    text: { type: "string" },
+    qty: { type: "number" },
+    qty_high: { type: ["number", "null"] },
+    unit: { type: ["string", "null"] },
   },
 } as const;
 
@@ -421,6 +426,23 @@ function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
     const low = numOrNull(o.low_seconds) ?? numOrNull(o.high_seconds) ?? 0;
     const high = numOrNull(o.high_seconds) ?? low;
     return { t: "timer", low_seconds: low, high_seconds: high };
+  }
+  if (t === "amount") {
+    const words = cap(String(o.text ?? o.s ?? ""), CAPS.step_text);
+    const qty = numOrNull(o.qty);
+    // No figure to scale: the words stay, as prose.
+    if (qty === null || !(qty > 0)) {
+      return words ? { t: "text", s: words } : null;
+    }
+    const high = numOrNull(o.qty_high);
+    const unit = strOrNull(o.unit, CAPS.unit);
+    return {
+      t: "amount",
+      text: words || [qty, unit].filter((p) => p !== null).join(" "),
+      qty,
+      qty_high: high !== null && high > qty ? high : null,
+      unit,
+    };
   }
   if (t === "ref") {
     const refs = Array.isArray(o.refs)

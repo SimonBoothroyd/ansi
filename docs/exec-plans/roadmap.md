@@ -57,7 +57,16 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-Nothing.
+- **Optional ingredients as ordinary rows**
+  ([plan 0063](./active/0063-optional-items.md)): where a week owns the recipe
+  page an optional line stays in its own group, its `optional` pill the
+  switch. No migration.
+- **A step's own amount** (the can of water): an `amount` step token that
+  scales with the servings and is never bought or counted; *To amount* and
+  *＋ amount* in the method editor; the import prompt marks them. Older builds
+  read an unknown token as its words from here on. No migration; owes
+  `deploy-supabase` (`import-recipe` prompt, `share-recipe` page) after both
+  phones run the tag.
 
 ## Shipped
 

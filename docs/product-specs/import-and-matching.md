@@ -238,6 +238,13 @@ wrapped as `{raw, band, candidates}` (§6).
           "portion": null },          // optional sub-amount, transcribed from the step
         { "t": "text", "s": " and soften for " },
         { "t": "timer", "low_seconds": 600, "high_seconds": 900 }
+      ] },
+    { "tokens": [
+        { "t": "text", "s": "Fill " },
+        // a step's own amount of something no line holds; scales, never bought
+        { "t": "amount", "text": "one empty can", "qty": 1,
+          "qty_high": null, "unit": "can" },
+        { "t": "text", "s": " with water." }
       ] }
   ]
 }

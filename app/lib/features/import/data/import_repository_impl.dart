@@ -21,6 +21,7 @@ import '../../ingredients/data/name_holder.dart';
 import '../../ingredients/domain/normalize.dart';
 import '../../recipes/data/recipe_measure_repository_impl.dart'
     show writeRecipeMeasures;
+import '../../recipes/domain/method_step.dart';
 import '../domain/commit_payload.dart';
 import '../domain/import_repository.dart';
 import '../domain/learnable_alias.dart';
@@ -400,6 +401,13 @@ class SqliteImportRepository implements ImportRepository {
           'low_seconds': lowSeconds,
           'high_seconds': highSeconds,
         };
+      case AmountToken(:final text, :final qty, :final qtyHigh, :final unit):
+        return MethodToken.amount(
+          text: text,
+          qty: qty,
+          qtyHigh: qtyHigh,
+          unit: unit,
+        ).toJson();
       case RefToken(:final refs, :final label, :final mention, :final portion):
         final ids = [
           for (final i in refs)

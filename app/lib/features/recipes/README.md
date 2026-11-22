@@ -78,8 +78,13 @@ ignores both.
 
 `shared/method_step_text.dart` prints prose with live numbers in it: an
 ingredient chip is the word in `herbDeep` with its amount in a mono pill, a
-timer chip keeps its outlined pill, and a chip whose imprecise amount the prose
-already says prints no pill.
+timer chip keeps its outlined pill, a step's own amount (`MethodAmount`, the
+can of water) is the mono pill alone, its words as written at the recipe's own
+servings and `stepAmountText`'s scaled figure otherwise, and a chip whose
+imprecise amount the prose already says prints no pill. In the editor an
+amount is an `AmountSpan`, made by *To amount* or *＋ amount*
+(`method_amount_sheet.dart`, seeded by `readAmountWords`) and kept through the
+draft round-trip.
 
 On the recipe page a tap rules a chip off, and a tap elsewhere on the step rules
 off the prose and every chip in it. The set is ephemeral — a `useState` keyed

@@ -91,6 +91,7 @@ class MethodSpanController extends TextEditingController {
       final skin = switch (span) {
         RefSpan() => chipTextStyle,
         TimerSpan() => timerTextStyle,
+        AmountSpan() => amountTextStyle,
       };
       children.add(
         TextSpan(
@@ -125,6 +126,12 @@ const chipTextStyle = TextStyle(
   color: AnsiColors.herbDeep,
   fontWeight: FontWeight.w600,
 );
+
+/// A step's own amount inside the field: the mono of the chip's amount pill
+/// on its herb ground, so it reads as a number that scales, not a food.
+final amountTextStyle = ansiMonoInherit(
+  size: 14,
+).copyWith(backgroundColor: AnsiColors.herbSoft, color: AnsiColors.herb);
 
 /// The ring on the chip under the caret: a herb underline over its skin. A text
 /// run carries one background paint, so no outline is drawn.

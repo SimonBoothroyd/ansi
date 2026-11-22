@@ -79,6 +79,32 @@ abstract interface class MethodEditing {
   void setChipAmountRule(String stepId, int index, ChipAmountRule rule);
   void setTimerSpan(String stepId, int index, int low, int high);
 
+  /// Marks `[start, end)` of [stepId] as a step's own amount, keeping its
+  /// words ([markAmount]).
+  void amountRange(
+    String stepId, {
+    required int start,
+    required int end,
+    required double qty,
+    String? unit,
+  });
+
+  /// The no-selection door for an amount ([insertAmountAt]).
+  void insertAmount(
+    String stepId, {
+    required int offset,
+    required double qty,
+    String? unit,
+  });
+
+  /// Re-states the amount at [index] ([reAmount]).
+  void setAmountSpan(
+    String stepId,
+    int index, {
+    required double qty,
+    String? unit,
+  });
+
   /// Drops a chip or timer, keeping its word in the sentence.
   void removeChip(String stepId, int index);
 

@@ -120,6 +120,13 @@ MethodStep _methodStep(Step step, Set<int> keptIndexes) => MethodStep(
           lowSeconds: lowSeconds,
           highSeconds: highSeconds,
         ),
+        AmountToken(:final text, :final qty, :final qtyHigh, :final unit) =>
+          MethodToken.amount(
+            text: text,
+            qty: qty,
+            qtyHigh: qtyHigh,
+            unit: unit,
+          ),
         RefToken(:final refs, :final label, :final mention, :final portion) =>
           refs.any(keptIndexes.contains)
               ? MethodToken.ref(

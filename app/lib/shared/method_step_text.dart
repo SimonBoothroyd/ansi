@@ -83,6 +83,13 @@ class MethodStepText extends StatelessWidget {
       switch (span) {
         case MethodTextSpan(:final text):
           children.add(TextSpan(text: text));
+        case MethodAmountSpan(:final text):
+          children.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: StepAmountPill(text, muted: stepStruck),
+            ),
+          );
         case final MethodTimerSpan span:
           final text = span.text;
           final ordinal = timer++;
@@ -242,6 +249,34 @@ String? _unrepeatedAmount(String? amount, MethodSpan? next) {
 
 /// One inline chip.
 ///
+/// A step's own amount ([MethodAmountSpan]): the mono pill an ingredient
+/// chip's amount wears, with no word beside it, because what it measures (the
+/// water, the pasta water) is in the prose around it.
+class StepAmountPill extends StatelessWidget {
+  const StepAmountPill(this.text, {this.muted = false, super.key});
+
+  final String text;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: muted ? AnsiColors.line : AnsiColors.herbSoft,
+      borderRadius: BorderRadius.circular(5),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      child: Text(
+        text,
+        style: ansiMono(
+          size: 12,
+          color: muted ? AnsiColors.muted : AnsiColors.herb,
+        ),
+      ),
+    ),
+  );
+}
+
 /// An ingredient chip is its word in bold `herbDeep`, unboxed, with its live
 /// [amount] in a small mono pill. A [timer] chip keeps its outlined pill and
 /// never ticks off: with an [onTap] it wears a herb play glyph, because the

@@ -32,8 +32,10 @@ import '../../ingredients/presentation/quantity_unit_sheet.dart';
 import '../domain/line_display.dart';
 import '../domain/method_draft.dart';
 import '../domain/recipe.dart';
+import '../domain/step_amount.dart';
 import 'component_quantity_sheet.dart';
 import 'line_target_picker.dart';
+import 'method_amount_sheet.dart';
 import 'method_chip_sheet.dart';
 import 'method_editing.dart';
 import 'method_line_picker.dart';
@@ -323,6 +325,14 @@ class MethodStepCard extends HookConsumerWidget {
                 FButton(
                   variant: FButtonVariant.secondary,
                   size: FButtonSizeVariant.sm,
+                  prefix: const Icon(FLucideIcons.plus),
+                  onPress: () => _insertAmount(context, controller),
+                  child: const Text('amount'),
+                ),
+                const SizedBox(width: 8),
+                FButton(
+                  variant: FButtonVariant.secondary,
+                  size: FButtonSizeVariant.sm,
                   prefix: const Icon(FLucideIcons.timer),
                   onPress: () => _insertTimer(context, controller),
                   child: const Text('timer'),
@@ -367,6 +377,13 @@ class MethodStepCard extends HookConsumerWidget {
             unawaited(
               _selectionToIngredient(context, controller, selection, focusNode),
             );
+          },
+        ),
+        ContextMenuButtonItem(
+          label: 'To amount',
+          onPressed: () {
+            state.hideToolbar();
+            unawaited(_selectionToAmount(context, selection, focusNode));
           },
         ),
         ContextMenuButtonItem(
@@ -447,6 +464,33 @@ class MethodStepCard extends HookConsumerWidget {
     );
   }
 
+  /// Reads only the selected words (`one empty can`: 1, `can`) and seeds the
+  /// amount sheet with them for confirmation. The words stay as written. Not
+  /// render-time matching (ADR-0004): it runs once, on text the user selected.
+  Future<void> _selectionToAmount(
+    BuildContext context,
+    TextSelection selection,
+    FocusNode focusNode,
+  ) async {
+    final words = step.text.substring(selection.start, selection.end);
+    final read = readAmountWords(words);
+    final result = await showMethodAmountSheet(
+      context,
+      words: words,
+      qty: read.qty,
+      unit: read.word,
+    );
+    _keepTheKeyboardDown(focusNode);
+    if (result is! AmountSet) return;
+    notifier.amountRange(
+      step.id,
+      start: selection.start,
+      end: selection.end,
+      qty: result.qty,
+      unit: result.unit,
+    );
+  }
+
   /// A tap inside a chip opens its sheet; any other tap places the caret.
   Future<void> _openSpanSheet(
     BuildContext context,
@@ -490,6 +534,23 @@ class MethodStepCard extends HookConsumerWidget {
           onRemove: () => notifier.removeChip(step.id, index),
         );
         _keepTheKeyboardDown(focusNode);
+      case AmountSpan(:final qty, :final unit):
+        final result = await showMethodAmountSheet(
+          context,
+          words: spanWord(step, index),
+          qty: qty,
+          unit: unit ?? '',
+          removable: true,
+        );
+        _keepTheKeyboardDown(focusNode);
+        switch (result) {
+          case AmountSet(:final qty, :final unit):
+            notifier.setAmountSpan(step.id, index, qty: qty, unit: unit);
+          case AmountRemoved():
+            notifier.removeChip(step.id, index);
+          case null:
+            break;
+        }
       case TimerSpan(:final lowSeconds, :final highSeconds):
         final span = step.spans[index];
         final result = await showMethodTimerSheet(
@@ -587,6 +648,21 @@ class MethodStepCard extends HookConsumerWidget {
       offset: offset,
       lowSeconds: result.lowSeconds,
       highSeconds: result.highSeconds,
+    );
+  }
+
+  Future<void> _insertAmount(
+    BuildContext context,
+    MethodSpanController controller,
+  ) async {
+    final offset = _caret(controller);
+    final result = await showMethodAmountSheet(context, words: '');
+    if (result is! AmountSet) return;
+    notifier.insertAmount(
+      step.id,
+      offset: offset,
+      qty: result.qty,
+      unit: result.unit,
     );
   }
 
