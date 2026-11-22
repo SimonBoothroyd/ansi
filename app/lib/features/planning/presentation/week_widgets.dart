@@ -233,9 +233,10 @@ class PortionsChip extends StatelessWidget {
 String mealTitleText(PlanEntry entry) =>
     entry.title ?? deletedTargetLabel(entry);
 
-/// Where a meal's title goes: a recipe's page with the week it is planned in
-/// (`?week=`) and the [servings] to open at (`?servings=`, the amount of the
-/// cooking it belongs to: [mealCookingPortions]), a bare ingredient's page,
+/// Where a meal's title goes: a recipe's page with the week that cooks it
+/// (`?week=`: [weekKey], or the week of the pot it eats from; none for food
+/// bought nowhere) and the [servings] to open at (`?servings=`, the amount of
+/// the cooking it belongs to: [mealCookingPortions]), a bare ingredient's page,
 /// or null for a deleted target or a meal eaten out.
 String? mealTitleRoute(
   PlanEntry entry, {
@@ -246,7 +247,7 @@ String? mealTitleRoute(
   return switch (entry.kind) {
     PlanEntryKind.recipe => recipePageRoute(
       entry.recipeId!,
-      weekKey: weekKey,
+      weekKey: entry.boughtNowhere ? null : entry.cookedInWeek ?? weekKey,
       servings: servings,
     ),
     PlanEntryKind.ingredient => '/ingredients/${entry.ingredientId}',

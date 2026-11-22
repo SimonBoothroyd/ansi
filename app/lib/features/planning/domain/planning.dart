@@ -174,6 +174,16 @@ abstract class PlanEntry with _$PlanEntry {
     /// bought and costed in the week of its earliest meal only.
     String? cooking,
 
+    /// The first day (`YYYY-MM-DD`) of the week whose cooking this meal eats
+    /// from, where that is another week than its own: that week's variant is
+    /// what the pot holds. Derived on read, never stored.
+    String? cookedInWeek,
+
+    /// Whether this meal eats from food bought in no week (said by hand, or
+    /// its cooking taken away): no week's variant is known, so the recipe
+    /// stands as written. Derived on read, never stored.
+    @Default(false) bool boughtNowhere,
+
     /// When the row was written. A substitute without a time of its own in
     /// [eatenAt] was eaten when it was said ([hadAt]).
     DateTime? createdAt,
@@ -192,6 +202,11 @@ abstract class PlanEntry with _$PlanEntry {
     PlanEntryKind.ingredient => ingredientName,
     PlanEntryKind.out => label,
   };
+
+  /// Whether the variant of this meal's own week is what it is cooked by.
+  /// False for a meal from another week's pot, which a change to this week's
+  /// variant cannot reach.
+  bool get cookedAsThisWeek => cookedInWeek == null && !boughtNowhere;
 
   /// The [portions] override, or the eater head-count — before portion factors.
   /// The demand a plan cooks for is [demandPortions].
@@ -228,6 +243,11 @@ List<int> cookedDaysOf(Iterable<PlanEntry> entries, String? recipeId) => <int>{
   for (final e in entries)
     if (e.recipeId == recipeId) e.dayOfWeek,
 }.toList()..sort();
+
+/// The days a change to this week's variant of [recipeId] covers:
+/// [cookedDaysOf] less the meals of another week's pot.
+List<int> variantDaysOf(Iterable<PlanEntry> entries, String? recipeId) =>
+    cookedDaysOf(entries.where((e) => e.cookedAsThisWeek), recipeId);
 
 /// When something said at [now] to be eaten, for a meal on [mealDay], was
 /// eaten: now, on the meal's day; otherwise the meal's day at now's clock

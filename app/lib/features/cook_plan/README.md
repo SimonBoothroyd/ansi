@@ -138,7 +138,9 @@ re-derived (`domain/cooking.dart`).
   it made; a linked meal in any other week buys nothing. A week's cook plan,
   shop and cost read that week's unlinked meals, the cookings it buys, and
   (as `CookPlan.eatenFromEarlier`) its meals of cookings bought earlier — one
-  week, never a walk over weeks (`loadPlannedWeek`). Food said by hand is
+  week, never a walk over weeks (`loadPlannedWeek`). That week's variant is
+  also what the pot holds: `loadBuyWeeks` hands it to the Week by the same
+  rule (`buyWeekOfRows`). Food said by hand is
   bought nowhere. Cook lists each meal eaten from an earlier cooking as one
   line (`earlierMealsOf`): `Beef Ragù · Thu · from the freezer` (or `from
   the fridge`), or `cook it` once nobody ticked the earlier meals and it has

@@ -86,6 +86,69 @@ Future<Map<String, Set<String>>> loadTicks(
   return ticks;
 }
 
+/// The first day of the week the cooking [id] is bought in, off [meals], its
+/// live linked rows (`id`, `week_start_date`, `day_of_week`): [boughtIn]'s
+/// rule. Null with no meal.
+DateTime? buyWeekOfRows(
+  String id,
+  List<Row> meals, {
+  required String recipeId,
+}) => boughtIn(Cooking(id: id, recipeId: recipeId), [
+  for (final r in meals)
+    CookingMeal(
+      entryId: r['id'] as String,
+      weekStart: DateTime.parse(r['week_start_date'] as String),
+      day: dateOfDay(
+        DateTime.parse(r['week_start_date'] as String),
+        r['day_of_week'] as int,
+      ),
+      portions: 0,
+    ),
+]);
+
+/// The week (`YYYY-MM-DD`) each cooking of [ids] is bought in, as the cook
+/// plan buys it: null for food said by hand and a cooking taken away, which
+/// are bought nowhere. A cooking with no live meal is absent.
+Future<Map<String, String?>> loadBuyWeeks(
+  SqliteReadContext db,
+  Set<String> ids,
+) async {
+  if (ids.isEmpty) return const {};
+  final list = ids.toList();
+  final marks = List.filled(list.length, '?').join(', ');
+  final nowhere = {
+    for (final r in await db.getAll(
+      'SELECT id FROM cooking WHERE id IN ($marks) '
+      'AND (since IS NOT NULL OR deleted_at IS NOT NULL)',
+      list,
+    ))
+      r['id'] as String,
+  };
+  final linked = <String, List<Row>>{};
+  for (final r in await db.getAll(
+    'SELECT pe.id, pe.cooking, pe.day_of_week, pe.recipe_id, '
+    'wp.week_start_date FROM plan_entry pe '
+    'JOIN week_plan wp ON wp.id = pe.week_plan_id AND wp.deleted_at IS NULL '
+    'WHERE pe.deleted_at IS NULL AND pe.instead_of IS NULL '
+    'AND pe.cooking IN ($marks)',
+    list,
+  )) {
+    (linked[r['cooking'] as String] ??= []).add(r);
+  }
+  final weeks = <String, String?>{};
+  for (final MapEntry(key: id, value: meals) in linked.entries) {
+    final week = nowhere.contains(id)
+        ? null
+        : buyWeekOfRows(
+            id,
+            meals,
+            recipeId: meals.first['recipe_id'] as String,
+          );
+    weeks[id] = week == null ? null : isoDateOf(week);
+  }
+  return weeks;
+}
+
 /// The SQL date of a meal: its week's first day plus its offset.
 const _mealDate = "date(wp.week_start_date, '+' || pe.day_of_week || ' days')";
 

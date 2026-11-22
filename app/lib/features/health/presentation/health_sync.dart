@@ -18,6 +18,7 @@ import '../../../core/sync/session.dart';
 import '../../../core/week_shape.dart';
 import '../../planning/data/planning_providers.dart';
 import '../../planning/domain/planning.dart';
+import '../../planning/domain/week_macros.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/recipe.dart';
 import '../../recipes/domain/recipe_macros.dart';
@@ -65,19 +66,30 @@ Stream<WeekPlan?> healthWeek(Ref ref, String weekKey) => ref
     .watch(planningRepositoryProvider)
     .watchWeek(DateTime.parse('${weekKey}T00:00:00Z'));
 
-/// The recipes' figures for one week, its variants re-summed. Null until
-/// both have loaded: read early, every meal would look like it had no macros
-/// and a pass would take back everything already sent.
+/// One week's meals' figures, each as it was cooked ([MealSummaries]). Null
+/// until every part has loaded, the variants of the weeks whose pots it eats
+/// from included: read early, a meal would look like it had no macros or the
+/// recipe's own, and a pass would take back or rewrite what was sent.
 @riverpod
-Map<String, RecipeMacroSummary>? healthWeekMacros(Ref ref, String weekKey) {
+MealSummaries? healthWeekMacros(Ref ref, String weekKey) {
   final recipes = ref.watch(recipeListProvider);
+  final week = ref.watch(healthWeekProvider(weekKey));
   final variants = ref.watch(weekVariantMacrosForProvider(weekKey));
-  if (!recipes.hasValue || !variants.hasValue) return null;
-  return {
-    for (final r in recipes.value ?? const <RecipeSummary>[])
-      if (r.macros != null) r.id: r.macros!,
-    ...?variants.value,
-  };
+  if (!recipes.hasValue || !week.hasValue || !variants.hasValue) return null;
+  final others = <String, Map<String, RecipeMacroSummary>>{};
+  for (final key in otherCookedWeeks(week.value?.entries ?? const [])) {
+    final varied = ref.watch(weekVariantMacrosForProvider(key));
+    if (!varied.hasValue) return null;
+    others[key] = varied.requireValue;
+  }
+  return MealSummaries(
+    library: {
+      for (final r in recipes.value ?? const <RecipeSummary>[])
+        if (r.macros != null) r.id: r.macros!,
+    },
+    thisWeek: variants.requireValue,
+    otherWeeks: others,
+  );
 }
 
 /// What should be in Health Connect — this member's meals over this week and
@@ -103,7 +115,7 @@ Map<String, RecipeMacroSummary>? healthWeekMacros(Ref ref, String weekKey) {
       plan,
       memberId: me,
       membersById: members,
-      summaryFor: (id) => macros[id],
+      summaryFor: macros.of,
     );
     meals.addAll(found.meals);
     notSent.addAll(found.notSent);

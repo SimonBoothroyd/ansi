@@ -193,28 +193,26 @@ final class HealthWeekFamily extends $Family
   String toString() => r'healthWeekProvider';
 }
 
-/// The recipes' figures for one week, its variants re-summed. Null until
-/// both have loaded: read early, every meal would look like it had no macros
-/// and a pass would take back everything already sent.
+/// One week's meals' figures, each as it was cooked ([MealSummaries]). Null
+/// until every part has loaded, the variants of the weeks whose pots it eats
+/// from included: read early, a meal would look like it had no macros or the
+/// recipe's own, and a pass would take back or rewrite what was sent.
 
 @ProviderFor(healthWeekMacros)
 const healthWeekMacrosProvider = HealthWeekMacrosFamily._();
 
-/// The recipes' figures for one week, its variants re-summed. Null until
-/// both have loaded: read early, every meal would look like it had no macros
-/// and a pass would take back everything already sent.
+/// One week's meals' figures, each as it was cooked ([MealSummaries]). Null
+/// until every part has loaded, the variants of the weeks whose pots it eats
+/// from included: read early, a meal would look like it had no macros or the
+/// recipe's own, and a pass would take back or rewrite what was sent.
 
 final class HealthWeekMacrosProvider
-    extends
-        $FunctionalProvider<
-          Map<String, RecipeMacroSummary>?,
-          Map<String, RecipeMacroSummary>?,
-          Map<String, RecipeMacroSummary>?
-        >
-    with $Provider<Map<String, RecipeMacroSummary>?> {
-  /// The recipes' figures for one week, its variants re-summed. Null until
-  /// both have loaded: read early, every meal would look like it had no macros
-  /// and a pass would take back everything already sent.
+    extends $FunctionalProvider<MealSummaries?, MealSummaries?, MealSummaries?>
+    with $Provider<MealSummaries?> {
+  /// One week's meals' figures, each as it was cooked ([MealSummaries]). Null
+  /// until every part has loaded, the variants of the weeks whose pots it eats
+  /// from included: read early, a meal would look like it had no macros or the
+  /// recipe's own, and a pass would take back or rewrite what was sent.
   const HealthWeekMacrosProvider._({
     required HealthWeekMacrosFamily super.from,
     required String super.argument,
@@ -238,23 +236,20 @@ final class HealthWeekMacrosProvider
 
   @$internal
   @override
-  $ProviderElement<Map<String, RecipeMacroSummary>?> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<MealSummaries?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  Map<String, RecipeMacroSummary>? create(Ref ref) {
+  MealSummaries? create(Ref ref) {
     final argument = this.argument as String;
     return healthWeekMacros(ref, argument);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, RecipeMacroSummary>? value) {
+  Override overrideWithValue(MealSummaries? value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, RecipeMacroSummary>?>(
-        value,
-      ),
+      providerOverride: $SyncValueProvider<MealSummaries?>(value),
     );
   }
 
@@ -269,14 +264,15 @@ final class HealthWeekMacrosProvider
   }
 }
 
-String _$healthWeekMacrosHash() => r'dba3c0b3576000ab256a99e102f39f0d1819585d';
+String _$healthWeekMacrosHash() => r'956e640b986a0c8eb9b045a6371cc6d5a5c96936';
 
-/// The recipes' figures for one week, its variants re-summed. Null until
-/// both have loaded: read early, every meal would look like it had no macros
-/// and a pass would take back everything already sent.
+/// One week's meals' figures, each as it was cooked ([MealSummaries]). Null
+/// until every part has loaded, the variants of the weeks whose pots it eats
+/// from included: read early, a meal would look like it had no macros or the
+/// recipe's own, and a pass would take back or rewrite what was sent.
 
 final class HealthWeekMacrosFamily extends $Family
-    with $FunctionalFamilyOverride<Map<String, RecipeMacroSummary>?, String> {
+    with $FunctionalFamilyOverride<MealSummaries?, String> {
   const HealthWeekMacrosFamily._()
     : super(
         retry: null,
@@ -286,9 +282,10 @@ final class HealthWeekMacrosFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The recipes' figures for one week, its variants re-summed. Null until
-  /// both have loaded: read early, every meal would look like it had no macros
-  /// and a pass would take back everything already sent.
+  /// One week's meals' figures, each as it was cooked ([MealSummaries]). Null
+  /// until every part has loaded, the variants of the weeks whose pots it eats
+  /// from included: read early, a meal would look like it had no macros or the
+  /// recipe's own, and a pass would take back or rewrite what was sent.
 
   HealthWeekMacrosProvider call(String weekKey) =>
       HealthWeekMacrosProvider._(argument: weekKey, from: this);
@@ -357,7 +354,7 @@ final class HealthMealsProvider
   }
 }
 
-String _$healthMealsHash() => r'e9e101be9130c26ba467bdad7d3e2232a56034c8';
+String _$healthMealsHash() => r'ce934b531178ac4f9a3ae61abd8859b03cbee300';
 
 /// Writes the difference between [healthMeals] and what was last sent, a
 /// moment after anything changes and whenever the app comes back to the

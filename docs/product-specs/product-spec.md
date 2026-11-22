@@ -821,6 +821,14 @@ go. There is no re-chip — tokenization happens only inside the import call.
   - **One variant per (week, recipe)**, all days of that week. A cook session
     is one pot, one scale, one line set, so two meals of the same dish in one
     week that disagreed about what goes in could not share it.
+  - **A meal is read by the week that cooked it.** A meal from another week's
+    pot (`PlanEntry.cookedInWeek`: the week its cooking is bought in) takes
+    that week's variant in the Week's figures, Health and Ask; food bought in
+    no week takes the recipe as written. This week's variant cannot reach
+    either, so such a meal's title opens the page on the cooking's week (none,
+    for food bought in no week), its sheet offers no *edit for this week*, its
+    row never says it is edited, and a week that only eats a dish from a pot
+    offers no switch on its page.
   - **Amounts are absolute, never a factor.** The recipe moving 400 g to 500 g
     later leaves that week at the 400 g somebody asked for.
   - The **shopping list is where lines meet the week**, so it is where the

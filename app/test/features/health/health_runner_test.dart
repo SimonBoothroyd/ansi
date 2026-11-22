@@ -7,6 +7,7 @@ import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/features/health/data/health_providers.dart';
 import 'package:ansi/features/health/presentation/health_sync.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
+import 'package:ansi/features/planning/domain/week_macros.dart';
 import 'package:ansi/features/planning/presentation/week_view_models.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:flutter/widgets.dart';
@@ -55,9 +56,10 @@ void main() {
         healthWeekProvider.overrideWith(
           (ref, key) => Stream.value(key == '2026-10-18' ? plan : null),
         ),
-        healthWeekMacrosProvider.overrideWith(
-          (ref, key) => macros == null ? {'curry': curry} : macros(),
-        ),
+        healthWeekMacrosProvider.overrideWith((ref, key) {
+          final known = macros == null ? {'curry': curry} : macros();
+          return known == null ? null : MealSummaries(library: known);
+        }),
       ],
     );
     addTearDown(container.dispose);

@@ -18,7 +18,8 @@ const _curry = RecipeMacroSummary(
   perServing: Macros(kcal: 400, protein: 30, carb: 40, fat: 10),
 );
 
-RecipeMacroSummary? _summaries(String id) => id == 'curry' ? _curry : null;
+RecipeMacroSummary? _summaries(PlanEntry meal) =>
+    meal.recipeId == 'curry' ? _curry : null;
 
 final _weekStart = DateTime.utc(2026, 10, 19);
 final _wednesdayEvening = DateTime(2026, 10, 21, 19, 42);

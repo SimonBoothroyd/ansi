@@ -17,6 +17,43 @@ import '../../../core/units/units.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import 'planning.dart';
 
+/// The other weeks whose cookings [entries] eat from: the weeks whose variants
+/// a [MealSummaries] over them needs.
+Set<String> otherCookedWeeks(Iterable<PlanEntry> entries) => {
+  for (final e in entries) ?e.cookedInWeek,
+};
+
+/// Each meal's per-serving summary **as it was cooked**. A variant is per
+/// (week, recipe), and the week that counts is the one that cooked the meal:
+/// the meal's own, another week's for a meal from its pot, or none for food
+/// bought nowhere ([PlanEntry.boughtNowhere]).
+@immutable
+class MealSummaries {
+  const MealSummaries({
+    this.library = const {},
+    this.thisWeek = const {},
+    this.otherWeeks = const {},
+  });
+
+  /// Every recipe as written, by recipe id.
+  final Map<String, RecipeMacroSummary> library;
+
+  /// The recipes the meals' own week varies, re-summed.
+  final Map<String, RecipeMacroSummary> thisWeek;
+
+  /// The same for each of [otherCookedWeeks], by its first day.
+  final Map<String, Map<String, RecipeMacroSummary>> otherWeeks;
+
+  /// [meal]'s summary, or null when its recipe is gone or not loaded.
+  RecipeMacroSummary? of(PlanEntry meal) {
+    final id = meal.recipeId;
+    final varied = meal.cookedAsThisWeek
+        ? thisWeek
+        : otherWeeks[meal.cookedInWeek];
+    return varied?[id] ?? library[id];
+  }
+}
+
 /// Why a planned meal could not join a total.
 enum MealExclusion {
   /// The recipe's own macro summary is incomplete. The reason wording comes
@@ -200,7 +237,7 @@ PortionMacros ingredientPortionMacros(
 /// so the lens, the refusals and their wording match the day total.
 MealSetMacros servedMealMacros(
   PlanEntry entry, {
-  required RecipeMacroSummary? Function(String recipeId) summaryFor,
+  required RecipeMacroSummary? Function(PlanEntry meal) summaryFor,
   String? lensMemberId,
   Map<String, Member> membersById = const {},
 }) => sumPlannedMacros(
@@ -216,8 +253,10 @@ MealSetMacros servedMealMacros(
 /// Under Everyone ([lensMemberId] null) `servings` is [demandPortions]. Under a
 /// lens an entry counts only if that member eats it, at [memberServings]; an
 /// entry with no eaters stays in scope and is excluded with a reason.
-/// [summaryFor] returns a recipe's per-serving summary, or null when gone or
-/// not loaded.
+/// [summaryFor] returns a meal's per-serving summary as it was cooked
+/// ([MealSummaries.of]), or null when its recipe is gone or not loaded. It is
+/// asked by meal, never by recipe: one week can cook a dish and eat last
+/// week's pot of it.
 ///
 /// [eatenOnly] counts what was eaten instead of what was planned: a meal is in
 /// scope only once someone eating it ticked it ([PlanEntry.eatenBy]), and
@@ -226,7 +265,7 @@ MealSetMacros servedMealMacros(
 /// ([PlanEntry.had]) counts too, as theirs.
 MealSetMacros sumPlannedMacros(
   Iterable<PlanEntry> entries, {
-  required RecipeMacroSummary? Function(String recipeId) summaryFor,
+  required RecipeMacroSummary? Function(PlanEntry meal) summaryFor,
   String? lensMemberId,
   Map<String, Member> membersById = const {},
   bool eatenOnly = false,
@@ -309,9 +348,7 @@ MealSetMacros sumPlannedMacros(
         }
         perPortion = stated;
       case PlanEntryKind.recipe:
-        final summary = entry.recipeTitle == null
-            ? null
-            : summaryFor(entry.recipeId!);
+        final summary = entry.recipeTitle == null ? null : summaryFor(entry);
         if (summary == null) {
           excluded.add((
             entryId: entry.id,

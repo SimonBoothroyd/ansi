@@ -428,6 +428,7 @@ class _PaneMeal extends ConsumerWidget {
           : null,
     );
     final edited =
+        entry.cookedAsThisWeek &&
         (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
                 const [])
             .isNotEmpty;

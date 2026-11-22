@@ -36,7 +36,7 @@ import '../../recipes/domain/recipe.dart';
 import '../../recipes/presentation/component_quantity_sheet.dart';
 import '../../recipes/presentation/ingredient_line.dart';
 import '../../recipes/presentation/line_target_picker.dart';
-import '../domain/planning.dart' show PlanEntry, cookedDaysOf;
+import '../domain/planning.dart' show PlanEntry, variantDaysOf;
 import 'week_format.dart';
 import 'week_variant_format.dart';
 import 'week_variant_view_models.dart';
@@ -192,7 +192,7 @@ class WeekVariantBand extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plan = ref.watch(weekPlanForProvider(weekKey)).asData?.value;
     final batches = weekBatchesOf(
-      cookedDaysOf(plan?.entries ?? const <PlanEntry>[], recipe.id),
+      variantDaysOf(plan?.entries ?? const <PlanEntry>[], recipe.id),
       keepsForDays: recipe.keepsForDays,
       freezable: recipe.freezable,
       freezerDays: recipe.freezerDays,

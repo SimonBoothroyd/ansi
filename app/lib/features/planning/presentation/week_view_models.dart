@@ -128,7 +128,9 @@ Stream<Map<String, List<LineOverride>>> viewedWeekOverrides(Ref ref) => ref
 
 /// How the week a `?week=` link names holds one recipe: the days it plans it
 /// on, and whether the week varies it. Empty `days` means the link is stale (or
-/// unparseable), and the recipe page then hides its week door.
+/// unparseable) or the week only eats the dish from another week's pot, and
+/// the recipe page then hides its week door: a change there would cook
+/// nothing.
 typedef WeekRecipePlacement = ({List<int> days, bool edited});
 
 @riverpod
@@ -140,7 +142,11 @@ WeekRecipePlacement weekRecipePlacement(
   final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
   if (weekStart == null) return const (days: <int>[], edited: false);
   final plan = ref.watch(weekPlanForProvider(weekKey)).asData?.value;
-  final days = cookedDaysOf(plan?.entries ?? const <PlanEntry>[], recipeId);
+  final meals = plan?.entries ?? const <PlanEntry>[];
+  final cooksIt = meals.any(
+    (e) => e.recipeId == recipeId && e.cookedAsThisWeek,
+  );
+  final days = cooksIt ? cookedDaysOf(meals, recipeId) : const <int>[];
   final overrides =
       ref.watch(weekOverridesForProvider(weekKey)).asData?.value ?? const {};
   return (days: days, edited: (overrides[recipeId] ?? const []).isNotEmpty);
@@ -240,19 +246,30 @@ DateTime? weekStartOfKey(String weekKey, WeekShape shape) {
   return date == null ? null : shape.weekStartOf(date);
 }
 
-/// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
-/// figure, re-summed over the week's effective lines where it varies the
-/// recipe.
+/// Each viewed meal's summary as it was cooked ([MealSummaries]): the
+/// Library's figure, re-summed over the effective lines of the week that
+/// cooked it where that week varies the recipe.
 @riverpod
-Map<String, RecipeMacroSummary> weekRecipeMacros(Ref ref) {
+MealSummaries weekMealSummaries(Ref ref) {
   final recipes =
       // An unloaded recipe list simply resolves no figures.
       ref.watch(recipeListProvider).asData?.value ?? const <RecipeSummary>[];
-  return {
-    for (final r in recipes)
-      if (r.macros != null) r.id: r.macros!,
-    ...ref.watch(variantRecipeMacrosProvider).asData?.value ?? const {},
-  };
+  final meals =
+      ref.watch(viewedWeekProvider).asData?.value?.entries ??
+      const <PlanEntry>[];
+  return MealSummaries(
+    library: {
+      for (final r in recipes)
+        if (r.macros != null) r.id: r.macros!,
+    },
+    thisWeek: ref.watch(variantRecipeMacrosProvider).asData?.value ?? const {},
+    otherWeeks: {
+      for (final week in otherCookedWeeks(meals))
+        week:
+            ref.watch(weekVariantMacrosForProvider(week)).asData?.value ??
+            const {},
+    },
+  );
 }
 
 /// The re-summed figures for the recipes the viewed week varies.
@@ -285,10 +302,10 @@ Map<String, Member> membersById(Ref ref) => {
 @riverpod
 MealSetMacros weekMacros(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
-  final macros = ref.watch(weekRecipeMacrosProvider);
+  final summaries = ref.watch(weekMealSummariesProvider);
   return sumPlannedMacros(
     plan?.entries ?? const [],
-    summaryFor: (id) => macros[id],
+    summaryFor: summaries.of,
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
   );
@@ -299,10 +316,10 @@ MealSetMacros weekMacros(Ref ref, String? lens) {
 @riverpod
 MealSetMacros weekEatenMacros(Ref ref, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
-  final macros = ref.watch(weekRecipeMacrosProvider);
+  final summaries = ref.watch(weekMealSummariesProvider);
   return sumPlannedMacros(
     plan?.entries ?? const [],
-    summaryFor: (id) => macros[id],
+    summaryFor: summaries.of,
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
     eatenOnly: true,
@@ -319,10 +336,10 @@ MealSetMacros mealMacros(Ref ref, String entryId, String? lens) {
       if (e.id == entryId) e,
   ];
   if (entries.isEmpty) return const MealSetMacros();
-  final macros = ref.watch(weekRecipeMacrosProvider);
+  final summaries = ref.watch(weekMealSummariesProvider);
   return servedMealMacros(
     entries.first,
-    summaryFor: (id) => macros[id],
+    summaryFor: summaries.of,
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
   );
@@ -333,10 +350,10 @@ MealSetMacros mealMacros(Ref ref, String entryId, String? lens) {
 @riverpod
 MealSetMacros dayMacros(Ref ref, int dayOfWeek, String? lens) {
   final plan = ref.watch(viewedWeekProvider).asData?.value;
-  final macros = ref.watch(weekRecipeMacrosProvider);
+  final summaries = ref.watch(weekMealSummariesProvider);
   return sumPlannedMacros(
     plan?.entriesForDay(dayOfWeek) ?? const [],
-    summaryFor: (id) => macros[id],
+    summaryFor: summaries.of,
     lensMemberId: lens,
     membersById: ref.watch(membersByIdProvider),
   );

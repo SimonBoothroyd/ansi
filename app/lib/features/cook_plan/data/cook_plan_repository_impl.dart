@@ -21,7 +21,6 @@ import '../../recipes/data/recipe_measure_repository_impl.dart'
 import '../../recipes/domain/component_math.dart';
 import '../domain/cook_plan.dart';
 import '../domain/cook_plan_repository.dart';
-import '../domain/cooking.dart';
 import '../domain/leftovers.dart' show dateOfDay;
 import 'cooking_store.dart';
 
@@ -239,18 +238,7 @@ loadPlannedWeek(
         wholeBatch: whole.contains(id),
         meals: covers,
       );
-      final buyWeek = boughtIn(Cooking(id: id, recipeId: recipeId), [
-        for (final r in meals)
-          CookingMeal(
-            entryId: r['id'] as String,
-            weekStart: DateTime.parse(r['week_start_date'] as String),
-            day: dateOfDay(
-              DateTime.parse(r['week_start_date'] as String),
-              r['day_of_week'] as int,
-            ),
-            portions: 0,
-          ),
-      ]);
+      final buyWeek = buyWeekOfRows(id, meals, recipeId: recipeId);
       if (buyWeek != null && _daysBetween(weekStart, buyWeek) == 0) {
         boughtHere.add((recipeId: recipeId, cooking: cooking));
         // Not cooked yet (nobody ticked a meal of it, nor said it gone): the

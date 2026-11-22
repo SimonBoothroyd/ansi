@@ -88,7 +88,7 @@ String healthMealId(String entryId, String memberId) =>
   WeekPlan week, {
   required String memberId,
   required Map<String, Member> membersById,
-  required RecipeMacroSummary? Function(String recipeId) summaryFor,
+  required RecipeMacroSummary? Function(PlanEntry meal) summaryFor,
 }) {
   final meals = <HealthMeal>[];
   final notSent = <String>[];

@@ -116,7 +116,7 @@ void main() {
           ),
           memberId: 'ada',
           membersById: members,
-          summaryFor: (id) => id == 'curry' ? curry : null,
+          summaryFor: (meal) => meal.recipeId == 'curry' ? curry : null,
         ).meals;
 
     final gateway = FakeHealthGateway();

@@ -841,6 +841,52 @@ void main() {
       expect(after.eatenFromEarlier[thu]!.cookDay, -2);
     });
 
+    test('a meal from last week’s pot names the week that cooked it, as the '
+        'plan buys it', () async {
+      final sat = await curryFor(5);
+      final thu = await curryFor(3, week: nextWeek, cooking: sat);
+      final own = await curryFor(6, week: nextWeek);
+      final byId = {
+        for (final e in (await planning.watchWeek(nextWeek).first)!.entries)
+          e.id: e,
+      };
+      expect(byId[thu]!.cookedInWeek, '2026-08-24');
+      expect(byId[thu]!.cookedAsThisWeek, isFalse);
+      expect(byId[own]!.cookedAsThisWeek, isTrue);
+      expect((await repo.watchCookPlan(nextWeek).first).eatenFromEarlier.keys, [
+        thu,
+      ], reason: 'the Week and the cook plan agree on which meal that is');
+
+      final cookWeek = (await planning.watchWeek(_week).first)!.entries;
+      expect(cookWeek.single.cookedAsThisWeek, isTrue);
+    });
+
+    test('cooking it fresh makes it its own week’s again', () async {
+      final sat = await curryFor(5);
+      final thu = await curryFor(3, week: nextWeek, cooking: sat);
+      await db.execute('UPDATE plan_entry SET cooking = NULL WHERE id = ?', [
+        thu,
+      ]);
+      final entries = (await planning.watchWeek(nextWeek).first)!.entries;
+      expect(entries.single.cookedAsThisWeek, isTrue);
+    });
+
+    test('food said by hand was cooked in no week’s variant', () async {
+      await insertCooking(
+        db,
+        id: 'hand',
+        recipeId: 'curry',
+        made: 2,
+        place: 'fridge',
+        since: '2026-08-30',
+      );
+      await curryFor(1, week: nextWeek, cooking: 'hand');
+      final entry = (await planning.watchWeek(nextWeek).first)!.entries.single;
+      expect(entry.boughtNowhere, isTrue);
+      expect(entry.cookedInWeek, isNull);
+      expect(entry.cookedAsThisWeek, isFalse);
+    });
+
     test('a pick from food said by hand is never cooked or bought', () async {
       final mon = await curryFor(0);
       await insertCooking(

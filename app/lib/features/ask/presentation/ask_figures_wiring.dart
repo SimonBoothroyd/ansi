@@ -20,7 +20,6 @@ import '../../receipts/data/receipt_providers.dart';
 import '../../receipts/domain/receipt_ledger.dart';
 import '../../recipes/data/recipe_providers.dart';
 import '../../recipes/domain/recipe_cost.dart';
-import '../../recipes/domain/recipe_macros.dart';
 import '../../shopping/presentation/shopping_view_models.dart';
 import '../domain/ask_proposal.dart';
 import '../domain/ask_tool_runner.dart';
@@ -90,14 +89,23 @@ Future<String> askNutrition(ProviderContainer c, AskFigureScope scope) async {
           .read(planningRepositoryProvider)
           .watchWeek(scope.weekStart)
           .first;
-      final varied = await variants
-          .watchVariantRecipeMacros(scope.weekStart)
-          .first;
-      final summaries = <String, RecipeMacroSummary>{...macros, ...varied};
+      final meals = _entriesOf(plan, shape, scope);
+      final summaries = MealSummaries(
+        library: macros,
+        thisWeek: await variants
+            .watchVariantRecipeMacros(scope.weekStart)
+            .first,
+        otherWeeks: {
+          for (final week in otherCookedWeeks(meals))
+            week: await variants
+                .watchVariantRecipeMacros(DateTime.parse(week))
+                .first,
+        },
+      );
       return planNutritionResult(
         sumPlannedMacros(
-          _entriesOf(plan, shape, scope),
-          summaryFor: (id) => summaries[id],
+          meals,
+          summaryFor: summaries.of,
           lensMemberId: scope.memberId,
           membersById: await _membersById(c),
         ),

@@ -16,7 +16,7 @@ import '../../../core/units/measure.dart';
 import '../../../core/units/units.dart';
 import '../../../core/week_shape.dart';
 import '../../cook_plan/data/cooking_store.dart'
-    show cookingForPick, ensureCookingFor, joinUncookedCooking;
+    show cookingForPick, ensureCookingFor, joinUncookedCooking, loadBuyWeeks;
 import '../../ingredients/domain/default_amount.dart';
 import '../domain/plan_change.dart';
 import '../domain/planning.dart';
@@ -51,13 +51,16 @@ class SqlitePlanningRepository implements PlanningRepository {
     // an unused LEFT JOIN, and the watch then misses that table.
     return _db
         .watch(
-          'SELECT wp.id, pe.id, r.title, i.canonical_name, im.label, me.id '
+          'SELECT wp.id, pe.id, r.title, i.canonical_name, im.label, me.id, '
+          'c.id '
           'FROM week_plan wp '
           'LEFT JOIN plan_entry pe '
           'ON pe.week_plan_id = wp.id AND pe.deleted_at IS NULL '
           'LEFT JOIN recipe r ON r.id = pe.recipe_id '
           // Who ate each meal re-fires the week too.
           'LEFT JOIN meal_eaten me ON me.plan_entry_id = pe.id '
+          // Whether a pot was bought, and so whose variant it holds.
+          'LEFT JOIN cooking c ON c.id = pe.cooking '
           // An ingredient meal's vocab row and measure are read too, so both
           // contribute a column.
           'LEFT JOIN ingredient i ON i.id = pe.ingredient_id '
@@ -130,14 +133,34 @@ class SqlitePlanningRepository implements PlanningRepository {
         }
       }
     }
+    final weekKey = wp['week_start_date'] as String;
+    final buyWeeks = await loadBuyWeeks(_db, {
+      for (final e in planned) ?e.cooking,
+    });
     return WeekPlan(
       id: id,
       // Parsed as a UTC date-only value so it equals the shape's week start.
       weekStart: DateTime.parse('${wp['week_start_date']}T00:00:00Z'),
       label: wp['label'] as String?,
       entries: [
-        for (final e in planned) e.copyWith(had: had[e.id] ?? const {}),
+        for (final e in planned)
+          _cookedIn(e, weekKey, buyWeeks).copyWith(had: had[e.id] ?? const {}),
       ],
+    );
+  }
+
+  /// [meal] with the week that cooked it, where that is not [weekKey].
+  PlanEntry _cookedIn(
+    PlanEntry meal,
+    String weekKey,
+    Map<String, String?> buyWeeks,
+  ) {
+    final cooking = meal.cooking;
+    if (cooking == null || !buyWeeks.containsKey(cooking)) return meal;
+    final week = buyWeeks[cooking];
+    return meal.copyWith(
+      boughtNowhere: week == null,
+      cookedInWeek: week == weekKey ? null : week,
     );
   }
 

@@ -191,6 +191,24 @@ void main() {
     expect(find.text('cook it all · freeze 2 for next Thu'), findsOneWidget);
   });
 
+  testWidgets('only a meal this week cooks offers this week’s variant', (
+    tester,
+  ) async {
+    await _open(tester, entry: _entry(3), now: _on(0, 9));
+    expect(find.text('edit for this week'), findsOneWidget);
+  });
+
+  testWidgets('a meal from last week’s pot offers no edit for this week', (
+    tester,
+  ) async {
+    await _open(
+      tester,
+      entry: _entry(3, cooking: 'pot').copyWith(cookedInWeek: '2026-08-24'),
+      now: _on(0, 9),
+    );
+    expect(find.text('edit for this week'), findsNothing);
+  });
+
   testWidgets('a leftover meal says where it is from, its words apart', (
     tester,
   ) async {

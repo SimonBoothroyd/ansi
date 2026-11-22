@@ -540,7 +540,7 @@ final class WeekRecipePlacementProvider
 }
 
 String _$weekRecipePlacementHash() =>
-    r'0a7f05d62d3428d48e0753963c4149b4ce3452aa';
+    r'cc841fc91fce4976958f750ad14169262f05d7d9';
 
 final class WeekRecipePlacementFamily extends $Family
     with $FunctionalFamilyOverride<WeekRecipePlacement, (String, String)> {
@@ -1116,65 +1116,57 @@ final class WeekCostFamily extends $Family
   String toString() => r'weekCostProvider';
 }
 
-/// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
-/// figure, re-summed over the week's effective lines where it varies the
-/// recipe.
+/// Each viewed meal's summary as it was cooked ([MealSummaries]): the
+/// Library's figure, re-summed over the effective lines of the week that
+/// cooked it where that week varies the recipe.
 
-@ProviderFor(weekRecipeMacros)
-const weekRecipeMacrosProvider = WeekRecipeMacrosProvider._();
+@ProviderFor(weekMealSummaries)
+const weekMealSummariesProvider = WeekMealSummariesProvider._();
 
-/// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
-/// figure, re-summed over the week's effective lines where it varies the
-/// recipe.
+/// Each viewed meal's summary as it was cooked ([MealSummaries]): the
+/// Library's figure, re-summed over the effective lines of the week that
+/// cooked it where that week varies the recipe.
 
-final class WeekRecipeMacrosProvider
-    extends
-        $FunctionalProvider<
-          Map<String, RecipeMacroSummary>,
-          Map<String, RecipeMacroSummary>,
-          Map<String, RecipeMacroSummary>
-        >
-    with $Provider<Map<String, RecipeMacroSummary>> {
-  /// Per-recipe macro summaries for the viewed week, by recipe id: the Library's
-  /// figure, re-summed over the week's effective lines where it varies the
-  /// recipe.
-  const WeekRecipeMacrosProvider._()
+final class WeekMealSummariesProvider
+    extends $FunctionalProvider<MealSummaries, MealSummaries, MealSummaries>
+    with $Provider<MealSummaries> {
+  /// Each viewed meal's summary as it was cooked ([MealSummaries]): the
+  /// Library's figure, re-summed over the effective lines of the week that
+  /// cooked it where that week varies the recipe.
+  const WeekMealSummariesProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'weekRecipeMacrosProvider',
+        name: r'weekMealSummariesProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$weekRecipeMacrosHash();
+  String debugGetCreateSourceHash() => _$weekMealSummariesHash();
 
   @$internal
   @override
-  $ProviderElement<Map<String, RecipeMacroSummary>> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<MealSummaries> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  Map<String, RecipeMacroSummary> create(Ref ref) {
-    return weekRecipeMacros(ref);
+  MealSummaries create(Ref ref) {
+    return weekMealSummaries(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Map<String, RecipeMacroSummary> value) {
+  Override overrideWithValue(MealSummaries value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<Map<String, RecipeMacroSummary>>(
-        value,
-      ),
+      providerOverride: $SyncValueProvider<MealSummaries>(value),
     );
   }
 }
 
-String _$weekRecipeMacrosHash() => r'1dadcaa8c3e79ed4381c5b4fc1e9541f50e84eca';
+String _$weekMealSummariesHash() => r'87e7f4d394684b24fdc65a6986f4397165c0351f';
 
 /// The re-summed figures for the recipes the viewed week varies.
 
@@ -1418,7 +1410,7 @@ final class WeekMacrosProvider
   }
 }
 
-String _$weekMacrosHash() => r'5af7d3bbf0074e72f8990e0feaf2710491279159';
+String _$weekMacrosHash() => r'9899d2471a96442e5be3d7802fb57d808f15d259';
 
 /// The viewed week's macros under [lens] (null = Everyone).
 
@@ -1507,7 +1499,7 @@ final class WeekEatenMacrosProvider
   }
 }
 
-String _$weekEatenMacrosHash() => r'b7be8f229d8d3e186022be5cb8389acdfdea23c6';
+String _$weekEatenMacrosHash() => r'33c62b136e0f85bde5b41a1d32a6cc0137302335';
 
 /// What the viewed week's ticks add up to under [lens] (null = Everyone): the
 /// same sum as [weekMacros], counting only meals somebody said they ate.
@@ -1598,7 +1590,7 @@ final class MealMacrosProvider
   }
 }
 
-String _$mealMacrosHash() => r'f0fa893ccf164c5e79b92b5ab95e617aa3ed3eb2';
+String _$mealMacrosHash() => r'cf262a03755ee553441255492358c48361e3d159';
 
 /// One meal's macros under [lens], as served. Keyed by entry id so it follows
 /// the live week; an id the week no longer has reads as an empty set.
@@ -1689,7 +1681,7 @@ final class DayMacrosProvider
   }
 }
 
-String _$dayMacrosHash() => r'96e3a0a1cb4d45a3ac815badb9f5058bdf2b94de';
+String _$dayMacrosHash() => r'c0d48dcb1e5781b7d9e4677019b9b2a015af4ea6';
 
 /// One day's macros under [lens], from the same function as the week's so the
 /// week is never a sum of rounded days.

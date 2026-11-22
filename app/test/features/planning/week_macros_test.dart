@@ -39,7 +39,7 @@ PlanEntry _entry({
   portions: portions,
 );
 
-RecipeMacroSummary? _summaries(String id) => switch (id) {
+RecipeMacroSummary? _summaries(PlanEntry meal) => switch (meal.recipeId) {
   'ok' => _hundred,
   'stub' => _stub,
   _ => null,
@@ -542,7 +542,7 @@ void main() {
       perServing: Macros(kcal: 100, protein: 10, carb: 20, fat: 5, fiber: 4),
     );
 
-    RecipeMacroSummary? summaries(String id) => switch (id) {
+    RecipeMacroSummary? summaries(PlanEntry meal) => switch (meal.recipeId) {
       'ok' => _hundred,
       'fibre' => fibrous,
       _ => null,
@@ -680,7 +680,7 @@ void main() {
       var asked = 0;
       final macros = sumPlannedMacros(
         [_out(id: 'a')],
-        summaryFor: (id) {
+        summaryFor: (meal) {
           asked++;
           return _hundred;
         },

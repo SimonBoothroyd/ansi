@@ -12,7 +12,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/week_shape.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
-import '../domain/planning.dart' show PlanEntry, cookedDaysOf;
+import '../domain/planning.dart' show PlanEntry, variantDaysOf;
 import 'week_variant_format.dart';
 import 'week_view_models.dart';
 
@@ -33,7 +33,7 @@ class WeekVariantDoorRow extends ConsumerWidget {
         ref.watch(viewedWeekOverridesProvider).asData?.value ?? const {};
     final changes = overrides[recipeId]?.length ?? 0;
     final plan = ref.watch(viewedWeekProvider).asData?.value;
-    final days = cookedDaysOf(plan?.entries ?? const <PlanEntry>[], recipeId);
+    final days = variantDaysOf(plan?.entries ?? const <PlanEntry>[], recipeId);
     final detail = weekDoorDetail(
       changes,
       days,

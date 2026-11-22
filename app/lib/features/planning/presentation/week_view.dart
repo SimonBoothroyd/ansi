@@ -532,6 +532,7 @@ class _DishRow extends ConsumerWidget {
     );
     // The variant is per (week, recipe), so every planned day of it says so.
     final edited =
+        entry.cookedAsThisWeek &&
         (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
                 const [])
             .isNotEmpty;

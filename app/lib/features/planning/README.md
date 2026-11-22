@@ -106,10 +106,16 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 
 - **One door**: a row at the foot of the meal editor sheet, opening the recipe
   editor's week mode (`/recipes/:id/edit?week=`).
+- **A meal reads the variant of the week that cooked it**, not always its
+  own: `PlanEntry.cookedInWeek` names another week's, and `boughtNowhere`
+  means none. Both are derived on read (`loadBuyWeeks`, the cook plan's buy
+  rule). A meal's figures come from `MealSummaries.of(meal)`, never from a map
+  by recipe id: one week can cook a dish and eat last week's pot of it. The
+  doors follow `cookedAsThisWeek`.
 - **`effectiveLines` is the one seam.** Shopping, the cook plan and week macros
   all read overrides through it. Amounts are absolute.
-- Week macros re-sum only a varied recipe; the rest borrow the Library's
-  per-recipe figure.
+- Week macros re-sum only a recipe the cooking's week varies; the rest borrow
+  the Library's per-recipe figure.
 - Copy last week does not carry a variant, and says which recipes it left.
 - A component override may carry a `recipe_measure_id` with `unit` NULL
   ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md)).

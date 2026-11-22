@@ -169,9 +169,10 @@ class _MealEditorSheet extends ConsumerWidget {
             ),
           ),
         ),
-        // The door into week mode, for a recipe meal only. The strip at the top
-        // already shows the days a change would cover.
-        if (entry.kind == PlanEntryKind.recipe) ...[
+        // The door into week mode, for a recipe meal this week cooks: a change
+        // here never reaches another week's pot. The strip at the top already
+        // shows the days a change would cover.
+        if (entry.kind == PlanEntryKind.recipe && entry.cookedAsThisWeek) ...[
           const SizedBox(height: 18),
           const AnsiMicroLabel('Ingredients'),
           WeekVariantDoorRow(
