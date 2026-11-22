@@ -82,12 +82,12 @@ hands them with the overlay to `buildShoppingList` (pure).
   the list buys that share of the sub-recipe's ingredients. A measure the
   target no longer has buys nothing and is named in the `unresolvedComponents`
   echo row.
-- **Lines left out are named.** Lines dropped by the `effectiveLines` seam — a
-  recipe's `optional` flag or this week's leave-out — are listed under their
-  recipe. Each optional name is a door: a tap writes this week's include
-  override (`WeekVariantRepository.setLineIncluded`). A line the week left out
-  is undone where it was made. The echo rows share one layout (`_EchoRow`):
-  the sentence wraps and is never cut, since its end is the part to act on.
+- **The Shop never says optional.** A picked optional line is an ordinary
+  line, with no week note in its provenance, and an unpicked one is absent:
+  the choice is made in the recipe. A line this week left out is a note under
+  its recipe, undone where it was made. The echo rows share one layout
+  (`_EchoRow`): the sentence wraps and is never cut, since its end is the
+  part to act on.
 - **A row acts from its box and its chevron, and nowhere else.** On a phone
   a row is one line, or two with its sub-line. Only the check box ticks, on
   a 44 × 44 target centred on it (`shopTickTargetKey`). Only the chevron

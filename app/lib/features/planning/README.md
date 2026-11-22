@@ -53,6 +53,8 @@ planning/
     week_recipe_band.dart     the line-size week strip on a recipe page
     week_widgets.dart         Pill, EaterAvatar, PortionsChip, OutTag, …
     week_format.dart, copy_last_week.dart, household_section.dart
+    optional_door.dart        Add to plan's one line into the recipe, where
+                              optional ingredients are chosen
     week_variant_door / _editor / _format / _view_models
 ```
 
@@ -104,8 +106,13 @@ A recipe can be cooked differently for one week without being edited. The
 variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
 (replace, add, exclude, include), recomputed whole on save.
 
-- **One door**: a row at the foot of the meal editor sheet, opening the recipe
-  editor's week mode (`/recipes/:id/edit?week=`).
+- **Optional ingredients are chosen on the recipe page**, never on a sheet:
+  *Add to plan* opens it with `?choose=<day>`, `OptionalPicks` holds the
+  answers, and Add writes them. A pick is no edit (`editsOf`).
+  `setLineIncluded` reads inside its write, so ticks made together all stand.
+  Swaps and amounts have **one door**: a row at the foot of the meal editor
+  sheet,
+  opening the recipe editor's week mode (`/recipes/:id/edit?week=`).
 - **A meal reads the variant of the week that cooked it**, not always its
   own: `PlanEntry.cookedInWeek` names another week's, and `boughtNowhere`
   means none. Both are derived on read (`loadBuyWeeks`, the cook plan's buy
@@ -116,7 +123,8 @@ variant is per **(week, recipe)**, stored as `week_recipe_line_override` rows
   all read overrides through it. Amounts are absolute.
 - Week macros re-sum only a recipe the cooking's week varies; the rest borrow
   the Library's per-recipe figure.
-- Copy last week does not carry a variant, and says which recipes it left.
+- Copy last week carries the optional ticks (`copyOptionalTicksIn`) and no
+  other change, and says which recipes it left edits of.
 - A component override may carry a `recipe_measure_id` with `unit` NULL
   ([ADR-0018](../../../../docs/decisions/0018-a-recipe-measure-is-a-named-amount.md)).
   A measure with no number is refused before the write

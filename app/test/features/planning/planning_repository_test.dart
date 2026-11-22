@@ -519,6 +519,178 @@ void main() {
       expect(result.variantsLeftBehind, isEmpty);
     });
 
+    group('copyLastWeek brings the optional ticks', () {
+      late SqliteWeekVariantRepository variants;
+
+      Future<void> line(
+        String id,
+        String recipe, {
+        bool optional = true,
+        String? sub,
+      }) async {
+        const at = '2026-01-01';
+        await db.execute(
+          'INSERT INTO ingredient_group (id, household_id, recipe_id, '
+          'sort_order, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)',
+          ['g-$id', 'h', recipe, at, at],
+        );
+        await db.execute(
+          'INSERT INTO recipe_line_item (id, household_id, group_id, '
+          'ingredient_id, sub_recipe_id, quantity, unit, optional, '
+          'sort_order, created_at, updated_at) '
+          "VALUES (?, 'h', ?, ?, ?, 1, 'g', ?, 0, ?, ?)",
+          [
+            id,
+            'g-$id',
+            if (sub == null) 'i-$id' else null,
+            sub,
+            if (optional) 1 else 0,
+            at,
+            at,
+          ],
+        );
+      }
+
+      Future<String> plan(String recipe, DateTime week, {String? cooking}) =>
+          repo.addEntry(
+            weekStart: week,
+            dayOfWeek: 1,
+            mealSlot: 'Dinner',
+            recipeId: recipe,
+            eaterIds: ['m1'],
+            cooking: cooking,
+          );
+
+      Future<void> tick(String recipe, String line, DateTime week) =>
+          variants.setLineIncluded(week, recipe, line, included: true);
+
+      Future<Map<String?, LineOverrideAction>> copied(String recipe) async => {
+        for (final o in await variants.loadOverrides(_thisWeek, recipe))
+          o.recipeLineItemId: o.action,
+      };
+
+      setUp(() async {
+        variants = SqliteWeekVariantRepository(db, householdId: 'h');
+        await _insertRecipe(db, 'curry', 'Curry');
+        await line('lime', 'curry');
+        await line('coriander', 'curry');
+      });
+
+      test('a tick is copied, an unticked one stays out', () async {
+        await plan('curry', _lastWeek);
+        await tick('curry', 'lime', _lastWeek);
+        final result = await repo.copyLastWeek(_thisWeek);
+        expect(await copied('curry'), {'lime': LineOverrideAction.include});
+        expect(
+          result.variantsLeftBehind,
+          isEmpty,
+          reason: 'a tick is copied, so it is not left behind',
+        );
+      });
+
+      test(
+        'beside an edit, only the edit is left behind and counted',
+        () async {
+          await line('rice', 'curry', optional: false);
+          await plan('curry', _lastWeek);
+          await variants.saveOverrides(
+            _lastWeek,
+            'curry',
+            overrides: const [
+              LineOverride(
+                action: LineOverrideAction.include,
+                recipeLineItemId: 'lime',
+              ),
+              LineOverride(
+                action: LineOverrideAction.exclude,
+                recipeLineItemId: 'rice',
+              ),
+            ],
+          );
+          final result = await repo.copyLastWeek(_thisWeek);
+          expect(await copied('curry'), {'lime': LineOverrideAction.include});
+          expect(result.variantsLeftBehind, [
+            (recipeTitle: 'Curry', changes: 1),
+          ]);
+        },
+      );
+
+      test('a tick whose amount was edited comes as the tick alone', () async {
+        await plan('curry', _lastWeek);
+        await variants.saveOverrides(
+          _lastWeek,
+          'curry',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.replace,
+              recipeLineItemId: 'lime',
+              ingredientId: 'i-lime',
+              quantity: 3,
+              unit: g,
+            ),
+          ],
+        );
+        await repo.copyLastWeek(_thisWeek);
+        expect(await copied('curry'), {'lime': LineOverrideAction.include});
+      });
+
+      test('a meal from a pot brings the ticks it was cooked with', () async {
+        final older = _lastWeek.subtract(const Duration(days: 7));
+        final pot = await plan('curry', older);
+        await plan('curry', _lastWeek, cooking: pot);
+        await tick('curry', 'lime', older);
+        await repo.copyLastWeek(_thisWeek);
+        expect(await copied('curry'), {'lime': LineOverrideAction.include});
+      });
+
+      test(
+        'a sub-recipe’s own ticks come with the dish that cooks it',
+        () async {
+          await _insertRecipe(db, 'raita', 'Raita');
+          await line('mint', 'raita');
+          await line('with-raita', 'curry', sub: 'raita');
+          await plan('curry', _lastWeek);
+          await tick('curry', 'with-raita', _lastWeek);
+          await tick('raita', 'mint', _lastWeek);
+          await repo.copyLastWeek(_thisWeek);
+          expect(await copied('raita'), {'mint': LineOverrideAction.include});
+        },
+      );
+
+      test('a tick left on a dish no longer planned stays behind', () async {
+        await _insertRecipe(db, 'soup', 'Soup');
+        await plan('soup', _lastWeek);
+        await tick('curry', 'lime', _lastWeek);
+        await repo.copyLastWeek(_thisWeek);
+        expect(await copied('curry'), isEmpty);
+      });
+
+      test('what this week already says of a line stands', () async {
+        await plan('curry', _lastWeek);
+        await tick('curry', 'lime', _lastWeek);
+        await variants.saveOverrides(
+          _thisWeek,
+          'curry',
+          overrides: const [
+            LineOverride(
+              action: LineOverrideAction.exclude,
+              recipeLineItemId: 'lime',
+            ),
+          ],
+        );
+        await repo.copyLastWeek(_thisWeek);
+        expect(await copied('curry'), {'lime': LineOverrideAction.exclude});
+      });
+
+      test('copying twice writes each tick once', () async {
+        await plan('curry', _lastWeek);
+        await tick('curry', 'lime', _lastWeek);
+        await repo.copyLastWeek(_thisWeek);
+        await repo.copyLastWeek(_thisWeek);
+        expect(await copied('curry'), hasLength(1));
+      });
+    });
+
     test('copyLastWeek is a no-op with no earlier week', () async {
       expect((await repo.copyLastWeek(_thisWeek)).meals, 0);
       expect(await repo.watchWeek(_thisWeek).first, isNull);

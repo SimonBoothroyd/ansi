@@ -512,10 +512,9 @@ its steps.
   TOTAL covers, through one seam — `effectiveLines(lines, overrides:)` —
   that every derivation runs over: the macro summary and the shopping list
   leave the line out **and name it where it left** (an `OPTIONAL · Lime,
-  Coriander` row under the panel, beside the imprecise one; `2 optional lines
-  not listed: lime, coriander` as the recipe's muted echo row on Shop, where
-  each name is a **door** — a tap writes this week's include row for that
-  line), never a silent drop. **The cook plan honours the flag through the
+  Coriander` row under the panel, beside the imprecise one; on Shop it
+  is simply absent: the choice is the recipe's, and the Shop never says
+  optional), never a silent drop. **The cook plan honours the flag through the
   same seam**: an optional ingredient line changes nothing there — a batch is
   a batch whether the lime comes — but an optional sub-recipe component is
   only cooked when the week includes it, because a sauce nobody is making is
@@ -531,12 +530,14 @@ its steps.
     up.** The recipe says *may be skipped* — the author's claim, from import
     or the editor, and the only place the flag itself changes. The week says
     *this time, yes* — the cook's claim, the `include` row. On the recipe
-    page **opened from a week that plans it**, the tag is that switch: an
-    empty ring before `optional`, one tap → a filled `included` chip, the
-    week's row written, the panel recounted over the week's lines with an
-    `INCLUDED · names · for this week` row. The shop's echo names are the
-    same door. From the Library the tag is a tag: with no week there is no
-    decision, and nothing is written. A household that always wants the lime
+    page **a week owns** (opened from a week that cooks it, as a dish or as
+    another's sub-recipe, or from *Add to plan*) the optional lines leave the
+    list for an OPTIONAL section: a card per ingredient, however many lines
+    it is on, quoting each step that uses it (`stepUsesOf`, off the method's
+    chips; its note alone where no step links it), and the card is the tick.
+    The method greys what was not picked, with no amount. From the Library
+    the tag is a tag: with no week there is no decision, and nothing is
+    written. A household that always wants the lime
     unticks optional in the editor — for them it is not optional; there is no
     third "usually yes" state.
 - `favorite` is the household-shared curated shortlist behind the recipe
@@ -834,10 +835,19 @@ go. There is no re-chip — tokenization happens only inside the import call.
   - The **shopping list is where lines meet the week**, so it is where the
     variant joins: the derivation runs the week's overrides through
     `effectiveLines` before it expands a session, and names what the week left
-    out the same way it names an optional line. That echo row is also a door:
-    tapping an optional name writes the week's include row
-    (`setLineIncluded`), and the item arrives with its `· this week, ticked
-    in` provenance.
+    out in a note. An optional line nobody picked is not a note and not a
+    row: it is absent. **A picked one is an ordinary line of the list**, and
+    its provenance says nothing about having been optional.
+  - **Optional is chosen in the recipe.** *Add to plan* carries one line,
+    *2 optional ingredients · Choose in recipe*, into the recipe page
+    (`?choose=`). Done returns to the sheet, which names the picks, and Add
+    writes them. A meal's title on the Week opens the same page afterwards.
+    No planning sheet holds a tick.
+  - **A pick is no edit.** *Edited for this week* and every count of changes
+    beside it mean swaps, amounts, additions and leave-outs (`editsOf`).
+  - **A copy of last week carries the ticks** and leaves the edits, which it
+    names. A meal from a pot brings the ticks it was cooked with, a dish's
+    sub-recipes bring theirs, and what the target week already says stands.
   - The **cook plan reads the week too**: the component graph is filtered
     through `effectiveLines` per (week, recipe) before any demand is derived,
     so an optional sub-recipe cooks only where the week ticked it in and one

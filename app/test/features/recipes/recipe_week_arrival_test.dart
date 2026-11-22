@@ -7,7 +7,7 @@
 /// has left.
 ///
 /// The page then draws what that week cooks, read-only, in week mode's own
-/// grammar — and its `optional` tag becomes the switch that answers *this
+/// grammar — and its optional lines become the cards that answer *this
 /// time, yes*. From the Library every one of those facts is absent: the page
 /// is byte-for-byte the one it has always been.
 library;
@@ -17,6 +17,7 @@ import 'dart:io';
 import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/units.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/domain/planning.dart';
 import 'package:ansi/features/planning/presentation/week_recipe_band.dart';
@@ -26,6 +27,7 @@ import 'package:ansi/features/recipes/domain/method_step.dart';
 import 'package:ansi/features/recipes/domain/recipe.dart';
 import 'package:ansi/features/recipes/domain/recipe_macros.dart';
 import 'package:ansi/features/recipes/presentation/ingredient_line.dart';
+import 'package:ansi/features/recipes/presentation/optional_section.dart';
 import 'package:ansi/features/recipes/presentation/recipe_view.dart';
 import 'package:ansi/shared/method_step_text.dart';
 import 'package:ansi/shared/week_strip.dart';
@@ -35,6 +37,7 @@ import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/misc.dart' show Override;
 
+import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
 import '../../helpers/fake_recipe_repository.dart';
 import '../../helpers/fake_week_variant_repository.dart';
@@ -168,6 +171,8 @@ List<Override> _overrides({
     FakeRecipeRepository(recipe: recipe ?? _recipe, summaries: summaries),
   ),
   planningRepositoryProvider.overrideWithValue(_Planner(plansIt: plansIt)),
+  // A week that plans none of it is asked whether it cooks it as a component.
+  cookPlanRepositoryProvider.overrideWithValue(FakeCookPlanRepository()),
   weekVariantRepositoryProvider.overrideWithValue(variants),
 ];
 
@@ -387,7 +392,44 @@ void main() {
   });
 
   group('the page holds the week', () {
-    testWidgets('an optional line the week ticked in wears the tag lit', (
+    testWidgets('its optional lines are cards of their own, out of the list '
+        'and with no tag to find', (tester) async {
+      await _pumpPage(tester, week: _weekKey);
+
+      expect(find.byType(OptionalCard), findsOneWidget);
+      expect(find.byType(OptionalTag), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is RecipeIngredientLine &&
+              w.uses.ingredientName == 'Pickled Red Onions',
+        ),
+        findsNothing,
+      );
+      expect(
+        tester.widget<OptionalCard>(find.byType(OptionalCard)).included,
+        isFalse,
+      );
+    });
+
+    testWidgets('a card the week ticked in reads included', (tester) async {
+      await _pumpPage(
+        tester,
+        week: _weekKey,
+        variants: FakeWeekVariantRepository(
+          overrides: {
+            'r1': [_override(LineOverrideAction.include, lineId: 'l2')],
+          },
+        ),
+      );
+
+      expect(
+        tester.widget<OptionalCard>(find.byType(OptionalCard)).included,
+        isTrue,
+      );
+    });
+
+    testWidgets('a tick is no edit: the band does not say edited', (
       tester,
     ) async {
       await _pumpPage(
@@ -400,19 +442,17 @@ void main() {
         ),
       );
 
-      expect(find.text('included'), findsOneWidget);
-      expect(find.text('optional'), findsNothing);
-      expect(_lineFor(tester, 'Pickled Red Onions').included, isTrue);
+      expect(find.text('edited for this week'), findsNothing);
     });
 
-    testWidgets('tapping the tag ticks that line in for that week', (
+    testWidgets('tapping the card ticks that line in for that week', (
       tester,
     ) async {
       final variants = FakeWeekVariantRepository();
       await _pumpPage(tester, week: _weekKey, variants: variants);
 
-      expect(find.text('optional'), findsOneWidget);
-      await tester.tap(find.byType(OptionalTag));
+      await tester.ensureVisible(find.byType(OptionalCard));
+      await tester.tap(find.byType(OptionalCard));
       await tester.pumpAndSettle();
 
       expect(variants.ticked, [
@@ -430,7 +470,8 @@ void main() {
       );
       await _pumpPage(tester, week: _weekKey, variants: variants);
 
-      await tester.tap(find.byType(OptionalTag));
+      await tester.ensureVisible(find.byType(OptionalCard));
+      await tester.tap(find.byType(OptionalCard));
       await tester.pumpAndSettle();
 
       expect(variants.ticked, [
@@ -543,7 +584,9 @@ void main() {
       expect(find.text('INCLUDED'), findsOneWidget);
       expect(find.text('Pickled Red Onions · for this week'), findsOneWidget);
       // Nothing optional is left out, so no row says there is.
-      expect(find.text('OPTIONAL'), findsNothing);
+      // The section's label alone: nothing optional is left out of the total,
+      // so no row under it says there is.
+      expect(find.text('OPTIONAL'), findsOneWidget);
     });
 
     testWidgets('and names what is still out, which its own notes cannot', (
@@ -564,7 +607,8 @@ void main() {
         ),
       );
 
-      expect(find.text('OPTIONAL'), findsOneWidget);
+      // The section's label, and the panel's row.
+      expect(find.text('OPTIONAL'), findsNWidgets(2));
       expect(find.text('Pickled Red Onions'), findsWidgets);
       expect(find.text('INCLUDED'), findsNothing);
     });
@@ -627,11 +671,7 @@ void main() {
       await _pumpPage(tester);
 
       expect(find.text('optional'), findsOneWidget);
-      expect(_lineFor(tester, 'Pickled Red Onions').onToggleOptional, isNull);
-      expect(
-        tester.widget<OptionalTag>(find.byType(OptionalTag)).onToggle,
-        isNull,
-      );
+      expect(find.byType(OptionalCard), findsNothing);
       expect(
         find.descendant(
           of: find.byType(OptionalTag),

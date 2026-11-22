@@ -14,6 +14,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/week_shape.dart';
 import '../../account/data/household_providers.dart';
+import '../../cook_plan/data/cook_plan_providers.dart';
+import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart'
     show currentCookPlanProvider;
 import '../../ingredients/data/ingredient_providers.dart';
@@ -126,6 +128,20 @@ Stream<Map<String, List<LineOverride>>> viewedWeekOverrides(Ref ref) => ref
     .watch(weekVariantRepositoryProvider)
     .watchWeekOverrides(ref.watch(viewedWeekStartProvider));
 
+/// Optional ingredients picked on the recipe page while a meal of it is still
+/// being added: line id → in or out, over the week's stored answer. The Add
+/// sheet writes it with Add and starts it empty each time it opens, so a
+/// closed sheet's picks are never written.
+@riverpod
+class OptionalPicks extends _$OptionalPicks {
+  @override
+  Map<String, bool> build(String weekKey, String recipeId) => const {};
+
+  /// Answers for every line of one ingredient at once.
+  void pick(List<String> lineIds, {required bool included}) =>
+      state = {...state, for (final id in lineIds) id: included};
+}
+
 /// How the week a `?week=` link names holds one recipe: the days it plans it
 /// on, and whether the week varies it. Empty `days` means the link is stale (or
 /// unparseable) or the week only eats the dish from another week's pot, and
@@ -146,10 +162,35 @@ WeekRecipePlacement weekRecipePlacement(
   final cooksIt = meals.any(
     (e) => e.recipeId == recipeId && e.cookedAsThisWeek,
   );
-  final days = cooksIt ? cookedDaysOf(meals, recipeId) : const <int>[];
+  final days = cooksIt
+      ? cookedDaysOf(meals, recipeId)
+      // A week cooks a sub-recipe through the dishes that call for it, and
+      // that page is then the only place its own optional lines are picked.
+      : _componentDaysOf(
+          ref.watch(cookPlanForProvider(weekKey)).asData?.value,
+          recipeId,
+        );
   final overrides =
       ref.watch(weekOverridesForProvider(weekKey)).asData?.value ?? const {};
-  return (days: days, edited: (overrides[recipeId] ?? const []).isNotEmpty);
+  final edited = editsOf(overrides[recipeId] ?? const []).isNotEmpty;
+  return (days: days, edited: edited);
+}
+
+/// The days [plan] cooks [recipeId] as another dish's sub-recipe.
+List<int> _componentDaysOf(CookPlan? plan, String recipeId) => <int>{
+  for (final recipe in plan?.recipes ?? const <RecipeCookPlan>[])
+    if (recipe.recipeId == recipeId)
+      for (final session in recipe.componentSessions)
+        if (session.cookDay >= 0 && session.cookDay < 7) session.cookDay,
+}.toList()..sort();
+
+/// The cook plan of the week [weekKey] names.
+@riverpod
+Stream<CookPlan?> cookPlanFor(Ref ref, String weekKey) {
+  final weekStart = weekStartOfKey(weekKey, ref.watch(weekShapeProvider));
+  return weekStart == null
+      ? Stream.value(null)
+      : ref.watch(cookPlanRepositoryProvider).watchCookPlan(weekStart);
 }
 
 /// The week [weekKey] names, with its meals.

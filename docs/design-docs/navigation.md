@@ -407,6 +407,11 @@ restatement that reloads the screen is not a restatement.
 meal's title open the page at; the page seeds its stepper from it once, and
 the stepper owns it from then on.
 
+**`?choose=N` on `/recipes/:id?week=`** is *Add to plan*'s door into the
+recipe to pick optional ingredients for that day, before the meal exists. Done
+and back both return to the sheet, still open, which writes the picks with
+Add.
+
 One more parameter is a door rather than view state: **`?step=N` on
 `/recipes/:id`**, which a timer's dock row and notification use to open the
 recipe on its method, scrolled to that step. A row tapped while that very

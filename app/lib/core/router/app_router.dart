@@ -352,7 +352,8 @@ GoRouter router(Ref ref) {
           // the page offers the week door. The page re-checks it. `?step=N`:
           // opened from a timer, so the page opens on that step.
           // `?servings=N`: opened from a cooking, so the page opens scaled to
-          // its amount.
+          // its amount. `?choose=N`: opened from Add to plan to pick optional
+          // ingredients for that day, before the meal exists.
           _page(
             path: '/recipes/:id',
             name: 'recipe',
@@ -362,6 +363,9 @@ GoRouter router(Ref ref) {
               recipeId: state.pathParameters['id']!,
               weekKey: state.uri.queryParameters['week'],
               step: int.tryParse(state.uri.queryParameters['step'] ?? ''),
+              choosingDay: int.tryParse(
+                state.uri.queryParameters['choose'] ?? '',
+              ),
               arrivalServings: servingsFromQuery(
                 state.uri.queryParameters['servings'],
               ),

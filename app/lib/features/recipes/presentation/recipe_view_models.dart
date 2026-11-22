@@ -52,10 +52,18 @@ Future<List<RecipeUse>> recipeUsedIn(Ref ref, String id) {
 
 /// The recipe page's location: `?week=` when opened from a week that plans
 /// it ([weekKey]), `?servings=` when opened at a cooking's amount
-/// ([servings]; dropped unless it is a positive number).
-String recipePageRoute(String recipeId, {String? weekKey, double? servings}) {
+/// ([servings]; dropped unless it is a positive number), `?choose=` when
+/// opened from *Add to plan* to pick optional ingredients for the day
+/// [choosingDay].
+String recipePageRoute(
+  String recipeId, {
+  String? weekKey,
+  double? servings,
+  int? choosingDay,
+}) {
   final query = {
     if (weekKey != null) 'week': weekKey,
+    if (choosingDay != null) 'choose': '$choosingDay',
     if (servings != null && servings.isFinite && servings > 0)
       'servings': servings == servings.truncateToDouble()
           ? '${servings.toInt()}'

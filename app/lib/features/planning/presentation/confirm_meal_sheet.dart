@@ -18,6 +18,7 @@ import '../../../core/theme/ansi_tokens.dart';
 import '../../../core/units/measure.dart';
 import '../../../core/units/unit_choice.dart';
 import '../../../core/units/units.dart';
+import '../../../core/week_shape.dart';
 import '../../../shared/ansi_micro_label.dart';
 import '../../../shared/ansi_modals.dart';
 import '../../../shared/ansi_sheet_shell.dart';
@@ -38,6 +39,7 @@ import '../../recipes/domain/recipe.dart';
 import '../data/planning_providers.dart';
 import '../domain/planning.dart' show Member, defaultMealSlot, eatersDemand;
 import 'meal_fields.dart';
+import 'optional_door.dart';
 import 'use_up_block.dart';
 import 'week_view_models.dart';
 
@@ -133,6 +135,15 @@ Future<void> showConfirmMealSheet(
   required String slot,
   required MealTarget target,
 }) {
+  if (target case RecipeMeal(:final recipe)) {
+    // Each Add starts from the week's answer. Picks a closed sheet left are
+    // never this one's: cleared here, before the first frame can draw them,
+    // rather than trusted to the provider's own disposal.
+    ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).invalidate(optionalPicksProvider(isoDateOf(weekStart), recipe.id));
+  }
   return showAnsiSheet<void>(
     context: context,
     builder: (_) => _ConfirmMealSheet(
@@ -169,6 +180,7 @@ class _ConfirmMealSheet extends HookConsumerWidget {
     // A dish with a pot to eat from asks From leftovers or Cook fresh, and
     // answers neither for the household: null until one is picked.
     final fromLeftovers = useState<bool?>(null);
+    final weekKey = isoDateOf(weekStart);
     // Add is single-shot: a second tap while the write is in flight would
     // insert the meal twice and pop the page under the sheet.
     final saving = useState(false);
@@ -280,19 +292,41 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       // The sheet closes only on a write that landed; a throw must not leave it
       // open and inert.
       final repo = ref.read(planningRepositoryProvider);
+      final variants = ref.read(weekVariantRepositoryProvider);
+      final picks = switch (target) {
+        RecipeMeal(recipe: final dish) => ref.read(
+          optionalPicksProvider(weekKey, dish.id),
+        ),
+        _ => const <String, bool>{},
+      };
       final added = await ref.write(
         context,
         "add ${shape.labelFull(dayOfWeek)}'s meal",
         () => switch (target) {
-          RecipeMeal(:final recipe) => repo.addEntry(
-            weekStart: weekStart,
-            dayOfWeek: dayOfWeek,
-            mealSlot: slotState.value,
-            recipeId: recipe.id,
-            eaterIds: eaters.value.toList(),
-            portions: portionsOverride.value,
-            cooking: fromPot?.id,
-          ),
+          RecipeMeal(:final recipe) => () async {
+            // Only for a meal this week cooks, and before the meal: each is
+            // safe to write twice, so a failed Add retried adds one meal.
+            if (cooksFresh) {
+              for (final MapEntry(key: lineId, value: included)
+                  in picks.entries) {
+                await variants.setLineIncluded(
+                  weekStart,
+                  recipe.id,
+                  lineId,
+                  included: included,
+                );
+              }
+            }
+            return repo.addEntry(
+              weekStart: weekStart,
+              dayOfWeek: dayOfWeek,
+              mealSlot: slotState.value,
+              recipeId: recipe.id,
+              eaterIds: eaters.value.toList(),
+              portions: portionsOverride.value,
+              cooking: fromPot?.id,
+            );
+          }(),
           // Planned from a pot: the meal links to its cooking.
           LeftoverMeal(:final recipe, :final leftover) => repo.addEntry(
             weekStart: weekStart,
@@ -348,7 +382,18 @@ class _ConfirmMealSheet extends HookConsumerWidget {
       children: [
         const SizedBox(height: 14),
         switch (target) {
-          RecipeMeal(:final recipe) => MealRecipeCard(recipe: recipe),
+          RecipeMeal(recipe: final dish) => MealRecipeCard(
+            recipe: dish,
+            // The choice is made in the recipe, where each can be read in
+            // the step that uses it. A meal from a pot has none to make.
+            footer: !cooksFresh
+                ? null
+                : OptionalInRecipeDoor(
+                    recipeId: dish.id,
+                    weekKey: weekKey,
+                    day: dayOfWeek,
+                  ),
+          ),
           LeftoverMeal(:final leftover) => LeftoverMealCard(leftover: leftover),
           final SnackMeal snack => MealSnackCard(snack: snack),
           OutMeal(:final label) => MealOutCard(label: label),

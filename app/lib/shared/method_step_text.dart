@@ -2,8 +2,9 @@
 /// ingredient and timer chips from the pure [foldMethod] (ADR-0004).
 ///
 /// Two struck states that must not read alike: ticked off by the cook is
-/// muted and ruled through; left out by the week
-/// ([MethodStepText.weekExcluded]) is muted only. A timer chip is never
+/// muted and ruled through; not cooked this week
+/// ([MethodStepText.weekExcluded]: left out, or an optional one nobody picked)
+/// is dashed round, says `left out` and is never ruled. A timer chip is never
 /// ruled: where [MethodStepText.onTimer] is given its tap starts the timer,
 /// and once started it shows the count ([TimerWash]).
 library;
@@ -17,6 +18,7 @@ import '../core/units/units.dart';
 import '../features/recipes/domain/method_step.dart';
 import '../features/recipes/domain/recipe.dart';
 import '../features/timers/domain/cook_timer.dart';
+import 'dashed_border_box.dart';
 import 'timer_wash.dart';
 
 /// Renders [step]'s tokens, deriving each chip's live amount from [lineById]
@@ -56,7 +58,8 @@ class MethodStepText extends StatelessWidget {
   /// Ticks the chip at that ordinal. Null leaves every chip inert.
   final ValueChanged<int>? onToggleChip;
 
-  /// The line ids a week leaves out. Their chips read muted, never ruled.
+  /// The line ids a week does not cook. Their chips read `left out`, dashed
+  /// and muted, with no amount, and never ruled.
   final Set<String> weekExcluded;
 
   /// The running timer behind the step's nth timer chip, if one is held.
@@ -203,6 +206,8 @@ class MethodStepText extends StatelessWidget {
           textSize: textSize - 1,
           struck: _struck(firstChip + i),
           weekStruck: i < lineIds.length && _excluded(lineIds[i]),
+          // A mixture all out says so once, on its own word.
+          saysLeftOut: !lineIds.every(_excluded),
           onTap: _toggle(firstChip + i),
         ),
       );
@@ -241,9 +246,9 @@ String? _unrepeatedAmount(String? amount, MethodSpan? next) {
 /// [amount] in a small mono pill. A [timer] chip keeps its outlined pill and
 /// never ticks off: with an [onTap] it wears a herb play glyph, because the
 /// tap starts it, and once [running] it shows the count instead of the
-/// recipe's words. [struck] mutes and rules through; [weekStruck] only mutes.
-/// Neither moves the geometry, so the step never reflows as it is ticked
-/// through.
+/// recipe's words. [struck] mutes and rules through, and never moves the
+/// geometry, so the step never reflows as it is ticked through. [weekStruck]
+/// is settled before cooking: dashed round, muted, with no amount to add.
 class MethodChip extends StatelessWidget {
   const MethodChip({
     required this.label,
@@ -252,6 +257,7 @@ class MethodChip extends StatelessWidget {
     this.textSize = 16,
     this.struck = false,
     this.weekStruck = false,
+    this.saysLeftOut = true,
     this.onTap,
     this.running,
     this.now,
@@ -266,8 +272,12 @@ class MethodChip extends StatelessWidget {
   /// Ticked off by the cook: muted and ruled through.
   final bool struck;
 
-  /// Left out by the week: muted only.
+  /// Not cooked this week: dashed round and muted, with no amount.
   final bool weekStruck;
+
+  /// Whether a [weekStruck] chip adds the words. False on a part of a mixture
+  /// that already says them.
+  final bool saysLeftOut;
 
   /// Toggles [struck], or for a [timer] starts or opens it. Null leaves the
   /// chip inert.
@@ -285,9 +295,10 @@ class MethodChip extends StatelessWidget {
     final text = label.trim().isEmpty && !timer ? 'ingredient' : label;
     if (timer) return _timer(text);
 
-    final amount = this.amount;
+    // Nothing to measure out where nothing goes in.
+    final amount = weekStruck ? null : this.amount;
     final muted = struck || weekStruck;
-    final chip = Row(
+    final words = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
@@ -317,8 +328,21 @@ class MethodChip extends StatelessWidget {
             ),
           ),
         ],
+        if (weekStruck && saysLeftOut)
+          Text(
+            ' · left out',
+            style: ansiSans(size: textSize - 3, color: AnsiColors.muted),
+          ),
       ],
     );
+    final chip = !weekStruck
+        ? words
+        : DashedBorderBox(
+            radius: 5,
+            color: AnsiColors.muted,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: words,
+          );
     final onTap = this.onTap;
     if (onTap == null) return chip;
     // Labelled, so the structural ban on a bare tap around a lone glyph does

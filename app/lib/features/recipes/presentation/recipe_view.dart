@@ -3,9 +3,11 @@
 ///
 /// Tabs on a phone (plus "Used in · N" while other recipes list this one as a
 /// component); two columns with no tabs at [AnsiLayout.expanded], built from
-/// the same widgets. Opened from a week that plans it (`?week=`), the
-/// ingredients show that week's effective lines and the `optional` tag becomes
-/// the switch that writes the week's include row. Opened from a cooking
+/// the same widgets. Opened from a week that cooks it (`?week=`), the
+/// ingredients show that week's effective lines, the optional ones are
+/// [OptionalSection]'s ticks, each quoting the step that uses it, and the
+/// method greys what was not picked. Opened from *Add to plan* (`?choose=`),
+/// the ticks are that sheet's, written with Add. Opened from a cooking
 /// (`?servings=`, from Cook or a Week meal), the servings start at that
 /// cooking's amount.
 library;
@@ -54,6 +56,8 @@ import '../domain/effective_lines.dart';
 import '../domain/line_display.dart';
 import '../domain/line_override.dart';
 import '../domain/method_step.dart';
+import '../domain/method_uses.dart';
+import '../domain/optional_choices.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_cost.dart';
 import '../domain/recipe_macros.dart';
@@ -61,6 +65,7 @@ import '../domain/recipe_repository.dart';
 import '../domain/scaling.dart';
 import 'component_format.dart';
 import 'ingredient_line.dart';
+import 'optional_section.dart';
 import 'recipe_chip.dart';
 import 'recipe_cost_panel.dart';
 import 'recipe_macro_panel.dart';
@@ -72,6 +77,7 @@ class RecipeView extends ConsumerWidget {
     this.weekKey,
     this.step,
     this.arrivalServings,
+    this.choosingDay,
     super.key,
   });
 
@@ -81,6 +87,10 @@ class RecipeView extends ConsumerWidget {
   /// page was opened from. Null from anywhere else, which opens at the
   /// recipe's own servings.
   final double? arrivalServings;
+
+  /// The day a meal is being added on (`?choose=N`): the page was opened from
+  /// *Add to plan* to pick optional ingredients, before that meal exists.
+  final int? choosingDay;
 
   /// The method step to open on (`?step=N`, from 0): a timer's dock row or
   /// notification asked for it.
@@ -119,6 +129,7 @@ class RecipeView extends ConsumerWidget {
               weekKey: weekKey,
               step: step,
               arrivalServings: arrivalServings,
+              choosingDay: choosingDay,
             ),
     );
   }
@@ -130,6 +141,7 @@ class _RecipeBody extends HookConsumerWidget {
     this.weekKey,
     this.step,
     this.arrivalServings,
+    this.choosingDay,
   });
 
   final Recipe recipe;
@@ -139,6 +151,9 @@ class _RecipeBody extends HookConsumerWidget {
 
   /// See [RecipeView.step].
   final int? step;
+
+  /// See [RecipeView.choosingDay].
+  final int? choosingDay;
 
   /// See [RecipeView.arrivalServings].
   final double? arrivalServings;
@@ -237,15 +252,26 @@ class _RecipeBody extends HookConsumerWidget {
         ? const (days: <int>[], edited: false)
         : ref.watch(weekRecipePlacementProvider(recipe.id, key));
     final plannedWeek = placement.days.isEmpty ? null : key;
+    // Choosing from Add to plan, the week is the one being planned into,
+    // whether or not it plans the recipe yet.
+    final choosing = key != null && choosingDay != null;
+    final choiceWeek = choosing ? key : plannedWeek;
     // What that week says about this recipe: its overrides and its own
     // re-summation (absent while the week varies nothing).
-    final overrides = plannedWeek == null
-        ? const <LineOverride>[]
-        : ref
-                  .watch(weekOverridesForProvider(plannedWeek))
-                  .asData
-                  ?.value[recipe.id] ??
-              const <LineOverride>[];
+    final weekAnswers = choiceWeek == null
+        ? null
+        : ref.watch(weekOverridesForProvider(choiceWeek)).asData?.value;
+    final overrides = weekAnswers?[recipe.id] ?? const <LineOverride>[];
+    // Asked only once the week has answered: a tick drawn early would be the
+    // wrong one to tap.
+    final choices = weekAnswers == null
+        ? null
+        : optionalChoices([
+            for (final group in recipe.groups) ...group.items,
+          ], overrides);
+    final picks = choosing
+        ? ref.watch(optionalPicksProvider(key, recipe.id))
+        : const <String, bool>{};
     final weekSummary = plannedWeek == null
         ? null
         : ref
@@ -269,7 +295,11 @@ class _RecipeBody extends HookConsumerWidget {
       recipe: recipe,
       // The band under the title: which days of the originating week cook this,
       // and whether the week varies it.
-      band: plannedWeek == null
+      band: choosing
+          ? _ChoosingFor(
+              days: {...placement.days, choosingDay!}.toList()..sort(),
+            )
+          : plannedWeek == null
           ? null
           : PlannedThisWeekBand(
               days: placement.days,
@@ -315,10 +345,14 @@ class _RecipeBody extends HookConsumerWidget {
       onReading: (wantCost) =>
           ref.read(costReadingProvider.notifier).show(cost: wantCost),
       // The scaler is in the hero at expanded, where it reaches both columns.
-      showScaler: !wide,
-      weekStart: plannedWeek == null
-          ? null
-          : weekStartOfKey(plannedWeek, ref.watch(weekShapeProvider)),
+      // Choosing is one question: no scaler over it and no totals under it,
+      // which could not yet count what is being picked.
+      showScaler: !wide && !choosing,
+      showPanel: !choosing,
+      choices: choices,
+      picks: picks,
+      choosing: choosing,
+      weekKey: choiceWeek,
       overrides: overrides,
       weekSummary: weekSummary,
     );
@@ -328,11 +362,14 @@ class _RecipeBody extends HookConsumerWidget {
       struck: struck.value,
       onToggle: toggleStruck,
       stepKey: (i) => stepKeys.putIfAbsent(i, GlobalKey.new),
-      // The lines this week leaves out, so the method's chips can say so too.
+      // The lines this week does not cook, left out or never picked, so the
+      // method never asks for what was not bought.
       weekExcluded: {
         for (final o in overrides)
           if (o.action == LineOverrideAction.exclude)
             if (o.recipeLineItemId != null) o.recipeLineItemId!,
+        for (final choice in choices ?? const <OptionalChoice>[])
+          if (!choice.includedWith(picks)) ...choice.lineIds,
       },
     );
     final backLinks = usesFailed
@@ -346,6 +383,23 @@ class _RecipeBody extends HookConsumerWidget {
 
     return FScaffold(
       childPad: false,
+      footer: !choosing
+          ? null
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  ansiPageGutter,
+                  10,
+                  ansiPageGutter,
+                  12,
+                ),
+                child: FButton(
+                  onPress: () => ansiBack(context, home: '/week'),
+                  child: const Text('Done'),
+                ),
+              ),
+            ),
       header: FHeader.nested(
         prefixes: [
           FHeaderAction.back(
@@ -379,8 +433,10 @@ class _RecipeBody extends HookConsumerWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        SizedBox(width: _kScalerWidth, child: scaler),
-                        const SizedBox(width: 12),
+                        if (!choosing) ...[
+                          SizedBox(width: _kScalerWidth, child: scaler),
+                          const SizedBox(width: 12),
+                        ],
                         const _AwakeSun(inHeader: false),
                         ask,
                         edit,
@@ -457,6 +513,20 @@ class _RecipeBody extends HookConsumerWidget {
       ),
     );
   }
+}
+
+/// Who the choice is for, while choosing from *Add to plan*: `for Tuesday`,
+/// or every day one tick answers for.
+class _ChoosingFor extends ConsumerWidget {
+  const _ChoosingFor({required this.days});
+
+  final List<int> days;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Text(
+    choosingForLine(days, ref.watch(weekShapeProvider)),
+    style: ansiMono(size: 11, color: AnsiColors.muted),
+  );
 }
 
 /// The ingredients column's fixed width at [AnsiLayout.expanded]; the method
@@ -1150,7 +1220,11 @@ class _IngredientsTab extends ConsumerWidget {
     required this.cost,
     required this.onReading,
     required this.showScaler,
-    required this.weekStart,
+    required this.showPanel,
+    required this.choices,
+    required this.picks,
+    required this.choosing,
+    required this.weekKey,
     required this.overrides,
     required this.weekSummary,
   });
@@ -1177,9 +1251,21 @@ class _IngredientsTab extends ConsumerWidget {
   /// [AnsiLayout.expanded], where it sits in the hero.
   final bool showScaler;
 
-  /// The first day of the week this page was opened from, once that week was
-  /// found to plan the recipe. Null from the Library.
-  final DateTime? weekStart;
+  /// Whether the totals close the list.
+  final bool showPanel;
+
+  /// The recipe's optional ingredients as the week answers them. Null from the
+  /// Library, and until the week has answered: the tag is then a fact.
+  final List<OptionalChoice>? choices;
+
+  /// Picks made here and not yet written, while [choosing].
+  final Map<String, bool> picks;
+
+  /// Whether the ticks are *Add to plan*'s, written with Add.
+  final bool choosing;
+
+  /// The week that owns the page. Null from the Library.
+  final String? weekKey;
 
   /// That week's deltas for this recipe, in stored order. Empty from the
   /// Library.
@@ -1304,8 +1390,7 @@ class _IngredientsTab extends ConsumerWidget {
     };
     final lines = [for (final group in recipe.groups) ...group.items];
     // The week's answer per line: struck where left out, the week's values
-    // where stated, additions at the end. An include keeps the line's
-    // `optional` flag here so the tag stays, lit.
+    // where stated, additions at the end.
     final entries = {
       for (final entry in draftLines(lines, overrides)) entry.line.id: entry,
     };
@@ -1327,9 +1412,25 @@ class _IngredientsTab extends ConsumerWidget {
       row: row,
       summary: summary,
       markers: markers,
-      included: included,
       factor: factor,
     );
+    // Where a week owns the page the optional lines are the section's.
+    final asked = choices;
+    final optional = asked ?? const <OptionalChoice>[];
+    final inList = [
+      for (final group in recipe.groups)
+        (
+          name: group.name,
+          rows: _weekRows(
+            [
+              for (final item in group.items)
+                if (asked == null || !item.optional) item,
+            ],
+            entries,
+            factor,
+          ),
+        ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1351,8 +1452,8 @@ class _IngredientsTab extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
         ],
-        for (final group in recipe.groups) ...[
-          if (group.name != null) ...[
+        for (final group in inList) ...[
+          if (group.name != null && group.rows.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.only(top: 18, bottom: 8),
               child: Text(
@@ -1368,17 +1469,27 @@ class _IngredientsTab extends ConsumerWidget {
             ),
             const _Hairline(),
           ],
-          for (final row in _weekRows(group.items, entries, factor)) line(row),
+          for (final row in group.rows) line(row),
         ],
         // An override carries no group, so an added line has none to land in:
         // it sits after the last one, exactly where week mode puts it.
         for (final uses in groupLineUses(added))
           line((uses: uses, excluded: false)),
+        if (optional.isNotEmpty)
+          OptionalSection(
+            reveal: choosing,
+            cards: [
+              for (final choice in optional)
+                _card(context, ref, choice, summary, markers, factor),
+            ],
+          ),
         // Below the list and clear of the scaler: the per-serving figure is not
         // driven by the stepper.
         const SizedBox(height: 22),
         // One strip, two readings of the same lines (ADR-0017).
-        if (costReading)
+        if (!showPanel)
+          const SizedBox.shrink()
+        else if (costReading)
           RecipeCostPanel(summary: cost, header: toggle)
         else
           RecipeMacroPanel(
@@ -1403,15 +1514,98 @@ class _IngredientsTab extends ConsumerWidget {
     );
   }
 
-  /// One display row with the week's answer on it: its doors, its macros and,
-  /// where a week owns the page, the tag as the include switch.
+  /// One optional ingredient's card: its amount as shown, the steps that use
+  /// it, and while included its figures.
+  OptionalCard _card(
+    BuildContext context,
+    WidgetRef ref,
+    OptionalChoice choice,
+    RecipeMacroSummary summary,
+    Map<String, MacroLineNote> markers,
+    double factor,
+  ) {
+    final uses = LineUses(
+      ingredientId: choice.uses.ingredientId,
+      subRecipeId: choice.uses.subRecipeId,
+      uses: [for (final u in choice.uses.uses) scaleLineItem(u, factor)],
+    );
+    final included = choice.includedWith(picks);
+    // Out, it is in no total, so it has no figures and waits on nothing.
+    final counted = included && showPanel;
+    final note = counted ? _firstNote(uses, markers) : null;
+    final macros = counted
+        ? _macroLine(uses, summary, factor, marked: note != null)
+        : const (figures: null, note: null);
+    final lineById = _lineById(recipe);
+    return OptionalCard(
+      key: optionalCardKey(uses.uses.first.id),
+      uses: uses,
+      steps: stepUsesOf(recipe.methodSteps ?? const [], {
+        for (final u in uses.uses) u.id,
+      }, lineById: lineById),
+      included: included,
+      onToggle: choice.lineIds.isEmpty
+          ? null
+          : () => _pick(context, ref, choice.lineIds, included: !included),
+      onOpenSubRecipe: (id) => _openSubRecipe(context, id),
+      macroLine: macros.figures,
+      detail: note != null
+          ? incompleteLineNote(note.reason)
+          : macros.note ?? (counted ? _costLine(uses, factor) : null),
+      onFix: note == null ? null : () => _fix(context, note),
+    );
+  }
+
+  /// Answers for every line of one ingredient: into the Add sheet's picks
+  /// while choosing, and as the write otherwise.
+  void _pick(
+    BuildContext context,
+    WidgetRef ref,
+    List<String> lineIds, {
+    required bool included,
+  }) {
+    final key = weekKey;
+    if (key == null) return;
+    if (choosing) {
+      ref
+          .read(optionalPicksProvider(key, recipe.id).notifier)
+          .pick(lineIds, included: included);
+      return;
+    }
+    final week = weekStartOfKey(key, ref.read(weekShapeProvider));
+    if (week == null) return;
+    final repository = ref.read(weekVariantRepositoryProvider);
+    unawaited(
+      ref.write(
+        context,
+        included ? 'include it this week' : 'leave it out this week',
+        () async {
+          for (final id in lineIds) {
+            await repository.setLineIncluded(
+              week,
+              recipe.id,
+              id,
+              included: included,
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  /// A sub-recipe's page, in the week that cooks it through this one: its own
+  /// optional ingredients are picked there. While choosing, the meal that
+  /// would cook it does not exist yet.
+  void _openSubRecipe(BuildContext context, String id) =>
+      context.pushOnce(recipePageRoute(id, weekKey: choosing ? null : weekKey));
+
+  /// One display row with the week's answer on it: its doors and its figures.
   Widget _line(
     BuildContext context,
     WidgetRef ref, {
     required ({LineUses uses, bool excluded}) row,
     required RecipeMacroSummary summary,
     required Map<String, MacroLineNote> markers,
-    required Set<String> included,
     required double factor,
   }) {
     final uses = row.uses;
@@ -1427,45 +1621,14 @@ class _IngredientsTab extends ConsumerWidget {
     // The identity cell already says `ingredient removed · pick again`, so the
     // amount column does not repeat it.
     final saidInPlace = note?.reason == MacroLineReason.removedIngredient;
-    // One tap is one intent: a folded row's every optional use is ticked in
-    // together, because the row is what the person answered about.
-    final optionalIds = [
-      for (final use in uses.uses)
-        if (use.optional || included.contains(use.id)) use.id,
-    ];
-    final week = weekStart;
     return RecipeIngredientLine(
       uses: uses,
       struck: row.excluded,
-      included: uses.uses.any((u) => included.contains(u.id)),
-      onToggleOptional: week == null || row.excluded || optionalIds.isEmpty
-          ? null
-          : (include) {
-              final repository = ref.read(weekVariantRepositoryProvider);
-              unawaited(
-                ref.write(
-                  context,
-                  include ? 'include it this week' : 'leave it out this week',
-                  // Sequential: each call is a read-modify-write of the
-                  // recipe's whole set for that week.
-                  () async {
-                    for (final id in optionalIds) {
-                      await repository.setLineIncluded(
-                        week,
-                        recipe.id,
-                        id,
-                        included: include,
-                      );
-                    }
-                  },
-                ),
-              );
-            },
       // A component's chip opens its target's page and an ingredient's name
       // opens its own. A struck line has neither.
       onOpenSubRecipe: row.excluded
           ? null
-          : (id) => context.pushOnce('/recipes/$id'),
+          : (id) => _openSubRecipe(context, id),
       onOpenIngredient: row.excluded
           ? null
           : (id) => context.pushOnce(ingredientDetailRoute(id)),

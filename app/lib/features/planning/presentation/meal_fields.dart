@@ -33,11 +33,15 @@ import 'week_format.dart';
 import 'week_widgets.dart';
 
 /// The picked recipe, with its shelf life and per-serving line: real numbers or
-/// the `incomplete` badge and reason, never zeros.
+/// the `incomplete` badge and reason, never zeros. [footer] is the door into
+/// the recipe, so it is part of the card.
 class MealRecipeCard extends StatelessWidget {
-  const MealRecipeCard({required this.recipe, super.key});
+  const MealRecipeCard({required this.recipe, this.footer, super.key});
 
   final RecipeSummary recipe;
+
+  /// Drawn inside the card, under the recipe.
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -55,73 +59,89 @@ class MealRecipeCard extends StatelessWidget {
         border: Border.all(color: AnsiColors.line),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AnsiColors.herbSoft,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              FLucideIcons.cookingPot,
-              size: 20,
-              color: AnsiColors.herb,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
-                  style: ansiSerif(size: AnsiType.row),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AnsiColors.herbSoft,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                if (shelf.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      shelf,
-                      style: ansiMono(size: 10, color: AnsiColors.muted),
+                child: const Icon(
+                  FLucideIcons.cookingPot,
+                  size: 20,
+                  color: AnsiColors.herb,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      recipe.title.isEmpty ? 'Untitled recipe' : recipe.title,
+                      style: ansiSerif(size: AnsiType.row),
                     ),
-                  ),
-                if (perServing != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Text.rich(
-                      TextSpan(
-                        text:
-                            'serves ${formatQuantity(recipe.servingsBase)} · '
-                            '~${perServing.kcal.round()} kcal · '
-                            '${perServing.protein.round()}P',
-                        style: ansiMono(size: 10, color: AnsiColors.herbDeep),
-                        children: [
-                          TextSpan(
-                            text: ' /serving',
-                            style: ansiMono(size: 10, color: AnsiColors.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else if (summary != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Row(
-                      children: [
-                        const IncompleteBadge(),
-                        Text(
-                          ' ${incompleteNote(summary)}',
+                    if (shelf.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          shelf,
                           style: ansiMono(size: 10, color: AnsiColors.muted),
                         ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+                      ),
+                    if (perServing != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text.rich(
+                          TextSpan(
+                            text:
+                                'serves '
+                                '${formatQuantity(recipe.servingsBase)} · '
+                                '~${perServing.kcal.round()} kcal · '
+                                '${perServing.protein.round()}P',
+                            style: ansiMono(
+                              size: 10,
+                              color: AnsiColors.herbDeep,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: ' /serving',
+                                style: ansiMono(
+                                  size: 10,
+                                  color: AnsiColors.muted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (summary != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Row(
+                          children: [
+                            const IncompleteBadge(),
+                            Text(
+                              ' ${incompleteNote(summary)}',
+                              style: ansiMono(
+                                size: 10,
+                                color: AnsiColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          ?footer,
         ],
       ),
     );

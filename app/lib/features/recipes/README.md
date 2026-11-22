@@ -122,7 +122,8 @@ lines, chosen by a `Macros | Cost` chip pair held for the session
 
 **The page holds the week it was opened from.** A `?week=` link the week still
 plans (`weekRecipePlacement`) draws that week's effective lines read-only, and
-the `optional` tag becomes the switch: one tap writes the week's `include` row
+the optional lines become `OptionalSection`: a card an ingredient, quoting
+the steps that use it (`method_uses.dart`), and a tap writes the week's `include` row
 through `WeekVariantRepository.setLineIncluded`, and the panel reads the week's
 own re-summation (`watchVariantRecipeMacros`).
 

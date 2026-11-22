@@ -274,6 +274,14 @@ List<WeekDraftLine> draftLines(
   ];
 }
 
+/// The changes of [overrides] that are edits: a swap, an amount, an addition
+/// or a leave-out. Picking an optional ingredient is a choice the recipe
+/// offers, and no edit of it.
+List<LineOverride> editsOf(Iterable<LineOverride> overrides) => [
+  for (final o in overrides)
+    if (o.action != LineOverrideAction.include) o,
+];
+
 /// What an override did to its line. Both the editor's tag and the shopping
 /// list's provenance segment read this one classification.
 enum WeekChange {
@@ -322,7 +330,9 @@ String weekTagText(WeekChange change, LineItem? base) => switch (change) {
 };
 
 /// The shopping list's provenance segment: "· this week, for Pork sausage". An
-/// exclusion has none; it takes the list's echo row for a dropped line.
+/// exclusion has none; it takes the list's echo row for a dropped line. An
+/// included optional line has none either: once it is selected it is an
+/// ordinary line of the list, and says nothing about having been optional.
 String? weekProvenanceSegment(WeekChange change, LineItem? base) =>
     switch (change) {
       WeekChange.swapped when base != null =>
@@ -331,6 +341,5 @@ String? weekProvenanceSegment(WeekChange change, LineItem? base) =>
         'this week, was ${amountOfLine(base)}',
       WeekChange.swapped || WeekChange.amount => 'this week, changed',
       WeekChange.added => 'this week, added',
-      WeekChange.included => 'this week, ticked in',
-      WeekChange.leftOut => null,
+      WeekChange.included || WeekChange.leftOut => null,
     };

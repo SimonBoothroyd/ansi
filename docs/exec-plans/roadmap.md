@@ -43,6 +43,13 @@ The detail is in the plan; the landing dates are in the
    phones, one pass) and plan 0056's refreshed list, search field and
    cheapest prices.
 
+10. [Plan 0063](./active/0063-optional-items.md): the owner's look at
+    optional ingredients on a phone, then the plan moves to `completed/`.
+    [Plan 0064](./active/0064-receipts-by-email.md) (receipts by email) waits
+    on a real saved order file and [plan 0065](./active/0065-spend-and-stores.md)
+    (Spend and Stores) on one price ruling; both are drawn as proposed and
+    unbuilt.
+
 The web app is served from GitHub Pages ([release.md §6.1](../release.md#61-the-host));
 one browser sign-in on it is still to be walked.
 The seed is the owner's own vocabulary and a reseed follows his rows, so no
@@ -50,7 +57,16 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-Nothing: every change on main is in a tag.
+- **Five field bugs.** A receipt keeps a weight whose rate is printed with its
+  unit, its sum closes on the subtotal or the total less tax, and a pack of
+  one states its size; the Shop's notes wrap; a leftover reads the choices of
+  the week that cooked it. Owes `deploy-supabase` (`import-receipt`) before
+  the tag. No migration.
+- **Optional ingredients, chosen in the recipe**
+  ([plan 0063](./active/0063-optional-items.md)): each quotes the step that
+  uses it, the method greys what was not picked, the Shop never says
+  optional, and a copy of last week carries the ticks. Ticks made together
+  all stand. No migration.
 
 ## Shipped
 

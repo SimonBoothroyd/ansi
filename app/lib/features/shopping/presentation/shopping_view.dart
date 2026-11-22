@@ -5,7 +5,6 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
@@ -26,7 +25,6 @@ import '../../../shared/write.dart';
 import '../../ask/domain/ask_screen.dart';
 import '../../ask/presentation/ask_door.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
-import '../../planning/data/planning_providers.dart';
 import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
@@ -633,17 +631,25 @@ class _Chevron extends StatelessWidget {
   );
 }
 
+/// The lines this week's variant left out. A change somebody made, undone
+/// where it was made, so it is a note and not a row to add.
+List<OptionalLinesNote> _leftOutNotes(ShoppingList list) => [
+  for (final note in list.optionalLines)
+    if (note.reason == LineDropReason.thisWeek) note,
+];
+
 /// How many notes the plan left: the unresolved components, the retired
-/// ingredients and the lines left out.
+/// ingredients and the lines this week left out.
 int _noteCount(ShoppingList list) =>
     list.unresolvedComponents.length +
     list.retiredIngredients.length +
-    list.optionalLines.length;
+    _leftOutNotes(list).length;
 
 /// The plan's notes, folded behind one line: `3 notes from the plan`, amber
 /// with a flag while any of them is a defect (an unresolved component, a
-/// retired ingredient), muted when every one is a line left out. Opened, it
-/// holds today's echo rows, the optional names still doors.
+/// retired ingredient), muted when every one is a line left out this week.
+/// An optional line nobody picked is no note and no row: the choice is the
+/// recipe's, and the Shop lists what was picked as any other line.
 class _PlanNotes extends ConsumerWidget {
   const _PlanNotes({required this.list});
 
@@ -676,8 +682,8 @@ class _PlanNotes extends ConsumerWidget {
           // fixable.
           for (final note in list.retiredIngredients)
             RetiredIngredientEcho(note: note),
-          // Optional lines left out by rule. Muted: a choice, not a defect.
-          for (final note in list.optionalLines) OptionalLinesEcho(note: note),
+          // Lines this week left out. Muted: a choice, not a defect.
+          for (final note in _leftOutNotes(list)) LeftOutEcho(note: note),
         ],
       ],
     );
@@ -755,110 +761,35 @@ class RetiredIngredientEcho extends StatelessWidget {
   }
 }
 
-/// A recipe's "N optional lines not listed — lime, coriander" echo, muted. A
-/// line this week left out takes the same row ("1 line left out this week — Red
-/// wine").
-///
-/// On an optional row each name is a door: a tap writes this week's include row
-/// for that line. A week exclusion keeps plain words; it is undone where it was
-/// made. Stateful only to own the tap recognizers. Public so the screen test
-/// can find the row by type.
-class OptionalLinesEcho extends ConsumerStatefulWidget {
-  const OptionalLinesEcho({required this.note, super.key});
+/// A recipe's "1 line left out this week: Red wine" echo, muted. Plain words:
+/// the change is undone where it was made. Public so the screen test can find
+/// the row by type.
+class LeftOutEcho extends StatelessWidget {
+  const LeftOutEcho({required this.note, super.key});
 
   final OptionalLinesNote note;
 
-  /// `2 optional lines not listed: lime, coriander`, or
   /// `1 line left out this week: Red wine`.
-  static String text(OptionalLinesNote note) =>
-      lead(note) + note.names.join(', ');
-
-  /// The sentence up to the names, `2 optional lines not listed: `, the run
-  /// that stays plain when the names become doors.
-  static String lead(OptionalLinesNote note) {
+  static String text(OptionalLinesNote note) {
     final n = note.names.length;
-    return switch (note.reason) {
-      LineDropReason.optional =>
-        '$n optional ${plural(n, 'line')} not listed: ',
-      LineDropReason.thisWeek => '$n ${plural(n, 'line')} left out this week: ',
-    };
+    return '$n ${plural(n, 'line')} left out this week: '
+        '${note.names.join(', ')}';
   }
 
   @override
-  ConsumerState<OptionalLinesEcho> createState() => _OptionalLinesEchoState();
-}
-
-class _OptionalLinesEchoState extends ConsumerState<OptionalLinesEcho> {
-  final _taps = <TapGestureRecognizer>[];
-
-  @override
-  void dispose() {
-    for (final tap in _taps) {
-      tap.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final note = widget.note;
-    final muted = ansiMono(size: 10.5, color: AnsiColors.muted);
-    // A door only where there is a decision; a row whose ids and names do not
-    // line up says its sentence plainly.
-    final isDoor =
-        note.reason == LineDropReason.optional &&
-        note.lineIds.length == note.names.length;
-    final week = ref.watch(viewedWeekStartProvider);
-
-    final wanted = isDoor ? note.names.length : 0;
-    while (_taps.length < wanted) {
-      _taps.add(TapGestureRecognizer());
-    }
-    while (_taps.length > wanted) {
-      _taps.removeLast().dispose();
-    }
-    for (var i = 0; i < wanted; i++) {
-      final lineId = note.lineIds[i];
-      _taps[i].onTap = () => ref.write(
-        context,
-        'include it this week',
-        () => ref
-            .read(weekVariantRepositoryProvider)
-            .setLineIncluded(week, note.recipeId, lineId, included: true),
-      );
-    }
-
-    return _EchoRow(
-      heading: note.recipeTitle,
-      sentence: Text.rich(
-        TextSpan(
-          text: OptionalLinesEcho.lead(note),
-          children: [
-            for (var i = 0; i < note.names.length; i++) ...[
-              if (i > 0) const TextSpan(text: ', '),
-              TextSpan(
-                text: note.names[i],
-                style: isDoor
-                    ? ansiMono(
-                        size: 10.5,
-                        color: AnsiColors.herbDeep,
-                      ).copyWith(fontWeight: FontWeight.w500)
-                    : null,
-                recognizer: isDoor ? _taps[i] : null,
-              ),
-            ],
-          ],
-        ),
-        style: muted,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _EchoRow(
+    heading: note.recipeTitle,
+    sentence: Text(
+      text(note),
+      style: ansiMono(size: 10.5, color: AnsiColors.muted),
+    ),
+  );
 }
 
 /// The layout of every echo row: the heading, then the sentence beside it
 /// where it fits and under it where it does not. The sentence wraps and is
-/// never cut, because its end is the part to act on: the names that are
-/// doors, or where to go.
+/// never cut, because its end is the part to act on: what was left out, or
+/// where to go.
 class _EchoRow extends StatelessWidget {
   const _EchoRow({
     required this.heading,

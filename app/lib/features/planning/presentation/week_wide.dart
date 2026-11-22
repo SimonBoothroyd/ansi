@@ -22,6 +22,7 @@ import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../cook_plan/domain/cook_plan.dart';
 import '../../ingredients/presentation/macro_line_text.dart';
+import '../../recipes/domain/line_override.dart';
 import '../domain/planning.dart';
 import 'copy_last_week.dart';
 import 'week_format.dart';
@@ -429,9 +430,13 @@ class _PaneMeal extends ConsumerWidget {
     );
     final edited =
         entry.cookedAsThisWeek &&
-        (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
-                const [])
-            .isNotEmpty;
+        editsOf(
+          ref
+                  .watch(viewedWeekOverridesProvider)
+                  .asData
+                  ?.value[entry.recipeId] ??
+              const [],
+        ).isNotEmpty;
     return Opacity(
       opacity: dimmed ? 0.38 : 1,
       child: Container(

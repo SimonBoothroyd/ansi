@@ -322,4 +322,15 @@ void main() {
       expect(again.map((o) => o.quantity), overrides.map((o) => o.quantity));
     });
   });
+
+  test('a pick is no edit; a swap, an amount, an addition and a leave-out '
+      'are', () {
+    final all = [
+      for (final action in LineOverrideAction.values)
+        LineOverride(action: action, recipeLineItemId: action.name),
+    ];
+    expect({
+      for (final o in editsOf(all)) o.action,
+    }, LineOverrideAction.values.toSet()..remove(LineOverrideAction.include));
+  });
 }

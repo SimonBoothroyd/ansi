@@ -476,6 +476,133 @@ final class ViewedWeekOverridesProvider
 String _$viewedWeekOverridesHash() =>
     r'd3d4d070dc3274e8a5ddc4502f50f6f39e373e7b';
 
+/// Optional ingredients picked on the recipe page while a meal of it is still
+/// being added: line id → in or out, over the week's stored answer. The Add
+/// sheet writes it with Add and starts it empty each time it opens, so a
+/// closed sheet's picks are never written.
+
+@ProviderFor(OptionalPicks)
+const optionalPicksProvider = OptionalPicksFamily._();
+
+/// Optional ingredients picked on the recipe page while a meal of it is still
+/// being added: line id → in or out, over the week's stored answer. The Add
+/// sheet writes it with Add and starts it empty each time it opens, so a
+/// closed sheet's picks are never written.
+final class OptionalPicksProvider
+    extends $NotifierProvider<OptionalPicks, Map<String, bool>> {
+  /// Optional ingredients picked on the recipe page while a meal of it is still
+  /// being added: line id → in or out, over the week's stored answer. The Add
+  /// sheet writes it with Add and starts it empty each time it opens, so a
+  /// closed sheet's picks are never written.
+  const OptionalPicksProvider._({
+    required OptionalPicksFamily super.from,
+    required (String, String) super.argument,
+  }) : super(
+         retry: null,
+         name: r'optionalPicksProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$optionalPicksHash();
+
+  @override
+  String toString() {
+    return r'optionalPicksProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  OptionalPicks create() => OptionalPicks();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<String, bool> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<String, bool>>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is OptionalPicksProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$optionalPicksHash() => r'61b3032a6d19f4c5cc8798a7a8cd9de8051e3b1c';
+
+/// Optional ingredients picked on the recipe page while a meal of it is still
+/// being added: line id → in or out, over the week's stored answer. The Add
+/// sheet writes it with Add and starts it empty each time it opens, so a
+/// closed sheet's picks are never written.
+
+final class OptionalPicksFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          OptionalPicks,
+          Map<String, bool>,
+          Map<String, bool>,
+          Map<String, bool>,
+          (String, String)
+        > {
+  const OptionalPicksFamily._()
+    : super(
+        retry: null,
+        name: r'optionalPicksProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Optional ingredients picked on the recipe page while a meal of it is still
+  /// being added: line id → in or out, over the week's stored answer. The Add
+  /// sheet writes it with Add and starts it empty each time it opens, so a
+  /// closed sheet's picks are never written.
+
+  OptionalPicksProvider call(String weekKey, String recipeId) =>
+      OptionalPicksProvider._(argument: (weekKey, recipeId), from: this);
+
+  @override
+  String toString() => r'optionalPicksProvider';
+}
+
+/// Optional ingredients picked on the recipe page while a meal of it is still
+/// being added: line id → in or out, over the week's stored answer. The Add
+/// sheet writes it with Add and starts it empty each time it opens, so a
+/// closed sheet's picks are never written.
+
+abstract class _$OptionalPicks extends $Notifier<Map<String, bool>> {
+  late final _$args = ref.$arg as (String, String);
+  String get weekKey => _$args.$1;
+  String get recipeId => _$args.$2;
+
+  Map<String, bool> build(String weekKey, String recipeId);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build(_$args.$1, _$args.$2);
+    final ref = this.ref as $Ref<Map<String, bool>, Map<String, bool>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<Map<String, bool>, Map<String, bool>>,
+              Map<String, bool>,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 @ProviderFor(weekRecipePlacement)
 const weekRecipePlacementProvider = WeekRecipePlacementFamily._();
 
@@ -540,7 +667,7 @@ final class WeekRecipePlacementProvider
 }
 
 String _$weekRecipePlacementHash() =>
-    r'cc841fc91fce4976958f750ad14169262f05d7d9';
+    r'e077609f3fa693735aa40222605d9389e8b98d8a';
 
 final class WeekRecipePlacementFamily extends $Family
     with $FunctionalFamilyOverride<WeekRecipePlacement, (String, String)> {
@@ -558,6 +685,85 @@ final class WeekRecipePlacementFamily extends $Family
 
   @override
   String toString() => r'weekRecipePlacementProvider';
+}
+
+/// The cook plan of the week [weekKey] names.
+
+@ProviderFor(cookPlanFor)
+const cookPlanForProvider = CookPlanForFamily._();
+
+/// The cook plan of the week [weekKey] names.
+
+final class CookPlanForProvider
+    extends
+        $FunctionalProvider<AsyncValue<CookPlan?>, CookPlan?, Stream<CookPlan?>>
+    with $FutureModifier<CookPlan?>, $StreamProvider<CookPlan?> {
+  /// The cook plan of the week [weekKey] names.
+  const CookPlanForProvider._({
+    required CookPlanForFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'cookPlanForProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$cookPlanForHash();
+
+  @override
+  String toString() {
+    return r'cookPlanForProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<CookPlan?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<CookPlan?> create(Ref ref) {
+    final argument = this.argument as String;
+    return cookPlanFor(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CookPlanForProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$cookPlanForHash() => r'65c59452ad0efe6ea55f5ff997ab1d8c38ebda73';
+
+/// The cook plan of the week [weekKey] names.
+
+final class CookPlanForFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<CookPlan?>, String> {
+  const CookPlanForFamily._()
+    : super(
+        retry: null,
+        name: r'cookPlanForProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The cook plan of the week [weekKey] names.
+
+  CookPlanForProvider call(String weekKey) =>
+      CookPlanForProvider._(argument: weekKey, from: this);
+
+  @override
+  String toString() => r'cookPlanForProvider';
 }
 
 /// The week [weekKey] names, with its meals.

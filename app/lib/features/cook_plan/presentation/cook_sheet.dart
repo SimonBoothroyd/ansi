@@ -15,6 +15,7 @@ import '../../../core/week_shape.dart';
 import '../../../shared/guarded_navigation.dart';
 import '../../account/data/household_providers.dart';
 import '../../planning/presentation/week_view_models.dart';
+import '../../recipes/domain/line_override.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
 import '../domain/leftovers.dart';
@@ -216,13 +217,10 @@ class _MealRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final shape = ref.watch(weekShapeProvider);
     final sessions = recipe.mealSessions;
-    final edited =
-        (ref
-                    .watch(viewedWeekOverridesProvider)
-                    .asData
-                    ?.value[recipe.recipeId] ??
-                const [])
-            .isNotEmpty;
+    final edited = editsOf(
+      ref.watch(viewedWeekOverridesProvider).asData?.value[recipe.recipeId] ??
+          const [],
+    ).isNotEmpty;
     final speeches = [
       for (final session in sessions)
         SessionSpeech.of(
@@ -323,6 +321,8 @@ class _ComponentRow extends ConsumerWidget {
         onTap: () => context.pushOnce(
           recipePageRoute(
             recipe.recipeId,
+            // A sub-recipe's own optional lines are picked on its page.
+            weekKey: isoDateOf(ref.read(viewedWeekStartProvider)),
             servings: cookTitleServings(sessions),
           ),
         ),

@@ -21,6 +21,7 @@ import '../../ingredients/domain/default_amount.dart';
 import '../domain/plan_change.dart';
 import '../domain/planning.dart';
 import '../domain/planning_repository.dart';
+import 'week_variant_repository_impl.dart' show copyOptionalTicksIn;
 
 const _uuid = Uuid();
 
@@ -725,6 +726,14 @@ class SqlitePlanningRepository implements PlanningRepository {
           ],
         );
       }
+      await copyOptionalTicksIn(
+        tx,
+        householdId: _householdId,
+        meals: entries,
+        sourceKey: isoDateOf(source.weekStart),
+        targetKey: key,
+        targetWeekId: weekId,
+      );
     });
     return (
       meals: source.entries.length,
@@ -842,14 +851,15 @@ class SqlitePlanningRepository implements PlanningRepository {
     return row == null ? null : _lastAmountOf(row);
   }
 
-  /// One row per recipe the source week varied, named and counted. Nothing is
-  /// written for them.
+  /// One row per recipe the source week edited, named and counted. An optional
+  /// tick is no edit and is copied; nothing is written for the rest.
   Future<List<VariantLeftBehind>> _variantsLeftBehind(String weekPlanId) async {
     final rows = await _db.getAll(
       'SELECT r.title, COUNT(*) AS n '
       'FROM week_recipe_line_override wro '
       'JOIN recipe r ON r.id = wro.recipe_id AND r.deleted_at IS NULL '
       'WHERE wro.week_plan_id = ? AND wro.deleted_at IS NULL '
+      "AND wro.action <> 'include' "
       'GROUP BY r.id, r.title ORDER BY r.title',
       [weekPlanId],
     );

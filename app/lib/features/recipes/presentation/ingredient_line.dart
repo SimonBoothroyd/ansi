@@ -37,8 +37,6 @@ class RecipeIngredientLine extends StatelessWidget {
     this.macroLineNote,
     this.onFixMacro,
     this.struck = false,
-    this.included = false,
-    this.onToggleOptional,
     super.key,
   });
 
@@ -46,14 +44,6 @@ class RecipeIngredientLine extends StatelessWidget {
 
   /// Whether this week leaves the row out: amount and name struck and muted.
   final bool struck;
-
-  /// Whether this week has ticked the row's optional line(s) in; the tag then
-  /// reads `included`.
-  final bool included;
-
-  /// Ticks the row's optional line(s) in or out for this week; the argument is
-  /// the new state. Set only where a week owns the page.
-  final ValueChanged<bool>? onToggleOptional;
 
   /// This row's macros at the amount shown (`142 🔥 · 3P 11F 8C`), drawn under
   /// the identity. Null when the per-line toggle is off, when [macroMarker]
@@ -146,8 +136,6 @@ class RecipeIngredientLine extends StatelessWidget {
                       onOpen: onOpenSubRecipe,
                       onOpenIngredient: onOpenIngredient,
                       struck: struck,
-                      included: included,
-                      onToggleOptional: onToggleOptional,
                     ),
                     if (macroLine != null)
                       Padding(
@@ -239,8 +227,6 @@ class _Identity extends StatefulWidget {
     this.onOpen,
     this.onOpenIngredient,
     this.struck = false,
-    this.included = false,
-    this.onToggleOptional,
   });
 
   final LineUses uses;
@@ -248,8 +234,6 @@ class _Identity extends StatefulWidget {
   final ValueChanged<String>? onOpen;
   final ValueChanged<String>? onOpenIngredient;
   final bool struck;
-  final bool included;
-  final ValueChanged<bool>? onToggleOptional;
 
   @override
   State<_Identity> createState() => _IdentityState();
@@ -274,9 +258,8 @@ class _IdentityState extends State<_Identity> {
       size: 16,
       color: AnsiColors.muted,
     ).copyWith(fontStyle: FontStyle.italic);
-    // A folded multi-use row is tagged if any use is optional, or if this week
-    // ticked it in.
-    final optional = uses.uses.any((u) => u.optional) || widget.included;
+    // A folded multi-use row is tagged if any use is optional.
+    final optional = uses.uses.any((u) => u.optional);
     // Every use of a folded row shares one identity.
     final removed = uses.uses.any((u) => u.ingredientDeleted);
 
@@ -293,11 +276,7 @@ class _IdentityState extends State<_Identity> {
             onTap: onOpen == null ? null : () => onOpen(id),
           ),
           if (notes.isNotEmpty) Text(notes, style: noteStyle),
-          if (optional)
-            OptionalTag(
-              included: widget.included,
-              onToggle: widget.onToggleOptional,
-            ),
+          if (optional) const OptionalTag(),
         ],
       );
     }
@@ -333,11 +312,7 @@ class _IdentityState extends State<_Identity> {
           ),
           ...noteSpans(notes, size: 16),
           if (dangling) ...noteSpans('linked recipe missing', size: 16),
-          ...optionalSpans(
-            optional: optional,
-            included: widget.included,
-            onToggle: widget.onToggleOptional,
-          ),
+          ...optionalSpans(optional: optional),
           ...removedIngredientSpans(removed: removed),
         ],
       ),
@@ -369,93 +344,38 @@ List<InlineSpan> noteSpans(String? note, {double size = 15}) {
 
 /// The `optional` tag as spans after the identity. Empty when the line is not
 /// optional.
-List<InlineSpan> optionalSpans({
-  required bool optional,
-  bool included = false,
-  ValueChanged<bool>? onToggle,
-}) => optional
-    ? [
+List<InlineSpan> optionalSpans({required bool optional}) => optional
+    ? const [
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: Padding(
-            padding: const EdgeInsets.only(left: 8),
-            child: OptionalTag(included: included, onToggle: onToggle),
+            padding: EdgeInsets.only(left: 8),
+            child: OptionalTag(),
           ),
         ),
       ]
     : const [];
 
-/// The `optional` tag, in the sub-recipe chip's shape. Public so the page test
-/// can find it by type.
-///
-/// With [onToggle] it is a switch: an empty ring before the word; ticked, it
-/// fills herb with a check and reads `included`, at the same size.
+/// The `optional` tag, in the sub-recipe chip's shape: the recipe's claim that
+/// a line may be skipped, and only that. Where a week owns the page the choice
+/// is `OptionalSection`'s. Public so the page test can find it by type.
 class OptionalTag extends StatelessWidget {
-  const OptionalTag({this.included = false, this.onToggle, super.key});
-
-  /// Whether the week has ticked this line in.
-  final bool included;
-
-  /// Ticks the line in or out; the argument is the new state. Null where the
-  /// tag only states a fact.
-  final ValueChanged<bool>? onToggle;
-
-  /// The tap target's height where the tag is a switch.
-  static const double switchHitHeight = 44;
+  const OptionalTag({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final onToggle = this.onToggle;
-    final badge = DecoratedBox(
-      decoration: BoxDecoration(
-        color: included ? AnsiColors.herb : AnsiColors.herbSoft,
-        borderRadius: BorderRadius.circular(6),
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: AnsiColors.herbSoft,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      child: Text(
+        'optional',
+        style: ansiMono(size: 10, color: AnsiColors.muted),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (included)
-              const Padding(
-                padding: EdgeInsets.only(right: 4),
-                child: Icon(
-                  FLucideIcons.check,
-                  size: 9,
-                  color: AnsiColors.paper,
-                ),
-              )
-            else if (onToggle != null)
-              const Padding(
-                padding: EdgeInsets.only(right: 4),
-                child: OptionalRing(),
-              ),
-            Text(
-              included ? 'included' : 'optional',
-              style: ansiMono(
-                size: 10,
-                color: included ? AnsiColors.paper : AnsiColors.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (onToggle == null) return badge;
-    return Semantics(
-      label: included ? 'included' : 'optional',
-      button: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onToggle(!included),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: switchHitHeight),
-          alignment: Alignment.center,
-          child: badge,
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }
 
 /// The unticked box: an empty ring before the word. Shared with the line card's

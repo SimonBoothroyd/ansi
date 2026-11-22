@@ -155,6 +155,21 @@ void main() {
       expect(await repo.loadOverrides(_nextWeek, 'r1'), isEmpty);
     });
 
+    test('ticks at once all stand', () async {
+      for (var i = 3; i < 8; i++) {
+        await _insertLine(db, 'l$i', 'g1', 'i-mince', sortOrder: i);
+      }
+      final lines = [for (var i = 1; i < 8; i++) 'l$i'];
+      await Future.wait([
+        for (final line in lines)
+          repo.setLineIncluded(_thisWeek, 'r1', line, included: true),
+      ]);
+      expect(
+        (await set()).map((o) => o.recipeLineItemId).toSet(),
+        lines.toSet(),
+      );
+    });
+
     test('asking twice is one row, and the same row', () async {
       await repo.setLineIncluded(_thisWeek, 'r1', 'l2', included: true);
       final first = (await set()).single.id;

@@ -1,7 +1,8 @@
 /// Copying last week, and reporting what it left behind.
 ///
-/// `copyLastWeek` never carries a recipe's this-week changes forward, and the
-/// notice names them. It is a state in the week's body, not a toast: it stays
+/// `copyLastWeek` carries the optional ticks and no other this-week change,
+/// and the notice names what it left. It is a state in the week's body, not a
+/// toast: it stays
 /// until the week moves.
 library;
 

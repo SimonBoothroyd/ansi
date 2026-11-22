@@ -15,7 +15,7 @@
 <header class="view-head">
     <p class="kicker"><a href="./index.html">Ansi &middot; the board</a></p>
     <h1 class="view-title">Receipts</h1>
-    <p class="view-status">built &middot; matches code 2026-10-28 &middot; the join: matches code 2026-11-22 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> &middot; <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> &middot; wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
+    <p class="view-status">built &middot; matches code 2026-10-28 &middot; the join: matches code 2026-11-22 &middot; <code>features/receipts</code> &middot; <a href="../../decisions/0004-matching-is-online-only.md">ADR-0004</a> &middot; <a href="../../decisions/0017-a-cost-is-a-unit-price-never-an-allocation.md">ADR-0017</a> &middot; <a href="../import-and-matching.md">import &amp; matching</a> &middot; <a href="../../exec-plans/completed/0049-food-cost-receipts-and-meals-out.md">plan 0049</a> &middot; <a href="../../exec-plans/active/0056-shop-refresh.md">plan 0056</a> &middot; <a href="../../exec-plans/active/0057-copy-pass.md">plan 0057</a> &middot; by email: <span class="prop">proposed</span> &middot; <a href="../../exec-plans/active/0064-receipts-by-email.md">plan 0064</a> &middot; Spend and Stores: wide: <span class="prop">proposed</span> &middot; <a href="../../exec-plans/active/0065-spend-and-stores.md">plan 0065</a> &middot; otherwise wide: same, one column at the 640 measure &mdash; the desk&rsquo;s three-column review was drawn and is not built, and waits in <a href="./not-built.html">the hatch</a></p>
     <p class="view-blurb">A photographed receipt reads through the recipe import&rsquo;s own pipeline, is confirmed line by line, and is kept whole &mdash; so what a week cost reads off the receipts themselves, and every matched line with a pack is a price. A scan starts from this ledger, whose door is the receipt action in <a href="./cook-shop.html">the Shop&rsquo;s header</a>, drawn from the first day. The figure it produces is <a href="./week.html">the band&rsquo;s second line</a>. <b>Nothing is written until Save.</b></p>
 </header>
 
@@ -222,6 +222,92 @@
             <p class="conv-note" style="margin:12px 20px 0">no receipts yet</p>
         </div></div>
         <p class="conv-note" style="margin:10px 4px 0">The empty ledger is reachable from the first day, because the Shop&rsquo;s receipts icon never waits for a receipt, so the empty state is where the feature is first met. It offers the one thing that fills it</p>
+    </div>
+
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The ledger &middot; what arrived by email</b> &middot; a forwarded receipt or a mailed order file waits at the top until it is reviewed (<a href="../../exec-plans/active/0064-receipts-by-email.md">plan 0064</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots"></span></div>
+            <div class="btn primary scan">Scan a receipt</div>
+            <p class="list-h">To review &middot; 2</p>
+            <div class="item"><div class="item-top"><span class="item-name">Whole Foods ›</span><span class="item-total">$48.20</span></div><div class="item-sub">Sat 14 Nov · 18 items · order file</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Whole Foods ›</span><span class="item-total">$6.80</span></div><div class="item-sub">Mon 9 Nov · 1 item · email</div></div>
+            <p class="list-h">Week of 2 Nov</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$84.12</span></div><div class="item-sub">Sun 8 Nov · 24 lines · 2 not food</div></div>
+            <div class="crow"><span class="cl">Receipts by email<small>r-example@getansi.app</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">copy</span></div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>One address, two kinds of paper.</b> An in-store receipt email is forwarded; an online order’s saved file is mailed to the same address. A row opens the review that exists and is no receipt before Save: it counts in no week’s <i>spent</i>. The same order again replaces the waiting row.</p>
+    </div>
+
+    <div class="frame prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>The review &middot; an online order</b> &middot; the lines as delivered, and what was charged besides (<a href="../../exec-plans/active/0064-receipts-by-email.md">plan 0064</a>)</p>
+        <div class="phone"><div class="notch"></div><div class="screen">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Review receipt</span><span class="hdrcount">looks good</span></div>
+            <p class="list-h">Lines</p>
+            <div class="item"><div class="item-top"><span class="item-name">Sweet Potato</span><span class="item-total">$3.95</span></div><div class="item-sub">1.2 lb · 73¢ / 100 g</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Oat Milk</span><span class="item-total">$8.40</span></div><div class="item-sub">2 × 32 fl oz · 44¢ / 100 ml</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Tahini</span><span class="item-total">$5.20</span></div><div class="item-sub">instead of Tahini, Whole · 16 oz</div></div>
+            <p class="list-h">Charged besides</p>
+            <div class="item"><div class="item-top"><span class="item-name">Bag</span><span class="item-total">$0.25</span></div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Delivery</span><span class="item-total">$0.00</span></div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Tip</span><span class="item-total">$4.00</span></div></div>
+            
+            <p class="conv-note" style="margin:8px 20px">Discard</p>
+            <div class="addbtn">Save receipt &middot; $21.80</div>
+        </div></div>
+        <p class="conv-note" style="margin:10px 4px 0"><b>What was delivered is the receipt.</b> The final weight beats the quantity and the estimate, a substitute says what it replaced, a refunded line prices nothing, and fees never enter a unit price. A name, an address and card digits are not kept.</p>
+    </div>
+
+</div>
+
+<h2 class="wide-rule">Wide &middot; ≥ 1024</h2>
+
+<div class="board-wide">
+
+    <div class="frame wide prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>wide &middot; Spend</b> &middot; where the money went (<a href="../../exec-plans/active/0065-spend-and-stores.md">plan 0065</a>)</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+            <div class="rail"><div class="wm">Ansi<span class="dot">.</span></div><div class="ri">Library</div><div class="ri">Week</div><div class="ri">Cook</div><div class="ri on">Shop</div><div class="grow"></div><div class="ri quiet">Account</div></div>
+            <div class="main measure">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots"></span></div>
+            <div class="seg sh-tog"><span class="segopt">Receipts</span><span class="segopt on">Spend</span><span class="segopt">Stores</span></div>
+            <div class="wkfoot"><div class="wf-h"><span class="wf-t">October</span></div><div class="dm" style="display:block"><b>$412</b> spent &middot; food $371 &middot; not food $29 &middot; fees and tips $12</div></div>
+            <p class="list-h">By store</p>
+            <div class="item"><div class="item-top"><span class="item-name">TJ’s</span><span class="item-total">$268</span></div><div class="item-sub">4 receipts</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Whole Foods</span><span class="item-total">$144</span></div><div class="item-sub">3 receipts · in store and online</div></div>
+            <p class="list-h">By category</p>
+            <div class="item"><div class="item-top"><span class="item-name">Produce</span><span class="item-total">$104</span></div><div class="item-sub">September $96</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Protein</span><span class="item-total">$92</span></div><div class="item-sub">September $88</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Dairy</span><span class="item-total">$61</span></div><div class="item-sub">September $70</div></div>
+            </div></div>
+        </div>
+        <p class="conv-note" style="margin:10px 4px 0">A month is stepped like a week, and any row opens the lines that make it. Words and figures, no charts.</p>
+    </div>
+
+    <div class="frame wide prop">
+        <p class="frame-name"><span class="proposed-tag">proposed</span><b>wide &middot; Stores</b> &middot; is one dearer, and where to buy this week (<a href="../../exec-plans/active/0065-spend-and-stores.md">plan 0065</a>)</p>
+        <div class="desk">
+            <div class="lip"><i></i><i></i><i></i></div>
+            <div class="dscreen">
+            <div class="rail"><div class="wm">Ansi<span class="dot">.</span></div><div class="ri">Library</div><div class="ri">Week</div><div class="ri">Cook</div><div class="ri on">Shop</div><div class="grow"></div><div class="ri quiet">Account</div></div>
+            <div class="main measure">
+            <div class="abar"><span class="back">‹</span><span class="ttl">Receipts</span><span class="dots"></span></div>
+            <div class="seg sh-tog"><span class="segopt">Receipts</span><span class="segopt">Spend</span><span class="segopt on">Stores</span></div>
+            <div class="wkfoot"><div class="wf-h"><span class="wf-t">The last 90 days</span></div><div class="dm" style="display:block"><b>Too close to call</b> &middot; 14 shared items &middot; 35% of food spend</div></div>
+            <p class="list-h">Typical price per 100 g or ml</p>
+            <div class="item"><div class="item-top"><span class="item-name">Chickpeas</span><span class="item-total">TJ’s 52¢ · Whole Foods 58¢</span></div><div class="item-sub">3 visits · 2 visits</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Tofu</span><span class="item-total">TJ’s 72¢ · Whole Foods 85¢</span></div><div class="item-sub">4 visits · seen once</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Yoghurt</span><span class="item-total">Whole Foods $1.20</span></div><div class="item-sub">not bought at TJ’s</div></div>
+            <p class="list-h">This week’s list</p>
+            <div class="item"><div class="item-top"><span class="item-name">Tofu</span><span class="item-total">TJ’s</span></div><div class="item-sub">usually $1.10 less</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Chickpeas</span><span class="item-total">TJ’s</span></div><div class="item-sub">usually 22¢ less</div></div>
+            <div class="item"><div class="item-top"><span class="item-name">Coriander</span><span class="item-total">either</span></div><div class="item-sub">no prices to compare</div></div>
+            <div class="crow"><span class="cl">One trip: TJ’s<small>a second would save about $1.30</small></span><span class="ci" style="color:var(--herb-deep);font-size:12px">suggest from $5 ✎</span></div></div></div>
+        </div>
+        <p class="conv-note" style="margin:10px 4px 0">The headline reads <i>Whole Foods is about 8% cheaper</i> only where no single item could flip it, <i>about the same</i> within 5%, and otherwise <i>too close to call</i>. Online and in store are one store, and a food’s variants are one food. The usual store is named on every row; the threshold decides only whether a second trip is suggested. A figure opens the receipt lines behind it.</p>
     </div>
 
 </div>

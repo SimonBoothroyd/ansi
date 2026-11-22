@@ -24,6 +24,7 @@ import '../../recipes/domain/line_override.dart';
 import '../../recipes/domain/recipe_cost.dart';
 import '../../recipes/domain/recipe_macros.dart';
 import '../../recipes/domain/recipe_rows.dart' show ingredientNutrition;
+import '../domain/planning.dart' show PlanEntry;
 import '../domain/week_variant_repository.dart';
 import 'planning_repository_impl.dart' show getOrCreateWeekPlan;
 
@@ -204,7 +205,6 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     String recipeId, {
     required List<LineOverride> overrides,
   }) async {
-    final key = isoDateOf(weekStart);
     // Refused before anything is written: a row the server's
     // `week_recipe_line_override_amount_pair` rejects makes the connector drop
     // the whole crud transaction.
@@ -216,92 +216,102 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
         );
       }
     }
+    await _db.writeTransaction(
+      (tx) => _saveIn(tx, isoDateOf(weekStart), recipeId, overrides),
+    );
+  }
+
+  /// Makes the stored set equal [overrides], inside [tx].
+  Future<void> _saveIn(
+    SqliteWriteContext tx,
+    String key,
+    String recipeId,
+    List<LineOverride> overrides,
+  ) async {
     final now = DateTime.now().toUtc().toIso8601String();
-    await _db.writeTransaction((tx) async {
-      final weekId = await getOrCreateWeekPlan(
-        tx,
-        weekKey: key,
-        householdId: _householdId,
-      );
-      final stored = await tx.getAll(
-        'SELECT id, recipe_line_item_id FROM week_recipe_line_override '
-        'WHERE week_plan_id = ? AND recipe_id = ? AND deleted_at IS NULL',
-        [weekId, recipeId],
-      );
-      // What is stored, keyed by recipe line for a delta and by row id for an
-      // addition.
-      final byLine = <String, String>{};
-      final addIds = <String>{};
-      for (final r in stored) {
-        final line = r['recipe_line_item_id'] as String?;
-        if (line == null) {
-          addIds.add(r['id'] as String);
-        } else {
-          byLine[line] = r['id'] as String;
-        }
+    final weekId = await getOrCreateWeekPlan(
+      tx,
+      weekKey: key,
+      householdId: _householdId,
+    );
+    final stored = await tx.getAll(
+      'SELECT id, recipe_line_item_id FROM week_recipe_line_override '
+      'WHERE week_plan_id = ? AND recipe_id = ? AND deleted_at IS NULL',
+      [weekId, recipeId],
+    );
+    // What is stored, keyed by recipe line for a delta and by row id for an
+    // addition.
+    final byLine = <String, String>{};
+    final addIds = <String>{};
+    for (final r in stored) {
+      final line = r['recipe_line_item_id'] as String?;
+      if (line == null) {
+        addIds.add(r['id'] as String);
+      } else {
+        byLine[line] = r['id'] as String;
       }
+    }
 
-      final kept = <String>{};
-      for (final override in overrides) {
-        final line = override.recipeLineItemId;
-        final existing = line == null
-            ? (addIds.contains(override.id) ? override.id : null)
-            : byLine[line];
-        final id = existing ?? (line == null ? override.id : _uuid.v4());
-        kept.add(id);
-        // A word is only sayable about a component, and the unit column is then
-        // null (the server's pair rule). Resolved once so both statements bind
-        // the same values.
-        final recipeMeasureId = override.subRecipeId == null
-            ? null
-            : override.recipeMeasureId;
-        final unitId = recipeMeasureId != null ? null : override.unit?.id;
-        final values = [
-          override.action.name,
-          line,
-          override.ingredientId,
-          override.subRecipeId,
-          override.quantity,
-          unitId,
-          override.measureId,
-          recipeMeasureId,
-          override.note,
-          override.sortOrder,
-          now,
-        ];
-        if (existing != null) {
-          await tx.execute(
-            'UPDATE week_recipe_line_override SET action = ?, '
-            'recipe_line_item_id = ?, ingredient_id = ?, sub_recipe_id = ?, '
-            'quantity = ?, unit = ?, measure_id = ?, recipe_measure_id = ?, '
-            'note = ?, sort_order = ?, updated_at = ? WHERE id = ?',
-            [...values, id],
-          );
-        } else {
-          await tx.execute(
-            'INSERT INTO week_recipe_line_override (id, household_id, '
-            'week_plan_id, recipe_id, action, recipe_line_item_id, '
-            'ingredient_id, sub_recipe_id, quantity, unit, measure_id, '
-            'recipe_measure_id, note, '
-            'sort_order, created_at, updated_at) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            // The same [values] the UPDATE binds (last element is the
-            // `updated_at` stamp), so the two statements cannot drift.
-            [id, _householdId, weekId, recipeId, ...values, now],
-          );
-        }
-      }
-
-      for (final r in stored) {
-        final id = r['id'] as String;
-        if (kept.contains(id)) continue;
+    final kept = <String>{};
+    for (final override in overrides) {
+      final line = override.recipeLineItemId;
+      final existing = line == null
+          ? (addIds.contains(override.id) ? override.id : null)
+          : byLine[line];
+      final id = existing ?? (line == null ? override.id : _uuid.v4());
+      kept.add(id);
+      // A word is only sayable about a component, and the unit column is then
+      // null (the server's pair rule). Resolved once so both statements bind
+      // the same values.
+      final recipeMeasureId = override.subRecipeId == null
+          ? null
+          : override.recipeMeasureId;
+      final unitId = recipeMeasureId != null ? null : override.unit?.id;
+      final values = [
+        override.action.name,
+        line,
+        override.ingredientId,
+        override.subRecipeId,
+        override.quantity,
+        unitId,
+        override.measureId,
+        recipeMeasureId,
+        override.note,
+        override.sortOrder,
+        now,
+      ];
+      if (existing != null) {
         await tx.execute(
-          'UPDATE week_recipe_line_override SET deleted_at = ?, '
-          'updated_at = ? WHERE id = ?',
-          [now, now, id],
+          'UPDATE week_recipe_line_override SET action = ?, '
+          'recipe_line_item_id = ?, ingredient_id = ?, sub_recipe_id = ?, '
+          'quantity = ?, unit = ?, measure_id = ?, recipe_measure_id = ?, '
+          'note = ?, sort_order = ?, updated_at = ? WHERE id = ?',
+          [...values, id],
+        );
+      } else {
+        await tx.execute(
+          'INSERT INTO week_recipe_line_override (id, household_id, '
+          'week_plan_id, recipe_id, action, recipe_line_item_id, '
+          'ingredient_id, sub_recipe_id, quantity, unit, measure_id, '
+          'recipe_measure_id, note, '
+          'sort_order, created_at, updated_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          // The same [values] the UPDATE binds (last element is the
+          // `updated_at` stamp), so the two statements cannot drift.
+          [id, _householdId, weekId, recipeId, ...values, now],
         );
       }
-    });
+    }
+
+    for (final r in stored) {
+      final id = r['id'] as String;
+      if (kept.contains(id)) continue;
+      await tx.execute(
+        'UPDATE week_recipe_line_override SET deleted_at = ?, '
+        'updated_at = ? WHERE id = ?',
+        [now, now, id],
+      );
+    }
   }
 
   @override
@@ -311,11 +321,117 @@ class SqliteWeekVariantRepository implements WeekVariantRepository {
     String lineId, {
     required bool included,
   }) async {
-    final stored = await loadOverrides(weekStart, recipeId);
-    final next = _lineIncluded(stored, lineId, included: included);
-    // Nothing to change, so nothing is written.
-    if (next == null) return;
-    await saveOverrides(weekStart, recipeId, overrides: next);
+    final key = isoDateOf(weekStart);
+    // Read inside the write: two ticks read outside it would both start from
+    // the same set, and the second save would drop the first's line.
+    await _db.writeTransaction((tx) async {
+      final stored = (await loadWeekOverrides(tx, key))[recipeId] ?? const [];
+      final next = _lineIncluded(stored, lineId, included: included);
+      // Nothing to change, so nothing is written.
+      if (next == null) return;
+      await _saveIn(tx, key, recipeId, next);
+    });
+  }
+}
+
+/// Copies the optional ticks of [meals] (the week [sourceKey]'s) into the
+/// week [targetKey], inside the copy's own transaction.
+///
+/// - A meal's ticks are those of the week that cooked it: its own, or for a
+///   meal from a pot, that pot's. A dish the week both cooks and eats from a
+///   pot takes its own.
+/// - The sub-recipes a copied dish cooks bring their own ticks.
+/// - An optional line the week stated an amount for was ticked: the tick is
+///   copied, and the amount is an edit, which a copy leaves.
+/// - What the target week already says of a line stands.
+Future<void> copyOptionalTicksIn(
+  SqliteWriteContext tx, {
+  required String householdId,
+  required List<PlanEntry> meals,
+  required String sourceKey,
+  required String targetKey,
+  required String targetWeekId,
+}) async {
+  // Which week's variant each copied dish was cooked by.
+  final weekOf = <String, String>{};
+  for (final meal in meals) {
+    if (meal.recipeId case final id? when meal.cookedAsThisWeek) {
+      weekOf[id] = sourceKey;
+    }
+  }
+  for (final meal in meals) {
+    if (meal.recipeId case final id?) {
+      if (meal.cookedInWeek case final week?) {
+        weekOf.putIfAbsent(id, () => week);
+      }
+    }
+  }
+  if (weekOf.isEmpty) return;
+
+  // And each sub-recipe they cook, by the week of the dish that asked for it.
+  final children = <String, List<String>>{};
+  for (final r in await tx.getAll(
+    'SELECT g.recipe_id, li.sub_recipe_id FROM recipe_line_item li '
+    'JOIN ingredient_group g ON g.id = li.group_id AND g.deleted_at IS NULL '
+    'WHERE li.deleted_at IS NULL AND li.sub_recipe_id IS NOT NULL',
+  )) {
+    (children[r['recipe_id'] as String] ??= []).add(
+      r['sub_recipe_id'] as String,
+    );
+  }
+  final queue = [...weekOf.keys];
+  while (queue.isNotEmpty) {
+    final parent = queue.removeAt(0);
+    for (final child in children[parent] ?? const <String>[]) {
+      if (weekOf.containsKey(child)) continue;
+      weekOf[child] = weekOf[parent]!;
+      queue.add(child);
+    }
+  }
+
+  final optional = {
+    for (final r in await tx.getAll(
+      'SELECT id FROM recipe_line_item '
+      'WHERE optional = 1 AND deleted_at IS NULL',
+    ))
+      r['id'] as String,
+  };
+  final stored = {
+    for (final week in {...weekOf.values})
+      week: await loadWeekOverrides(tx, week),
+  };
+  final target = await loadWeekOverrides(tx, targetKey);
+  final now = DateTime.now().toUtc().toIso8601String();
+  for (final MapEntry(key: recipe, value: week) in weekOf.entries) {
+    final said = {
+      for (final o in target[recipe] ?? const <LineOverride>[])
+        o.recipeLineItemId,
+    };
+    for (final o in stored[week]![recipe] ?? const <LineOverride>[]) {
+      final line = o.recipeLineItemId;
+      if (line == null || !optional.contains(line) || said.contains(line)) {
+        continue;
+      }
+      if (o.action != LineOverrideAction.include &&
+          o.action != LineOverrideAction.replace) {
+        continue;
+      }
+      await tx.execute(
+        'INSERT INTO week_recipe_line_override (id, household_id, '
+        'week_plan_id, recipe_id, action, recipe_line_item_id, '
+        'created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          _uuid.v4(),
+          householdId,
+          targetWeekId,
+          recipe,
+          LineOverrideAction.include.name,
+          line,
+          now,
+          now,
+        ],
+      );
+    }
   }
 }
 
@@ -356,7 +472,7 @@ List<LineOverride>? _lineIncluded(
 /// One week's whole variant, by recipe id. Shared by the shop, the cook plan
 /// and this repository.
 Future<Map<String, List<LineOverride>>> loadWeekOverrides(
-  SqliteConnection db,
+  SqliteReadContext db,
   String weekKey,
 ) async {
   final rows = await db.getAll(

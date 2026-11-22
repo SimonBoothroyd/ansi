@@ -25,6 +25,7 @@ import '../../planning/presentation/week_header.dart';
 import '../../planning/presentation/week_in_the_location.dart';
 import '../../planning/presentation/week_view_models.dart';
 import '../../recipes/domain/component_math.dart';
+import '../../recipes/domain/line_override.dart';
 import '../../recipes/presentation/recipe_view_models.dart';
 import '../domain/cook_plan.dart';
 import '../domain/leftovers.dart';
@@ -206,13 +207,10 @@ class _RecipeCard extends ConsumerWidget {
     // A recipe that is also somebody's component has its component sessions on
     // their own card, so "split" here counts only the meal ones.
     final meals = recipe.mealSessions;
-    final edited =
-        (ref
-                    .watch(viewedWeekOverridesProvider)
-                    .asData
-                    ?.value[recipe.recipeId] ??
-                const [])
-            .isNotEmpty;
+    final edited = editsOf(
+      ref.watch(viewedWeekOverridesProvider).asData?.value[recipe.recipeId] ??
+          const [],
+    ).isNotEmpty;
     // The title link carries the viewed week (`?week=`) so the recipe page can
     // offer "Edit for this week", and the batch's amount (`?servings=`) so it
     // opens scaled to what is cooked.
@@ -268,7 +266,12 @@ class _ComponentCard extends ConsumerWidget {
       title: componentCardTitle(recipe.title, parents),
       subtitle: componentSummaryLine(recipe),
       onTitleTap: () => context.pushOnce(
-        recipePageRoute(recipe.recipeId, servings: cookTitleServings(sessions)),
+        recipePageRoute(
+          recipe.recipeId,
+          // A sub-recipe's own optional lines are picked on its page.
+          weekKey: isoDateOf(ref.read(viewedWeekStartProvider)),
+          servings: cookTitleServings(sessions),
+        ),
       ),
       children: [
         for (final (i, session) in sessions.indexed) ...[

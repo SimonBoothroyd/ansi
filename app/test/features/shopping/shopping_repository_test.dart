@@ -555,6 +555,75 @@ void main() {
     });
   });
 
+  test('a selected optional line is an ordinary line of the list', () async {
+    await _insertIngredient(db, 'lime', 'Lime', 'produce', 'piece');
+    await _insertRecipe(
+      db,
+      'curry',
+      'Curry',
+      lines: [('onion', 2, pieces), ('lime', 1, pieces)],
+    );
+    await db.execute('UPDATE recipe_line_item SET optional = 1 WHERE id = ?', [
+      'curry-li1',
+    ]);
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a', 'b'],
+    );
+    await SqliteWeekVariantRepository(
+      db,
+      householdId: 'h',
+    ).setLineIncluded(_week, 'curry', 'curry-li1', included: true);
+
+    final list = await repo.watchShoppingList(_week).first;
+    expect(list.optionalLines, isEmpty);
+    final items = [for (final g in list.groups) ...g.items];
+    String from(String name) =>
+        items.singleWhere((i) => i.name == name).contributions.single.label;
+    expect(from('Lime'), 'Curry');
+    expect(
+      from('Lime'),
+      from('Yellow onion'),
+      reason: 'no mark of having been asked',
+    );
+  });
+
+  test('a copied week buys what was ticked, as ordinary lines', () async {
+    await _insertIngredient(db, 'lime', 'Lime', 'produce', 'piece');
+    await _insertIngredient(db, 'herb', 'Coriander', 'produce', 'g');
+    await _insertRecipe(
+      db,
+      'curry',
+      'Curry',
+      lines: [('lime', 1, pieces), ('herb', 15, g)],
+    );
+    await db.execute('UPDATE recipe_line_item SET optional = 1');
+    await planning.addEntry(
+      weekStart: _week,
+      dayOfWeek: 0,
+      mealSlot: 'Dinner',
+      recipeId: 'curry',
+      eaterIds: ['a', 'b'],
+    );
+    await SqliteWeekVariantRepository(
+      db,
+      householdId: 'h',
+    ).setLineIncluded(_week, 'curry', 'curry-li1', included: true);
+
+    final next = _week.add(const Duration(days: 7));
+    await planning.copyLastWeek(next);
+
+    final items = [
+      for (final group in (await repo.watchShoppingList(next).first).groups)
+        ...group.items,
+    ];
+    expect([for (final i in items) i.name], ['Coriander']);
+    expect(items.single.contributions.single.label, 'Curry');
+  });
+
   test('merges a shared ingredient across recipes with provenance', () async {
     await _insertRecipe(db, 'curry', 'Curry', lines: [('onion', 3, pieces)]);
     await _insertRecipe(db, 'ragu', 'Ragù', lines: [('onion', 2, pieces)]);

@@ -3,6 +3,7 @@
 /// Per-change wording lives in the domain (`line_override.dart`).
 library;
 
+import '../../../core/week_shape.dart';
 import '../../../core/words.dart';
 
 /// What every surface with a week calls a recipe somebody has varied.
@@ -37,6 +38,12 @@ String? weekDoorDetail(int changes, List<int> days, List<String> weekdayShort) {
   final count = '$changes ${plural(changes, 'change')}';
   return named == null ? count : '$count · $named';
 }
+
+/// Who a choice of optional ingredients is for: `for Tuesday`, or every day
+/// the one choice covers, `for Tue and Sat this week`.
+String choosingForLine(List<int> days, WeekShape shape) => days.length < 2
+    ? days.map((d) => 'for ${shape.labelFull(d)}').join()
+    : 'for ${_daysSentence(days, shape.shortLabels)} this week';
 
 /// The weekday names for [days]; an out-of-range day is skipped.
 List<String> _dayNames(List<int> days, List<String> weekdayShort) => [

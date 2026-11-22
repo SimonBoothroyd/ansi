@@ -5,7 +5,6 @@ import 'package:ansi/core/theme/ansi_tokens.dart';
 import 'package:ansi/core/units/macros.dart';
 import 'package:ansi/core/units/measure.dart';
 import 'package:ansi/core/units/units.dart';
-import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
 import 'package:ansi/features/cook_plan/domain/cook_plan.dart';
 import 'package:ansi/features/ingredients/data/ingredient_providers.dart';
@@ -40,7 +39,6 @@ import '../../helpers/fake_cook_plan_repository.dart';
 import '../../helpers/fake_ingredient_repository.dart';
 import '../../helpers/fake_measure_repository.dart';
 import '../../helpers/fake_planning_repository.dart';
-import '../../helpers/fake_week_variant_repository.dart';
 import '../../helpers/forui_semantics.dart';
 
 /// Last week's spare food, canned.
@@ -1465,9 +1463,8 @@ void main() {
     );
   });
 
-  testWidgets('an optional line that left the list is named by its recipe, '
-      'muted — a rule, not a defect', (tester) async {
-    final list = ShoppingList(
+  group('optional lines', () {
+    ShoppingList listWith(List<OptionalLinesNote> lines) => ShoppingList(
       groups: [
         ShoppingGroup(
           label: 'Pantry',
@@ -1480,129 +1477,52 @@ void main() {
           ],
         ),
       ],
-      optionalLines: const [
-        (
-          recipeId: 'curry',
-          recipeTitle: 'Weeknight Chicken Curry',
-          names: ['lime', 'coriander'],
-          lineIds: ['li-lime', 'li-coriander'],
-          reason: LineDropReason.optional,
-        ),
-      ],
+      optionalLines: lines,
+    );
+    const unpicked = (
+      recipeId: 'curry',
+      recipeTitle: 'Weeknight Chicken Curry',
+      names: ['lime'],
+      lineIds: ['li-lime'],
+      reason: LineDropReason.optional,
+    );
+    const leftOut = (
+      recipeId: 'curry',
+      recipeTitle: 'Weeknight Chicken Curry',
+      names: ['wine'],
+      lineIds: ['li-wine'],
+      reason: LineDropReason.thisWeek,
     );
 
-    await tester.pumpWidget(
-      _host([
-        shoppingRepositoryProvider.overrideWithValue(_FakeShoppingRepo(list)),
-      ]),
-    );
-    await tester.pump();
-
-    // Every note a choice, so the line reads muted, with no flag.
-    expect(find.text('1 note from the plan'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(shopFoldKey(ShopFold.notes)),
-        matching: find.byIcon(FLucideIcons.flag),
-      ),
-      findsNothing,
-    );
-    final line = tester.widget<Text>(find.text('1 note from the plan'));
-    expect(line.style?.color, AnsiColors.muted);
-    await _openFold(tester, ShopFold.notes);
-    expect(find.text('WEEKNIGHT CHICKEN CURRY'), findsOneWidget);
-    expect(
-      find.textContaining('2 optional lines not listed: lime, coriander'),
-      findsOneWidget,
-    );
-    // Muted, not amber: the unresolved echo's flag icon is not on this row.
-    expect(
-      find.descendant(
-        of: find.byType(OptionalLinesEcho),
-        matching: find.byIcon(FLucideIcons.flag),
-      ),
-      findsNothing,
-    );
-  });
-
-  group('the echo row is a door', () {
-    ShoppingList listWith(
-      LineDropReason reason, {
-      List<String> names = const ['lime'],
-      List<String> lineIds = const ['li-lime'],
-    }) => ShoppingList(
-      groups: [
-        ShoppingGroup(
-          label: 'Pantry',
-          items: [
-            ShoppingItem(
-              name: 'Olive oil',
-              ingredientId: 'oil',
-              totals: [Quantity(30, ml)],
-            ),
-          ],
-        ),
-      ],
-      optionalLines: [
-        (
-          recipeId: 'curry',
-          recipeTitle: 'Weeknight Chicken Curry',
-          names: names,
-          lineIds: lineIds,
-          reason: reason,
-        ),
-      ],
-    );
-
-    testWidgets('tapping an optional name ticks that line in for the '
-        "shop's week", (tester) async {
-      final variants = FakeWeekVariantRepository();
+    testWidgets('one nobody picked is not on the Shop in any form, and the '
+        'word optional never is', (tester) async {
       await tester.pumpWidget(
         _host([
           shoppingRepositoryProvider.overrideWithValue(
-            _FakeShoppingRepo(listWith(LineDropReason.optional)),
+            _FakeShoppingRepo(listWith([unpicked])),
           ),
-          weekVariantRepositoryProvider.overrideWithValue(variants),
         ]),
       );
       await tester.pump();
-      await _openFold(tester, ShopFold.notes);
-
-      await tester.tapOnText(find.textRange.ofSubstring('lime'));
-      await tester.pump();
-
-      expect(variants.ticked, hasLength(1));
-      final write = variants.ticked.single;
-      expect(write.recipeId, 'curry');
-      expect(write.lineId, 'li-lime');
-      expect(write.included, isTrue);
-      expect(write.weekStart, WeekShape.monday.weekStartOf(DateTime.now()));
+      expect(find.text('Olive oil'), findsOneWidget);
+      expect(find.textContaining('optional'), findsNothing);
+      expect(find.textContaining('from the plan'), findsNothing);
+      expect(find.textContaining('lime'), findsNothing);
     });
 
-    testWidgets('a line the WEEK left out is not a door — that change is '
-        'undone where it was made', (tester) async {
-      final variants = FakeWeekVariantRepository();
+    testWidgets('a line the WEEK left out is still a note', (tester) async {
       await tester.pumpWidget(
         _host([
           shoppingRepositoryProvider.overrideWithValue(
-            _FakeShoppingRepo(
-              listWith(
-                LineDropReason.thisWeek,
-                names: const ['wine'],
-                lineIds: const ['li-wine'],
-              ),
-            ),
+            _FakeShoppingRepo(listWith([unpicked, leftOut])),
           ),
-          weekVariantRepositoryProvider.overrideWithValue(variants),
         ]),
       );
       await tester.pump();
+      expect(find.text('1 note from the plan'), findsOneWidget);
       await _openFold(tester, ShopFold.notes);
-
-      await tester.tapOnText(find.textRange.ofSubstring('wine'));
-      await tester.pump();
-
-      expect(variants.ticked, isEmpty);
+      expect(find.text('1 line left out this week: wine'), findsOneWidget);
+      expect(find.textContaining('optional'), findsNothing);
     });
   });
 

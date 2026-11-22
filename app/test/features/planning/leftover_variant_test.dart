@@ -9,6 +9,8 @@ import 'package:ansi/core/week_shape.dart';
 import 'package:ansi/features/account/data/household_providers.dart';
 import 'package:ansi/features/ask/domain/ask_tool_runner.dart';
 import 'package:ansi/features/ask/presentation/ask_figures_wiring.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_providers.dart';
+import 'package:ansi/features/cook_plan/data/cook_plan_repository_impl.dart';
 import 'package:ansi/features/health/presentation/health_sync.dart';
 import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/planning/data/planning_repository_impl.dart';
@@ -89,6 +91,9 @@ void main() {
         weekShapeProvider.overrideWithValue(WeekShape.monday),
         planningRepositoryProvider.overrideWithValue(planning),
         weekVariantRepositoryProvider.overrideWithValue(variants),
+        cookPlanRepositoryProvider.overrideWithValue(
+          SqliteCookPlanRepository(db),
+        ),
         recipeRepositoryProvider.overrideWithValue(
           SqliteRecipeRepository(db, householdId: 'h'),
         ),
@@ -216,5 +221,28 @@ void main() {
       container.read(weekRecipePlacementProvider('curry', _eatKey)).days,
       isEmpty,
     );
+  });
+
+  test('a sub-recipe’s page is the week’s that cooks it through another '
+      'dish, so its own optional lines can be picked', () async {
+    const at = '2026-01-01';
+    await db.execute(
+      'INSERT INTO recipe (id, household_id, title, servings_base, '
+      'yield_qty, yield_unit, created_at, updated_at) '
+      "VALUES ('raita', 'h', 'Raita', 1, 100, 'g', ?, ?)",
+      [at, at],
+    );
+    await db.execute(
+      'INSERT INTO recipe_line_item (id, household_id, group_id, '
+      'sub_recipe_id, quantity, unit, sort_order, created_at, updated_at) '
+      "VALUES ('li-raita', 'h', 'g', 'raita', 50, 'g', 2, ?, ?)",
+      [at, at],
+    );
+    await meal(_eatWeek, 4);
+    final placed = container.listen(
+      weekRecipePlacementProvider('raita', _eatKey),
+      (_, _) {},
+    );
+    expect(await settled(() => placed.read().days.join(','), '4'), '4');
   });
 }

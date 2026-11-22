@@ -3,7 +3,6 @@
 library;
 
 import 'package:ansi/core/theme/ansi_theme.dart';
-import 'package:ansi/features/planning/data/planning_providers.dart';
 import 'package:ansi/features/recipes/domain/effective_lines.dart';
 import 'package:ansi/features/shopping/domain/shopping.dart';
 import 'package:ansi/features/shopping/presentation/shopping_view.dart';
@@ -13,7 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:forui/forui.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../../helpers/fake_week_variant_repository.dart';
 import '../../helpers/fonts.dart';
 
 Future<void> _pump(
@@ -21,18 +19,12 @@ Future<void> _pump(
   Widget echo, {
   required double width,
   double textScale = 1,
-  FakeWeekVariantRepository? variants,
 }) async {
   tester.view.physicalSize = Size(width, 600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        weekVariantRepositoryProvider.overrideWithValue(
-          variants ?? FakeWeekVariantRepository(),
-        ),
-      ],
       child: MaterialApp(
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(
@@ -75,25 +67,24 @@ void main() {
   setUpAll(loadAnsiFonts);
 
   const names = ['lime', 'coriander', 'red chilli', 'toasted cashews'];
-  OptionalLinesEcho optional(String title, {required int count}) =>
-      OptionalLinesEcho(
-        note: (
-          recipeId: 'r',
-          recipeTitle: title,
-          names: names.take(count).toList(),
-          lineIds: names.take(count).toList(),
-          reason: LineDropReason.optional,
-        ),
-      );
+  LeftOutEcho leftOut(String title, {required int count}) => LeftOutEcho(
+    note: (
+      recipeId: 'r',
+      recipeTitle: title,
+      names: names.take(count).toList(),
+      lineIds: names.take(count).toList(),
+      reason: LineDropReason.thisWeek,
+    ),
+  );
 
   for (final (width, scale) in [(360.0, 1.0), (402.0, 1.0), (360.0, 1.3)]) {
     group('at $width, text ×$scale', () {
       for (final title in ['Dal', 'Weeknight Chicken Curry']) {
         for (var count = 1; count <= names.length; count++) {
-          testWidgets('$title draws all of $count optional', (tester) async {
+          testWidgets('$title draws all of $count left out', (tester) async {
             await _pump(
               tester,
-              optional(title, count: count),
+              leftOut(title, count: count),
               width: width,
               textScale: scale,
             );
@@ -103,20 +94,6 @@ void main() {
           });
         }
       }
-
-      testWidgets('the last name is still a door', (tester) async {
-        final variants = FakeWeekVariantRepository();
-        await _pump(
-          tester,
-          optional('Weeknight Chicken Curry', count: names.length),
-          width: width,
-          textScale: scale,
-          variants: variants,
-        );
-        await tester.tapOnText(find.textRange.ofSubstring('toasted'));
-        await tester.pump();
-        expect(variants.ticked.single.lineId, 'toasted cashews');
-      });
 
       testWidgets('an unresolved component says where to go', (tester) async {
         await _pump(

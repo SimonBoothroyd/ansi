@@ -637,7 +637,7 @@ String formatQuantityOf(double quantity, Unit unit) =>
     '${formatAmountIn(quantity, unit)} ${unit.label}';
 
 /// The copy-last-week card: each meal of [source] at its place in
-/// [weekStart], and the variants a copy never carries.
+/// [weekStart]. Confirm is the Week's own copy, optional ticks included.
 AskCopyWeekProposal buildCopyWeekProposal({
   required WeekShape shape,
   required DateTime weekStart,

@@ -30,6 +30,7 @@ import '../../cook_plan/domain/cook_plan.dart';
 import '../../cook_plan/presentation/cook_view_models.dart';
 import '../../cook_plan/presentation/leftovers_view.dart' show LeftoversDoor;
 import '../../receipts/data/receipt_providers.dart';
+import '../../recipes/domain/line_override.dart';
 import '../domain/planning.dart';
 import 'confirm_meal_sheet.dart';
 import 'copy_last_week.dart';
@@ -533,9 +534,13 @@ class _DishRow extends ConsumerWidget {
     // The variant is per (week, recipe), so every planned day of it says so.
     final edited =
         entry.cookedAsThisWeek &&
-        (ref.watch(viewedWeekOverridesProvider).asData?.value[entry.recipeId] ??
-                const [])
-            .isNotEmpty;
+        editsOf(
+          ref
+                  .watch(viewedWeekOverridesProvider)
+                  .asData
+                  ?.value[entry.recipeId] ??
+              const [],
+        ).isNotEmpty;
     return Opacity(
       opacity: dimmed ? 0.38 : 1,
       child: Column(

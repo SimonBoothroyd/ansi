@@ -353,8 +353,9 @@ int mealSlotRank(String slot) {
   return i < 0 ? kDefaultMealSlots.length : i;
 }
 
-/// One recipe whose this-week changes a copy did not carry, and how many. A
-/// copy never carries variants forward, and names what it left.
+/// One recipe whose this-week edits a copy did not carry, and how many. A copy
+/// carries the optional ticks and never the edits (swaps, amounts, additions,
+/// leave-outs), and names what it left.
 typedef VariantLeftBehind = ({String recipeTitle, int changes});
 
 /// What a copy of last week carried, and what it could not.
