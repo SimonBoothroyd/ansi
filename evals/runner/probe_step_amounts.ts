@@ -10,7 +10,10 @@
 // Synthetic text only: no recipe from a real source, no household data.
 
 import { ClaudeHaikuAdapter } from "../../supabase/functions/_shared/adapters/claude.ts";
-import { coerceExtractionResult } from "../../supabase/functions/_shared/adapters/schema.ts";
+import {
+  coerceExtractionResult,
+  flattenLines,
+} from "../../supabase/functions/_shared/adapters/schema.ts";
 import type { StepToken } from "../../supabase/functions/_shared/types.ts";
 import { UNIT_HINTS } from "./fixtures.ts";
 
@@ -133,6 +136,24 @@ for (const c of CASES) {
   );
   const result = coerceExtractionResult(raw);
   console.log(`\n== ${c.name} (${adapter.model})`);
+  // The ingredient list is the recipe's; a step's water is an amount, never
+  // a line the model adds. Every line must name a food the list printed.
+  const printed = c.text.slice(
+    c.text.indexOf("Ingredients"),
+    c.text.indexOf("Method"),
+  ).toLowerCase();
+  const lines = flattenLines(result);
+  console.log(
+    `  lines: ${lines.map((l) => l.ingredient_text).join(" · ")}`,
+  );
+  for (const l of lines) {
+    const head = l.ingredient_text.toLowerCase().split(/[ ,]/)[0];
+    const ok = printed.includes(head);
+    if (!ok) failed++;
+    console.log(
+      `  ${ok ? "PASS" : "FAIL"} line "${l.ingredient_text}" is in the list`,
+    );
+  }
   const amounts: StepToken[] = [];
   for (const [i, step] of result.steps.entries()) {
     console.log(`  ${i + 1}. ${show(step.tokens)}`);
