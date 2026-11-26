@@ -10,6 +10,7 @@
 //
 // A live call needs ANTHROPIC_API_KEY; constructing the adapter does not.
 
+import { pinnedSampling } from "./sampling.ts";
 import type { LabelAdapter, LabelReading } from "../label_types.ts";
 import { ImportError } from "../errors.ts";
 import type { ProviderCallSink } from "../types.ts";
@@ -114,7 +115,7 @@ export class ClaudeLabelAdapter implements LabelAdapter {
 
   /** Haiku still takes the sampling params; pin temperature 0. */
   #sampling(): { temperature?: number } {
-    return this.model.includes("haiku") ? { temperature: 0 } : {};
+    return pinnedSampling(this.model);
   }
 
   async read(image: Uint8Array): Promise<LabelReading> {
