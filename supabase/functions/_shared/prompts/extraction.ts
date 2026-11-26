@@ -78,6 +78,11 @@ unit, time, serving count, step, or timer that is not in the source. If a value
 is absent or ambiguous, leave it null and add a short note to parse_warnings —
 never guess a value in. Every transform below is source-derived or it does not
 happen. This is scored and disqualifying.
+The line list is EXACTLY the printed ingredient list: never add a line for
+something only the method names (the water to fill a can or cover the beans,
+salt for the pasta pot, reserved pasta water, ice). In the steps it is an
+"amount" token when it prints a figure, otherwise plain text; it is never a
+line and never a ref.
 
 UNITS. ${unitHintsBlock(hints)}
 - ingredient_text is the identity AS WRITTEN — keep PRODUCT-FORM words that describe
@@ -241,7 +246,8 @@ at label boundaries. Rendering walks the array — there is NO text matching lat
   "qty_low":null, "qty_high":null, "unit":"can", "qualifier":null } }. An
   amount a step names of something that is NOT in the line list (water, the
   pasta water, ice, more stock "to cover") becomes its own amount token, in
-  position, so it scales with the servings: "Fill one empty can with water" →
+  position, so it scales with the servings (and the water itself is NOT added as a
+  line, nor chipped as a ref): "Fill one empty can with water" →
   text "Fill ", amount {s "one empty can", portion qty 1 unit "can"}, text
   " with water". "s" is the printed words of the number and its counting word,
   exactly; portion.qty is that number ("one" → 1, "half" → 0.5, "1 1/2" →
