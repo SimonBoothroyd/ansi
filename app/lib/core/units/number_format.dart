@@ -4,6 +4,8 @@
 /// ([formatNumber]), everything else as kitchen fractions ([formatAmount]).
 library;
 
+import 'dart:math' show min;
+
 import 'units.dart';
 
 /// `1`, `0.5`, `0.33`, `12.75`: [amount] with at most two decimals and no
@@ -193,6 +195,47 @@ KitchenAmount kitchenAmountIn(double amount, Unit unit) {
     return (amount: formatAmountIn(amount, unit), unit: unit);
   }
   return (amount: formatAmount(closest.near), unit: closest.unit);
+}
+
+/// A scaled range as a cook measures it: both ends and the one unit they are
+/// said in. Equal ends after rounding collapse to one figure (`high` null).
+typedef KitchenRange = ({String low, String? high, Unit unit});
+
+/// [low]–[high] of [unit] after scaling, said as [kitchenAmountIn] says one
+/// amount, with both ends in ONE unit: where the two ends would land in
+/// different spoons (`¾ tsp–1 tbsp`), both are said in the smaller spoon on
+/// its measuring set (`2¼–3 tsp`), never a range that changes unit halfway.
+/// A metric unit keeps its decimals; anything else said by hand rounds each
+/// end to quarters, thirds or an eighth.
+KitchenRange kitchenRangeIn(double low, double high, Unit unit) {
+  KitchenRange of(String a, String b, Unit u) =>
+      (low: a, high: a == b ? null : b, unit: u);
+  if (unit.isMetric) return of(formatNumber(low), formatNumber(high), unit);
+  final ladder = _measuringLadders[unit.id];
+  if (ladder == null || unit.ratioToBase == null) {
+    return of(kitchenAmount(low), kitchenAmount(high), unit);
+  }
+  final a = kitchenAmountIn(low, unit);
+  final b = kitchenAmountIn(high, unit);
+  if (a.unit == b.unit && a.amount.isNotEmpty && b.amount.isNotEmpty) {
+    return of(a.amount, b.amount, a.unit);
+  }
+  // The smaller of the two spoons (a pinch is said in teaspoons), and both
+  // ends on its set.
+  Unit spoon(Unit u) => u == pinch ? tsp : u;
+  final small = spoon(a.unit).ratioToBase! <= spoon(b.unit).ratioToBase!
+      ? spoon(a.unit)
+      : spoon(b.unit);
+  final parts = _measuringParts[small.id]!;
+  String end(double amount) {
+    final value = amount * unit.ratioToBase! / small.ratioToBase!;
+    final near = _nearestPart(value, parts);
+    return formatAmount(
+      near == 0 ? parts.where((p) => p > 0).reduce(min) : near,
+    );
+  }
+
+  return of(end(low), end(high), small);
 }
 
 /// A scaled count or hand-said amount with no measuring set (`0.44` onion is

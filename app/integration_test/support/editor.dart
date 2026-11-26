@@ -215,12 +215,17 @@ Future<void> selectInStep(
   await tester.pumpAndSettle();
 }
 
-/// Takes [item] from the raised selection toolbar. On iOS the Cupertino
-/// toolbar paginates; the editor's two items sit right after Copy so they
-/// fit the first page on a phone, but page forward if they did not.
+/// Takes [item] from the raised selection toolbar. The editor's three items
+/// (To ingredient, To amount, To timer) sit right after Copy, but a phone's
+/// toolbar may not fit them all: iOS pages forward with `▶`, Android opens
+/// its overflow with the `More` button. Either is taken when [item] is not
+/// on the bar.
 Future<void> tapToolbarItem(WidgetTester tester, String item) async {
   if (find.text(item).evaluate().isEmpty) {
-    await tester.tap(find.text('▶'));
+    final forward = find.text('▶');
+    await tester.tap(
+      forward.evaluate().isNotEmpty ? forward : find.byTooltip('More'),
+    );
     await tester.pumpAndSettle();
   }
   await tester.tap(find.text(item));

@@ -357,10 +357,16 @@ String stepAmountText(
   if (qtyHigh == null) return one(qty * factor);
   final low = qty * factor;
   final high = qtyHigh * factor;
-  final ends = unit != null && unit.isMetric
-      ? (formatNumber(low), formatNumber(high))
-      : (kitchenAmount(low), kitchenAmount(high));
-  return said.isEmpty ? '${ends.$1}–${ends.$2}' : '${ends.$1}–${ends.$2} $said';
+  if (unit == null || unit.family == UnitFamily.imprecise) {
+    final a = kitchenAmount(low);
+    final b = kitchenAmount(high);
+    final figure = a == b ? a : '$a–$b';
+    return said.isEmpty ? figure : '$figure $said';
+  }
+  final r = kitchenRangeIn(low, high, unit);
+  final figure = r.high == null ? r.low : '${r.low}–${r.high}';
+  // Still the step's own word: keep the step's own spelling of it.
+  return '$figure ${r.unit == unit ? said : r.unit.label}';
 }
 
 /// A timer span: "6 min", "6–8 min", "2 h 30 min"; a sub-minute time keeps its

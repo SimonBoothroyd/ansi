@@ -306,12 +306,24 @@ void main() {
         MethodAmount(text: '4 tablespoons', qty: 4, unit: 'tablespoons'),
         MethodText(s: ' of the pasta water, then '),
         MethodAmount(text: '2–3 cups', qty: 2, qtyHigh: 3, unit: 'cups'),
-        MethodText(s: ' of stock.'),
+        MethodText(s: ' of stock, and '),
+        MethodAmount(
+          text: '60–80ml (4–5 tbsp)',
+          qty: 4,
+          qtyHigh: 5,
+          unit: 'tbsp',
+        ),
+        MethodText(s: ' of water.'),
       ],
     );
 
     test('as written it reads as written', () {
-      expect(amounts(water, 1), ['one empty can', '4 tablespoons', '2–3 cups']);
+      expect(amounts(water, 1), [
+        'one empty can',
+        '4 tablespoons',
+        '2–3 cups',
+        '60–80ml (4–5 tbsp)',
+      ]);
     });
 
     test(
@@ -323,9 +335,17 @@ void main() {
           '1 can',
           '3½ tablespoons',
           '1¾–2⅔ cups',
+          '3½–4½ tbsp',
         ]);
         // A spoon too coarse steps down, as a line's amount does.
-        expect(amounts(water, 0.25), ['¼ can', '1 tablespoons', '½–¾ cups']);
+        // A range whose ends would land in different spoons is said in the
+        // smaller one, whole.
+        expect(amounts(water, 0.25), [
+          '¼ can',
+          '1 tablespoons',
+          '½–¾ cups',
+          '3–3¾ tsp',
+        ]);
       },
     );
 

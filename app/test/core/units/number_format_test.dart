@@ -281,4 +281,43 @@ void main() {
       expect(kitchenAmount(0.01), '⅛');
     });
   });
+
+  group('kitchenRangeIn — both ends on a measuring set, in one unit', () {
+    String said(double low, double high, Unit unit) {
+      final r = kitchenRangeIn(low, high, unit);
+      final figure = r.high == null ? r.low : '${r.low}–${r.high}';
+      return '$figure ${r.unit.label}';
+    }
+
+    final cases = <({double low, double high, Unit unit, String prints})>[
+      // 4–5 tbsp of water at half the servings.
+      (low: 2, high: 2.5, unit: tbsp, prints: '2–2½ tbsp'),
+      // At 1¾ servings of 4 the ends would land in different spoons (5¼ tsp,
+      // 2 tbsp): both are said in teaspoons.
+      (low: 4 * 0.4375, high: 5 * 0.4375, unit: tbsp, prints: '5¼–6½ tsp'),
+      (low: 0.375, high: 0.5, unit: cup, prints: '⅓–½ cup'),
+      // A jug reads any number.
+      (low: 30, high: 40, unit: ml, prints: '30–40 ml'),
+      // Ends that round together are one figure.
+      (low: 1, high: 1.05, unit: cup, prints: '1 cup'),
+      // Said by hand: quarters, thirds or an eighth.
+      (low: 0.4375, high: 0.875, unit: pieces, prints: '½–1 piece'),
+    ];
+    for (final c in cases) {
+      test('${c.low}–${c.high} ${c.unit.id} prints ${c.prints}', () {
+        expect(said(c.low, c.high, c.unit), c.prints);
+      });
+    }
+
+    test('never a range that changes unit halfway', () {
+      for (final unit in [tsp, tbsp, cup]) {
+        for (var i = 1; i <= 60; i++) {
+          final low = i * 0.11;
+          final r = kitchenRangeIn(low, low * 1.4, unit);
+          expect(r.low, isNotEmpty);
+          expect(r.unit, isNot(pinch));
+        }
+      }
+    });
+  });
 }
