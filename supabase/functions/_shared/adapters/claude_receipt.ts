@@ -12,6 +12,7 @@
 //
 // A live call needs ANTHROPIC_API_KEY; constructing the adapter does not.
 
+import { pinnedSampling } from "./sampling.ts";
 import type { ReceiptAdapter, ReceiptExtraction } from "../receipt_types.ts";
 import { ImportError } from "../errors.ts";
 import type { ProviderCallSink } from "../types.ts";
@@ -156,7 +157,7 @@ export class ClaudeReceiptAdapter implements ReceiptAdapter {
 
   /** Haiku still takes the sampling params; pin temperature 0. */
   #sampling(): { temperature?: number } {
-    return this.model.includes("haiku") ? { temperature: 0 } : {};
+    return pinnedSampling(this.model);
   }
 
   #emit(op: "transcribe" | "sanitize", raw: unknown, startedAt: number): void {

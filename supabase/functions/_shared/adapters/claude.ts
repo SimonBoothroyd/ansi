@@ -10,6 +10,7 @@
 // The stable system prompt carries `cache_control: {type:"ephemeral"}`.
 // A live call needs ANTHROPIC_API_KEY; constructing the adapter does not.
 
+import { pinnedSampling } from "./sampling.ts";
 import type {
   ExtractAdapter,
   ExtractionResult,
@@ -313,7 +314,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
    * params; the Sonnet-5/Opus-5 generation rejects them with a 400.
    */
   #sampling(): { temperature?: number } {
-    return this.model.includes("haiku") ? { temperature: 0 } : {};
+    return pinnedSampling(this.model);
   }
 
   #headers(): Record<string, string> {
