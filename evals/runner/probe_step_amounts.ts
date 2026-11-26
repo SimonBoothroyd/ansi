@@ -16,7 +16,7 @@ import { UNIT_HINTS } from "./fixtures.ts";
 
 interface Expect {
   /** Words that must come back as one amount token, with this figure. */
-  amounts: { text: string; qty: number; qty_high?: number }[];
+  amounts: { text: string; qty: number; qty_high?: number; unit?: string }[];
   /** Words that must NOT be inside any amount token. */
   never: string[];
 }
@@ -64,6 +64,22 @@ Method
     },
   },
   {
+    name: "curry: an amount printed two ways",
+    text: `Quick Chickpea Curry
+Serves 4
+Ingredients
+1 can chickpeas, drained
+2 tbsp curry paste
+100 g spinach
+Method
+1. Blend the curry paste with 60–80ml (4–5 tbsp) water until smooth.
+2. Simmer with the chickpeas for 10 minutes, then wilt in the spinach.`,
+    expect: {
+      amounts: [{ text: "4–5 tbsp", qty: 4, qty_high: 5, unit: "tbsp" }],
+      never: ["10 minutes", "chickpeas"],
+    },
+  },
+  {
     name: "traybake: nothing to scale",
     text: `Roast Vegetables
 Serves 4
@@ -80,6 +96,16 @@ Method
     },
   },
 ];
+
+/** `tbsp`, `tablespoon` and `tablespoons` name one spoon; likewise tsp. */
+function sameSpoon(said: string | null, want: string): boolean {
+  const spoon = (u: string) =>
+    u.toLowerCase().replace(/^tablespoons?$/, "tbsp").replace(
+      /^teaspoons?$/,
+      "tsp",
+    );
+  return said !== null && spoon(said) === spoon(want);
+}
 
 function show(tokens: StepToken[]): string {
   return tokens.map((t) => {
@@ -119,7 +145,8 @@ for (const c of CASES) {
       want.text.toLowerCase().includes(t.text.toLowerCase())
     );
     const ok = hit !== undefined && hit.qty === want.qty &&
-      (want.qty_high === undefined || hit.qty_high === want.qty_high);
+      (want.qty_high === undefined || hit.qty_high === want.qty_high) &&
+      (want.unit === undefined || sameSpoon(hit.unit, want.unit));
     if (!ok) failed++;
     console.log(
       `  ${ok ? "PASS" : "FAIL"} amount "${want.text}" = ${want.qty}${
