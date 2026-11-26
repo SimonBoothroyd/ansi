@@ -11,6 +11,7 @@ export {
 export type { MockAdapterOptions } from "./mock.ts";
 export {
   CLAUDE_HAIKU_MODEL,
+  CLAUDE_HAIKU_NEXT_MODEL,
   CLAUDE_OPUS_MODEL,
   CLAUDE_SONNET_MODEL,
   ClaudeHaikuAdapter,
@@ -50,6 +51,7 @@ export { MissingKeyError, ProviderHttpError } from "./http.ts";
 import type { ExtractAdapter, ExtractionResult } from "../types.ts";
 import {
   CLAUDE_HAIKU_MODEL,
+  CLAUDE_HAIKU_NEXT_MODEL,
   CLAUDE_OPUS_MODEL,
   CLAUDE_SONNET_MODEL,
   ClaudeHaikuAdapter,
@@ -63,6 +65,7 @@ import { decodeGptSanitize } from "./gpt.ts";
 /** The provider adapters the eval harness benchmarks. */
 export type ProviderName =
   | "claude-haiku"
+  | "claude-haiku-5-5"
   | "claude-sonnet"
   | "claude-sonnet-low"
   | "claude-opus"
@@ -72,6 +75,7 @@ export type ProviderName =
 
 export const PROVIDER_NAMES: ProviderName[] = [
   "claude-haiku",
+  "claude-haiku-5-5",
   "claude-sonnet",
   "claude-sonnet-low",
   "claude-opus",
@@ -95,6 +99,8 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
   switch (name) {
     case "claude-haiku":
       return new ClaudeHaikuAdapter();
+    case "claude-haiku-5-5":
+      return new ClaudeHaikuAdapter({ model: CLAUDE_HAIKU_NEXT_MODEL, name });
     case "claude-sonnet":
       return new ClaudeHaikuAdapter({
         model: CLAUDE_SONNET_MODEL,
@@ -131,6 +137,7 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
 /** The pinned model id each provider name sends. */
 export const PROVIDER_MODELS: Record<ProviderName, string> = {
   "claude-haiku": CLAUDE_HAIKU_MODEL,
+  "claude-haiku-5-5": CLAUDE_HAIKU_NEXT_MODEL,
   "claude-sonnet": CLAUDE_SONNET_MODEL,
   "claude-sonnet-low": CLAUDE_SONNET_MODEL,
   "claude-opus": CLAUDE_OPUS_MODEL,
@@ -148,6 +155,7 @@ export const RESPONSE_DECODERS: Record<
   (raw: unknown) => ExtractionResult
 > = {
   "claude-haiku": decodeClaudeSanitize,
+  "claude-haiku-5-5": decodeClaudeSanitize,
   "claude-sonnet": decodeClaudeSanitize,
   "claude-sonnet-low": decodeClaudeSanitize,
   "claude-opus": decodeClaudeSanitize,

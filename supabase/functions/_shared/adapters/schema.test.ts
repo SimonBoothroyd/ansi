@@ -255,6 +255,8 @@ Deno.test("coerceExtractionResult — a step's own amount keeps its words and sc
         { t: "amount", s: "2 to 3 cups", portion: portion(null, "cups", 2, 3) },
         // No figure to scale: it stays prose.
         { t: "amount", s: "some water", portion: portion(null, null) },
+        // A vague word is no measure, even counted with "a".
+        { t: "amount", s: "a pinch", portion: portion(1, "pinch") },
         // The flat form still decodes, so a replayed run reads the same.
         {
           t: "amount",
@@ -272,6 +274,7 @@ Deno.test("coerceExtractionResult — a step's own amount keeps its words and sc
     { t: "text", s: " with water, then " },
     { t: "amount", text: "2 to 3 cups", qty: 2, qty_high: 3, unit: "cups" },
     { t: "text", s: "some water" },
+    { t: "text", s: "a pinch" },
     {
       t: "amount",
       text: "4 tablespoons",

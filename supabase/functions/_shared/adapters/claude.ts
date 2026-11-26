@@ -56,6 +56,8 @@ import {
 export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5";
 /** Benchmark alternates for the eval harness. Production never sends these. */
 export const CLAUDE_SONNET_MODEL = "claude-sonnet-5";
+/** The newest Haiku, benchmarked against the pinned one before any switch. */
+export const CLAUDE_HAIKU_NEXT_MODEL = "claude-haiku-5-5";
 export const CLAUDE_OPUS_MODEL = "claude-opus-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
