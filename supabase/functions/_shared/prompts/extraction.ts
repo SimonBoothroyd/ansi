@@ -254,6 +254,9 @@ at label boundaries. Rendering walks the array — there is NO text matching lat
   1.5); a printed range ("2 to 3 cups") is qty null with qty_low 2 and
   qty_high 3; portion.unit is the counting word as printed ("can",
   "tablespoons", "cups"), or null for a bare count; qualifier is always null.
+  "s" holds ONLY the amount's own words; every word around it ("with",
+  "of", "water", "if it looks dry") stays in the neighbouring text tokens,
+  so the step still reads word for word as printed.
   A step that prints the amount two ways ("60–80ml (4–5 tbsp) water") is ONE
   amount token whose "s" is all of those words, and whose figure is the
   kitchen measure, the spoon or cup form (qty_low 4, qty_high 5, unit
