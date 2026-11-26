@@ -17,6 +17,16 @@ import {
 import type { StepToken } from "../../supabase/functions/_shared/types.ts";
 import { UNIT_HINTS } from "./fixtures.ts";
 
+/** The British word each American identity the prompt translates came from. */
+const AMERICAN_OF: Record<string, string> = {
+  zucchini: "courgette",
+  eggplant: "aubergine",
+  cilantro: "coriander",
+  arugula: "rocket",
+  shrimp: "prawns",
+  canned: "tinned",
+};
+
 interface Expect {
   /** Words that must come back as one amount token, with this figure. */
   amounts: { text: string; qty: number; qty_high?: number; unit?: string }[];
@@ -148,7 +158,10 @@ for (const c of CASES) {
   );
   for (const l of lines) {
     const head = l.ingredient_text.toLowerCase().split(/[ ,]/)[0];
-    const ok = printed.includes(head);
+    // The prompt's one allowed identity translation, British → American.
+    const british = AMERICAN_OF[head];
+    const ok = printed.includes(head) ||
+      (british !== undefined && printed.includes(british));
     if (!ok) failed++;
     console.log(
       `  ${ok ? "PASS" : "FAIL"} line "${l.ingredient_text}" is in the list`,
