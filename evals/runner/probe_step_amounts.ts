@@ -167,6 +167,33 @@ for (const c of CASES) {
       `  ${ok ? "PASS" : "FAIL"} line "${l.ingredient_text}" is in the list`,
     );
   }
+  // Word for word: a step rebuilt from its tokens reads as the printed step,
+  // its times aside (a timer token carries no words).
+  const printedSteps = c.text.slice(c.text.indexOf("Method"))
+    .split("\n").filter((l) => /^\d+\. /.test(l))
+    .map((l) => l.replace(/^\d+\. /, ""));
+  const words = (t: string) =>
+    t.toLowerCase()
+      .replace(/\b\d+(?:\s*(?:to|-|–)\s*\d+)?\s*minutes?\b/g, " ")
+      .replace(/[^a-z0-9½¼¾⅓⅔–\-]+/g, " ")
+      .trim().split(/\s+/).filter(Boolean).join(" ");
+  for (const [i, step] of result.steps.entries()) {
+    const rebuilt = step.tokens.map((t) =>
+      t.t === "text"
+        ? t.s
+        : t.t === "ref"
+        ? t.label
+        : t.t === "amount"
+        ? t.text
+        : " "
+    ).join(" ");
+    const want = words(printedSteps[i] ?? "");
+    const got = words(rebuilt);
+    const ok = want === got;
+    if (!ok) failed++;
+    console.log(`  ${ok ? "PASS" : "FAIL"} step ${i + 1} reads as printed`);
+    if (!ok) console.log(`     printed: ${want}\n     rebuilt: ${got}`);
+  }
   const amounts: StepToken[] = [];
   for (const [i, step] of result.steps.entries()) {
     console.log(`  ${i + 1}. ${show(step.tokens)}`);
