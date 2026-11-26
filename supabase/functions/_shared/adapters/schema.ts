@@ -416,6 +416,26 @@ function coercePortion(v: unknown): RefPortion | null {
  */
 type RefResolver = (r: unknown) => number | null;
 
+/** Words a step says a quantity in that no measuring set holds. */
+const VAGUE_AMOUNT_WORDS = new Set([
+  "pinch",
+  "pinches",
+  "dash",
+  "dashes",
+  "splash",
+  "splashes",
+  "drizzle",
+  "handful",
+  "handfuls",
+  "sprinkle",
+  "knob",
+  "glug",
+  "little",
+  "bit",
+  "some",
+  "to taste",
+]);
+
 function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
   const o = asRecord(v);
   const t = o.t;
@@ -443,6 +463,10 @@ function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
     }
     const high = numOrNull(o.qty_high) ?? numOrNull(p.qty_high);
     const unit = strOrNull(o.unit ?? p.unit, CAPS.unit);
+    // A vague word is no measure: "a pinch", "a splash" never scales.
+    if (unit !== null && VAGUE_AMOUNT_WORDS.has(unit.trim().toLowerCase())) {
+      return words ? { t: "text", s: words } : null;
+    }
     return {
       t: "amount",
       text: words || [qty, unit].filter((p) => p !== null).join(" "),

@@ -32,6 +32,8 @@ interface Expect {
   amounts: { text: string; qty: number; qty_high?: number; unit?: string }[];
   /** Words that must NOT be inside any amount token. */
   never: string[];
+  /** Foods the steps must chip (a ref whose label holds the word). */
+  chips?: string[];
 }
 
 const CASES: { name: string; text: string; expect: Expect }[] = [
@@ -91,6 +93,31 @@ Method
       amounts: [{ text: "4–5 tbsp", qty: 4, qty_high: 5, unit: "tbsp" }],
       never: ["10 minutes", "chickpeas"],
     },
+  },
+  {
+    name: "rice: water the list prints is a line",
+    text: `Plain Rice
+Serves 4
+Ingredients
+300 g basmati rice
+600 ml water
+1 tsp salt
+Method
+1. Rinse the rice until the water runs clear.
+2. Bring the water and salt to the boil, add the rice and simmer for 12 minutes.`,
+    expect: { amounts: [], never: ["600 ml", "12 minutes"], chips: ["water"] },
+  },
+  {
+    name: "soup: vague amounts stay words",
+    text: `Tomato Soup
+Serves 2
+Ingredients
+1 can chopped tomatoes
+1 onion
+Method
+1. Soften the onion, add the tomatoes and season with a pinch of salt.
+2. Blend, loosening with a splash of water if it is too thick.`,
+    expect: { amounts: [], never: ["pinch", "splash"] },
   },
   {
     name: "traybake: nothing to scale",
@@ -214,6 +241,15 @@ for (const c of CASES) {
         want.qty_high ? `–${want.qty_high}` : ""
       }`,
     );
+  }
+  for (const food of c.expect.chips ?? []) {
+    const chipped = result.steps.some((st) =>
+      st.tokens.some((t) =>
+        t.t === "ref" && t.label.toLowerCase().includes(food)
+      )
+    );
+    if (!chipped) failed++;
+    console.log(`  ${chipped ? "PASS" : "FAIL"} "${food}" is chipped`);
   }
   for (const words of c.expect.never) {
     const bad = said.find((t) =>
