@@ -237,16 +237,18 @@ at label boundaries. Rendering walks the array — there is NO text matching lat
   several). "15 to 20 minutes" → 900/1200; "5 minutes" → 300/300. Conditional
   alternatives ("5 min fresh, 2 min frozen") are SEPARATE bare timer tokens; the
   condition stays in the surrounding text span.
-- "amount" token: { "t":"amount", "text":"one empty can", "qty":1,
-  "qty_high":null, "unit":"can" }. An amount a step names of something that is
-  NOT in the line list (water, the pasta water, ice, more stock "to cover")
-  becomes its own amount token, in position, so it scales with the servings:
-  "Fill one empty can with water" → text "Fill ", amount {text "one empty can",
-  qty 1, unit "can"}, text " with water". "text" is the printed words of the
-  number and its counting word, exactly; qty is that number ("one" → 1, "half"
-  → 0.5, "1 1/2" → 1.5); qty_high only for a printed range ("2 to 3 cups" →
-  2 and 3); unit is the counting word as printed ("can", "tablespoons",
-  "cups"), or null for a bare count. NEVER an amount for a food that IS a line
+- "amount" token: { "t":"amount", "s":"one empty can", "portion":{ "qty":1,
+  "qty_low":null, "qty_high":null, "unit":"can", "qualifier":null } }. An
+  amount a step names of something that is NOT in the line list (water, the
+  pasta water, ice, more stock "to cover") becomes its own amount token, in
+  position, so it scales with the servings: "Fill one empty can with water" →
+  text "Fill ", amount {s "one empty can", portion qty 1 unit "can"}, text
+  " with water". "s" is the printed words of the number and its counting word,
+  exactly; portion.qty is that number ("one" → 1, "half" → 0.5, "1 1/2" →
+  1.5); a printed range ("2 to 3 cups") is qty null with qty_low 2 and
+  qty_high 3; portion.unit is the counting word as printed ("can",
+  "tablespoons", "cups"), or null for a bare count; qualifier is always null.
+  NEVER an amount for a food that IS a line
   (that is a ref, with a portion when the step names a sub-amount), for a time
   (a timer), a temperature, a pan or dish size ("a 9-inch pan"), equipment
   ("2 baking sheets"), servings, or a count of steps; and never invent a
