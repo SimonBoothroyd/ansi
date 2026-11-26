@@ -98,10 +98,6 @@ const gToken: GSchema = {
     portion: gPortion,
     low_seconds: { type: "NUMBER", nullable: true },
     high_seconds: { type: "NUMBER", nullable: true },
-    text: { type: "STRING", nullable: true },
-    qty: { type: "NUMBER", nullable: true },
-    qty_high: { type: "NUMBER", nullable: true },
-    unit: { type: "STRING", nullable: true },
   },
   required: ["t"],
 };

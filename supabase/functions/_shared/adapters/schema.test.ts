@@ -2,6 +2,7 @@ import { assert, assertEquals, assertThrows } from "@std/assert";
 import {
   CAPS,
   coerceExtractionResult,
+  EXTRACTION_JSON_SCHEMA,
   ExtractionParseError,
   MAX_PARSE_WARNINGS,
   structuralIssues,
@@ -236,17 +237,25 @@ Deno.test("coerceExtractionResult — an unknown token kind is dropped", () => {
 });
 
 Deno.test("coerceExtractionResult — a step's own amount keeps its words and scales its figure", () => {
+  const portion = (
+    qty: number | null,
+    unit: string | null,
+    low: number | null = null,
+    high: number | null = null,
+  ) => ({ qty, qty_low: low, qty_high: high, unit, qualifier: null });
   const r = coerceExtractionResult({
     ...MINIMAL,
     steps: [{
       tokens: [
         { t: "text", s: "Fill " },
-        { t: "amount", text: "one empty can", qty: 1, unit: "can" },
+        // The wire form: words in `s`, the figure in `portion`.
+        { t: "amount", s: "one empty can", portion: portion(1, "can") },
         { t: "text", s: " with water, then " },
-        { t: "amount", text: "2 to 3 cups", qty: 2, qty_high: 3, unit: "cups" },
+        // A printed range, as a ref's portion says one.
+        { t: "amount", s: "2 to 3 cups", portion: portion(null, "cups", 2, 3) },
         // No figure to scale: it stays prose.
-        { t: "amount", text: "some water", qty: null, unit: null },
-        // A high end that is no range is dropped, not inverted.
+        { t: "amount", s: "some water", portion: portion(null, null) },
+        // The flat form still decodes, so a replayed run reads the same.
         {
           t: "amount",
           text: "4 tablespoons",
@@ -270,6 +279,24 @@ Deno.test("coerceExtractionResult — a step's own amount keeps its words and sc
       qty_high: null,
       unit: "tablespoons",
     },
+  ]);
+});
+
+Deno.test("EXTRACTION_JSON_SCHEMA — a step token carries only the fields text, ref and timer use", () => {
+  // Claude compiles the strict schema into a grammar with a size limit; four
+  // optional amount fields broke every import (HTTP 400). Amounts reuse `s`
+  // and `portion`, so a new token kind adds an enum value, never a field.
+  const token =
+    EXTRACTION_JSON_SCHEMA.properties.steps.items.properties.tokens.items;
+  assertEquals(Object.keys(token.properties).sort(), [
+    "high_seconds",
+    "label",
+    "low_seconds",
+    "mention",
+    "portion",
+    "refs",
+    "s",
+    "t",
   ]);
 });
 

@@ -103,11 +103,11 @@ const tokenSchema = {
     // timer
     low_seconds: { type: "number" },
     high_seconds: { type: "number" },
-    // amount
-    text: { type: "string" },
-    qty: { type: "number" },
-    qty_high: { type: ["number", "null"] },
-    unit: { type: ["string", "null"] },
+    // amount: its printed words ride in `s` and its figure in `portion`, the
+    // fields text and ref tokens already carry. Every optional property here
+    // multiplies the grammar Claude compiles for strict output, and four new
+    // ones pushed it past Anthropic's limit (HTTP 400 "compiled grammar is
+    // too large"), so a new token kind adds an enum value, never a field.
   },
 } as const;
 
@@ -428,14 +428,21 @@ function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
     return { t: "timer", low_seconds: low, high_seconds: high };
   }
   if (t === "amount") {
-    const words = cap(String(o.text ?? o.s ?? ""), CAPS.step_text);
-    const qty = numOrNull(o.qty);
+    // On the wire: words in `s`, the figure in `portion` (a range in
+    // qty_low/qty_high, as a ref's portion says one). The flat form
+    // (text/qty/qty_high/unit) is read too, so a replayed run still decodes.
+    const p: Record<string, unknown> =
+      o.portion !== null && typeof o.portion === "object"
+        ? asRecord(o.portion)
+        : {};
+    const words = cap(String(o.s ?? o.text ?? o.label ?? ""), CAPS.step_text);
+    const qty = numOrNull(o.qty) ?? numOrNull(p.qty) ?? numOrNull(p.qty_low);
     // No figure to scale: the words stay, as prose.
     if (qty === null || !(qty > 0)) {
       return words ? { t: "text", s: words } : null;
     }
-    const high = numOrNull(o.qty_high);
-    const unit = strOrNull(o.unit, CAPS.unit);
+    const high = numOrNull(o.qty_high) ?? numOrNull(p.qty_high);
+    const unit = strOrNull(o.unit ?? p.unit, CAPS.unit);
     return {
       t: "amount",
       text: words || [qty, unit].filter((p) => p !== null).join(" "),
