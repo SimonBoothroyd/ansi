@@ -97,6 +97,9 @@ UNITS. ${unitHintsBlock(hints)}
   and the like. This is the ONE allowed identity translation; keep the original
   printed wording verbatim in raw_amount. (This is spelling/regional normalisation,
   NOT inventing — the ingredient itself is unchanged.)
+  The translation is for ingredient_text ONLY. Step prose and a chip's label
+  keep the step's printed word: "toss the courgette" stays "courgette" in the
+  step even though its line reads "zucchini".
 - Put the FULL printed amount verbatim in raw_amount, always. Never lose it.
 - If an amount cannot map to a standard unit, keep the printed word in unit and
   set unit_mappable=false. Preserve it faithfully; never force-fit a number.
