@@ -57,23 +57,7 @@ operator statement is owed there.
 
 ## On main, not yet tagged
 
-- **Optional ingredients as ordinary rows**
-  ([plan 0063](./active/0063-optional-items.md)): where a week owns the recipe
-  page an optional line stays in its own group, its `optional` pill the
-  switch. No migration.
-- **A step's own amount** (the can of water): an `amount` step token that
-  scales with the servings and is never bought or counted; *To amount* and
-  *＋ amount* in the method editor. Import never marks one. Older builds read
-  an unknown token as its words from here on, but a v0.41.0 phone cannot, so
-  update both phones before using *To amount*. No migration.
-- **Recipe import on Claude Haiku 5.5, thinking off**, with the prompt retuned
-  for it on corrected gold: line-F1 about 99% against 98%, fewer dangerous
-  errors, a seventh of the cost. A printed lemon volume wins when the zest is
-  used too, and a mixture's later name ("the onion mixture") is never a chip.
-  Receipts and labels stay on Haiku 4.5. Owes `deploy-supabase`
-  (`import-recipe`, `share-recipe`) before the tag.
-- **The household's cleaned vocabulary as the seed** (334 → 327 ingredients).
-  A new household gets it; owes the template reseed in the deploy.
+Nothing.
 
 ## Shipped
 
@@ -164,6 +148,9 @@ rows below, in that order.)
 | — | Five field bugs — a receipt keeps a weight whose rate is printed with its unit, its sum closes on the subtotal or the total less tax, and a pack of one states its size; the Shop's notes wrap; a leftover reads the choices of the week that cooked it. No migrations | `v0.41.0` | — |
 | — | Optional ingredients, chosen in the recipe — each quotes the step that uses it, the method greys what was not picked, the Shop never says optional, and a copy of last week carries the ticks. No migrations | `v0.41.0` | [0063](./active/0063-optional-items.md) |
 | — | Scaled amounts a measuring set holds — off its own servings a spoon rounds to eighths of a teaspoon, halves of a tablespoon, quarters and thirds of a cup, stepping down a spoon when too coarse, and a crumb is a pinch; the scaler says servings only, steps a part portion to the whole either side, and takes a typed amount. No migrations | `v0.41.0` | — |
+| — | Optional ingredients as ordinary rows — where a week owns the recipe page an optional line stays in its own group, its `optional` pill the switch. No migrations | `v0.42.0` | [0063](./active/0063-optional-items.md) |
+| — | A step's own amount — the can of water as an `amount` step token that scales with the servings and is never bought or counted, marked with *To amount* or *＋ amount* in the method editor; import never marks one, and an unknown token reads as its words. No migrations | `v0.42.0` | — |
+| — | Recipe import on Claude Haiku 5.5, thinking off — the prompt retuned on corrected gold (line-F1 about 99% against 98%, fewer dangerous errors, a seventh of the cost), a printed lemon volume winning when the zest is used too, a mixture's later name never a chip; receipts and labels stay on Haiku 4.5. The household's cleaned vocabulary as the seed (327 ingredients). No migrations | `v0.42.0` | — |
 
 ## Stretch
 

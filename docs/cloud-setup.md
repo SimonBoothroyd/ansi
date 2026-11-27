@@ -677,6 +677,10 @@ or any dashboard-config walk. An entry headed **pending** is the exception: it
 names a migration that is merged but **not yet on cloud**, and it is replaced by
 the ordinary entry for the run that pushes it.
 
+### 2026-11-27 — Haiku 5.5 import, step amounts, the cleaned seed: no migration
+
+- **deploy-supabase 46049333798** (on `63176ce4`): green — no migration; `import-recipe` redeployed on Claude Haiku 5.5 with thinking off and the retuned prompt, `share-recipe` with step amounts, the other functions and the streams unchanged; **template reseeded** (`reseed_template`): 327 live template ingredients, matching `seed/counts.json`, `seed_usda.sql` skipped (8,204 rows present). The run before it (46048805945) deployed the same functions and stopped at the reseed's first readback, before writing, on the CLI's bare-array JSON; `63176ce4` fixed the helper. Backed up first to `~/Backups/ansi-cloud-20261127-pre-v0420-{schema,data}.sql`. `cloud_verify.sh` not run (it reads `cloud.env`, which stays the owner's).
+
 ### 2026-11-22 — optional ingredients, spoon amounts, receipt fixes: no migration
 
 - **deploy-supabase 45074544116** (on `bc270c20`): green — no migration; `import-receipt` redeployed with the rate, total and pack-size fixes, `share-recipe` with the rebuilt page (spoon amounts, whole-number steps), the other functions, the share Worker and the streams unchanged. No reseed. `cloud_verify.sh` not run (it reads `cloud.env`, which stays the owner's).
