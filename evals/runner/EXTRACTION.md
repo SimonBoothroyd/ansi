@@ -286,7 +286,7 @@ vendor's own model-list endpoint (a free call), not from memory.
 
 | Provider     | Model id           | Constant             | Vision | Native structured output                               | Confirmed against                                       |
 | ------------ | ------------------ | -------------------- | ------ | ------------------------------------------------------ | ------------------------------------------------------- |
-| Claude Haiku | `claude-haiku-4-5` | `CLAUDE_HAIKU_MODEL` | yes    | `output_config.format` `json_schema` (Messages API)    | `GET api.anthropic.com/v1/models` + `claude-api` ref     |
+| Claude Haiku | `claude-haiku-5-5` | `CLAUDE_IMPORT_MODEL` | yes   | `output_config.format` `json_schema` (Messages API)    | `GET api.anthropic.com/v1/models` + `claude-api` ref     |
 | Gemini Flash | `gemini-3.5-flash` | `GEMINI_FLASH_MODEL` | yes    | `generationConfig.responseSchema` + `responseMimeType` | `GET generativelanguage.googleapis.com/v1beta/models`    |
 | GPT (budget) | `gpt-5.6-luna`     | `GPT_MINI_MODEL`     | yes    | `response_format: json_schema` (Chat Completions)      | `GET api.openai.com/v1/models` + developers.openai.com   |
 
@@ -302,10 +302,12 @@ Notes on the two that moved:
   project's flash-tier framing. There is no dated `gpt-5.6-luna-YYYY-MM-DD`
   snapshot in the models list, so that string *is* the exact pin.
 
-Claude stays on `claude-haiku-4-5`, and that string **is** the complete pin —
-the Haiku 4.5 id carries no date suffix and is not an alias that re-points. A
-newer Haiku generation would arrive under a different id, which is an edit to
-`CLAUDE_HAIKU_MODEL` and therefore a re-run of this eval.
+Claude is pinned to `claude-haiku-5-5` with thinking off, and that string **is**
+the complete pin — it carries no date suffix and is not an alias that re-points.
+A newer Haiku generation arrives under a different id, which is an edit to
+`CLAUDE_IMPORT_MODEL` and therefore a re-run of this eval. Haiku 5.5 takes no
+`temperature`, so read several samples of a run before calling a difference; the
+`claude-haiku-4-5` lane keeps the previous pin for comparison.
 
 Alternatives the owner may prefer, all already priced in `runner/pricing.ts` so
 a swap is a one-line change: `gemini-3.7-flash` (newer than the pinned 3.5 and
@@ -322,6 +324,7 @@ Mirrors `runner/pricing.ts`, which is the source of truth.
 
 | Model                   | Input        | Output       | Cache read | Cache write | Source                                            |
 | ----------------------- | ------------ | ------------ | ---------- | ----------- | ------------------------------------------------- |
+| `claude-haiku-5-5`      | $0.10        | $0.50        | $0.01      | $0.125 (5m) | platform.claude.com/docs/en/about-claude/pricing  |
 | `claude-haiku-4-5`      | $1.00        | $5.00        | $0.10      | $1.25 (5m)  | platform.claude.com/docs/en/about-claude/pricing  |
 | `gpt-5.6-luna`          | $0.20        | $1.20        | $0.02      | n/a         | developers.openai.com/api/docs/pricing            |
 | `gemini-3.5-flash`      | $1.50        | $9.00        | $0.15      | n/a         | ai.google.dev/gemini-api/docs/pricing             |

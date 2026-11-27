@@ -236,53 +236,31 @@ Deno.test("coerceExtractionResult — an unknown token kind is dropped", () => {
   });
 });
 
-Deno.test("coerceExtractionResult — a step's own amount keeps its words and scales its figure", () => {
-  const portion = (
-    qty: number | null,
-    unit: string | null,
-    low: number | null = null,
-    high: number | null = null,
-  ) => ({ qty, qty_low: low, qty_high: high, unit, qualifier: null });
+Deno.test("coerceExtractionResult — an amount token from a replayed run reads as its words", () => {
   const r = coerceExtractionResult({
     ...MINIMAL,
     steps: [{
       tokens: [
         { t: "text", s: "Fill " },
-        // The wire form: words in `s`, the figure in `portion`.
-        { t: "amount", s: "one empty can", portion: portion(1, "can") },
-        { t: "text", s: " with water, then " },
-        // A printed range, as a ref's portion says one.
-        { t: "amount", s: "2 to 3 cups", portion: portion(null, "cups", 2, 3) },
-        // No figure to scale: it stays prose.
-        { t: "amount", s: "some water", portion: portion(null, null) },
-        // A vague word is no measure, even counted with "a".
-        { t: "amount", s: "a pinch", portion: portion(1, "pinch") },
-        // The flat form still decodes, so a replayed run reads the same.
-        {
-          t: "amount",
-          text: "4 tablespoons",
-          qty: 4,
-          qty_high: 4,
-          unit: "tablespoons",
-        },
+        { t: "amount", s: "one empty can", portion: null },
+        { t: "text", s: " with water." },
+        { t: "amount", text: "4 tablespoons", qty: 4, unit: "tablespoons" },
       ],
     }],
   });
-  assertEquals(r.steps[0].tokens, [
-    { t: "text", s: "Fill " },
-    { t: "amount", text: "one empty can", qty: 1, qty_high: null, unit: "can" },
-    { t: "text", s: " with water, then " },
-    { t: "amount", text: "2 to 3 cups", qty: 2, qty_high: 3, unit: "cups" },
-    { t: "text", s: "some water" },
-    { t: "text", s: "a pinch" },
-    {
-      t: "amount",
-      text: "4 tablespoons",
-      qty: 4,
-      qty_high: null,
-      unit: "tablespoons",
-    },
-  ]);
+  assert(r.steps[0].tokens.every((t) => t.t === "text"));
+  assertEquals(
+    r.steps[0].tokens.map((t) => (t.t === "text" ? t.s : "")).join(""),
+    "Fill one empty can with water.4 tablespoons",
+  );
+});
+
+Deno.test("EXTRACTION_JSON_SCHEMA — import never emits a step amount", () => {
+  // Phones before the step-amount build cannot read one, and the prompt marks
+  // none; only the cook adds an amount, in the method editor.
+  const token =
+    EXTRACTION_JSON_SCHEMA.properties.steps.items.properties.tokens.items;
+  assertEquals([...token.properties.t.enum], ["text", "ref", "timer"]);
 });
 
 Deno.test("coerceExtractionResult — a portion's one number comes back as qty; a range stays a range", () => {
@@ -336,9 +314,8 @@ Deno.test("EXTRACTION_JSON_SCHEMA — a portion is four fields: Haiku 5.5 refuse
 });
 
 Deno.test("EXTRACTION_JSON_SCHEMA — a step token carries only the fields text, ref and timer use", () => {
-  // Claude compiles the strict schema into a grammar with a size limit; four
-  // optional amount fields broke every import (HTTP 400). Amounts reuse `s`
-  // and `portion`, so a new token kind adds an enum value, never a field.
+  // Claude compiles the strict schema into a grammar with a size limit, and
+  // one more optional field on the token broke every import (HTTP 400).
   const token =
     EXTRACTION_JSON_SCHEMA.properties.steps.items.properties.tokens.items;
   assertEquals(Object.keys(token.properties).sort(), [

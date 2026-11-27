@@ -94,7 +94,7 @@ The stages, and who owns each:
 | # | Stage | Where | Deterministic? |
 |---|---|---|---|
 | 1 | **Intake** — URL → JSON-LD or page text; photos → a faithful vision transcription | `_shared/jsonld.ts`, the adapter's `transcribe` | fetch/parse yes; transcribe no (LLM) |
-| 2 | **① sanitize · structure · align** — `RawBlob` → `ExtractionResult` (§4) | the `ExtractAdapter` (Claude Haiku 4.5) | no — always an LLM |
+| 2 | **① sanitize · structure · align** — `RawBlob` → `ExtractionResult` (§4) | the `ExtractAdapter` (Claude Haiku 5.5, thinking off) | no — always an LLM |
 | 3 | **Normalize** — `ingredient_text` → `match_text` (§7) | `_shared/normalize.ts`, called **inside** `match.ts` | yes |
 | 4 | **Match** — the cascade, bands + candidates (§6) | `_shared/match.ts` + the Postgres seam `match_db.ts` | yes |
 | 5 | **Reconcile** — one merged editable review screen (§8) | `app/lib/features/import` | human |
@@ -148,14 +148,18 @@ a safety net. A raw 12 MP photo is wasted tokens and risks the edge payload limi
 
 ### 4.3 Model choice
 
-**Claude Haiku 4.5** (`claude-haiku-4-5`), and it was chosen by measurement, not
-taste: lane D ([0018](../exec-plans/completed/0018-import-benchmark.md)) scored
-three providers against 11 human-blessed gold labels and the web corpus —
-**98.9% line-F1 vs GPT-5.4-mini's 93.4%**, whose recall collapses on dense
-recipes. At household volume the cost is a rounding error either way ($1 / $5 per
-million input / output tokens), so quality and never-invent behaviour decided it,
-not price. Prompt caching on the static instruction block keeps repeat imports
-cheap.
+**Claude Haiku 5.5** (`claude-haiku-5-5`) **with thinking off**, chosen by
+measurement, not taste. Lane D ([0018](../exec-plans/completed/0018-import-benchmark.md))
+first picked Claude Haiku over GPT and Gemini on the human-blessed gold labels,
+because GPT's recall collapses on dense recipes. Haiku 5.5 then replaced Haiku 4.5
+on the same gold: line-F1 about 99% against 98%, fewer dangerous errors, chips
+that read word for word more often, and about $0.0024 an import against $0.017.
+It runs adaptive thinking by default; the adapter sends `thinking: {type:
+"disabled"}`, which the prompt is tuned for and which keeps a call inside its
+budgets (thinking tripled the output and timed out a third of the gold). It
+takes no `temperature`, so a run is not deterministic; the eval reads several
+samples, not one. Prompt caching on the static instruction block keeps repeat
+imports cheap.
 
 **The model does not see the ingredient vocabulary and does not match** (ADR-0004,
 §2). It *is* unit-aware: `UnitHints` hands ① the canonical unit catalog, accepted
@@ -169,9 +173,9 @@ is **not** in the hints and never reaches the model.
 Use the provider's **native structured-output / JSON-schema mode**, not a "please
 reply in JSON" instruction — the review screen needs guaranteed-parseable output.
 
-**The id is the pin.** `claude-haiku-4-5` is the complete identifier — no alias,
+**The id is the pin.** `claude-haiku-5-5` is the complete identifier — no alias,
 no `-latest`, no date suffix to append — so the provider cannot move the app onto
-a different model; only an edit to `CLAUDE_HAIKU_MODEL`
+a different model; only an edit to `CLAUDE_IMPORT_MODEL`
 (`supabase/functions/_shared/adapters/claude.ts`) can. That constant is also what
 a run record's `model` field reports, so the id in `evals/runs/` is the id that
 was on the wire. Changing it is a change to the app's hardest correctness
@@ -238,17 +242,15 @@ wrapped as `{raw, band, candidates}` (§6).
           "portion": null },          // optional sub-amount, transcribed from the step
         { "t": "text", "s": " and soften for " },
         { "t": "timer", "low_seconds": 600, "high_seconds": 900 }
-      ] },
-    { "tokens": [
-        { "t": "text", "s": "Fill " },
-        // a step's own amount of something no line holds; scales, never bought
-        { "t": "amount", "text": "one empty can", "qty": 1,
-          "qty_high": null, "unit": "can" },
-        { "t": "text", "s": " with water." }
       ] }
   ]
 }
 ```
+
+Import emits only `text`, `ref` and `timer`. A step's own amount (the
+`amount` token, product-spec §"A step's own amount scales") is marked by the
+cook in the method editor, never by the model: the models marked far more than
+the cook would, and a phone older than the step-amount build cannot read one.
 
 These fields carry the never-invent invariant, and they are the ones to preserve if
 this contract is ever touched:
@@ -974,7 +976,7 @@ committed; the datasets and gold are.
 
 A photographed till receipt runs through a **second edge function**,
 [`import-receipt`](../../supabase/functions/import-receipt/README.md): the same
-household gate and allowlist, Haiku 4.5 pin, streaming transport, budgets, SSE
+household gate and allowlist, streaming transport, budgets, SSE
 stage events and failure shapes as `import-recipe`. A receipt is smaller and
 more regular than a cookbook page, and it has a printed subtotal the reading
 can be checked against.

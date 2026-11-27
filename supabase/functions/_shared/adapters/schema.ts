@@ -94,7 +94,7 @@ const tokenSchema = {
   additionalProperties: false,
   required: ["t"],
   properties: {
-    t: { type: "string", enum: ["text", "ref", "timer", "amount"] },
+    t: { type: "string", enum: ["text", "ref", "timer"] },
     // text
     s: { type: "string" },
     // ref: entries are line keys. Coercion still accepts the legacy integer
@@ -429,26 +429,6 @@ function coercePortion(v: unknown): RefPortion | null {
  */
 type RefResolver = (r: unknown) => number | null;
 
-/** Words a step says a quantity in that no measuring set holds. */
-const VAGUE_AMOUNT_WORDS = new Set([
-  "pinch",
-  "pinches",
-  "dash",
-  "dashes",
-  "splash",
-  "splashes",
-  "drizzle",
-  "handful",
-  "handfuls",
-  "sprinkle",
-  "knob",
-  "glug",
-  "little",
-  "bit",
-  "some",
-  "to taste",
-]);
-
 function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
   const o = asRecord(v);
   const t = o.t;
@@ -461,32 +441,10 @@ function coerceToken(v: unknown, resolveRef: RefResolver): StepToken | null {
     return { t: "timer", low_seconds: low, high_seconds: high };
   }
   if (t === "amount") {
-    // On the wire: words in `s`, the figure in `portion` (a range in
-    // qty_low/qty_high, as a ref's portion says one). The flat form
-    // (text/qty/qty_high/unit) is read too, so a replayed run still decodes.
-    const p: Record<string, unknown> =
-      o.portion !== null && typeof o.portion === "object"
-        ? asRecord(o.portion)
-        : {};
+    // Import never marks a step's own amount (the cook does, in the editor);
+    // a replayed run that carries one reads as its words.
     const words = cap(String(o.s ?? o.text ?? o.label ?? ""), CAPS.step_text);
-    const qty = numOrNull(o.qty) ?? numOrNull(p.qty) ?? numOrNull(p.qty_low);
-    // No figure to scale: the words stay, as prose.
-    if (qty === null || !(qty > 0)) {
-      return words ? { t: "text", s: words } : null;
-    }
-    const high = numOrNull(o.qty_high) ?? numOrNull(p.qty_high);
-    const unit = strOrNull(o.unit ?? p.unit, CAPS.unit);
-    // A vague word is no measure: "a pinch", "a splash" never scales.
-    if (unit !== null && VAGUE_AMOUNT_WORDS.has(unit.trim().toLowerCase())) {
-      return words ? { t: "text", s: words } : null;
-    }
-    return {
-      t: "amount",
-      text: words || [qty, unit].filter((p) => p !== null).join(" "),
-      qty,
-      qty_high: high !== null && high > qty ? high : null,
-      unit,
-    };
+    return words ? { t: "text", s: words } : null;
   }
   if (t === "ref") {
     const refs = Array.isArray(o.refs)

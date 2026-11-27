@@ -49,23 +49,34 @@ import {
 } from "./http.ts";
 
 /**
- * The pinned model every production import is extracted with, and what
+ * The pinned model every recipe import is extracted with, and what
  * `ProviderCall.model` reports. The id is the version: there is no alias or
  * `-latest`. Changing it means re-running the extraction eval (`evals/`,
  * `runner/EXTRACTION.md`) and adding a `runner/pricing.ts` row for the new id.
+ * Haiku 5.5 with thinking off matched Haiku 4.5's line scores, put fewer
+ * dangerous errors on the gold, and costs a seventh as much per import.
+ */
+export const CLAUDE_IMPORT_MODEL = "claude-haiku-5-5";
+/**
+ * Haiku 5.5 thinks by default. The import prompt is tuned with thinking off,
+ * and thinking tripled the output and timed out a third of the gold imports.
+ */
+export const CLAUDE_IMPORT_THINKING = "disabled" as const;
+/**
+ * The pin the receipt and label doors share (`claude_receipt.ts`,
+ * `claude_label.ts`). Their prompts and evals chose it, apart from recipe
+ * import's; it is also the benchmark lane for the previous import pin.
  */
 export const CLAUDE_HAIKU_MODEL = "claude-haiku-4-5";
 /** Benchmark alternates for the eval harness. Production never sends these. */
 export const CLAUDE_SONNET_MODEL = "claude-sonnet-5";
-/** The newest Haiku, benchmarked against the pinned one before any switch. */
-export const CLAUDE_HAIKU_NEXT_MODEL = "claude-haiku-5-5";
 export const CLAUDE_OPUS_MODEL = "claude-opus-5";
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 /**
  * A ceiling, not a target: a reached one truncates the JSON mid-object.
- * claude-haiku-4-5 tops out at 64K output tokens; half of that is far above
- * any real recipe, and safe only because the call streams.
+ * Half of Haiku's 64K output ceiling is far above any real recipe, and safe
+ * only because the call streams.
  */
 const DEFAULT_MAX_TOKENS = 32_000;
 
@@ -97,10 +108,10 @@ export interface ClaudeAdapterOptions {
    */
   effort?: "low" | "medium" | "high";
   /**
-   * `thinking: {type: "disabled"}` for a model that thinks by default
-   * (Haiku 5.5 runs adaptive thinking unless told otherwise, which tripled
-   * its output and timed out a third of the gold imports). Leave unset for
-   * Haiku 4.5, which does not think unless asked.
+   * `thinking: {type: "disabled"}` for a model that thinks by default.
+   * With no `model` given the adapter is the production import, which sends
+   * {@link CLAUDE_IMPORT_THINKING}; a benchmark lane naming its own model
+   * sends nothing unless it sets this.
    */
   thinking?: "disabled";
   /**
@@ -282,12 +293,13 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
   onProgress?: ProgressSink;
 
   constructor(opts: ClaudeAdapterOptions = {}) {
-    this.model = opts.model ?? CLAUDE_HAIKU_MODEL;
+    this.model = opts.model ?? CLAUDE_IMPORT_MODEL;
     this.name = opts.name ?? "claude-haiku";
     this.#apiKey = opts.apiKey ?? requireKey("ANTHROPIC_API_KEY", "Claude");
     this.#maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
     this.#effort = opts.effort;
-    this.#thinking = opts.thinking;
+    this.#thinking = opts.thinking ??
+      (opts.model === undefined ? CLAUDE_IMPORT_THINKING : undefined);
     this.#idleTimeoutMs = opts.idleTimeoutMs;
     this.#twoPhase = opts.twoPhase ?? false;
     this.#deadlineMs = opts.deadlineMs;

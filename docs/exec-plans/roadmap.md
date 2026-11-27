@@ -63,10 +63,17 @@ operator statement is owed there.
   switch. No migration.
 - **A step's own amount** (the can of water): an `amount` step token that
   scales with the servings and is never bought or counted; *To amount* and
-  *＋ amount* in the method editor; the import prompt marks them. Older builds
-  read an unknown token as its words from here on. No migration; owes
-  `deploy-supabase` (`import-recipe` prompt, `share-recipe` page) after both
-  phones run the tag.
+  *＋ amount* in the method editor. Import never marks one. Older builds read
+  an unknown token as its words from here on, but a v0.41.0 phone cannot, so
+  update both phones before using *To amount*. No migration.
+- **Recipe import on Claude Haiku 5.5, thinking off**, with the prompt retuned
+  for it on corrected gold: line-F1 about 99% against 98%, fewer dangerous
+  errors, a seventh of the cost. A printed lemon volume wins when the zest is
+  used too, and a mixture's later name ("the onion mixture") is never a chip.
+  Receipts and labels stay on Haiku 4.5. Owes `deploy-supabase`
+  (`import-recipe`, `share-recipe`) before the tag.
+- **The household's cleaned vocabulary as the seed** (334 → 327 ingredients).
+  A new household gets it; owes the template reseed in the deploy.
 
 ## Shipped
 

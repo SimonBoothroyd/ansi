@@ -659,7 +659,8 @@ as a line's amount is (`⅞ cup`, `1 can`), in the small mono pill an
 ingredient chip's amount wears, with no name beside it. It is never bought,
 costed or counted: no line, no Shop row, no macro. A token kind a build does
 not know reads as its words, so a step a newer build wrote never stops an
-older one opening the recipe.
+older one opening the recipe. Import never marks one; the cook does, with
+*To amount* or *＋ amount* in the method editor.
 
 **The editor's document is text plus ranges.** A ref's `label` already *is* the
 word standing at that position, so a token stream flattens to exactly the

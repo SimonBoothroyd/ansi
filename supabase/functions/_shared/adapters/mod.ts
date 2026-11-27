@@ -11,7 +11,8 @@ export {
 export type { MockAdapterOptions } from "./mock.ts";
 export {
   CLAUDE_HAIKU_MODEL,
-  CLAUDE_HAIKU_NEXT_MODEL,
+  CLAUDE_IMPORT_MODEL,
+  CLAUDE_IMPORT_THINKING,
   CLAUDE_OPUS_MODEL,
   CLAUDE_SONNET_MODEL,
   ClaudeHaikuAdapter,
@@ -51,7 +52,7 @@ export { MissingKeyError, ProviderHttpError } from "./http.ts";
 import type { ExtractAdapter, ExtractionResult } from "../types.ts";
 import {
   CLAUDE_HAIKU_MODEL,
-  CLAUDE_HAIKU_NEXT_MODEL,
+  CLAUDE_IMPORT_MODEL,
   CLAUDE_OPUS_MODEL,
   CLAUDE_SONNET_MODEL,
   ClaudeHaikuAdapter,
@@ -66,7 +67,7 @@ import { decodeGptSanitize } from "./gpt.ts";
 export type ProviderName =
   | "claude-haiku"
   | "claude-haiku-5-5"
-  | "claude-haiku-5-5-nothink"
+  | "claude-haiku-4-5"
   | "claude-haiku-5-5-low"
   | "claude-sonnet"
   | "claude-sonnet-low"
@@ -78,7 +79,7 @@ export type ProviderName =
 export const PROVIDER_NAMES: ProviderName[] = [
   "claude-haiku",
   "claude-haiku-5-5",
-  "claude-haiku-5-5-nothink",
+  "claude-haiku-4-5",
   "claude-haiku-5-5-low",
   "claude-sonnet",
   "claude-sonnet-low",
@@ -104,16 +105,12 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
     case "claude-haiku":
       return new ClaudeHaikuAdapter();
     case "claude-haiku-5-5":
-      return new ClaudeHaikuAdapter({ model: CLAUDE_HAIKU_NEXT_MODEL, name });
-    case "claude-haiku-5-5-nothink":
-      return new ClaudeHaikuAdapter({
-        model: CLAUDE_HAIKU_NEXT_MODEL,
-        name,
-        thinking: "disabled",
-      });
+      return new ClaudeHaikuAdapter({ model: CLAUDE_IMPORT_MODEL, name });
+    case "claude-haiku-4-5":
+      return new ClaudeHaikuAdapter({ model: CLAUDE_HAIKU_MODEL, name });
     case "claude-haiku-5-5-low":
       return new ClaudeHaikuAdapter({
-        model: CLAUDE_HAIKU_NEXT_MODEL,
+        model: CLAUDE_IMPORT_MODEL,
         name,
         effort: "low",
         ...BENCH_BUDGETS,
@@ -153,10 +150,10 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
 
 /** The pinned model id each provider name sends. */
 export const PROVIDER_MODELS: Record<ProviderName, string> = {
-  "claude-haiku": CLAUDE_HAIKU_MODEL,
-  "claude-haiku-5-5": CLAUDE_HAIKU_NEXT_MODEL,
-  "claude-haiku-5-5-nothink": CLAUDE_HAIKU_NEXT_MODEL,
-  "claude-haiku-5-5-low": CLAUDE_HAIKU_NEXT_MODEL,
+  "claude-haiku": CLAUDE_IMPORT_MODEL,
+  "claude-haiku-5-5": CLAUDE_IMPORT_MODEL,
+  "claude-haiku-4-5": CLAUDE_HAIKU_MODEL,
+  "claude-haiku-5-5-low": CLAUDE_IMPORT_MODEL,
   "claude-sonnet": CLAUDE_SONNET_MODEL,
   "claude-sonnet-low": CLAUDE_SONNET_MODEL,
   "claude-opus": CLAUDE_OPUS_MODEL,
@@ -175,7 +172,7 @@ export const RESPONSE_DECODERS: Record<
 > = {
   "claude-haiku": decodeClaudeSanitize,
   "claude-haiku-5-5": decodeClaudeSanitize,
-  "claude-haiku-5-5-nothink": decodeClaudeSanitize,
+  "claude-haiku-4-5": decodeClaudeSanitize,
   "claude-haiku-5-5-low": decodeClaudeSanitize,
   "claude-sonnet": decodeClaudeSanitize,
   "claude-sonnet-low": decodeClaudeSanitize,
