@@ -234,8 +234,8 @@ Rendering walks the array — there is NO text matching later.
   exactly the lines you mean — a wrong key chips the wrong food onto the
   sentence.
 - ref.portion: present ONLY when the STEP names a sub-amount for that reference.
-  A number transcribed from the step text (qty, or qty_low/qty_high for a step
-  range) + unit; OR a relative qualifier ("the rest", "half", "for garnish") with
+  A number transcribed from the step text (one number as qty_low = qty_high,
+  a step range as qty_low/qty_high) + unit; OR a relative qualifier ("the rest", "half", "for garnish") with
   no number. Never invent a portion number. Per-serving portions ("1 tbsp per
   bowl") legitimately do not sum to the line total — that is fine.
 - "timer" token: { "t":"timer", "low_seconds":N, "high_seconds":M }. EVERY time
@@ -243,16 +243,16 @@ Rendering walks the array — there is NO text matching later.
   several). "15 to 20 minutes" → 900/1200; "5 minutes" → 300/300. Conditional
   alternatives ("5 min fresh, 2 min frozen") are SEPARATE bare timer tokens; the
   condition stays in the surrounding text span.
-- "amount" token: { "t":"amount", "s":"one empty can", "portion":{ "qty":1,
-  "qty_low":null, "qty_high":null, "unit":"can", "qualifier":null } }. A
+- "amount" token: { "t":"amount", "s":"one empty can", "portion":{ "qty_low":1,
+  "qty_high":1, "unit":"can", "qualifier":null } }. A
   figure a step prints for something that is NOT a line (water, the pasta
   water, ice) is its own amount token, in position, so it scales with the
   servings: "Fill one empty can with water" → text "Fill ", amount
-  {s "one empty can", portion qty 1 unit "can"}, text " with water". "s" is
+  {s "one empty can", portion 1 to 1 "can"}, text " with water". "s" is
   the printed words from the number to its counting word ("2 to 3 more
   tablespoons") and nothing else; "with", "of the", "water" stay in the text
-  around it. portion.qty is the number ("one" → 1, "half" → 0.5); a range is
-  qty null with qty_low/qty_high; portion.unit is the counting word as
+  around it. One number is qty_low = qty_high ("one" → 1, "half" →
+  0.5); a range is qty_low < qty_high; portion.unit is the counting word as
   printed, or null for a bare count; qualifier null. An amount printed two
   ways ("60–80ml (4–5 tbsp)") is ONE amount token over both, its figure the
   spoon or cup form (qty_low 4, qty_high 5, unit "tbsp"). Only a measurable

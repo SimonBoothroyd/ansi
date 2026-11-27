@@ -73,12 +73,15 @@ const lineItemSchema = {
   },
 } as const;
 
+// A step's sub-amount. One number is qty_low = qty_high, a range low < high;
+// coercion hands back the frozen `RefPortion` (qty for a single number). A
+// separate `qty` field made the grammar too large for Haiku 5.5, which
+// compiles strict output under a tighter limit than 4.5, so it went.
 const portionSchema = {
   type: ["object", "null"],
   additionalProperties: false,
-  required: ["qty", "qty_low", "qty_high", "unit", "qualifier"],
+  required: ["qty_low", "qty_high", "unit", "qualifier"],
   properties: {
-    qty: { type: ["number", "null"] },
     qty_low: { type: ["number", "null"] },
     qty_high: { type: ["number", "null"] },
     unit: { type: ["string", "null"] },
@@ -399,10 +402,20 @@ function coerceMention(v: unknown): MentionKind {
 function coercePortion(v: unknown): RefPortion | null {
   if (v === null || v === undefined) return null;
   const o = asRecord(v);
+  const qty = numOrNull(o.qty);
+  const low = numOrNull(o.qty_low);
+  const high = numOrNull(o.qty_high);
+  // The wire says one number as low = high (or low alone); the frozen shape
+  // says it as qty. A replayed run's own qty is read exactly as it was, so a
+  // self-inconsistent one (qty AND a range) stays visible to structuralIssues.
+  const single = qty === null && low !== null &&
+      (high === null || high === low)
+    ? low
+    : null;
   return {
-    qty: numOrNull(o.qty),
-    qty_low: numOrNull(o.qty_low),
-    qty_high: numOrNull(o.qty_high),
+    qty: qty ?? single,
+    qty_low: single === null ? low : null,
+    qty_high: single === null ? high : null,
     unit: strOrNull(o.unit, CAPS.unit),
     qualifier: strOrNull(o.qualifier, CAPS.qualifier),
   };

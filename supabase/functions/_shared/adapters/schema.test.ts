@@ -285,6 +285,56 @@ Deno.test("coerceExtractionResult — a step's own amount keeps its words and sc
   ]);
 });
 
+Deno.test("coerceExtractionResult — a portion's one number comes back as qty; a range stays a range", () => {
+  const ref = (portion: unknown) => ({
+    t: "ref",
+    refs: ["oil"],
+    label: "oil",
+    mention: "fraction",
+    portion,
+  });
+  const r = coerceExtractionResult({
+    ...MINIMAL,
+    groups: [{ name: null, line_items: [lineItem({ key: "oil" })] }],
+    steps: [{
+      tokens: [
+        ref({ qty_low: 1, qty_high: 1, unit: "tbsp", qualifier: null }),
+        ref({ qty_low: 2, qty_high: 3, unit: "tbsp", qualifier: null }),
+        ref({ qty_low: null, qty_high: null, unit: null, qualifier: "half" }),
+        // A replayed run's own qty is read as it was.
+        ref({
+          qty: 4,
+          qty_low: null,
+          qty_high: null,
+          unit: "g",
+          qualifier: null,
+        }),
+      ],
+    }],
+  });
+  const portions = r.steps[0].tokens.map((t) => (t as RefToken).portion);
+  assertEquals(portions, [
+    { qty: 1, qty_low: null, qty_high: null, unit: "tbsp", qualifier: null },
+    { qty: null, qty_low: 2, qty_high: 3, unit: "tbsp", qualifier: null },
+    { qty: null, qty_low: null, qty_high: null, unit: null, qualifier: "half" },
+    { qty: 4, qty_low: null, qty_high: null, unit: "g", qualifier: null },
+  ]);
+});
+
+Deno.test("EXTRACTION_JSON_SCHEMA — a portion is four fields: Haiku 5.5 refuses five", () => {
+  // Claude compiles the strict schema under a size limit; Haiku 5.5's is
+  // tighter than 4.5's, and a separate `qty` beside qty_low/qty_high pushed
+  // the whole schema past it (evals/runner/probe_schema_grammar.ts).
+  const token =
+    EXTRACTION_JSON_SCHEMA.properties.steps.items.properties.tokens.items;
+  assertEquals(Object.keys(token.properties.portion.properties).sort(), [
+    "qty_high",
+    "qty_low",
+    "qualifier",
+    "unit",
+  ]);
+});
+
 Deno.test("EXTRACTION_JSON_SCHEMA — a step token carries only the fields text, ref and timer use", () => {
   // Claude compiles the strict schema into a grammar with a size limit; four
   // optional amount fields broke every import (HTTP 400). Amounts reuse `s`
