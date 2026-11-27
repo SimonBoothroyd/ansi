@@ -74,13 +74,12 @@ const gPortion: GSchema = {
   type: "OBJECT",
   nullable: true,
   properties: {
-    qty: { type: "NUMBER", nullable: true },
     qty_low: { type: "NUMBER", nullable: true },
     qty_high: { type: "NUMBER", nullable: true },
     unit: { type: "STRING", nullable: true },
     qualifier: { type: "STRING", nullable: true },
   },
-  required: ["qty", "qty_low", "qty_high", "unit", "qualifier"],
+  required: ["qty_low", "qty_high", "unit", "qualifier"],
 };
 
 const gToken: GSchema = {
