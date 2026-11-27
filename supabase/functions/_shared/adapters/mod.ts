@@ -66,6 +66,8 @@ import { decodeGptSanitize } from "./gpt.ts";
 export type ProviderName =
   | "claude-haiku"
   | "claude-haiku-5-5"
+  | "claude-haiku-5-5-nothink"
+  | "claude-haiku-5-5-low"
   | "claude-sonnet"
   | "claude-sonnet-low"
   | "claude-opus"
@@ -76,6 +78,8 @@ export type ProviderName =
 export const PROVIDER_NAMES: ProviderName[] = [
   "claude-haiku",
   "claude-haiku-5-5",
+  "claude-haiku-5-5-nothink",
+  "claude-haiku-5-5-low",
   "claude-sonnet",
   "claude-sonnet-low",
   "claude-opus",
@@ -101,6 +105,19 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
       return new ClaudeHaikuAdapter();
     case "claude-haiku-5-5":
       return new ClaudeHaikuAdapter({ model: CLAUDE_HAIKU_NEXT_MODEL, name });
+    case "claude-haiku-5-5-nothink":
+      return new ClaudeHaikuAdapter({
+        model: CLAUDE_HAIKU_NEXT_MODEL,
+        name,
+        thinking: "disabled",
+      });
+    case "claude-haiku-5-5-low":
+      return new ClaudeHaikuAdapter({
+        model: CLAUDE_HAIKU_NEXT_MODEL,
+        name,
+        effort: "low",
+        ...BENCH_BUDGETS,
+      });
     case "claude-sonnet":
       return new ClaudeHaikuAdapter({
         model: CLAUDE_SONNET_MODEL,
@@ -138,6 +155,8 @@ export function buildProvider(name: ProviderName): ExtractAdapter {
 export const PROVIDER_MODELS: Record<ProviderName, string> = {
   "claude-haiku": CLAUDE_HAIKU_MODEL,
   "claude-haiku-5-5": CLAUDE_HAIKU_NEXT_MODEL,
+  "claude-haiku-5-5-nothink": CLAUDE_HAIKU_NEXT_MODEL,
+  "claude-haiku-5-5-low": CLAUDE_HAIKU_NEXT_MODEL,
   "claude-sonnet": CLAUDE_SONNET_MODEL,
   "claude-sonnet-low": CLAUDE_SONNET_MODEL,
   "claude-opus": CLAUDE_OPUS_MODEL,
@@ -156,6 +175,8 @@ export const RESPONSE_DECODERS: Record<
 > = {
   "claude-haiku": decodeClaudeSanitize,
   "claude-haiku-5-5": decodeClaudeSanitize,
+  "claude-haiku-5-5-nothink": decodeClaudeSanitize,
+  "claude-haiku-5-5-low": decodeClaudeSanitize,
   "claude-sonnet": decodeClaudeSanitize,
   "claude-sonnet-low": decodeClaudeSanitize,
   "claude-opus": decodeClaudeSanitize,
