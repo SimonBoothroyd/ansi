@@ -51,9 +51,9 @@ function unitHintsBlock(h: UnitHints): string {
     `clearly maps; bias, do not force): ${h.units.join(", ")}.`,
     `Imprecise amounts (keep as the printed word, set unit_mappable=false):`,
     `${h.imprecise.join(", ")}.`,
-    `Size words (they modify an ingredient, they are NOT a unit): ${
-      h.size_words.join(", ")
-    }.`,
+    `Size words (they modify an ingredient, they are NOT a unit; they stay in`,
+    `ingredient_text with the food — "1 small shallot" → "small shallot", "2 fat`,
+    `garlic cloves" → "fat garlic cloves"): ${h.size_words.join(", ")}, fat.`,
     `Count-measure nouns you MAY use as the unit when the recipe counts by them`,
     `(a whole/each-of, not a size word): ${
       h.measures.join(", ")
@@ -91,14 +91,27 @@ UNITS. ${unitHintsBlock(hints)}
   product words to their American form IN ingredient_text so identity matches the
   US vocab: "tin"/"tinned" → "can"/"canned", "aubergine" → "eggplant", "courgette"
   → "zucchini", "coriander" (the herb) → "cilantro", "rocket" → "arugula", "spring
-  onion" → "green onion", "prawns" → "shrimp", "caster sugar" → "superfine sugar",
-  and the like. This is the ONE allowed identity translation; keep the original
+  onions" → "green onions", "prawns" → "shrimp", "caster sugar" → "superfine
+  sugar", and the like (keep the printed number and form words: "spring
+  onions" → "green onions", "Fresh coriander" → "fresh cilantro"). This is the
+  ONE allowed identity translation; keep the original
   printed wording verbatim in raw_amount. (This is spelling/regional normalisation,
   NOT inventing — the ingredient itself is unchanged.)
   Steps keep the printed word ("courgette"); only ingredient_text is translated.
 - Put the FULL printed amount verbatim in raw_amount, always. Never lose it.
+- An amount printed in several systems ("200g (7oz/1 cup)") takes qty/unit
+  from the FIRST one (200 g); the conversions stay only in raw_amount.
 - If an amount cannot map to a standard unit, keep the printed word in unit and
   set unit_mappable=false. Preserve it faithfully; never force-fit a number.
+- unit_mappable=true for every amount counted in "piece" or a count-measure
+  noun ("1 red bell pepper", "½ red onion", "2 cloves", "Leaves from 4 sprigs"
+  → 4 sprig, "½ loaf", "1 Italian Sausage (page 45)" → 1 piece) — all mappable.
+  An imprecise word stays unit_mappable=false even with a number ("2 large
+  handfuls" → qty=2, unit="handful", unit_mappable=false).
+- A line printed with NO amount ("Sea salt", "black pepper", "Fresh coriander
+  (optional)") → qty=null, unit=null, unit_mappable=false. Do not borrow "to
+  taste" from the method; unit="to_taste" only when the LINE prints "to taste".
+  A size phrase with no number ("Thumb-sized piece") is the same: unit=null.
 - IMPRECISE AMOUNTS map to an imprecise unit, never to raw text pretending to be a
   unit: "a good pinch" / "a pinch" → qty=null, unit="pinch"; "a dash" → unit="dash";
   "a handful" → unit="handful"; "to taste" → unit="to_taste". Set unit_mappable=false
@@ -106,8 +119,7 @@ UNITS. ${unitHintsBlock(hints)}
 - USAGE NOTES ARE NOT AMOUNTS. "extra, to serve", "for garnish", "for serving",
   "for frying", "plus more", "plus more to taste" describe how much / when, not a
   measured quantity — never put them in the qty or unit slot. Route them to the
-  notes field (garnish-style qualifiers) or leave them in ingredient_text as printed;
-  the qty/unit stay null unless a real number is printed.
+  notes field; the qty/unit stay null unless a real number is printed.
 
 LINE ITEMS — source-derived conventions:
 - key: mint a short slug on EVERY line that names its food ("kale", "sea-salt",
@@ -125,18 +137,23 @@ LINE ITEMS — source-derived conventions:
 - COMPOUND INGREDIENT LINE ("Sea salt and freshly cracked black pepper"): SPLIT
   into two line items, each with its own key.
 - COMPOUND AMOUNT, ONE INGREDIENT ("2 tbsp + ½ cup parsley", both volume): sum
-  within the family for the line total; represent the per-step split via a ref
-  portion (below). If the two amounts are different families and cannot bridge,
+  within the family, exactly, into the larger unit for the line total (1 cup =
+  16 tbsp, 1 tbsp = 3 tsp: "2 tbsp + ½ cup" → qty=0.625, unit="cup"); the
+  per-step split lives in the step portions (below). If the two amounts are
+  different families and cannot bridge,
   keep raw_amount, set qty=null, and add a parse_warning.
 - COUNT-ON-PRODUCE-WITH-A-TRANSFORM ("Juice of 1 lemon"): the identity follows
   WHAT THE COOK WOULD BUY (owner ruling). When the recipe uses ONLY the juice of
   that fruit, the ingredient IS the juice — ingredient_text="lemon juice" /
   "lime juice", a bottled product: qty/unit from a printed volume when given
   ("about 3 tbsp" → qty=3, unit="tbsp"), else qty=null, unit=null,
-  unit_mappable=false with the printed phrase kept in raw_amount. When the
+  unit_mappable=false with the printed phrase kept in raw_amount (the fruit
+  count is not the juice's amount; notes stays empty). When the
   recipe ALSO uses the zest or the fruit itself (any line or step does), the
   fruit is what's bought — ingredient_text="lemon", qty=1, unit="piece", and
-  the transforms in notes ("juiced", "zested").
+  the transforms in notes ("juiced", "zested"). An optional zest printed on
+  the same line ("plus zest (optional), to serve") folds into that line's
+  notes — it never becomes a line of its own.
 - COUNT PRODUCE ("1 red bell pepper"): unit="piece".
 - NOTES — split cook-prep out of the identity. ingredient_text is what you BUY and
   match against; notes holds an action YOU perform on that base ingredient (and any
@@ -151,8 +168,22 @@ LINE ITEMS — source-derived conventions:
   that "chopped"). Multiple cook-preps on one line collapse into a single notes string
   ("peeled and diced"). Keep a product-form word even when a cook-prep sits beside it:
   "diced fresh tomatoes" (fresh) → ingredient_text="fresh tomatoes", notes="diced".
-  Leave non-garnish usage notes ("for serving", "for frying", "plus more to taste") in
-  ingredient_text. "freshly ground/cracked black pepper" stays identity.
+  Usage and choice qualifiers also go to notes, never into ingredient_text:
+  "for serving", "to serve", "for frying", "plus more to taste", "or to taste",
+  "depending on size and desired amount", "or desired amount", "(your choice)",
+  "of your choice", a printed equivalent after the amount ("1 medium", "about 4
+  large stalks", "about 1 cup"), and a parenthetical telling the cook what to
+  do instead ("(or spinach or kale and 4 garlic cloves, fried)"). "freshly
+  cracked / freshly ground black pepper" → ingredient_text="black pepper",
+  notes="freshly cracked". Several fragments join in printed order with "; ".
+  What STAYS in ingredient_text, never in notes: size words ("small", "large",
+  "fat"), form words ("fresh", "dried", "boiling", "warm", "cooked",
+  "toasted", "leaves", "head of"), a plain alternative between products
+  ("soy sauce or tamari", "olive oil or vegetable oil" — keep both), a
+  product's own parenthetical ("small pasta (pastina)"), and a page
+  cross-reference ("Italian Sausage (page 45)"). notes never repeats the
+  amount ("juice of 1 lemon", "400g cans") and never says "optional" — that is
+  the optional field.
 - optional=true only when the source marks it optional ("optional", "if you
   like", "to serve" garnishes that are explicitly optional).
 
@@ -164,8 +195,8 @@ SERVINGS / YIELD / TIMES:
   parse_warning to ask the user.
 - total_time_seconds / cook_time_seconds: ONLY from a printed time banner (TIME,
   TOTAL TIME, COOK TIME). Emit {low_seconds, high_seconds} (a single printed
-  time → both equal; a printed range → low/high). No banner → null. Never derive
-  a time from the steps.
+  time → both equal; a printed range → low/high). No banner → null, even when
+  the steps give durations: never add up or copy a step's time.
 - SHELF LIFE (keeps_for_days, freezable, freezer_days): ONLY from what the
   source prints about storing the FINISHED dish, wherever it sits (a "Fridge
   life" banner, the intro, a step, a note). Leave that text in place, as printed.
@@ -177,95 +208,145 @@ SERVINGS / YIELD / TIMES:
   temperature storage, or a component kept on its own ("the dressing keeps a
   week"), sets nothing.
 - image_quality: your honest legibility read (ok | degraded | poor).
-- truncated=true ONLY when the source is deliberately cut off (a missing page).`;
+- truncated=true ONLY when the source is deliberately cut off (a missing page).
+
+CHECK EACH LINE: ingredient_text keeps every word of the food's name as
+printed — size, "fresh", "leaves", "cooked", an "or" alternative ("tamari or
+coconut aminos"), a "(page N)" cross-reference ("1 tablespoon fresh lemon
+juice" → "fresh lemon juice");
+notes holds only what the cook DOES to it and how it is used or served, in
+the LINE's own printed words — never words from the method, never the amount
+or its conversions, a size, a product form, or the word "optional". "Juice of
+1 lime" alone → ingredient_text="lime juice", qty=null, unit=null, notes
+empty.`;
 }
 
 /** The step-tokenization rules, shared by the one-shot and two-phase prompts. */
 const STEPS_RULES =
   `STEPS — token arrays (§4.6). A step is an ORDERED list of tokens; chop the prose
 at label boundaries, never rewrite it: the tokens' words, in order, are the
-step's printed words (timers aside), none added, dropped or reworded.
-Rendering walks the array — there is NO text matching later.
+step's printed words and punctuation (timers aside), none added, dropped or
+reworded. Rendering walks the array — there is NO text matching later.
 - STEP SEGMENTATION is source-determined, never a style choice: one printed
   step = one step, exactly. The source's own separations (numbers, bullets,
   paragraph breaks) are the ONLY step boundaries. An unbroken method paragraph
   is ONE step, however many sentences it holds — never split it, and never
-  merge separately printed steps.
+  merge separately printed steps. The step's printed number or bullet ("1.")
+  is not part of its text.
+- Use only three token kinds: "text", "ref" and "timer". Never emit an
+  "amount" token; a printed quantity in a step stays in the text.
 - "text" token: a plain prose span { "t":"text", "s":"…" }.
 - "ref" token: { "t":"ref", "refs":["<line key>",…], "label":"<the food's
   name>", "mention":…, "portion":… }. The chip words go in "label" — NEVER in
-  "s" ("s" is for text and amount tokens) — and "label" is the complete noun
-  phrase that NAMES the food, exactly as printed — every word that belongs to
-  the name stays, whatever it is ("canned chopped tomatoes", "cream of
-  tartar", "extra-firm tofu"). Only a leading determiner ("the", "a", "an",
-  "some") is not part of the name: it stays in the text token BEFORE the chip,
-  never inside the label and never dropped — "Add the kale" → text "Add the "
-  + label "kale". Prep that the prose hangs off the name ("kale, shredded")
-  likewise stays in text tokens. The name's words appear ONLY in the label,
-  never duplicated in a text token. refs is a list of line KEYS — copy each
-  key exactly as you minted it on the line; never invent, abbreviate, or
-  re-spell a key. mention is
-  "new" | "rementioned" | "fraction" (meaningful only on a single-line ref).
-  NEVER put a quantity on a ref — the chip inherits its number from the line.
-- REF RECALL IS THE JOB: every time step prose names an ingredient that appears
-  in the line list, that mention MUST be a ref token — first use and every
-  re-mention alike ("the kale", "reserved marinade", "remaining butter"). Before
-  emitting a step, re-read its prose against the full line list and convert
-  every match you can resolve; a mention left as plain text is a MISS, exactly
-  as wrong as a fabricated line. A mention counts even when it shortens or
-  renames the line: "salt" for "sea salt", "quinoa" for "cooked tricolour
-  quinoa", "the sausage" for "Italian sausage links", and a derived rename —
-  "the broth" for the water line it was made from — are all refs. So are
-  garnish/serving re-mentions ("more parmesan, for serving" → ref with a
-  relative portion). Only genuinely unresolvable prose stays text (the rule
-  below). The inverse also holds: pronouns and implied subjects ("them", "it",
-  "everything", an unstated subject) are NOT refs — chip only words that name
-  the food.
-- A multi-line ref is ONLY for an explicit collective phrase — "all of the
-  ingredients", "the remaining sauce ingredients", "the onion mixture": ONE ref
-  token whose label is the printed phrase and whose refs list every line it
-  covers, never one chip per ingredient, and never plain text when the covered
-  lines are unambiguous ("the remaining X" = every line of the named group not
-  already used by earlier steps). A plain conjunction of separately listed
-  foods ("salt and pepper", "oregano, thyme") is NOT a collective — emit one
-  single-line ref per food, with the connecting words as text tokens between
-  them.
-- KEY ACCURACY: before finishing each step, confirm every ref's keys name
-  exactly the lines you mean — a wrong key chips the wrong food onto the
-  sentence.
-- ref.portion: present ONLY when the STEP names a sub-amount for that reference.
-  A number transcribed from the step text (one number as qty_low = qty_high,
-  a step range as qty_low/qty_high) + unit; OR a relative qualifier ("the rest", "half", "for garnish") with
-  no number. Never invent a portion number. Per-serving portions ("1 tbsp per
-  bowl") legitimately do not sum to the line total — that is fine.
-- "timer" token: { "t":"timer", "low_seconds":N, "high_seconds":M }. EVERY time
-  phrase in the prose becomes its own timer token, in position (a step may have
-  several). "15 to 20 minutes" → 900/1200; "5 minutes" → 300/300. Conditional
-  alternatives ("5 min fresh, 2 min frozen") are SEPARATE bare timer tokens; the
-  condition stays in the surrounding text span.
-- "amount" token: { "t":"amount", "s":"one empty can", "portion":{ "qty_low":1,
-  "qty_high":1, "unit":"can", "qualifier":null } }. A
-  figure a step prints for something that is NOT a line (water, the pasta
-  water, ice) is its own amount token, in position, so it scales with the
-  servings: "Fill one empty can with water" → text "Fill ", amount
-  {s "one empty can", portion 1 to 1 "can"}, text " with water". "s" is
-  the printed words from the number to its counting word ("2 to 3 more
-  tablespoons") and nothing else; "with", "of the", "water" stay in the text
-  around it. One number is qty_low = qty_high ("one" → 1, "half" →
-  0.5); a range is qty_low < qty_high; portion.unit is the counting word as
-  printed, or null for a bare count; qualifier null. An amount printed two
-  ways ("60–80ml (4–5 tbsp)") is ONE amount token over both, its figure the
-  spoon or cup form (qty_low 4, qty_high 5, unit "tbsp"). Only a measurable
-  figure is an amount: a vague quantity ("a pinch of salt", "a splash of
-  water", "a drizzle", "a handful", "some", "a little") stays plain text,
-  even with "a" in front. Never an amount for a line's food (a ref), a time
-  (a timer), a temperature, a size ("1-inch pieces", "a 9-inch pan"),
-  equipment ("2 baking sheets"), or servings.
-- Prose you cannot confidently link to a line stays a plain text token (no chip):
-  a "pinch of salt" with no matching line, or a sub-recipe reference
-  ("Romesco Aioli (p38)") — nested recipes are out of scope, keep them as text.
+  "s" — and "label" is the noun phrase that NAMES the food, exactly as printed
+  in the step, every word of the name kept ("canned chopped tomatoes", "cream
+  of tartar"). Only a leading determiner ("the", "a", "an", "some") is not part
+  of the name: it stays in the text token BEFORE the chip — "Add the kale" →
+  text "Add the " + label "kale". Prep words the prose puts around the name
+  ("the chopped cabbage", "kale, shredded") stay in text tokens. The label
+  never gains a word the step does not print there. refs is a list of line
+  KEYS — copy each key exactly as you minted it on the line.
+- mention: "new" the FIRST time a line is chipped anywhere in the recipe;
+  "rementioned" for that line's later chips; "fraction" when the step uses a
+  stated part of the line (a sub-amount, "half", "the remaining", "the
+  reserved"). NEVER put a quantity on a ref — the chip inherits its number
+  from the line.
+- WHAT TO CHIP. Each time a step USES an ingredient line — adds, cooks,
+  tosses, tops, serves or removes it — the words that name it are a ref, in
+  every step that uses it. A mention counts even when it shortens or renames
+  the line: "salt" for "sea salt", "quinoa" for "cooked tricolour quinoa",
+  "garlic" for "fat garlic cloves", "the sausage" for "Italian sausage links".
+  A line named with its prep or state ("the roasted fennel", "the chopped
+  tofu", "the crispy kale") is still that line — chip it. Pronouns and implied
+  subjects ("them", "it", "everything") are NOT refs.
+- ONE CHIP PER LINE PER STEP. Keep a tally while you write each step: once a
+  line has been chipped in this step — alone or inside a collective — every
+  later naming of it IN THE SAME STEP is plain text. "First, roast the
+  broccoli. Chop the broccoli…" → chip the first "broccoli" only; "Add the
+  rice to the pot", "Spread the tofu on the sheet", "more quinoa, more
+  broccoli", "Serve garnished with the green onions" are text when that line
+  was already chipped earlier in the same step. The next step starts a fresh
+  tally. The one exception: the step itself splits the line into stated parts
+  ("1 cup of the stock … the remaining 1½ cups stock") — chip each part.
+- COLLECTIVES — one ref token whose label is the printed phrase and whose refs
+  list every line it covers; never one chip per ingredient, never plain text:
+  · A catch-all ("all the ingredients", "all the remaining sauce
+    ingredients", "the remaining ingredients") covers EVERY line of the group
+    the step is making (the group printed for that component, or the whole
+    list if it is ungrouped) that no earlier step used — seasoning lines
+    included, optional lines included. Only lines printed "to serve" / "for
+    serving" stay out, and so does any line the same step names on its own.
+    Walk the line list and enumerate the keys.
+  · A mixture named after its ingredients ("the onion mixture", "the wild
+    garlic sauce", "the reserved chopped mushrooms") covers every line an
+    earlier step combined into it, and gets the SAME refs at every later use
+    (mention "fraction" when the step takes part of it). A mixture named only
+    as a dish ("the dressing", "the sauce", "the 'feta'") stays text.
+  · A plural that names two lines at once ("the bell peppers" for a green and
+    a red pepper line) is one ref over both.
+  · A strained liquid ("the mushroom broth", "the soaking liquid") is a single
+    ref on the liquid line it was made from (the water), not on what steeped
+    in it.
+  A plain conjunction of separately listed foods ("salt and pepper", "oregano,
+  thyme") is NOT a collective: one single-line ref per food, the connecting
+  words as text between them.
+- SEASONING SCOPE. "salt" / "a pinch of salt" chips a salt line only inside
+  the scope being cooked: a line of the same group (or the ungrouped list).
+  It stays text when the only salt line belongs to another group ("For the
+  dressing" salt is not the salt for roasting the broccoli), or when that line
+  prints its own measure that a later step uses ("1 tsp sea salt" blended into
+  the sauce — the frying pinch is untracked). A salt line printed with no
+  amount ("Sea salt") is chipped by its pinch. Salted cooking water and
+  "adding more salt or lemon juice to taste" are text.
+- EITHER/OR. "a drizzle of olive or chilli oil" chips only the branch that is
+  its own line meant for that use — label "chilli oil", "olive or " left as
+  text; a line already spent for another role (the frying oil) does not
+  qualify. If neither branch is such a line, it is all text.
+- ref.portion: present ONLY when the STEP names a sub-amount for that
+  reference. A number transcribed from the step text (one number as
+  qty_low = qty_high, a step range as qty_low/qty_high) + unit; OR a relative
+  qualifier ("the rest", "half", "the reserved", "for garnish") with no
+  number. Never invent a portion number. The portion COPIES the figure; the
+  printed words stay in the text: "combine 2 tablespoons of the parsley" →
+  text "combine 2 tablespoons of the " + ref parsley (portion 2 tbsp).
+  Per-serving portions ("1 tbsp per bowl") legitimately do not sum to the
+  line total — that is fine.
+- "timer" token: { "t":"timer", "low_seconds":N, "high_seconds":M }. NEVER a
+  timer: a storage time ("consume within 4 days", "keeps for a week") or a
+  time relative to something unprinted ("1 minute less than the packet
+  instructions") — both stay text. Otherwise EVERY printed duration the cook
+  waits through — cooking, resting, soaking, marinating — becomes its own
+  timer token, in position (a step may have several). "15 to 20 minutes" → 900/1200; "5 minutes" → 300/300. The timer
+  replaces only the duration words: "for", "about", "another" stay in the text
+  around it. Conditional alternatives ("5 min fresh, 2 min frozen") are
+  SEPARATE timer tokens; the condition stays in the text.
+- Prose you cannot confidently link to a line stays a plain text token (no
+  chip): a food no line prints (water for the pasta pot, cayenne inside a
+  spice blend), or a sub-recipe reference ("Romesco Aioli (p38)") that is not
+  a line.
 - A step with zero refs is fine. An ingredient never named in a step gets no
-  chip; that is normal, not an error.`;
+  chip; that is normal, not an error.
+
+WORKED EXAMPLE (illustration only — not from the recipe you are given).
+Lines: key "onion" (1 onion, diced), "olive-oil", "sea-salt" (Sea salt — no
+amount), "cumin", "paprika", "chilli-flakes"; group "For the sauce":
+"tahini", "lemon-juice", "garlic", "water"; "parsley" (Parsley, to serve).
+Step printed: "Fry the onion in the olive oil with a pinch of salt for 5
+minutes, stirring the onion often. Stir in the cumin, paprika and chilli
+flakes. Add all the sauce ingredients and simmer for about 2 minutes. Serve
+topped with the parsley." Tokens:
+  text "Fry the " · ref onion ["onion"] new · text " in the " · ref olive oil
+  ["olive-oil"] new · text " with a pinch of " · ref salt ["sea-salt"] new ·
+  text " for " · timer 300/300 · text ", stirring the onion often. Stir in
+  the " · ref cumin ["cumin"] · text ", " · ref paprika ["paprika"] · text
+  " and " · ref chilli flakes ["chilli-flakes"] · text ". Add " · ref all the
+  sauce ingredients ["tahini","lemon-juice","garlic","water"] new · text " and
+  simmer for about " · timer 120/120 · text ". Serve topped with the " · ref
+  parsley ["parsley"] new · text "."
+The second "onion" is text (already chipped in this step). A list of foods is
+one ref per food with only the separators (", ", " and ") as text between —
+however long the list, a text token never holds a listed food's name. The
+catch-all is ONE ref listing every line of its group.`;
 
 /** The one-shot sanitize prompt (lines + steps in one call) — the gemini/gpt
  * benchmark adapters still use this; the Claude adapter now runs two-phase. */
