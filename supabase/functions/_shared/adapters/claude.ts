@@ -97,6 +97,13 @@ export interface ClaudeAdapterOptions {
    */
   effort?: "low" | "medium" | "high";
   /**
+   * `thinking: {type: "disabled"}` for a model that thinks by default
+   * (Haiku 5.5 runs adaptive thinking unless told otherwise, which tripled
+   * its output and timed out a third of the gold imports). Leave unset for
+   * Haiku 4.5, which does not think unless asked.
+   */
+  thinking?: "disabled";
+  /**
    * Run sanitize as two calls (lines, then steps against the keyed line list)
    * instead of one. Benchmark only: it measured flat on ref F1 at +40% cost,
    * so production is one-shot.
@@ -280,12 +287,19 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
     this.#apiKey = opts.apiKey ?? requireKey("ANTHROPIC_API_KEY", "Claude");
     this.#maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
     this.#effort = opts.effort;
+    this.#thinking = opts.thinking;
     this.#idleTimeoutMs = opts.idleTimeoutMs;
     this.#twoPhase = opts.twoPhase ?? false;
     this.#deadlineMs = opts.deadlineMs;
   }
 
   readonly #effort?: "low" | "medium" | "high";
+  readonly #thinking?: "disabled";
+
+  /** `thinking`, when configured. */
+  #thinkingConfig(): { thinking?: { type: "disabled" } } {
+    return this.#thinking ? { thinking: { type: this.#thinking } } : {};
+  }
   readonly #twoPhase: boolean;
   readonly #idleTimeoutMs?: number;
   readonly #deadlineMs?: number;
@@ -363,6 +377,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
         // Unpinned, the API defaults to temperature 1.0 and the same page
         // transcribes differently run to run.
         ...this.#sampling(),
+        ...this.#thinkingConfig(),
         ...(this.#effort ? { output_config: this.#effortConfig() } : {}),
         messages: [{ role: "user", content }],
       },
@@ -392,6 +407,7 @@ export class ClaudeHaikuAdapter implements ExtractAdapter {
         max_tokens: this.#maxTokens,
         // Same pin as transcribe.
         ...this.#sampling(),
+        ...this.#thinkingConfig(),
         // Prompt caching: the system prompt is stable per hint set, so it is
         // the cache breakpoint; the per-recipe content stays in the user turn.
         system: [

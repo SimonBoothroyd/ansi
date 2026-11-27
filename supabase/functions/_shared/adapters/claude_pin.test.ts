@@ -73,3 +73,23 @@ Deno.test("the run record reports the id that was sent — one source of truth",
   assertEquals(calls[0].model, body.model);
   assertEquals(calls[0].model, CLAUDE_HAIKU_MODEL);
 });
+
+Deno.test("Haiku 5.5 with thinking off says so on the wire, and gets no temperature", async () => {
+  const { body } = await capture(
+    new ClaudeHaikuAdapter({
+      apiKey: "test-key",
+      model: "claude-haiku-5-5",
+      thinking: "disabled",
+    }),
+  );
+  assertEquals(body.thinking, { type: "disabled" });
+  assert(!("temperature" in body));
+});
+
+Deno.test("Haiku 4.5 by default sends no thinking and is pinned to temperature 0", async () => {
+  const { body } = await capture(
+    new ClaudeHaikuAdapter({ apiKey: "test-key" }),
+  );
+  assert(!("thinking" in body));
+  assertEquals(body.temperature, 0);
+});
