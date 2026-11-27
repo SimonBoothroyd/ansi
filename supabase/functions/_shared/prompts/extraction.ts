@@ -152,8 +152,10 @@ LINE ITEMS — source-derived conventions:
   recipe ALSO uses the zest or the fruit itself (any line or step does), the
   fruit is what's bought — ingredient_text="lemon", the transforms in notes
   ("juiced", "zested"), and the amount is still the printed volume when there
-  is one ("Juice of 1 lemon (about 3 tbsp)" → qty=3, unit="tbsp", the fruit
-  count kept in raw_amount); with no volume printed, qty=1, unit="piece". An optional zest printed on
+  is one ("Juice of 2 limes (about 4 tbsp), plus the zest" →
+  ingredient_text="lime", qty=4, unit="tbsp", notes="juiced, zested", the
+  fruit count kept in raw_amount — the identity stays the fruit although the unit is a spoon);
+  with no volume printed, qty=1, unit="piece". An optional zest printed on
   the same line ("plus zest (optional), to serve") folds into that line's
   notes — it never becomes a line of its own.
 - COUNT PRODUCE ("1 red bell pepper"): unit="piece".
@@ -271,7 +273,7 @@ reworded. Rendering walks the array — there is NO text matching later.
   tally. The one exception: the step itself splits the line into stated parts
   ("1 cup of the stock … the remaining 1½ cups stock") — chip each part.
 - COLLECTIVES — one ref token whose label is the printed phrase and whose refs
-  list every line it covers, never one chip per ingredient:
+  list every line it covers; never one chip per ingredient, never plain text:
   · A catch-all ("all the ingredients", "all the remaining sauce
     ingredients", "the remaining ingredients") covers EVERY line of the group
     the step is making (the group printed for that component, or the whole
@@ -279,11 +281,6 @@ reworded. Rendering walks the array — there is NO text matching later.
     included, optional lines included. Only lines printed "to serve" / "for
     serving" stay out, and so does any line the same step names on its own.
     Walk the line list and enumerate the keys.
-  · A mixture an earlier step made from several foods stays TEXT, whatever it
-    is called: "the onion mixture", "the wild garlic sauce", "the dressing",
-    "the 'feta'", "the broth mixture". A chip names a food, never a
-    preparation of several. A food that is still itself ("the reserved chopped
-    mushrooms", for the mushroom lines) is chipped as that food.
   · A plural that names two lines at once ("the bell peppers" for a green and
     a red pepper line) is one ref over both.
   · A strained liquid ("the mushroom broth", "the soaking liquid") is a single
@@ -291,7 +288,15 @@ reworded. Rendering walks the array — there is NO text matching later.
     in it.
   A plain conjunction of separately listed foods ("salt and pepper", "oregano,
   thyme") is NOT a collective: one single-line ref per food, the connecting
-  words as text between them.
+  words as text between them — however long the list. A printed list is never
+  replaced by a label of your own ("all the seasoning ingredients").
+- A LATER NAME FOR A MIXTURE is plain text. Once an earlier step has mixed
+  several foods together, the words that name the result — "the onion
+  mixture", "the wild garlic sauce", "the dressing", "the 'feta'", "the broth
+  mixture" — are text, never a chip. This applies only to that later name: the
+  foods themselves are chipped as usual wherever a step names them, including
+  the step that mixes them. A food that is still itself ("the reserved chopped
+  mushrooms") is chipped as that food.
 - SEASONING SCOPE. "salt" / "a pinch of salt" chips a salt line only inside
   the scope being cooked: a line of the same group (or the ungrouped list).
   It stays text when the only salt line belongs to another group ("For the
