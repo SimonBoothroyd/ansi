@@ -33,20 +33,36 @@ printf '%s' "$out" | python3 -c '
 import json, sys
 
 raw = sys.stdin.read()
-start = raw.find("{")
-if start < 0:
+# The CLI prints {"rows": [...], ...} where it wraps results for an agent, and
+# a bare [...] of rows elsewhere (CI). Decode the first value that parses at a
+# "{" or "[" (a colour code like "\x1b[31m" does not).
+doc = None
+broken = None  # the first object that started but did not parse
+for i, ch in enumerate(raw):
+    if ch not in "{[":
+        continue
+    try:
+        doc, _ = json.JSONDecoder().raw_decode(raw[i:])
+    except ValueError as e:
+        if ch == "{" and broken is None:
+            broken = e
+        continue
+    if isinstance(doc, (dict, list)):
+        break
+    doc = None
+if doc is None and broken is not None:
+    sys.exit("db_query_value: unparsable JSON document — %s" % broken)
+if doc is None:
     head = " ".join(raw.split())[:120] or "(nothing)"
     sys.exit("db_query_value: the CLI printed no JSON document — got: " + head
              + "\n  (a box-drawn table here means --output json did not take)")
-try:
-    doc, _ = json.JSONDecoder().raw_decode(raw[start:])
-except ValueError as e:
-    sys.exit("db_query_value: unparsable JSON document — %s" % e)
 
-rows = doc.get("rows")
+rows = doc if isinstance(doc, list) else doc.get("rows")
 if not isinstance(rows, list):
     sys.exit("db_query_value: the document has no `rows` array — keys: %s"
              % ", ".join(sorted(doc)))
+if rows and not isinstance(rows[0], dict):
+    sys.exit("db_query_value: a row is not an object — got %r" % (rows[0],))
 if len(rows) != 1:
     sys.exit("db_query_value: expected one row, got %d" % len(rows))
 cols = list(rows[0].values())

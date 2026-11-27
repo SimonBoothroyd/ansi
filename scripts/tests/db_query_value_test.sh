@@ -80,6 +80,15 @@ We recommend updating regularly for new features and bug fixes: https://supabase
 
 echo "• the document is read wherever the CLI chats"
 expect_value "a bare document" 8204 '{"rows":[{"count":8204}]}'
+expect_value "a bare row array, as CI prints it" 8204 '[{"count":8204}]'
+expect_value "a pretty-printed row array after chatter" 8204 \
+  "Initialising login role...
+[
+  {
+    \"count\": 8204
+  }
+]
+$NAG"
 expect_value "chatter before it" 8204 \
   "Initialising login role...
 {\"rows\":[{\"count\":8204}]}"
