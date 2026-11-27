@@ -150,8 +150,10 @@ LINE ITEMS — source-derived conventions:
   unit_mappable=false with the printed phrase kept in raw_amount (the fruit
   count is not the juice's amount; notes stays empty). When the
   recipe ALSO uses the zest or the fruit itself (any line or step does), the
-  fruit is what's bought — ingredient_text="lemon", qty=1, unit="piece", and
-  the transforms in notes ("juiced", "zested"). An optional zest printed on
+  fruit is what's bought — ingredient_text="lemon", the transforms in notes
+  ("juiced", "zested"), and the amount is still the printed volume when there
+  is one ("Juice of 1 lemon (about 3 tbsp)" → qty=3, unit="tbsp", the fruit
+  count kept in raw_amount); with no volume printed, qty=1, unit="piece". An optional zest printed on
   the same line ("plus zest (optional), to serve") folds into that line's
   notes — it never becomes a line of its own.
 - COUNT PRODUCE ("1 red bell pepper"): unit="piece".
@@ -269,7 +271,7 @@ reworded. Rendering walks the array — there is NO text matching later.
   tally. The one exception: the step itself splits the line into stated parts
   ("1 cup of the stock … the remaining 1½ cups stock") — chip each part.
 - COLLECTIVES — one ref token whose label is the printed phrase and whose refs
-  list every line it covers; never one chip per ingredient, never plain text:
+  list every line it covers, never one chip per ingredient:
   · A catch-all ("all the ingredients", "all the remaining sauce
     ingredients", "the remaining ingredients") covers EVERY line of the group
     the step is making (the group printed for that component, or the whole
@@ -277,11 +279,11 @@ reworded. Rendering walks the array — there is NO text matching later.
     included, optional lines included. Only lines printed "to serve" / "for
     serving" stay out, and so does any line the same step names on its own.
     Walk the line list and enumerate the keys.
-  · A mixture named after its ingredients ("the onion mixture", "the wild
-    garlic sauce", "the reserved chopped mushrooms") covers every line an
-    earlier step combined into it, and gets the SAME refs at every later use
-    (mention "fraction" when the step takes part of it). A mixture named only
-    as a dish ("the dressing", "the sauce", "the 'feta'") stays text.
+  · A mixture an earlier step made from several foods stays TEXT, whatever it
+    is called: "the onion mixture", "the wild garlic sauce", "the dressing",
+    "the 'feta'", "the broth mixture". A chip names a food, never a
+    preparation of several. A food that is still itself ("the reserved chopped
+    mushrooms", for the mushroom lines) is chipped as that food.
   · A plural that names two lines at once ("the bell peppers" for a green and
     a red pepper line) is one ref over both.
   · A strained liquid ("the mushroom broth", "the soaking liquid") is a single

@@ -84,7 +84,7 @@ Conventions (all source-derived, none invented):
 - **Every count-measure noun is mappable — no exceptions.** The count family is `piece` plus the generic measure nouns `clove · head · sprig · loaf · block · slice · can · bunch · stalk` (the same list `_shared/unit_hints.ts` hands the model and `runner/score_extraction.ts` scores as one family). **All of them take `unit_mappable: true`**, uniformly: `"Leaves from 4 sprigs rosemary"` → `qty:4, unit:"sprig"`, `"One 14-ounce block"` → `qty:1, unit:"block"`, `"½ loaf"` → `qty:0.5, unit:"loaf"`, `"1 large head of broccoli"` → `qty:1, unit:"head"` — every one `unit_mappable:true`. *(owner ruling 2026-08-31, superseding the earlier per-noun split.)* `unit_mappable:false` is for amounts with **no** measure noun to map at all (`"Thumb-sized piece"`, `"2 large handfuls"`, a bare unquantified line).
 - **`heaped` / `scant` / `rounded` modifiers** → keep the **printed** qty exactly (never inflate or deflate a number for them) **and** put the modifier word in `notes`: `"3 heaped tbsp peanut butter"` → `qty:3, unit:"tbsp", notes:"heaped"`, full phrase still in `raw_amount`. *(owner ruling)*
 - **Printed qty + "or to taste"** → the printed number **wins**: keep `qty`/`unit` as printed and put the qualifier in `notes` (`"1 teaspoon sea salt, or to taste"` → `qty:1, unit:"tsp", notes:"or to taste"`). `qty` goes null only when **no** number is printed. *(owner ruling)*
-- **Count-on-produce-with-a-transform** `"Juice of 1 lemon"` → `qty:1, unit:"piece", ingredient_text:"lemon", notes:"juiced"` (match the produce). If the page gives a volume `"(about 3 tbsp)"` → `qty:3, unit:"tbsp"`, lemon count stays in `raw_amount`. An **optional second use of the SAME produce** (`"plus zest (optional)"`) folds into that line's `notes` — it does **not** become a second line item. *(owner ruling)*
+- **Count-on-produce-with-a-transform** `"Juice of 1 lemon"` → `qty:1, unit:"piece", ingredient_text:"lemon", notes:"juiced"` (match the produce). If the page gives a volume `"(about 3 tbsp)"` → `qty:3, unit:"tbsp"`, lemon count stays in `raw_amount` — the printed volume wins even when the zest is used too (you measure 3 tbsp and keep the rest). The identity is `"lemon"` when the recipe uses the zest or the fruit as well, `"lemon juice"` when it uses only the juice. An **optional second use of the SAME produce** (`"plus zest (optional)"`) folds into that line's `notes` — it does **not** become a second line item. *(owner rulings 2026-08-30, 2026-11-27)*
 - **Count produce** `"1 red bell pepper"` → `unit:"piece"`.
 
 ### `notes` — cook-prep vs product-form (the identity split)
@@ -174,15 +174,13 @@ Token rules:
   (`"the dry ingredients"`). `mention`: `"new" | "rementioned" | "fraction"` —
   meaningful only on a **single-line** ref; on a collective (`refs.length > 1`)
   it's advisory (a collective shows no number anyway, §4.6).
-- **An intermediate mixture is ONE collective chip per use.** When a step names a
-  mixture an earlier step built (`"the onion mixture"`, `"the reserved chopped
-  mushrooms"`), chip it as a single `ref` over **every** line that went into it, and
-  use that **same ref set at each later use** — never re-chip the constituents
-  individually, and never shrink the set to whichever one line the prose happens to
-  echo. `mention: "fraction"` on each use (a mixture built once and drawn on twice is
-  used in parts), with the `portion` carrying **that step's** sub-amount or qualifier.
-  *(owner ruling 2026-08-31 — gumbo's `"onion mixture"` is `[3,4,5,6,7]` in both step 5
-  and step 8: step 5 takes `qualifier: "the larger amount"`, step 8 takes `1½ cups`.)*
+- **A mixture an earlier step made from several foods is plain text, never a chip.**
+  `"the onion mixture"`, `"the wild garlic sauce"`, `"the dressing"`, `"the 'feta'"`,
+  `"broth mixture"` all stay text: a chip names a food, and a chip over a mixture would
+  show one constituent's amount for something that is no longer that food. A food that
+  is still itself (`"the reserved chopped mushrooms"`, over the two mushroom lines) is
+  chipped as that food. *(owner ruling 2026-11-27 — gumbo's `"onion mixture"` in steps 5 and 8,
+  `1½ cups` included, is text.)*
 - **A collective's `mention` describes the COLLECTIVE's own first appearance**, not
   its constituents' histories. The first time that chip is emitted it is `"new"` —
   even when one line inside it was already chipped, or fraction-used, in an earlier
@@ -195,9 +193,8 @@ Token rules:
   `"the mushroom broth"` / `"the soaking liquid"` is a single ref on the line that became
   the liquid — not a collective. The strained-out solids are still their own ingredient
   and get their own chip where the prose uses them, so sweeping them into the liquid's
-  ref would double-count them. (This is the boundary of the intermediate-mixture rule
-  above: a *mixture* keeps every constituent, a *strained infusion* keeps only the
-  liquid.) *(owner ruling 2026-08-31 — gumbo step 3's `"mushroom broth"` is `[0]`, the
+  ref would double-count them. (A strained infusion is still the liquid it was made of, so it is a food, not a
+  mixture.) *(owner ruling 2026-08-31 — gumbo step 3's `"mushroom broth"` is `[0]`, the
   boiling water, `mention: "rementioned"`; the shiitakes (1) come back separately in
   step 7's `[1,2]`.)*
 - **The same ingredient printed on two lines links by ROLE.** A recipe that prints
