@@ -29,6 +29,22 @@ CoveredMeal _meal(int day, String slot, double portions) =>
     CoveredMeal(dayOfWeek: day, mealSlot: slot, portions: portions);
 
 void main() {
+  group('batchSize', () {
+    test('whole batches are a factor', () {
+      expect(batchSize(1, 4), '×1');
+      expect(batchSize(2, 8), '×2');
+      expect(batchTick(2, 8), '×2');
+    });
+
+    test('a part batch is its portions, never a decimal factor', () {
+      expect(batchSize(0.4375, 1.75), '1¾ portions');
+      expect(batchSize(1.75, 7), '7 portions');
+      expect(batchSize(0.875, 1.75), '1¾ portions');
+      expect(batchTick(0.4375, 1.75), '1¾');
+      expect(batchSize(0.25, 1), '1 portion');
+    });
+  });
+
   group('formatScale', () {
     test('trims trailing zeros', () {
       expect(formatScale(1), '×1');
@@ -93,17 +109,17 @@ void main() {
   });
 
   group('the whole-batch switch', () {
-    // 1¾ portions of a serves-4 recipe: ×0.44 exact, or ×1 with 2¼ spare.
+    // 1¾ portions of a serves-4 recipe (×0.44), or ×1 with 2¼ spare.
     final session = _session(
       cookDay: 0,
       covers: [_meal(0, 'Dinner', 1.75)],
       servings: 4,
     );
 
-    test('names both sides with the real numbers', () {
+    test('names the exact side in portions, never its factor', () {
       expect(
-        wholeBatchChoice(wholeBatchNudgeFor(session)!, rawFactor: 0.4375),
-        (exact: '×0.44 exact', whole: '×1 whole batch'),
+        wholeBatchChoice(wholeBatchNudgeFor(session)!, plannedPortions: 1.75),
+        (exact: '1¾ portions', whole: '×1 whole batch'),
       );
     });
 
@@ -111,7 +127,9 @@ void main() {
       final speech = SessionSpeech.of(session, WeekShape.monday);
       expect(speech.wholeBatchShown, isFalse);
       expect(speech.covers, 'covers Mon dinner · 1¾ portions');
-      expect(speech.scale, '×0.44');
+      expect(speech.scale, '1¾ portions');
+      expect(speech.trackScale, '1¾');
+      expect(speech.wholeBatch?.exact, '1¾ portions');
     });
 
     test('the whole side says the portions spare', () {
@@ -122,6 +140,9 @@ void main() {
       expect(speech.wholeBatchShown, isTrue);
       expect(speech.covers, 'covers Mon dinner · 2¼ portions spare');
       expect(speech.scale, '×1');
+      expect(speech.trackScale, '×1');
+      // One whole recipe goes without saying.
+      expect(speech.scaleShown, isFalse);
       expect(speech.wholeBatch, isNotNull);
     });
 

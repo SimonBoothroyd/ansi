@@ -193,6 +193,7 @@ void main() {
   testWidgets('a fractional demand reads as a fraction on the session row and '
       'on the whole-batch switch', (tester) async {
     // A 1 and a ¾ eater of a serves-2 recipe: ×0.88 → cook ×1, ¼ over.
+    // The part batch is said in its portions, never its factor.
     final kitchen = _Kitchen(_recipe('Curry', {0: 1.75}, keeps: 3));
     await tester.pumpWidget(
       _host([
@@ -204,8 +205,8 @@ void main() {
 
     expect(find.text('covers Mon dinner · 1¾ portions'), findsOneWidget);
     // The switch states the scale, so the tile's head does not repeat it.
-    expect(find.text('×⅞ exact'), findsOneWidget);
-    expect(find.text('×⅞'), findsNothing);
+    expect(find.text('1¾ portions'), findsOneWidget);
+    expect(find.textContaining('×⅞'), findsNothing);
     expect(find.textContaining('1.75'), findsNothing);
 
     // Whole batch: kept on the cooking (born under the first meal), and the
@@ -215,7 +216,7 @@ void main() {
     await tester.pump();
     expect(kitchen.wholeBatches, [('Curry-0', true)]);
     expect(find.text('covers Mon dinner · ¼ portion spare'), findsOneWidget);
-    await tester.tap(find.text('×⅞ exact'));
+    await tester.tap(find.text('1¾ portions'));
     await tester.pump();
     await tester.pump();
     expect(kitchen.wholeBatches.last, ('Curry-0', false));
@@ -805,10 +806,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The exact factor is on the switch and on its tick.
+      // The part batch is said in portions on the switch and on its tick.
       expect(find.text('Cook Mon'), findsOneWidget);
-      expect(find.text('×⅞ exact'), findsOneWidget);
-      expect(marks(tester, 'r1', 0).cookScale, '×⅞');
+      expect(find.text('1¾ portions'), findsOneWidget);
+      expect(marks(tester, 'r1', 0).cookScale, '1¾');
 
       // The switch is the same choice, kept on the cooking, and the tick
       // follows it.

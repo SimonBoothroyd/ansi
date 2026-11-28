@@ -18,7 +18,7 @@ class WholeBatchSwitch extends StatelessWidget {
     super.key,
   });
 
-  /// `×0.44 exact`.
+  /// `1¾ portions`: the portions planned.
   final String exact;
 
   /// `×1 whole batch`.

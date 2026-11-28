@@ -144,7 +144,7 @@ right.
   `213.5 g`, never `213½ g`; `1.5 l`, never `1½ l`. Cups, spoons, fl oz,
   oz, lb, pieces, named measures, servings and batches are said by hand and
   keep their fractions, as does a figure with no unit at all — a bare count,
-  the cook plan's `×¾`. Which rule a figure gets is decided by
+  a part batch's portions (`1¾`). Which rule a figure gets is decided by
   `formatAmountIn(amount, unit)` (and `formatQuantityIn` for one that may be
   absent), off `Unit.isMetric`; every surface with a unit in scope prints
   through it, so the same number reads the same way wherever it appears.
@@ -931,7 +931,7 @@ into **cook sessions** bounded by shelf life:
 - `cook_session (derived): recipe_id · covers[] (plan_entry ids) · cook_day (default = earliest covered day, user-adjustable) · total_portions (Σ demandPortions over covered — a double) · scale_factor (total_portions / recipe.servings_base)`
 - **Clustering rule (greedy, not a solver):** sort the days a dish appears; start a session at the first; include each later day within `keeps_for_days`; open a new session when one falls outside. O(n log n).
 - **"Same dish too far apart" → two things to cook**, each labelled why ("keeps 4 days"). Replaces manual leftover linking — batching is derived from demand, not hand-assigned.
-- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("×0.44 exact" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) while it is still to cook. The side picked is kept on the session's cooking (born then if need be): with the whole batch, what it makes rounds up to whole batches, the shopping list and the cost buy that, and the spare portions are left over once it is cooked. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
+- **Scaling helpers apply to the session batch (step 7.6):** a fractional `scale_factor` gets a **two-way switch** on the session card ("1¾ portions" / "×1 whole batch", whole batch putting "2¼ portions spare" on the covers line) while it is still to cook. A part batch is said in the portions it makes, never its factor (`batchSize`): `×0.44` is the arithmetic, as on the recipe page's scaler, so the switch, a cooked tile's head (`Cooked Mon 7 portions`) and the wide sheet's tick (`1¾`) say portions, and only whole batches read as a factor (`×2`). The side picked is kept on the session's cooking (born then if need be): with the whole batch, what it makes rounds up to whole batches, the shopping list and the cost buy that, and the spare portions are left over once it is cooked. Ingredient quantities scale linearly; cook times / pan sizes may need human judgment.
 - **Freezer (core, built in step 5):** if `recipe.freezable`, distant instances merge into one session (cook once, freeze the far share) instead of splitting.
 - **A cooking is remembered** ([plan 0062](../exec-plans/active/0062-leftovers-remembered.md)):
   one pot, born at the first tick on any of its meals or the first pick

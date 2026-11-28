@@ -29,14 +29,30 @@ String formatCookCount(int sessions) => switch (sessions) {
   _ => '$sessions cooks',
 };
 
+/// A meal batch's size as a cook acts on it: whole batches as `×2`, a part
+/// batch as the portions it makes (`1¾ portions`). Of a serves-4 recipe, `1¾`
+/// is `×0.44`, which is the arithmetic and not a number anybody cooks.
+String batchSize(double factor, double portions) => _isWhole(factor)
+    ? formatScale(factor.roundToDouble())
+    : formatPortions(portions);
+
+/// [batchSize] for a day of the wide sheet's track, a day sixty-odd pixels
+/// wide: a part batch's portions go without their noun (`1¾`).
+String batchTick(double factor, double portions) => _isWhole(factor)
+    ? formatScale(factor.roundToDouble())
+    : formatFraction(portions);
+
+bool _isWhole(double factor) => (factor - factor.round()).abs() < 1e-9;
+
 /// The two sides of the exact-or-whole-batch switch for a fractional session:
-/// `×0.44 exact` and `×1 whole batch`. The side chosen is the cooking's
+/// `1¾ portions` and `×1 whole batch`. The exact side is said in the portions
+/// planned ([batchSize]), never its factor. The side chosen is the cooking's
 /// ([CookSession.wholeBatch]): the shop buys it and the spare is left over.
 ({String exact, String whole}) wholeBatchChoice(
   WholeBatchNudge nudge, {
-  required double rawFactor,
+  required double plannedPortions,
 }) => (
-  exact: '${formatScale(rawFactor)} exact',
+  exact: formatPortions(plannedPortions),
   whole: '×${nudge.factor} whole batch',
 );
 
@@ -512,7 +528,9 @@ class SessionSpeech {
     final day = cookDay > 6
         ? 'next ${shape.labelShort(cookDay - 7)}'
         : shape.labelShort(cookDay);
-    final rawScale = formatScale(session.exactScaleFactor);
+    // What is cooked: the whole batch once it is chosen, else what is planned.
+    final factor = whole ? nudge.factor.toDouble() : session.exactScaleFactor;
+    final portions = whole ? nudge.batchPortions : session.plannedPortions;
     return SessionSpeech(
       when: component
           // A component batch has to be ready BY its parents' cook day, not on
@@ -523,17 +541,13 @@ class SessionSpeech {
           : 'Cook $day',
       cooked: cooked && byTicks != null,
       // A batch of one recipe goes without saying.
-      scaleShown: component || rawScale != '×1',
+      scaleShown: component || (factor - 1).abs() >= 1e-9,
       scale: component
           ? componentScaleLabel(session)
-          : whole
-          ? '×${nudge.factor}'
-          : rawScale,
+          : batchSize(factor, portions),
       trackScale: component
           ? formatScale(session.batchesToCook ?? 0)
-          : whole
-          ? '×${nudge.factor}'
-          : rawScale,
+          : batchTick(factor, portions),
       covers: component
           ? componentCoversLine(session, shape, denomination: denomination)
           : coversLine(
@@ -555,7 +569,7 @@ class SessionSpeech {
       wholeBatchShown: whole,
       wholeBatch: nudge == null
           ? null
-          : wholeBatchChoice(nudge, rawFactor: session.exactScaleFactor),
+          : wholeBatchChoice(nudge, plannedPortions: session.plannedPortions),
     );
   }
 
@@ -563,8 +577,9 @@ class SessionSpeech {
   /// Sat`.
   final String when;
 
-  /// The scale as the reader sees it: `×1.5`, a component's `×0.25 batch`, or
-  /// the nudged whole batch while the toggle is on.
+  /// The batch as the reader sees it ([batchSize]): `×2`, a part batch's
+  /// `1¾ portions`, a component's `×¼ batch`, or the nudged whole batch while
+  /// the toggle is on.
   final String scale;
 
   /// Whether [scale] is printed beside [when]: not for one whole recipe.
@@ -574,8 +589,8 @@ class SessionSpeech {
   /// check.
   final bool cooked;
 
-  /// The same scale with no denomination word, for the tick on a seven-day
-  /// track where a day is sixty-odd pixels wide.
+  /// The same scale with no denomination word ([batchTick]), for the tick on
+  /// a seven-day track where a day is sixty-odd pixels wide.
   final String trackScale;
 
   /// The "covers …" sentence.
